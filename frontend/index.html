@@ -1847,11 +1847,9 @@ const responseText =
     ? raw
     : raw.response || JSON.stringify(raw, null, 2);
 
-const html = renderMarkdown(responseText);
-
 document.getElementById('analysis-output').innerHTML = `
   <div class="mc-result-shell">
-    ${html}
+    <pre style="color:white;">${responseText}</pre>
   </div>
 `;
 
