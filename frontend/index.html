@@ -1839,93 +1839,22 @@ async function runAnalysis() {
 
 /* ─── RENDER RESULTS ─── */
 function showResults(raw) {
-  lastAnalysis = raw;
-  console.log(raw);
-  let parsed;
+    lastAnalysis = raw;
 
-try{
-  parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
-}catch(err){
-  parsed = null;
-}
+    const responseText =
+        typeof raw === "string"
+            ? raw
+            : raw.response || JSON.stringify(raw, null, 2);
 
-if(!parsed){
-  document.getElementById('analysis-output').innerHTML = `
-  <div class="mc-result-shell">
-    ${renderMarkdown(raw)}
-  </div>
-`;
-
-document.getElementById('res-empty').style.display = 'none';
-document.getElementById('res-filled').style.display = 'flex';
-document.getElementById('btn-analyze').disabled = false;
-
-return;
-}
-
-const overallScore = parsed.overall_score || 75;
-const verdict = parsed.verdict || "COMPETENT ORALIST";
-const judgeObservation = parsed.judge_observation || "Evaluation unavailable.";
-
-const metrics = parsed.metrics || {};
-
-const legalReasoning = metrics.legal_reasoning || 0;
-const issueFraming = metrics.issue_framing || 0;
-const persuasiveness = metrics.persuasiveness || 0;
-const researchDepth = metrics.research_depth || 0;
-  document.getElementById('analysis-output').innerHTML = `
-  <div class="mc-result-shell">
-
-  <div class="mc-hero">
-
-    <div class="mc-score-ring">
-      <div class="mc-score-value">${overallScore}</div>
-      <div class="mc-score-label">Overall</div>
-    </div>
-
-    <div class="mc-hero-main">
-      <div class="mc-verdict">${verdict}</div>
-
-      <div class="mc-judge-note">
-        “${judgeObservation}”
-        
-      </div>
-
-      <div class="mc-metrics">
-
-        <div class="mc-metric">
-          <span>Legal Reasoning</span>
-          <strong>${legalReasoning}</strong>
+    document.getElementById('analysis-output').innerHTML = `
+        <div class="mc-result-shell">
+            ${renderMarkdown(responseText)}
         </div>
+    `;
 
-        <div class="mc-metric">
-          <span>Issue Framing</span>
-          <strong>${issueFraming}</strong>
-        </div>
-
-        <div class="mc-metric">
-          <span>Persuasiveness</span>
-          <strong>${persuasiveness}</strong>
-        </div>
-
-        <div class="mc-metric">
-          <span>Research Depth</span>
-          <strong>${researchDepth}</strong>
-        </div>
-
-      </div>
-    </div>
-
-  </div>
-
-  ${renderMarkdown(raw)}
-
-</div>
-`;
-  document.getElementById('res-empty').style.display  = 'none';
-  document.getElementById('res-filled').style.display = 'flex';
-  showWsPanel('results');
-  document.getElementById('btn-analyze').disabled = false;
+    document.getElementById('res-empty').style.display = 'none';
+    document.getElementById('res-filled').style.display = 'flex';
+    document.getElementById('btn-analyze').disabled = false;
 }
 
 function renderMarkdown(text) {
