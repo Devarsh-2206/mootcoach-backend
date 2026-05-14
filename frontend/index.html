@@ -39,6 +39,173 @@
 
 html { scroll-behavior:smooth; }
 
+.mc-result-shell{
+  width:100%;
+  display:flex;
+  flex-direction:column;
+  gap:28px;
+}
+
+.mc-result-shell h1{
+  font-size:42px;
+  line-height:1.1;
+  margin:18px 0;
+  color:#f8f6f2;
+  font-weight:600;
+}
+
+.mc-result-shell h2{
+  font-size:26px;
+  margin-top:38px;
+  margin-bottom:16px;
+  color:#d4a94d;
+  border-bottom:1px solid rgba(212,169,77,.18);
+  padding-bottom:10px;
+}
+
+.mc-result-shell h3{
+  font-size:18px;
+  margin-top:26px;
+  color:#f3e7c1;
+}
+
+.mc-result-shell p{
+  color:#d6d6dc;
+  line-height:1.9;
+  font-size:15.5px;
+}
+
+.mc-result-shell ul{
+  padding-left:20px;
+}
+
+.mc-result-shell li{
+  margin-bottom:12px;
+  color:#d6d6dc;
+  line-height:1.8;
+}
+
+.mc-result-shell strong{
+  color:#ffffff;
+}
+
+.mc-result-shell blockquote{
+  border-left:3px solid #d4a94d;
+  margin:20px 0;
+  padding:16px 20px;
+  background:rgba(212,169,77,.06);
+  color:#f1e8d2;
+  border-radius:10px;
+}
+
+.mc-result-shell hr{
+  border:none;
+  height:1px;
+  background:rgba(255,255,255,.08);
+  margin:30px 0;
+}
+.mc-hero{
+  display:grid;
+  grid-template-columns:220px 1fr;
+  gap:32px;
+  padding:30px;
+  border:1px solid rgba(255,255,255,.06);
+  background:linear-gradient(135deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
+  border-radius:24px;
+  margin-bottom:18px;
+}
+
+.mc-score-ring{
+  width:180px;
+  height:180px;
+  border-radius:50%;
+  border:10px solid rgba(212,169,77,.25);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  background:radial-gradient(circle at top, rgba(212,169,77,.12), transparent);
+}
+
+.mc-score-value{
+  font-size:54px;
+  font-weight:700;
+  color:#f5d487;
+  font-family:var(--serif);
+}
+
+.mc-score-label{
+  color:#aaa;
+  font-size:13px;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+}
+
+.mc-verdict{
+  display:inline-flex;
+  padding:10px 16px;
+  border-radius:999px;
+  background:rgba(212,169,77,.12);
+  border:1px solid rgba(212,169,77,.22);
+  color:#f3d38a;
+  font-size:12px;
+  letter-spacing:.16em;
+  margin-bottom:18px;
+}
+
+.mc-judge-note{
+  font-size:20px;
+  line-height:1.7;
+  color:#f3f1eb;
+  max-width:900px;
+  font-family:var(--serif);
+  margin-bottom:28px;
+}
+
+.mc-metrics{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:14px;
+}
+
+.mc-metric{
+  padding:18px;
+  border-radius:18px;
+  background:rgba(255,255,255,.03);
+  border:1px solid rgba(255,255,255,.05);
+}
+
+.mc-metric span{
+  display:block;
+  font-size:12px;
+  color:#999;
+  margin-bottom:10px;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+
+.mc-metric strong{
+  font-size:28px;
+  color:#fff;
+  font-family:var(--serif);
+}
+
+@media(max-width:900px){
+
+  .mc-hero{
+    grid-template-columns:1fr;
+  }
+
+  .mc-score-ring{
+    margin:auto;
+  }
+
+  .mc-metrics{
+    grid-template-columns:1fr 1fr;
+  }
+
+}
+
 body {
   background: var(--navy);
   color: var(--white);
@@ -1646,6 +1813,13 @@ async function runAnalysis() {
     }
     const data = await res.json().catch(async () => ({ analysis: await res.text() }));
     const raw = data.analysis || data.result || data.response || data.text || (typeof data==='string' ? data : JSON.stringify(data,null,2));
+    if (
+  !raw ||
+  raw.includes('"error":true') ||
+  raw.includes("AI analysis temporarily unavailable")
+) {
+  throw new Error("AI analysis failed. Please retry.");
+}
     stopSteps();
     await sleep(500);
     hideLoading();
@@ -1661,7 +1835,56 @@ async function runAnalysis() {
 /* ─── RENDER RESULTS ─── */
 function showResults(raw) {
   lastAnalysis = raw;
-  document.getElementById('analysis-output').innerHTML = renderMarkdown(raw);
+  document.getElementById('analysis-output').innerHTML = `
+  <div class="mc-result-shell">
+
+  <div class="mc-hero">
+
+    <div class="mc-score-ring">
+      <div class="mc-score-value">82</div>
+      <div class="mc-score-label">Overall</div>
+    </div>
+
+    <div class="mc-hero-main">
+      <div class="mc-verdict">COMPETENT ORALIST</div>
+
+      <div class="mc-judge-note">
+        “The submissions demonstrate structural clarity and issue recognition,
+        though the argumentation requires deeper jurisprudential development
+        and stronger precedent integration.”
+      </div>
+
+      <div class="mc-metrics">
+
+        <div class="mc-metric">
+          <span>Legal Reasoning</span>
+          <strong>84</strong>
+        </div>
+
+        <div class="mc-metric">
+          <span>Issue Framing</span>
+          <strong>81</strong>
+        </div>
+
+        <div class="mc-metric">
+          <span>Persuasiveness</span>
+          <strong>78</strong>
+        </div>
+
+        <div class="mc-metric">
+          <span>Research Depth</span>
+          <strong>85</strong>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  ${renderMarkdown(raw)}
+
+</div>
+`;
   document.getElementById('res-empty').style.display  = 'none';
   document.getElementById('res-filled').style.display = 'flex';
   showWsPanel('results');

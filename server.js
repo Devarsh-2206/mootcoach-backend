@@ -1,6 +1,7 @@
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 require("dotenv").config();
 
+const extractIssuesRoute = require("./routes/extractIssues");
 const express = require("express");
 const cors = require("cors");
 const multer = require("multer");
@@ -13,6 +14,12 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+app.use("/extract-issues", extractIssuesRoute);
+app.get("/health", (req, res) => {
+  res.json({
+    status: "ok"
+  });
+});
 
 const upload = multer({ dest: "uploads/" });
 
