@@ -1851,11 +1851,17 @@ try{
 
 if(!parsed){
   document.getElementById('analysis-output').innerHTML = `
-    <div class="error-box">
-      Failed to parse AI evaluation.
-    </div>
-  `;
-  return;
+  <div class="mc-result-shell">
+    ${renderMarkdown(raw)}
+  </div>
+`;
+
+document.getElementById('res-empty').style.display = 'none';
+document.getElementById('res-filled').style.display = 'flex';
+showWSPanel('results');
+document.getElementById('btn-analyze').disabled = false;
+
+return;
 }
 
 const overallScore = parsed.overall_score || 75;
