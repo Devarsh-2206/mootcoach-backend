@@ -1835,45 +1835,71 @@ async function runAnalysis() {
 /* ─── RENDER RESULTS ─── */
 function showResults(raw) {
   lastAnalysis = raw;
+  let parsed;
+
+try{
+  parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
+}catch(err){
+  parsed = null;
+}
+
+if(!parsed){
+  document.getElementById('analysis-output').innerHTML = `
+    <div class="error-box">
+      Failed to parse AI evaluation.
+    </div>
+  `;
+  return;
+}
+
+const overallScore = parsed.overall_score || 75;
+const verdict = parsed.verdict || "COMPETENT ORALIST";
+const judgeObservation = parsed.judge_observation || "Evaluation unavailable.";
+
+const metrics = parsed.metrics || {};
+
+const legalReasoning = metrics.legal_reasoning || 0;
+const issueFraming = metrics.issue_framing || 0;
+const persuasiveness = metrics.persuasiveness || 0;
+const researchDepth = metrics.research_depth || 0;
   document.getElementById('analysis-output').innerHTML = `
   <div class="mc-result-shell">
 
   <div class="mc-hero">
 
     <div class="mc-score-ring">
-      <div class="mc-score-value">82</div>
+      <div class="mc-score-value">${overallScore}</div>
       <div class="mc-score-label">Overall</div>
     </div>
 
     <div class="mc-hero-main">
-      <div class="mc-verdict">COMPETENT ORALIST</div>
+      <div class="mc-verdict">${verdict}</div>
 
       <div class="mc-judge-note">
-        “The submissions demonstrate structural clarity and issue recognition,
-        though the argumentation requires deeper jurisprudential development
-        and stronger precedent integration.”
+        “${judgeObservation}”
+        
       </div>
 
       <div class="mc-metrics">
 
         <div class="mc-metric">
           <span>Legal Reasoning</span>
-          <strong>84</strong>
+          <strong>${legalReasoning}</strong>
         </div>
 
         <div class="mc-metric">
           <span>Issue Framing</span>
-          <strong>81</strong>
+          <strong>${issueFraming}</strong>
         </div>
 
         <div class="mc-metric">
           <span>Persuasiveness</span>
-          <strong>78</strong>
+          <strong>${persuasiveness}</strong>
         </div>
 
         <div class="mc-metric">
           <span>Research Depth</span>
-          <strong>85</strong>
+          <strong>${researchDepth}</strong>
         </div>
 
       </div>

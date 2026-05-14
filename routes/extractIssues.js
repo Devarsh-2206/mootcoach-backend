@@ -8,7 +8,6 @@ const router = express.Router();
 
 router.post("/", async (req, res) => {
   try {
-
     const { proposition } = req.body;
 
     if (!proposition) {
@@ -21,20 +20,25 @@ router.post("/", async (req, res) => {
 
     const aiResponse = await generateAIResponse(prompt);
 
-    res.json({
-      success: true,
-      data: aiResponse
-    });
+    let parsed;
+
+    try {
+      parsed = JSON.parse(aiResponse);
+    } catch (err) {
+      return res.status(500).json({
+        error: "Invalid AI JSON response",
+        raw: aiResponse
+      });
+    }
+
+    return res.json(parsed);
 
   } catch (error) {
+    console.error("Extraction Error:", error);
 
-    console.error(error);
-
-    res.status(500).json({
-      success: false,
-      error: error.message
+    return res.status(500).json({
+      error: "AI analysis failed"
     });
-
   }
 });
 
