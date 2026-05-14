@@ -1812,7 +1812,12 @@ async function runAnalysis() {
       throw new Error(`Server ${res.status}: ${txt}`);
     }
     const data = await res.json().catch(async () => ({ analysis: await res.text() }));
-    const raw = data.analysis || data.result || data.response || data.text || (typeof data==='string' ? data : JSON.stringify(data,null,2));
+    const raw =
+  data.response ||
+  data.analysis ||
+  data.result ||
+  data.text ||
+  (typeof data === "string" ? data : JSON.stringify(data));
     if (
   !raw ||
   raw.includes('"error":true') ||
