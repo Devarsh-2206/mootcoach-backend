@@ -1839,22 +1839,29 @@ async function runAnalysis() {
 
 /* ─── RENDER RESULTS ─── */
 function showResults(raw) {
-    lastAnalysis = raw;
 
-    const responseText =
-        typeof raw === "string"
-            ? raw
-            : raw.response || JSON.stringify(raw, null, 2);
+lastAnalysis = raw;
 
-    document.getElementById('analysis-output').innerHTML = `
-        <div class="mc-result-shell">
-            ${renderMarkdown(responseText)}
-        </div>
-    `;
+const responseText =
+  typeof raw === "string"
+    ? raw
+    : raw.response || JSON.stringify(raw, null, 2);
 
-    document.getElementById('res-empty').style.display = 'none';
-    document.getElementById('res-filled').style.display = 'flex';
-    document.getElementById('btn-analyze').disabled = false;
+const html = renderMarkdown(responseText);
+
+document.getElementById('analysis-output').innerHTML = `
+  <div class="mc-result-shell">
+    ${html}
+  </div>
+`;
+
+document.getElementById('res-empty').style.display = 'none';
+document.getElementById('res-filled').style.display = 'flex';
+
+const btn = document.getElementById('btn-analyze');
+if (btn) btn.disabled = false;
+
+hideLoading();
 }
 
 function renderMarkdown(text) {
