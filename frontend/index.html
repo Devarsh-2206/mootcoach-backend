@@ -1885,18 +1885,17 @@ function renderMarkdown(text) {
 
 /* ─── ERROR STATE ─── */
 function showError(msg) {
-  document.getElementById('analysis-output').innerHTML = `
-    <div class="error-box">
-      <div class="error-box-title">Analysis Failed</div>
-      <div class="error-box-msg">${esc(msg)}<br/><br/>
-        Make sure your backend is running at <strong>${BASE_URL}</strong> and CORS is enabled.
-      </div>
-      <button class="btn-retry" onclick="showWsPanel('upload')">← Try Again</button>
-    </div>`;
-  document.getElementById('res-empty').style.display  = 'none';
-  document.getElementById('res-filled').style.display = 'flex';
-  showWsPanel('results');
-  document.getElementById('btn-analyze').disabled = false;
+    document.getElementById('analysis-output').innerHTML = `
+        <div class="error-box">
+            <div class="error-box-title">Analysis Failed</div>
+            <div class="error-box-msg">${esc(msg)}</div>
+        </div>
+    `;
+
+    hideLoading();
+
+    const btn = document.getElementById('btn-analyze');
+    if (btn) btn.disabled = false;
 }
 
 /* ─── COPY ─── */
