@@ -1846,12 +1846,12 @@ const responseText =
   typeof raw === "string"
     ? raw
     : raw.response || JSON.stringify(raw, null, 2);
-
-document.getElementById('analysis-output').innerHTML = `
-  <div class="mc-result-shell">
-    <pre style="color:white;">${responseText}</pre>
-  </div>
+    document.getElementById('analysis-output').innerHTML = `
+    <div style="color:white; padding:40px; font-size:16px; white-space:pre-wrap;">
+        ${responseText}
+    </div>
 `;
+
 
 document.getElementById('res-empty').style.display = 'none';
 document.getElementById('res-filled').style.display = 'flex';
