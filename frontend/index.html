@@ -284,15 +284,6 @@ p  { color:var(--white-2); }
 }
 
 
-/* ═══════════════════════════════════════════
-   ██╗      █████╗ ███╗   ██╗██████╗ ██╗███╗   ██╗ ██████╗
-   ██║     ██╔══██╗████╗  ██║██╔══██╗██║████╗  ██║██╔════╝
-   ██║     ███████║██╔██╗ ██║██║  ██║██║██╔██╗ ██║██║  ███╗
-   ██║     ██╔══██║██║╚██╗██║██║  ██║██║██║╚██╗██║██║   ██║
-   ███████╗██║  ██║██║ ╚████║██████╔╝██║██║ ╚████║╚██████╔╝
-   ╚══════╝╚═╝  ╚═╝╚═╝  ╚═══╝╚═════╝ ╚═╝╚═╝  ╚═══╝ ╚═════╝
-═══════════════════════════════════════════ */
-
 /* ── NAV ── */
 .land-nav {
   position:fixed; top:0; left:0; right:0; z-index:100;
@@ -551,16 +542,7 @@ p  { color:var(--white-2); }
 .hero > *:nth-child(4){animation-delay:.35s}
 .hero > *:nth-child(5){animation-delay:.42s}
 
-
-/* ═══════════════════════════════════════════
-   ██╗      ██████╗  ██████╗ ██╗███╗   ██╗
-   ██║     ██╔═══██╗██╔════╝ ██║████╗  ██║
-   ██║     ██║   ██║██║  ███╗██║██╔██╗ ██║
-   ██║     ██║   ██║██║   ██║██║██║╚██╗██║
-   ███████╗╚██████╔╝╚██████╔╝██║██║ ╚████║
-   ╚══════╝ ╚═════╝  ╚═════╝ ╚═╝╚═╝  ╚═══╝
-═══════════════════════════════════════════ */
-
+/* ── LOGIN ── */
 #view-login {
   min-height:100vh; display:none; flex-direction:column;
 }
@@ -686,17 +668,7 @@ p  { color:var(--white-2); }
   vertical-align:middle; margin-right:6px;
 }
 
-
-/* ═══════════════════════════════════════════
-   ██╗    ██╗ ██████╗ ██████╗ ██╗  ██╗███████╗██████╗  █████╗  ██████╗███████╗
-   ██║    ██║██╔═══██╗██╔══██╗██║ ██╔╝██╔════╝██╔══██╗██╔══██╗██╔════╝██╔════╝
-   ██║ █╗ ██║██║   ██║██████╔╝█████╔╝ ███████╗██████╔╝███████║██║     █████╗
-   ██║███╗██║██║   ██║██╔══██╗██╔═██╗ ╚════██║██╔═══╝ ██╔══██║██║     ██╔══╝
-   ╚███╔███╔╝╚██████╔╝██║  ██║██║  ██╗███████║██║     ██║  ██║╚██████╗███████╗
-    ╚══╝╚══╝  ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝╚═╝     ╚═╝  ╚═╝ ╚═════╝╚══════╝
-═══════════════════════════════════════════ */
-
-/* Workspace fills full viewport */
+/* ── WORKSPACE ── */
 #view-workspace {
   height:100vh; overflow:hidden;
 }
@@ -968,12 +940,6 @@ p  { color:var(--white-2); }
 }
 .error-box-title { font-family:var(--serif); font-size:1.25rem; font-weight:500; color:var(--error); margin-bottom:.5rem; }
 .error-box-msg { font-size:.86rem; color:var(--white-muted); margin-bottom:1.4rem; line-height:1.6; }
-.btn-retry {
-  font-family:var(--sans); font-size:.78rem; font-weight:500; letter-spacing:.08em; text-transform:uppercase;
-  color:var(--white-muted); background:var(--glass); border:1px solid var(--glass-b);
-  border-radius:var(--r); padding:10px 22px; cursor:pointer; transition:background .2s,color .2s;
-}
-.btn-retry:hover { background:var(--navy-4); color:var(--white); }
 
 /* ── LOADING OVERLAY ── */
 .loading-overlay {
@@ -1003,10 +969,7 @@ p  { color:var(--white-2); }
 @keyframes pdot { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.7);opacity:.5} }
 .lo-label { font-family:var(--serif); font-size:1.4rem; font-weight:500; color:var(--white-2); }
 
-
-/* ═══════════════════════════════════════════
-   RESPONSIVE
-═══════════════════════════════════════════ */
+/* ── RESPONSIVE ── */
 @media (max-width:900px) {
   .nav-links { display:none; }
   .steps-grid,.features-grid { grid-template-columns:1fr; }
@@ -1032,12 +995,8 @@ p  { color:var(--white-2); }
 </head>
 <body>
 
-<!-- ═══════════════════════════════
-     VIEW 1 — LANDING PAGE
-═══════════════════════════════ -->
+<!-- ═══ VIEW 1 — LANDING ═══ -->
 <div id="view-landing" class="view active">
-
-  <!-- NAV -->
   <nav class="land-nav">
     <a class="nav-logo" onclick="navigate('landing')" style="cursor:pointer">Moot<span>Coach</span></a>
     <ul class="nav-links">
@@ -1052,7 +1011,6 @@ p  { color:var(--white-2); }
     </div>
   </nav>
 
-  <!-- HERO -->
   <section class="hero land-section">
     <div class="hero-eyebrow">The AI Moot Operating System</div>
     <h1>Practice. Analyze.<br/><em>Dominate Your Moot.</em></h1>
@@ -1071,7 +1029,6 @@ p  { color:var(--white-2); }
 
   <div class="sep"></div>
 
-  <!-- MOCKUP -->
   <section class="land-section mockup-section">
     <div style="width:100%;max-width:900px;margin:0 auto">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding:0 2px;flex-wrap:wrap;gap:8px;">
@@ -1081,54 +1038,41 @@ p  { color:var(--white-2); }
         </div>
         <div style="font-size:.7rem;color:var(--white-muted);opacity:.5;font-style:italic;">Illustrative data. Your real analysis comes from your own PDFs.</div>
       </div>
-    <div class="mockup-wrap">
-      <div class="mockup-topbar">
-        <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
-        <div class="mockup-topbar-title">MootCoach — AI Practice Room</div>
-      </div>
-      <div class="mockup-body">
-        <div class="mockup-card">
-          <div class="mc-label">Oral Score</div>
-          <div class="mc-value">84</div>
-          <div class="mc-sub">↑ +6 from last round</div>
+      <div class="mockup-wrap">
+        <div class="mockup-topbar">
+          <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+          <div class="mockup-topbar-title">MootCoach — AI Practice Room</div>
         </div>
-        <div class="mockup-card">
-          <div class="mc-label">Arguments Built</div>
-          <div class="mc-value">12</div>
-          <div class="mc-sub">3 pending review</div>
-        </div>
-        <div class="mockup-card">
-          <div class="mc-label">Practice Sessions</div>
-          <div class="mc-value">7</div>
-          <div class="mc-sub">This week</div>
-        </div>
-        <div class="mockup-wide">
-          <div class="mw-title">AI Feedback — Round 3 Oral Analysis</div>
-          <div class="fb-item">
-            <div class="fb-icon fi-gold">✦</div>
-            <div>
-              <div class="fb-label">Clarity of Submission</div>
-              <div class="fb-text">Your opening submission was precise. Consider anchoring your first prayer to Art. 21 before moving to ratio decidendi.</div>
-              <div class="sb-wrap"><div class="sb-bg"><div class="sb-fill" style="width:88%"></div></div><div class="sb-num">88/100</div></div>
+        <div class="mockup-body">
+          <div class="mockup-card"><div class="mc-label">Oral Score</div><div class="mc-value">84</div><div class="mc-sub">↑ +6 from last round</div></div>
+          <div class="mockup-card"><div class="mc-label">Arguments Built</div><div class="mc-value">12</div><div class="mc-sub">3 pending review</div></div>
+          <div class="mockup-card"><div class="mc-label">Practice Sessions</div><div class="mc-value">7</div><div class="mc-sub">This week</div></div>
+          <div class="mockup-wide">
+            <div class="mw-title">AI Feedback — Round 3 Oral Analysis</div>
+            <div class="fb-item">
+              <div class="fb-icon fi-gold">✦</div>
+              <div>
+                <div class="fb-label">Clarity of Submission</div>
+                <div class="fb-text">Your opening submission was precise. Consider anchoring your first prayer to Art. 21 before moving to ratio decidendi.</div>
+                <div class="sb-wrap"><div class="sb-bg"><div class="sb-fill" style="width:88%"></div></div><div class="sb-num">88/100</div></div>
+              </div>
             </div>
-          </div>
-          <div class="fb-item">
-            <div class="fb-icon fi-muted">◎</div>
-            <div>
-              <div class="fb-label">Counter-Argument Readiness</div>
-              <div class="fb-text">Weak response to bench's query on maintainability. Pre-load a rebuttal for locus standi challenges.</div>
-              <div class="sb-wrap"><div class="sb-bg"><div class="sb-fill" style="width:61%"></div></div><div class="sb-num">61/100</div></div>
+            <div class="fb-item">
+              <div class="fb-icon fi-muted">◎</div>
+              <div>
+                <div class="fb-label">Counter-Argument Readiness</div>
+                <div class="fb-text">Weak response to bench's query on maintainability. Pre-load a rebuttal for locus standi challenges.</div>
+                <div class="sb-wrap"><div class="sb-bg"><div class="sb-fill" style="width:61%"></div></div><div class="sb-num">61/100</div></div>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
     </div>
   </section>
 
   <div class="sep"></div>
 
-  <!-- HOW IT WORKS -->
   <section class="land-section" id="how">
     <div class="section-wrap">
       <div class="section-header">
@@ -1137,28 +1081,15 @@ p  { color:var(--white-2); }
         <p>Three steps from raw proposition to confident advocate.</p>
       </div>
       <div class="steps-grid">
-        <div class="step">
-          <div class="step-num">01</div>
-          <h3>Create Moot Workspace</h3>
-          <p>Upload your moot proposition PDF and set up your workspace. The AI reads it and starts building context immediately.</p>
-        </div>
-        <div class="step">
-          <div class="step-num">02</div>
-          <h3>Practice with AI</h3>
-          <p>Enter the AI Practice Room. Argue your side, face dynamic bench questions, and iterate on your oral submissions in real time.</p>
-        </div>
-        <div class="step">
-          <div class="step-num">03</div>
-          <h3>Receive Strategic Feedback</h3>
-          <p>Get structured critique on argument clarity, counter-argument readiness, precedent use, and oral advocacy — every round.</p>
-        </div>
+        <div class="step"><div class="step-num">01</div><h3>Create Moot Workspace</h3><p>Upload your moot proposition PDF and set up your workspace. The AI reads it and starts building context immediately.</p></div>
+        <div class="step"><div class="step-num">02</div><h3>Practice with AI</h3><p>Enter the AI Practice Room. Argue your side, face dynamic bench questions, and iterate on your oral submissions in real time.</p></div>
+        <div class="step"><div class="step-num">03</div><h3>Receive Strategic Feedback</h3><p>Get structured critique on argument clarity, counter-argument readiness, precedent use, and oral advocacy — every round.</p></div>
       </div>
     </div>
   </section>
 
   <div class="sep"></div>
 
-  <!-- FEATURES -->
   <section class="land-section" id="features">
     <div class="section-wrap">
       <div class="section-header">
@@ -1167,43 +1098,18 @@ p  { color:var(--white-2); }
         <p>Not features. Results you can carry into the moot hall.</p>
       </div>
       <div class="features-grid">
-        <div class="feat-card">
-          <div class="feat-icon">⚖</div>
-          <h3>Identify Legal Issues Instantly</h3>
-          <p>AI parses your proposition and surfaces every contestable issue, relevant precedent, and constitutional angle before you start drafting.</p>
-        </div>
-        <div class="feat-card">
-          <div class="feat-icon">◎</div>
-          <h3>Improve Oral Advocacy with Realtime Critique</h3>
-          <p>Submit your speech, receive scored feedback on structure, language, and legal precision. Know exactly where you lose the bench.</p>
-        </div>
-        <div class="feat-card">
-          <div class="feat-icon">✦</div>
-          <h3>Build Unassailable Arguments</h3>
-          <p>Construct arguments with proper ratio, precedent chains, and pre-emptive rebuttals — structured for competition judges.</p>
-        </div>
-        <div class="feat-card">
-          <div class="feat-icon">◈</div>
-          <h3>Memorial Guidance That Wins Marks</h3>
-          <p>AI-assisted feedback on your written memorial — structure, research depth, citation style, and persuasive framing.</p>
-        </div>
-        <div class="feat-card">
-          <div class="feat-icon">↯</div>
-          <h3>Anticipate Every Bench Question</h3>
-          <p>Train against an AI bench that targets your weakest arguments. Walk into the moot hall with answers already prepared.</p>
-        </div>
-        <div class="feat-card">
-          <div class="feat-icon">▣</div>
-          <h3>Track Progress Round by Round</h3>
-          <p>Analytics across all your sessions. Watch scores improve, spot recurring weaknesses, and measure growth over time.</p>
-        </div>
+        <div class="feat-card"><div class="feat-icon">⚖</div><h3>Identify Legal Issues Instantly</h3><p>AI parses your proposition and surfaces every contestable issue, relevant precedent, and constitutional angle before you start drafting.</p></div>
+        <div class="feat-card"><div class="feat-icon">◎</div><h3>Improve Oral Advocacy with Realtime Critique</h3><p>Submit your speech, receive scored feedback on structure, language, and legal precision. Know exactly where you lose the bench.</p></div>
+        <div class="feat-card"><div class="feat-icon">✦</div><h3>Build Unassailable Arguments</h3><p>Construct arguments with proper ratio, precedent chains, and pre-emptive rebuttals — structured for competition judges.</p></div>
+        <div class="feat-card"><div class="feat-icon">◈</div><h3>Memorial Guidance That Wins Marks</h3><p>AI-assisted feedback on your written memorial — structure, research depth, citation style, and persuasive framing.</p></div>
+        <div class="feat-card"><div class="feat-icon">↯</div><h3>Anticipate Every Bench Question</h3><p>Train against an AI bench that targets your weakest arguments. Walk into the moot hall with answers already prepared.</p></div>
+        <div class="feat-card"><div class="feat-icon">▣</div><h3>Track Progress Round by Round</h3><p>Analytics across all your sessions. Watch scores improve, spot recurring weaknesses, and measure growth over time.</p></div>
       </div>
     </div>
   </section>
 
   <div class="sep"></div>
 
-  <!-- BETA -->
   <section class="land-section proof-section">
     <p class="proof-tagline">Built for the next generation of mooters.<br/><em>Currently in Beta — join early and shape the product.</em></p>
     <div class="beta-card">
@@ -1215,7 +1121,6 @@ p  { color:var(--white-2); }
 
   <div class="sep"></div>
 
-  <!-- PRICING -->
   <section class="land-section" id="pricing">
     <div class="pricing-section">
       <div class="section-header">
@@ -1224,7 +1129,6 @@ p  { color:var(--white-2); }
         <p>No subscriptions. Buy session credits, use them whenever your next moot comes around. Credits never expire.</p>
       </div>
       <div class="pricing-grid">
-
         <div class="price-card">
           <div class="price-tier">Free</div>
           <div class="price-num">₹0</div>
@@ -1237,11 +1141,8 @@ p  { color:var(--white-2); }
             <li><span class="pf-n">✗</span> Oral scoring</li>
             <li><span class="pf-n">✗</span> Bench simulation</li>
           </ul>
-          <div class="price-btn-wrap">
-            <button class="btn-outline" onclick="navigate('login')" style="width:100%;padding:11px;">Start Free</button>
-          </div>
+          <div class="price-btn-wrap"><button class="btn-outline" onclick="navigate('login')" style="width:100%;padding:11px;">Start Free</button></div>
         </div>
-
         <div class="price-card price-card--feat">
           <div class="price-feat-tag">Best for one moot</div>
           <div class="price-tier">Starter Pack</div>
@@ -1255,11 +1156,8 @@ p  { color:var(--white-2); }
             <li><span class="pf-y">✓</span> Bench question simulation</li>
             <li><span class="pf-y">✓</span> Credits never expire</li>
           </ul>
-          <div class="price-btn-wrap">
-            <button class="btn-primary" onclick="navigate('login')" style="width:100%;padding:11px;">Get 5 Sessions →</button>
-          </div>
+          <div class="price-btn-wrap"><button class="btn-primary" onclick="navigate('login')" style="width:100%;padding:11px;">Get 5 Sessions →</button></div>
         </div>
-
         <div class="price-card">
           <div class="price-tier">Pro Pack</div>
           <div class="price-num">₹99<span> / 15 sessions</span></div>
@@ -1272,11 +1170,8 @@ p  { color:var(--white-2); }
             <li><span class="pf-y">✓</span> Priority support</li>
             <li><span class="pf-y">✓</span> Credits never expire</li>
           </ul>
-          <div class="price-btn-wrap">
-            <button class="btn-outline" onclick="navigate('login')" style="width:100%;padding:11px;">Get 15 Sessions →</button>
-          </div>
+          <div class="price-btn-wrap"><button class="btn-outline" onclick="navigate('login')" style="width:100%;padding:11px;">Get 15 Sessions →</button></div>
         </div>
-
       </div>
       <div class="pricing-callout">
         <span class="beta-pill" style="margin-bottom:0;margin-right:10px;">Beta</span>
@@ -1287,7 +1182,6 @@ p  { color:var(--white-2); }
 
   <div class="sep"></div>
 
-  <!-- COMING SOON -->
   <section class="land-section">
     <div class="section-wrap">
       <div class="section-header">
@@ -1296,33 +1190,16 @@ p  { color:var(--white-2); }
         <p>MootCoach is ambitious. These features are in active development.</p>
       </div>
       <div class="soon-grid">
-        <div class="soon-card">
-          <div class="soon-tag">Coming Soon</div>
-          <h3>Live AI Judge</h3>
-          <p>A simulated bench that interrupts, questions, and scores your round in real time.</p>
-        </div>
-        <div class="soon-card">
-          <div class="soon-tag">Coming Soon</div>
-          <h3>Memorial Analyzer</h3>
-          <p>Deep analysis of your written memorial — structure, research depth, citation style.</p>
-        </div>
-        <div class="soon-card">
-          <div class="soon-tag">Coming Soon</div>
-          <h3>Team Collaboration</h3>
-          <p>Co-counsel mode. Build and argue with your partner in one shared workspace.</p>
-        </div>
-        <div class="soon-card">
-          <div class="soon-tag">Coming Soon</div>
-          <h3>Voice Round Simulation</h3>
-          <p>Full voice-based oral practice with pitch, pace, and clarity coaching.</p>
-        </div>
+        <div class="soon-card"><div class="soon-tag">Coming Soon</div><h3>Live AI Judge</h3><p>A simulated bench that interrupts, questions, and scores your round in real time.</p></div>
+        <div class="soon-card"><div class="soon-tag">Coming Soon</div><h3>Memorial Analyzer</h3><p>Deep analysis of your written memorial — structure, research depth, citation style.</p></div>
+        <div class="soon-card"><div class="soon-tag">Coming Soon</div><h3>Team Collaboration</h3><p>Co-counsel mode. Build and argue with your partner in one shared workspace.</p></div>
+        <div class="soon-card"><div class="soon-tag">Coming Soon</div><h3>Voice Round Simulation</h3><p>Full voice-based oral practice with pitch, pace, and clarity coaching.</p></div>
       </div>
     </div>
   </section>
 
   <div class="sep"></div>
 
-  <!-- FINAL CTA -->
   <section class="land-section cta-section" id="about">
     <div class="section-eyebrow" style="justify-content:center">Enter the Practice Room</div>
     <h2>Your next moot starts here.</h2>
@@ -1330,7 +1207,6 @@ p  { color:var(--white-2); }
     <button class="btn-primary" onclick="navigate('login')">Enter AI Practice Room →</button>
   </section>
 
-  <!-- FOOTER -->
   <footer class="land-footer">
     <div class="footer-brand">Moot<span>Coach</span></div>
     <ul class="footer-links">
@@ -1340,35 +1216,26 @@ p  { color:var(--white-2); }
     </ul>
     <div class="footer-copy">© 2025 MootCoach. All rights reserved.</div>
   </footer>
+</div>
 
-</div><!-- /view-landing -->
 
-
-<!-- ═══════════════════════════════
-     VIEW 2 — LOGIN
-═══════════════════════════════ -->
+<!-- ═══ VIEW 2 — LOGIN ═══ -->
 <div id="view-login" class="view">
-
   <nav class="login-nav">
     <a class="nav-logo" onclick="navigate('landing')" style="cursor:pointer">Moot<span>Coach</span></a>
     <button class="login-nav-back" onclick="navigate('landing')">← Back to Home</button>
   </nav>
-
   <main class="login-main">
     <div class="auth-wrap">
-
       <div class="auth-header">
         <h1>Welcome to<br/><em>MootCoach</em></h1>
         <p>Your AI moot preparation workspace.</p>
       </div>
-
       <div class="auth-tabs">
         <button class="auth-tab active" id="tab-login" onclick="switchAuthTab('login')">Sign In</button>
         <button class="auth-tab" id="tab-signup" onclick="switchAuthTab('signup')">Create Account</button>
       </div>
-
       <div class="auth-card">
-
         <!-- LOGIN FORM -->
         <div id="form-login">
           <div class="field">
@@ -1393,7 +1260,6 @@ p  { color:var(--white-2); }
             <button class="google-soon-close" onclick="document.getElementById('google-soon-login').classList.remove('show')">✕</button>
           </div>
         </div>
-
         <!-- SIGNUP FORM -->
         <div id="form-signup" style="display:none">
           <div class="field-row">
@@ -1434,7 +1300,6 @@ p  { color:var(--white-2); }
           </div>
           <p class="auth-terms">By creating an account you agree to our <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>.</p>
         </div>
-
         <!-- SUCCESS -->
         <div class="auth-success" id="auth-success">
           <div class="success-icon">✦</div>
@@ -1442,25 +1307,17 @@ p  { color:var(--white-2); }
           <p>Taking you to your workspace now...</p>
           <button class="btn-submit" onclick="navigate('workspace')" style="max-width:220px;margin:0 auto;display:block;">Enter Workspace →</button>
         </div>
-
       </div>
-
       <p class="auth-footer-note" id="note-login">Don't have an account? <a href="#" onclick="switchAuthTab('signup');return false;">Create one free →</a></p>
       <p class="auth-footer-note" id="note-signup" style="display:none">Already have an account? <a href="#" onclick="switchAuthTab('login');return false;">Sign in →</a></p>
-
     </div>
   </main>
   <footer class="login-footer">© 2025 MootCoach. All rights reserved.</footer>
+</div>
 
-</div><!-- /view-login -->
 
-
-<!-- ═══════════════════════════════
-     VIEW 3 — WORKSPACE
-═══════════════════════════════ -->
+<!-- ═══ VIEW 3 — WORKSPACE ═══ -->
 <div id="view-workspace" class="view">
-
-  <!-- TOPBAR -->
   <header class="ws-topbar">
     <div class="ws-logo" onclick="navigate('landing')">Moot<span>Coach</span></div>
     <div class="ws-divider"></div>
@@ -1474,10 +1331,7 @@ p  { color:var(--white-2); }
     </div>
   </header>
 
-  <!-- BODY -->
   <div class="ws-body">
-
-    <!-- SIDEBAR -->
     <aside class="ws-sidebar">
       <div class="ws-sb-section">
         <div class="ws-sb-label">Workspace</div>
@@ -1488,9 +1342,7 @@ p  { color:var(--white-2); }
           <span class="ws-sb-icon">◎</span> Analysis Results
         </button>
       </div>
-
       <div class="ws-sb-divider"></div>
-
       <div class="ws-sb-section">
         <div class="ws-sb-label">Moot Details</div>
         <div class="ws-sb-infobox">
@@ -1502,43 +1354,35 @@ p  { color:var(--white-2); }
           <div class="wsib-value empty" id="wsib-file">No file uploaded</div>
         </div>
       </div>
-
       <div class="ws-sb-divider"></div>
-
       <div class="ws-sb-section">
         <div class="ws-sb-label">Coming Soon</div>
         <button class="ws-sb-item locked"><span class="ws-sb-icon">✦</span> Argument Builder</button>
         <button class="ws-sb-item locked"><span class="ws-sb-icon">⚖</span> Bench Simulator</button>
         <button class="ws-sb-item locked"><span class="ws-sb-icon">◈</span> Memorial Guide</button>
       </div>
-
       <div class="ws-sb-bottom">
         <button onclick="navigate('landing')">← Back to Home</button>
       </div>
     </aside>
 
-    <!-- MAIN -->
     <main class="ws-main">
-
       <!-- UPLOAD PANEL -->
       <div class="ws-panel ws-upload-panel active" id="wsp-upload">
         <div class="ws-upload-inner">
           <div class="ws-up-eyebrow">New Analysis</div>
           <h2>Upload Your<br/><em>Moot Proposition</em></h2>
           <p>Provide your moot problem as a PDF. The AI will analyze it — surfacing key legal issues, contestable arguments, and strategic angles.</p>
-
           <div class="ws-field">
             <label>Moot Name <span style="opacity:.5;font-size:.9em">(optional)</span></label>
             <input type="text" id="ws-moot-name" placeholder="e.g. NALSAR MCC 2025 – Environmental Law" oninput="updateWsMootName(this.value)"/>
           </div>
-
           <div class="dropzone" id="ws-dropzone">
             <input type="file" id="ws-file-input" accept=".pdf" onchange="handleFileSelect(this.files[0])"/>
             <div class="dz-icon">⬆</div>
             <div class="dz-title">Drop your proposition PDF here</div>
             <div class="dz-sub">or <span>click to browse</span> · PDF only</div>
           </div>
-
           <div class="file-pill" id="ws-file-pill">
             <div class="fp-icon">📄</div>
             <div class="fp-details">
@@ -1547,7 +1391,6 @@ p  { color:var(--white-2); }
             </div>
             <button class="fp-remove" onclick="removeFile()">✕</button>
           </div>
-
           <button class="btn-analyze" id="btn-analyze" onclick="runAnalysis()" disabled>
             Analyze Proposition →
           </button>
@@ -1557,15 +1400,11 @@ p  { color:var(--white-2); }
 
       <!-- RESULTS PANEL -->
       <div class="ws-panel ws-results-panel" id="wsp-results">
-
-        <!-- empty state -->
         <div class="res-empty" id="res-empty">
           <div class="res-empty-icon">◎</div>
           <div class="res-empty-title">No analysis yet</div>
           <div class="res-empty-sub">Upload and analyze a proposition to see results here.</div>
         </div>
-
-        <!-- filled state -->
         <div id="res-filled" style="display:none;flex:1;flex-direction:column;">
           <div class="res-topbar">
             <div>
@@ -1592,15 +1431,12 @@ p  { color:var(--white-2); }
             </div>
           </div>
         </div>
-
       </div>
     </main>
-  </div><!-- /ws-body -->
+  </div>
+</div>
 
-</div><!-- /view-workspace -->
-
-
-<!-- LOADING OVERLAY (global) -->
+<!-- LOADING OVERLAY -->
 <div class="loading-overlay" id="loading-overlay">
   <div class="lo-glow"><div class="lo-symbol">✦</div></div>
   <div class="lo-steps">
@@ -1613,10 +1449,6 @@ p  { color:var(--white-2); }
   <div class="lo-label" id="lo-label">Analyzing your proposition…</div>
 </div>
 
-
-<!-- ═══════════════════════════════
-     JAVASCRIPT
-═══════════════════════════════ -->
 <script>
 /* ─── CONFIG ─── */
 const BASE_URL = "https://mootcoach-backend-1.onrender.com";
@@ -1625,13 +1457,37 @@ const BASE_URL = "https://mootcoach-backend-1.onrender.com";
 function navigate(view) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.getElementById('view-' + view).classList.add('active');
-  // fix body scroll for landing vs workspace
   document.body.style.overflow = (view === 'workspace') ? 'hidden' : 'auto';
   window.scrollTo(0, 0);
+  if (view === 'workspace') checkBackend();
 }
-
-// set initial body overflow
 document.body.style.overflow = 'auto';
+
+/* ─── BACKEND HEALTH CHECK (FIX #3 — was missing entirely) ─── */
+async function checkBackend() {
+  const statusEl = document.getElementById('backend-status');
+  const labelEl  = document.getElementById('bs-label');
+  statusEl.className = 'backend-status checking';
+  labelEl.textContent = 'Checking server…';
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 7000);
+    const res = await fetch(`${BASE_URL}/health`, {
+      method: 'GET',
+      signal: controller.signal
+    });
+    clearTimeout(timeout);
+    if (res.ok) {
+      statusEl.className = 'backend-status online';
+      labelEl.textContent = 'Server online';
+    } else {
+      throw new Error('Non-OK status: ' + res.status);
+    }
+  } catch (e) {
+    statusEl.className = 'backend-status offline';
+    labelEl.textContent = 'Server offline';
+  }
+}
 
 /* ─── AUTH TAB SWITCH ─── */
 function switchAuthTab(tab) {
@@ -1650,13 +1506,8 @@ function setLoading(btnId, on, txt) {
   b.disabled = on;
   b.innerHTML = on ? '<span class="spinner"></span>Please wait…' : txt;
 }
-
-function markErr(id, has) {
-  document.getElementById(id)?.classList.toggle('err', has);
-}
-function showHint(id, show) {
-  document.getElementById(id)?.classList.toggle('show', show);
-}
+function markErr(id, has) { document.getElementById(id)?.classList.toggle('err', has); }
+function showHint(id, show) { document.getElementById(id)?.classList.toggle('show', show); }
 
 function handleLogin() {
   const email = document.getElementById('li-email').value.trim();
@@ -1681,16 +1532,14 @@ function handleSignup() {
   markErr('su-email',!emailOk); showHint('h-su-email',!emailOk); if(!emailOk) ok=false;
   if(pass.length < 8){ markErr('su-pass',true); showHint('h-su-pass',true); ok=false; } else { markErr('su-pass',false); showHint('h-su-pass',false); }
   if(!ok) return;
-  // grab first name for avatar
-  const name = fname || 'U';
-  document.getElementById('ws-avatar').textContent = name.charAt(0).toUpperCase();
+  document.getElementById('ws-avatar').textContent = fname.charAt(0).toUpperCase();
   setLoading('btn-su', true, 'Create Account');
   setTimeout(() => { setLoading('btn-su', false, 'Create Account'); showAuthSuccess(); }, 1200);
 }
 
 function handleGoogle() {
-  // Redirect to your Google OAuth here
-  alert('Connect your Google OAuth provider to enable this.');
+  document.getElementById('google-soon-login').classList.add('show');
+  document.getElementById('google-soon-signup').classList.add('show');
 }
 
 function showAuthSuccess() {
@@ -1699,7 +1548,6 @@ function showAuthSuccess() {
   document.getElementById('auth-success').style.display = 'block';
   document.getElementById('note-login').style.display  = 'none';
   document.getElementById('note-signup').style.display = 'none';
-  // auto-navigate after 1.5s
   setTimeout(() => navigate('workspace'), 1500);
 }
 
@@ -1723,14 +1571,11 @@ function showWsPanel(name) {
 
 /* ─── MOOT NAME ─── */
 function updateWsMootName(val) {
-  const display = val.trim() || 'New Workspace';
   const nameEl = document.getElementById('ws-topbar-name');
   nameEl.innerHTML = val.trim() ? `<strong>${val.trim()}</strong>` : 'New Workspace';
-
   const wsibMoot = document.getElementById('wsib-moot');
   wsibMoot.textContent = val.trim() || 'Not set';
   wsibMoot.className = 'wsib-value' + (val.trim() ? '' : ' empty');
-
   document.getElementById('res-moot-title').textContent = val.trim() || 'Proposition Analysis';
 }
 
@@ -1763,7 +1608,6 @@ function removeFile() {
   document.getElementById('wsib-file').className = 'wsib-value empty';
 }
 
-// Drag and drop
 const dz = document.getElementById('ws-dropzone');
 dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
 dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
@@ -1807,28 +1651,37 @@ async function runAnalysis() {
 
   try {
     const res = await fetch(`${BASE_URL}/analyze`, { method:'POST', body:formData });
+
     if (!res.ok) {
-      const txt = await res.text().catch(() => 'Unknown error.');
+      const txt = await res.text().catch(() => 'Unknown server error.');
       throw new Error(`Server ${res.status}: ${txt}`);
     }
-    const data = await res.json().catch(async () => ({ analysis: await res.text() }));
+
+    const data = await res.json().catch(async () => {
+      const t = await res.text();
+      return { analysis: t };
+    });
+
+    // ── FIX #2: safe string coercion before .includes() ──────────────────
     const raw =
-  data.response ||
-  data.analysis ||
-  data.result ||
-  data.text ||
-  (typeof data === "string" ? data : JSON.stringify(data));
-    if (
-  !raw ||
-  raw.includes('"error":true') ||
-  raw.includes("AI analysis temporarily unavailable")
-) {
-  throw new Error("AI analysis failed. Please retry.");
-}
+      data.response ||
+      data.analysis ||
+      data.result   ||
+      data.text      ||
+      (typeof data === 'string' ? data : JSON.stringify(data));
+
+    const rawStr = typeof raw === 'string' ? raw : JSON.stringify(raw);
+
+    if (!raw || rawStr.includes('"error":true') || rawStr.includes('AI analysis temporarily unavailable')) {
+      throw new Error('AI analysis failed. Please try again.');
+    }
+    // ─────────────────────────────────────────────────────────────────────
+
     stopSteps();
     await sleep(500);
     hideLoading();
-    showResults(raw);
+    showResults(rawStr);
+
   } catch(err) {
     stopSteps();
     await sleep(400);
@@ -1838,28 +1691,20 @@ async function runAnalysis() {
 }
 
 /* ─── RENDER RESULTS ─── */
-function showResults(raw) {
+function showResults(responseText) {
+  lastAnalysis = responseText;
 
-lastAnalysis = raw;
+  // Render with markdown parsing for a clean result
+  document.getElementById('analysis-output').innerHTML = renderMarkdown(responseText);
 
-const responseText =
-  typeof raw === "string"
-    ? raw
-    : raw.response || JSON.stringify(raw, null, 2);
-    document.getElementById('analysis-output').innerHTML = `
-    <div style="color:white; padding:40px; font-size:16px; white-space:pre-wrap;">
-        ${responseText}
-    </div>
-`;
+  document.getElementById('res-empty').style.display  = 'none';
+  document.getElementById('res-filled').style.display = 'flex';
 
+  // ── FIX #1: actually switch to the results panel ──────────────────────
+  showWsPanel('results');
+  // ─────────────────────────────────────────────────────────────────────
 
-document.getElementById('res-empty').style.display = 'none';
-document.getElementById('res-filled').style.display = 'flex';
-
-const btn = document.getElementById('btn-analyze');
-if (btn) btn.disabled = false;
-
-hideLoading();
+  document.getElementById('btn-analyze').disabled = false;
 }
 
 function renderMarkdown(text) {
@@ -1885,17 +1730,18 @@ function renderMarkdown(text) {
 
 /* ─── ERROR STATE ─── */
 function showError(msg) {
-    document.getElementById('analysis-output').innerHTML = `
-        <div class="error-box">
-            <div class="error-box-title">Analysis Failed</div>
-            <div class="error-box-msg">${esc(msg)}</div>
-        </div>
-    `;
-
-    hideLoading();
-
-    const btn = document.getElementById('btn-analyze');
-    if (btn) btn.disabled = false;
+  // Show results panel with error content
+  document.getElementById('res-empty').style.display  = 'none';
+  document.getElementById('res-filled').style.display = 'flex';
+  document.getElementById('analysis-output').innerHTML = `
+    <div class="error-box">
+      <div class="error-box-title">Analysis Failed</div>
+      <div class="error-box-msg">${esc(msg)}</div>
+      <button class="btn-retry" onclick="showWsPanel('upload')">← Try Again</button>
+    </div>
+  `;
+  showWsPanel('results');
+  document.getElementById('btn-analyze').disabled = false;
 }
 
 /* ─── COPY ─── */
