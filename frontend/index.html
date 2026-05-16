@@ -63,7 +63,7 @@ html { scroll-behavior:smooth; }
   width:180px;
   height:180px;
   border-radius:50%;
-  border:10px solid rgba(212,169,77,.25);
+  border: 7px solid rgba(212,169,77,.25);
   display:flex;
   flex-direction:column;
   align-items:center;
@@ -72,11 +72,11 @@ html { scroll-behavior:smooth; }
 }
 
 .mc-score-value{
-  font-size:72px;
+  font-size:78px;
   font-weight:700;
   color:#f5d487;
-  font-family: 'Inter', sans-serif;
-  letter-spacing:-0.04em;
+  font-family:'Inter',sans-serif;
+  letter-spacing:-0.05em;
   line-height:1;
 }
 
@@ -111,17 +111,25 @@ html { scroll-behavior:smooth; }
 
 .mc-metrics{
   display:grid;
-  grid-template-columns:repeat(4,1fr);
-  gap:14px;
+  grid-template-columns:repeat(4,minmax(180px,1fr));
+  gap:22px;
+  margin-top:32px;
 }
 
 .mc-metric{
-  padding:18px;
-  border-radius:18px;
-  background:rgba(255,255,255,.03);
-  border:1px solid rgba(255,255,255,.05);
+  padding:24px;
+  border-radius:22px;
+  background:rgba(255,255,255,.025);
+  border:1px solid rgba(255,255,255,.04);
+  backdrop-filter:blur(12px);
+  transition:.25s ease;
 }
 
+.mc-metric:hover{
+  transform:translateY(-2px);
+  border-color:rgba(201,168,76,.15);
+  background:rgba(255,255,255,.04);
+}
 .mc-metric span{
   display:block;
   font-size:12px;
@@ -132,11 +140,11 @@ html { scroll-behavior:smooth; }
 }
 
 .mc-metric strong{
-  font-size:42px;
-  color:#fff;
-  font-family:'Inter', sans-serif;
-  font-weight:700;
-  letter-spacing:-0.03em;
+  font-size:48px;
+  color:#f3f3f3;
+  font-family:'Inter',sans-serif;
+  font-weight:600;
+  letter-spacing:-0.04em;
 }
 
 .analysis-content{
