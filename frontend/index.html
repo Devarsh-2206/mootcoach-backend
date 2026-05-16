@@ -1863,24 +1863,27 @@ async function runAnalysis() {
       return { analysis: t };
     });
 
-    // ── FIX #2: safe string coercion before .includes() ──────────────────
-    const raw =
-      data.response ||
-      data.analysis ||
-      data.result   ||
-      data.text      ||
-      (typeof data === 'string' ? data : JSON.stringify(data));
-
-    const rawStr = typeof raw === 'string' ? raw : JSON.stringify(raw);
-
-    if (!raw || rawStr.includes('"error":true') || rawStr.includes('AI analysis temporarily unavailable')) {
-      throw new Error('AI analysis failed. Please try again.');
-    }
-    // ─────────────────────────────────────────────────────────────────────
-
     stopSteps();
-    await sleep(500);
+    await sleep(400);
     hideLoading();
+
+    // Rejection: non-legal document
+    if (data.isRejection) {
+      showRejection(data.error, data.documentType);
+      return;
+    }
+
+    // Structured JSON response (new engine)
+    if (data.isStructured && data.response && typeof data.response === 'object') {
+      showStructuredResults(data.response);
+      return;
+    }
+
+    // Fallback: plain text response
+    const raw = data.response || data.analysis || data.result || data.text ||
+                (typeof data === 'string' ? data : JSON.stringify(data));
+    const rawStr = typeof raw === 'string' ? raw : JSON.stringify(raw);
+    if (!rawStr || rawStr.length < 20) throw new Error('AI analysis returned an empty response. Please try again.');
     showResults(rawStr);
 
   } catch(err) {
@@ -1906,6 +1909,12 @@ const SECTION_CONFIGS = {
   research:     { icon:'◈', iconCls:'asc-icon-purple', badgeTxt:'Research',   badgeCls:'badge-purple', title:'Research Complexity'          },
   strategy:     { icon:'✦', iconCls:'asc-icon-gold',   badgeTxt:'Strategy',   badgeCls:'badge-gold',   title:'Strategic Insights'           },
   default:      { icon:'◎', iconCls:'asc-icon-gold',   badgeTxt:'Section',    badgeCls:'badge-gold',   title:''                             },
+  bench:        { icon:'⚑', iconCls:'asc-icon-blue',   badgeTxt:'Bench',      badgeCls:'badge-blue',   title:'Bench Questions'              },
+  vulnerability:{ icon:'◬', iconCls:'asc-icon-red',    badgeTxt:'Risk',       badgeCls:'badge-red',    title:'Bench Vulnerabilities'        },
+  missing:      { icon:'◌', iconCls:'asc-icon-purple', badgeTxt:'Gaps',       badgeCls:'badge-purple', title:'Missing Legal Angles'         },
+  strengths:    { icon:'▲', iconCls:'asc-icon-green',  badgeTxt:'Strengths',  badgeCls:'badge-green',  title:'Proposition Strengths'        },
+  weaknesses:   { icon:'▼', iconCls:'asc-icon-red',    badgeTxt:'Weaknesses', badgeCls:'badge-red',    title:'Proposition Weaknesses'       },
+  scoring:      { icon:'◎', iconCls:'asc-icon-gold',   badgeTxt:'Evaluation', badgeCls:'badge-gold',   title:'Scoring Breakdown'            },
 };
 
 function classifySection(heading) {
@@ -1920,6 +1929,12 @@ function classifySection(heading) {
   if (/oral|hearing|difficulty/.test(h))                 return 'oral';
   if (/research|complex/.test(h))                        return 'research';
   if (/strateg|insight|tip|tactical|recommend/.test(h))  return 'strategy';
+  if (/bench.question|bench.quer/.test(h))               return 'bench';
+  if (/vulnerabilit/.test(h))                            return 'vulnerability';
+  if (/missing|gap|angle/.test(h))                       return 'missing';
+  if (/strength/.test(h))                                return 'strengths';
+  if (/weakness|weak.point/.test(h))                     return 'weaknesses';
+  if (/scoring|breakdown|category/.test(h))              return 'scoring';
   return 'default';
 }
 
@@ -2090,6 +2105,11 @@ function renderSectionBody(type, content, score) {
     case 'oral':
     case 'research':     return renderDifficulty(content);
     case 'strategy':     return renderStrategy(content);
+    case 'bench':        return renderBullets(content,'ib-blue');
+    case 'vulnerability':return renderBullets(content,'ib-red');
+    case 'missing':      return renderBullets(content,'ib-purple');
+    case 'strengths':    return renderBullets(content,'ib-green');
+    case 'weaknesses':   return renderBullets(content,'ib-red');
     default:             return renderBullets(content);
   }
 }
@@ -2246,7 +2266,186 @@ function showResults(rawText) {
   /* Animations */
   setTimeout(() => { animateBars(); initScrollSpy(); }, 180);
 }
+/* ─── REJECTION UI ─── */
+function showRejection(msg, documentType) {
+  document.getElementById('analysis-output').innerHTML = `
+    <div style="padding:36px 28px;">
+      <div style="background:rgba(224,82,82,.06);border:1px solid rgba(224,82,82,.2);border-radius:16px;padding:32px 28px;max-width:620px;margin:0 auto;">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
+          <div style="width:36px;height:36px;border-radius:9px;background:rgba(224,82,82,.12);border:1px solid rgba(224,82,82,.28);display:flex;align-items:center;justify-content:center;color:#e05252;font-size:1rem;flex-shrink:0;">⊘</div>
+          <div>
+            <div style="font-size:.58rem;font-weight:500;letter-spacing:.16em;text-transform:uppercase;color:#e05252;margin-bottom:3px;">Document Rejected</div>
+            <div style="font-family:var(--serif);font-size:1.15rem;font-weight:500;color:var(--white);">Not a Legal Document</div>
+          </div>
+        </div>
+        <div style="font-size:.84rem;color:var(--white-2);line-height:1.82;margin-bottom:18px;">${esc(msg)}</div>
+        ${documentType ? `<div style="display:flex;align-items:center;gap:8px;padding:9px 14px;background:rgba(255,255,255,.03);border:1px solid var(--glass-b);border-radius:8px;margin-bottom:18px;"><span style="font-size:.58rem;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--white-muted);">Detected as:</span><span style="font-size:.82rem;color:var(--white-2);">${esc(documentType)}</span></div>` : ''}
+        <div style="font-size:.76rem;color:var(--white-muted);line-height:1.75;margin-bottom:22px;">MootCoach accepts: moot court propositions, legal case problems, constitutional disputes, memorials, statutes, judicial orders, and law-related submissions only.</div>
+        <button onclick="showWsPanel('upload')" style="font-family:var(--sans);font-size:.74rem;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--white-muted);background:rgba(255,255,255,.04);border:1px solid var(--glass-b);border-radius:8px;padding:10px 20px;cursor:pointer;">← Upload a Different Document</button>
+      </div>
+    </div>`;
+  document.getElementById('res-empty').style.display = 'none';
+  document.getElementById('res-filled').style.display = 'flex';
+  showWsPanel('results');
+  document.getElementById('btn-analyze').disabled = false;
+}
 
+/* ─── CATEGORY SCORE CARD ─── */
+function renderCategoryScores(categoryScores) {
+  if (!categoryScores) return '';
+  const cats = [
+    { key:'issueIdentification', label:'Issue Identification', max:20 },
+    { key:'legalComplexity',     label:'Legal Complexity',     max:20 },
+    { key:'constitutionalDepth', label:'Constitutional Depth', max:15 },
+    { key:'precedentPotential',  label:'Precedent Potential',  max:15 },
+    { key:'argumentBalance',     label:'Argument Balance',     max:10 },
+    { key:'mootReadiness',       label:'Moot Readiness',       max:10 },
+    { key:'originality',         label:'Originality / Novelty',max:10 },
+  ];
+  const rows = cats.map(cat => {
+    const d = categoryScores[cat.key];
+    if (!d) return '';
+    const sc  = Math.min(cat.max, Math.max(0, Number(d.score) || 0));
+    const pct = Math.round((sc / cat.max) * 100);
+    const bCls = pct >= 74 ? 'sf-green' : pct >= 50 ? 'sf-gold' : 'sf-red';
+    return `
+      <div style="margin-bottom:18px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px;">
+          <div style="font-size:.8rem;color:var(--white-2);">${cat.label}</div>
+          <div style="font-size:.8rem;color:var(--white);font-weight:500;">${sc}<span style="color:var(--white-muted);font-weight:300;">/${cat.max}</span></div>
+        </div>
+        <div class="sc-bar" style="height:4px;border-radius:2px;">
+          <div class="sc-bar-fill ${bCls}" data-target="${pct}%" style="width:0%"></div>
+        </div>
+        ${d.justification ? `<div style="font-size:.74rem;color:var(--white-muted);margin-top:7px;line-height:1.65;">${fmtInline(d.justification)}</div>` : ''}
+      </div>`;
+  }).join('');
+  return `
+    <div class="analysis-section-card" id="asc-card-scoring" style="animation-delay:0.04s">
+      <div class="asc-header" id="asc-h-scoring" onclick="toggleSection('scoring')">
+        <div class="asc-header-left">
+          <div class="asc-icon asc-icon-gold">◎</div>
+          <div class="asc-title">Scoring Breakdown</div>
+        </div>
+        <div class="asc-header-right">
+          <span class="asc-badge badge-gold">Evaluation</span>
+          <button class="asc-copy" onclick="event.stopPropagation();copySectionText('scoring',this)">Copy</button>
+          <span class="asc-chevron">▾</span>
+        </div>
+      </div>
+      <div class="asc-body" id="asc-b-scoring" style="padding:22px 24px;">${rows}</div>
+    </div>`;
+}
+
+/* ─── STRUCTURED SCORE HERO ─── */
+function buildStructuredScoreHero(data) {
+  const score  = Number(data.overallScore) || 0;
+  const oralD  = data.oralDifficulty  || 'medium';
+  const resD   = data.researchDifficulty || 'medium';
+  const verdict = data.scoreVerdict || 'Average';
+  const sPct   = score;
+  const oPct   = oralD === 'high' ? 84 : oralD === 'low' ? 25 : 52;
+  const rPct   = resD  === 'high' ? 88 : resD  === 'low' ? 28 : 56;
+  const sBCls  = score >= 73 ? 'sf-green' : score >= 51 ? 'sf-gold' : 'sf-red';
+  const dlbl   = { high:'High', medium:'Moderate', low:'Low' };
+  const oReason = data.oralDifficultyReason   ? data.oralDifficultyReason.slice(0,72)   + (data.oralDifficultyReason.length   > 72 ? '…' : '') : '';
+  const rReason = data.researchDifficultyReason ? data.researchDifficultyReason.slice(0,72) + (data.researchDifficultyReason.length > 72 ? '…' : '') : '';
+  return `
+    <div class="score-hero">
+      <div class="score-card">
+        <div class="sc-label"><span class="sc-label-dot"></span>Moot Readiness</div>
+        <div class="sc-value">${score}</div>
+        <div class="sc-sub">${verdict}</div>
+        <div class="sc-bar"><div class="sc-bar-fill ${sBCls}" data-target="${sPct}%" style="width:0%"></div></div>
+      </div>
+      <div class="score-card">
+        <div class="sc-label"><span class="sc-label-dot"></span>Oral Difficulty</div>
+        <div class="sc-value" style="font-size:1.5rem;padding-top:8px;">${dlbl[oralD] || 'Moderate'}</div>
+        <div class="sc-sub" style="font-size:.68rem;line-height:1.5;">${oReason}</div>
+        <div class="sc-bar"><div class="sc-bar-fill sf-blue" data-target="${oPct}%" style="width:0%"></div></div>
+      </div>
+      <div class="score-card">
+        <div class="sc-label"><span class="sc-label-dot"></span>Research Load</div>
+        <div class="sc-value" style="font-size:1.5rem;padding-top:8px;">${dlbl[resD] || 'Moderate'}</div>
+        <div class="sc-sub" style="font-size:.68rem;line-height:1.5;">${rReason}</div>
+        <div class="sc-bar"><div class="sc-bar-fill sf-purple" data-target="${rPct}%" style="width:0%"></div></div>
+      </div>
+    </div>`;
+}
+
+/* ─── MAIN STRUCTURED RENDERER ─── */
+function showStructuredResults(data) {
+  lastAnalysis = JSON.stringify(data, null, 2);
+
+  const toList = arr => (arr || []).map(x => `- ${x}`).join('\n');
+
+  const sections = [
+    data.summary && { type:'summary', heading:'Case Summary', content: data.summary },
+    (data.legalIssues || []).length          && { type:'legal',         heading:'Legal Issues',              content: toList(data.legalIssues) },
+    (data.petitionerArguments || []).length  && { type:'petitioner',    heading:'Petitioner Arguments',      content: toList(data.petitionerArguments) },
+    (data.respondentArguments || []).length  && { type:'respondent',    heading:'Respondent Arguments',      content: toList(data.respondentArguments) },
+    (data.constitutionalIssues || []).length && { type:'constitution',  heading:'Constitutional Provisions', content: toList(data.constitutionalIssues) },
+    (data.precedentsNeeded || []).length     && { type:'cases',         heading:'Cases & Precedents',        content: toList(data.precedentsNeeded) },
+    (data.benchQuestions || []).length       && { type:'bench',         heading:'Bench Questions',           content: toList(data.benchQuestions) },
+    (data.benchVulnerabilities || []).length && { type:'vulnerability', heading:'Bench Vulnerabilities',     content: toList(data.benchVulnerabilities) },
+    (data.strengths || []).length            && { type:'strengths',     heading:'Proposition Strengths',     content: toList(data.strengths) },
+    (data.weaknesses || []).length           && { type:'weaknesses',    heading:'Proposition Weaknesses',    content: toList(data.weaknesses) },
+    (data.missingAngles || []).length        && { type:'missing',       heading:'Missing Legal Angles',      content: toList(data.missingAngles) },
+    (data.mostContestableIssue || data.finalVerdict) && {
+      type:'strategy', heading:'Strategic Insights',
+      content: [
+        data.mostContestableIssue && `**Most Contestable Issue:** ${data.mostContestableIssue}`,
+        data.finalVerdict && `**Final Verdict:** ${data.finalVerdict}`,
+      ].filter(Boolean).join('\n\n')
+    },
+  ].filter(Boolean);
+
+  const heroHTML    = buildStructuredScoreHero(data);
+  const scoringHTML = renderCategoryScores(data.categoryScores);
+
+  const navHTML = sections.map((s, i) => {
+    const cfg = SECTION_CONFIGS[s.type] || SECTION_CONFIGS.default;
+    return `<button class="rn-item" id="rn-${i}" onclick="scrollToSection(${i})">${cfg.icon} ${s.heading}</button>`;
+  }).join('');
+
+  const cardsHTML = sections.map((sec, i) => {
+    const cfg  = SECTION_CONFIGS[sec.type] || SECTION_CONFIGS.default;
+    const body = renderSectionBody(sec.type, sec.content, data.overallScore);
+    return `
+      <div class="analysis-section-card" id="asc-card-${i}" style="animation-delay:${(i + 2) * 0.055}s">
+        <div class="asc-header" id="asc-h-${i}" onclick="toggleSection(${i})">
+          <div class="asc-header-left">
+            <div class="asc-icon ${cfg.iconCls}">${cfg.icon}</div>
+            <div class="asc-title">${cfg.title || sec.heading}</div>
+          </div>
+          <div class="asc-header-right">
+            <span class="asc-badge ${cfg.badgeCls}">${cfg.badgeTxt}</span>
+            <button class="asc-copy" onclick="event.stopPropagation();copySectionText(${i},this)">Copy</button>
+            <span class="asc-chevron">▾</span>
+          </div>
+        </div>
+        <div class="asc-body" id="asc-b-${i}" style="padding:20px 22px;">${body}</div>
+      </div>`;
+  }).join('');
+
+  document.getElementById('analysis-output').innerHTML = `
+    <div class="result-grid">
+      ${heroHTML}
+      ${scoringHTML}
+      <div class="result-divider"><span>Detailed Analysis</span></div>
+      ${cardsHTML}
+    </div>`;
+
+  const navEl = document.getElementById('res-sticky-nav-inner');
+  if (navEl) navEl.innerHTML = navHTML;
+
+  document.getElementById('res-empty').style.display  = 'none';
+  document.getElementById('res-filled').style.display = 'flex';
+  showWsPanel('results');
+  document.getElementById('btn-analyze').disabled = false;
+
+  setTimeout(() => { animateBars(); initScrollSpy(); }, 180);
+}
 /* Keep renderMarkdown for safety */
 function renderMarkdown(text) {
   return text
