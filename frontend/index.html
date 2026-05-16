@@ -961,6 +961,216 @@ p  { color:var(--white-2); }
 @keyframes pdot { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.7);opacity:.5} }
 .lo-label { font-family:var(--serif); font-size:1.4rem; font-weight:500; color:var(--white-2); }
 
+/* ═══════════════════════════════════════════
+   PREMIUM RESULT RENDERER
+═══════════════════════════════════════════ */
+
+/* Sticky section nav */
+.res-sticky-nav {
+  position: sticky; top: 0; z-index: 20;
+  background: rgba(10,13,20,.95);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--glass-b);
+  padding: 0 30px;
+  display: flex; align-items: center; gap: 2px;
+  overflow-x: auto; scrollbar-width: none; flex-shrink: 0;
+  min-height: 44px;
+}
+.res-sticky-nav::-webkit-scrollbar { display: none; }
+.rn-item {
+  font-size: .62rem; font-weight: 500; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--white-muted);
+  background: none; border: none; border-bottom: 2px solid transparent;
+  cursor: pointer; padding: 13px 11px; white-space: nowrap;
+  transition: color .2s, border-color .2s; font-family: var(--sans);
+}
+.rn-item:hover { color: var(--white-2); }
+.rn-item.active { color: var(--gold); border-bottom-color: var(--gold); }
+
+/* Result layout */
+.result-grid {
+  display: flex; flex-direction: column; gap: 16px;
+  padding: 24px 28px 60px;
+}
+
+/* Score hero row */
+.score-hero {
+  display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-bottom: 4px;
+}
+.score-card {
+  background: linear-gradient(135deg, rgba(201,168,76,.09) 0%, rgba(201,168,76,.03) 100%);
+  border: 1px solid var(--gold-border); border-radius: 14px;
+  padding: 20px 22px; position: relative; overflow: hidden;
+  transition: transform .2s, border-color .2s;
+}
+.score-card:hover { transform: translateY(-2px); border-color: rgba(201,168,76,.5); }
+.score-card::after {
+  content: ''; position: absolute; top: -20px; right: -20px;
+  width: 80px; height: 80px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(201,168,76,.14), transparent 70%);
+  pointer-events: none;
+}
+.sc-label {
+  font-size: .6rem; font-weight: 500; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--white-muted);
+  margin-bottom: 10px; display: flex; align-items: center; gap: 6px;
+}
+.sc-label-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--gold); opacity: .7; }
+.sc-value { font-family: var(--serif); font-size: 2.6rem; font-weight: 500; color: var(--white); line-height: 1; margin-bottom: 5px; }
+.sc-sub { font-size: .72rem; color: var(--gold); }
+.sc-bar { margin-top: 14px; height: 3px; background: rgba(255,255,255,.07); border-radius: 2px; overflow: hidden; }
+.sc-bar-fill {
+  height: 100%; border-radius: 2px; width: 0%;
+  transition: width 1.4s cubic-bezier(.22,.68,0,1.2);
+}
+.sf-gold   { background: linear-gradient(90deg,var(--gold),var(--gold-light)); }
+.sf-blue   { background: linear-gradient(90deg,#60a5fa,#93c5fd); }
+.sf-green  { background: linear-gradient(90deg,#4caf82,#6ee7b7); }
+.sf-red    { background: linear-gradient(90deg,#e05252,#f87171); }
+.sf-purple { background: linear-gradient(90deg,#a78bfa,#c4b5fd); }
+
+/* Section cards */
+.analysis-section-card {
+  background: var(--navy-3); border: 1px solid var(--glass-b);
+  border-radius: 14px; overflow: hidden;
+  transition: border-color .2s;
+  animation: secReveal .5s cubic-bezier(.22,.68,0,1.2) both;
+}
+.analysis-section-card:hover { border-color: rgba(255,255,255,.1); }
+@keyframes secReveal {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.asc-header {
+  padding: 16px 20px; display: flex; align-items: center;
+  justify-content: space-between; cursor: pointer; user-select: none;
+  background: var(--navy-4); border-bottom: 1px solid var(--glass-b);
+  transition: background .15s;
+}
+.asc-header:hover { background: rgba(255,255,255,.035); }
+.asc-header-left { display: flex; align-items: center; gap: 11px; }
+.asc-icon {
+  width: 30px; height: 30px; border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .85rem; flex-shrink: 0;
+}
+.asc-icon-gold   { background: var(--gold-muted);           border: 1px solid var(--gold-border);           color: var(--gold); }
+.asc-icon-blue   { background: rgba(96,165,250,.1);         border: 1px solid rgba(96,165,250,.25);         color: #60a5fa; }
+.asc-icon-green  { background: rgba(76,175,130,.1);         border: 1px solid rgba(76,175,130,.25);         color: #4caf82; }
+.asc-icon-red    { background: rgba(224,82,82,.1);          border: 1px solid rgba(224,82,82,.25);          color: #e05252; }
+.asc-icon-purple { background: rgba(167,139,250,.1);        border: 1px solid rgba(167,139,250,.25);        color: #a78bfa; }
+.asc-icon-teal   { background: rgba(45,212,191,.1);         border: 1px solid rgba(45,212,191,.25);         color: #2dd4bf; }
+.asc-title { font-family: var(--serif); font-size: .98rem; font-weight: 500; color: var(--white); }
+.asc-header-right { display: flex; align-items: center; gap: 8px; }
+.asc-badge {
+  font-size: .58rem; font-weight: 500; letter-spacing: .12em;
+  text-transform: uppercase; padding: 3px 8px; border-radius: 100px; border: 1px solid;
+}
+.badge-gold   { color: var(--gold);  background: var(--gold-muted);         border-color: var(--gold-border); }
+.badge-blue   { color: #60a5fa;      background: rgba(96,165,250,.1);       border-color: rgba(96,165,250,.25); }
+.badge-green  { color: #4caf82;      background: rgba(76,175,130,.1);       border-color: rgba(76,175,130,.25); }
+.badge-red    { color: #e05252;      background: rgba(224,82,82,.1);        border-color: rgba(224,82,82,.25); }
+.badge-purple { color: #a78bfa;      background: rgba(167,139,250,.1);      border-color: rgba(167,139,250,.25); }
+.badge-teal   { color: #2dd4bf;      background: rgba(45,212,191,.1);       border-color: rgba(45,212,191,.25); }
+.asc-copy {
+  font-size: .58rem; font-weight: 400; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--white-muted); background: none; border: 1px solid var(--glass-b);
+  border-radius: 5px; padding: 3px 9px; cursor: pointer; font-family: var(--sans);
+  transition: color .2s, border-color .2s;
+}
+.asc-copy:hover { color: var(--gold); border-color: var(--gold-border); }
+.asc-copy.copied { color: #4caf82; border-color: rgba(76,175,130,.3); }
+.asc-chevron { color: var(--white-muted); font-size: .65rem; transition: transform .3s cubic-bezier(.22,.68,0,1.2); flex-shrink: 0; }
+.asc-header.asc-collapsed .asc-chevron { transform: rotate(-90deg); }
+.asc-body { transition: opacity .3s ease; }
+.asc-body.asc-collapsed { display: none; }
+
+/* Summary card */
+.summary-card {
+  background: linear-gradient(135deg, rgba(201,168,76,.07), rgba(255,255,255,.015));
+  border: 1px solid var(--gold-border); border-radius: 12px; padding: 24px 26px;
+  position: relative; overflow: hidden;
+}
+.summary-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg,transparent,rgba(201,168,76,.6),transparent);
+}
+.summary-quote { font-family: var(--serif); font-size: 3.5rem; color: var(--gold); opacity: .15; line-height: .8; margin-bottom: -10px; }
+.summary-body { font-family: var(--serif); font-size: 1.02rem; line-height: 1.9; color: var(--white-2); font-style: italic; }
+.summary-body strong { color: var(--white); font-style: normal; font-weight: 500; }
+
+/* Insight list */
+.insight-list { display: flex; flex-direction: column; gap: 8px; list-style: none; padding: 0; }
+.insight-item {
+  display: flex; gap: 11px; padding: 13px 15px;
+  background: rgba(255,255,255,.02); border: 1px solid var(--glass-b);
+  border-radius: 9px; transition: background .15s, border-color .15s, transform .15s;
+}
+.insight-item:hover { background: rgba(255,255,255,.04); border-color: rgba(255,255,255,.09); transform: translateX(3px); }
+.insight-bullet { width: 5px; height: 5px; border-radius: 50%; background: var(--gold); opacity: .65; flex-shrink: 0; margin-top: 8px; }
+.ib-blue   { background: #60a5fa; }
+.ib-green  { background: #4caf82; }
+.ib-red    { background: #e05252; }
+.ib-purple { background: #a78bfa; }
+.ib-teal   { background: #2dd4bf; }
+.insight-text { font-size: .85rem; color: var(--white-2); line-height: 1.72; }
+.insight-text strong { color: var(--white); font-weight: 500; }
+.insight-text em { color: var(--gold); font-style: italic; }
+
+/* Case cards */
+.case-card {
+  display: flex; gap: 14px; padding: 15px 16px;
+  background: rgba(255,255,255,.02); border: 1px solid var(--glass-b);
+  border-radius: 9px; margin-bottom: 9px;
+  transition: background .15s, border-color .15s;
+}
+.case-card:hover { background: rgba(255,255,255,.04); border-color: var(--gold-border); }
+.case-num { font-family: var(--serif); font-size: 1.4rem; color: var(--gold); opacity: .3; flex-shrink: 0; min-width: 26px; line-height: 1.2; padding-top: 1px; }
+.case-name { font-size: .86rem; font-weight: 500; color: var(--white); margin-bottom: 3px; }
+.case-desc { font-size: .78rem; color: var(--white-muted); line-height: 1.6; }
+
+/* Provision tags */
+.provision-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+.provision-tag {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 13px; background: rgba(201,168,76,.07);
+  border: 1px solid rgba(201,168,76,.2); border-radius: 8px;
+  font-size: .78rem; color: var(--white-2);
+  transition: background .15s, border-color .15s;
+}
+.provision-tag:hover { background: rgba(201,168,76,.13); border-color: rgba(201,168,76,.36); }
+.provision-tag-sym { color: var(--gold); font-size: .8rem; }
+
+/* Strategy items */
+.strategy-item {
+  padding: 14px 16px 14px 18px;
+  border-left: 2px solid var(--gold); border-radius: 0 9px 9px 0;
+  background: rgba(201,168,76,.04); margin-bottom: 9px;
+  font-size: .85rem; color: var(--white-2); line-height: 1.72;
+  transition: background .15s;
+}
+.strategy-item:hover { background: rgba(201,168,76,.08); }
+.strategy-item strong { color: var(--white); font-weight: 500; }
+
+/* Difficulty pill */
+.diff-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 15px; border-radius: 100px;
+  font-size: .74rem; font-weight: 500; margin-bottom: 14px; margin-right: 6px;
+}
+.dp-high   { background: rgba(224,82,82,.12); border: 1px solid rgba(224,82,82,.3);   color: #f87171; }
+.dp-medium { background: rgba(251,191,36,.1); border: 1px solid rgba(251,191,36,.28); color: #fbbf24; }
+.dp-low    { background: rgba(76,175,130,.1); border: 1px solid rgba(76,175,130,.28); color: #4caf82; }
+
+/* Section divider */
+.result-divider {
+  display: flex; align-items: center; gap: 12px; padding: 4px 0;
+}
+.result-divider span { font-size: .6rem; font-weight: 500; letter-spacing: .16em; text-transform: uppercase; color: var(--white-muted); opacity: .4; white-space: nowrap; }
+.result-divider::before,.result-divider::after { content: ''; flex: 1; height: 1px; background: var(--glass-b); }
+
+/* Override res-body padding so result-grid controls its own spacing */
+.ws-results-panel .res-body { padding: 0; }
 /* ── RESPONSIVE ── */
 @media (max-width:900px) {
   .nav-links { display:none; }
@@ -1397,7 +1607,8 @@ p  { color:var(--white-2); }
           <div class="res-empty-title">No analysis yet</div>
           <div class="res-empty-sub">Upload and analyze a proposition to see results here.</div>
         </div>
-        <div id="res-filled" style="display:none;flex:1;flex-direction:column;">
+        <!-- filled state -->
+        <div id="res-filled" style="display:none;flex:1;flex-direction:column;overflow:hidden;">
           <div class="res-topbar">
             <div>
               <div class="res-eyebrow">AI Analysis Complete</div>
@@ -1405,25 +1616,23 @@ p  { color:var(--white-2); }
             </div>
             <div class="res-actions">
               <button class="btn-sm btn-sm-ghost" onclick="showWsPanel('upload')">New Analysis</button>
-              <button class="btn-sm btn-sm-gold" onclick="copyAnalysis()">Copy Analysis</button>
+              <button class="btn-sm btn-sm-gold" onclick="copyAnalysis()">Copy All</button>
             </div>
           </div>
           <div class="res-meta">
             <div class="res-chip"><div class="res-chip-dot"></div> Analysis complete</div>
-            <div class="res-chip">· Groq · llama3-70b-8192</div>
+            <div class="res-chip">· Groq · llama-3.3-70b</div>
             <div class="res-chip" id="res-file-chip">·</div>
           </div>
-          <div class="res-body">
-            <div class="analysis-box">
-              <div class="analysis-box-header">
-                <div class="abh-title"><div class="abh-dot"></div> Proposition Analysis</div>
-                <button class="btn-copy" id="copy-btn" onclick="copyAnalysis()">Copy</button>
-              </div>
-              <div class="analysis-content" id="analysis-output"></div>
-            </div>
+          <!-- sticky section nav -->
+          <div class="res-sticky-nav" id="res-sticky-nav">
+            <div id="res-sticky-nav-inner" style="display:flex;align-items:center;gap:0;"></div>
+          </div>
+          <!-- scrollable body -->
+          <div class="res-body" style="flex:1;overflow-y:auto;">
+            <div class="analysis-content" id="analysis-output"></div>
           </div>
         </div>
-      </div>
     </main>
   </div>
 </div>
@@ -1683,76 +1892,362 @@ async function runAnalysis() {
 }
 
 /* ─── RENDER RESULTS ─── */
-function showResults(responseText) {
-  lastAnalysis = responseText;
+/* ─── PREMIUM RESULT RENDERER ─── */
 
-  // Render with markdown parsing for a clean result
-  document.getElementById('analysis-output').innerHTML = `
-<div class="mc-result-shell">
+const SECTION_CONFIGS = {
+  summary:      { icon:'◈', iconCls:'asc-icon-gold',   badgeTxt:'Overview',   badgeCls:'badge-gold',   title:'Case Summary'                 },
+  legal:        { icon:'⚖', iconCls:'asc-icon-blue',   badgeTxt:'Issues',     badgeCls:'badge-blue',   title:'Legal Issues'                 },
+  petitioner:   { icon:'▲', iconCls:'asc-icon-green',  badgeTxt:'Applicant',  badgeCls:'badge-green',  title:'Petitioner Arguments'         },
+  respondent:   { icon:'▼', iconCls:'asc-icon-red',    badgeTxt:'Opposition', badgeCls:'badge-red',    title:'Respondent Arguments'         },
+  cases:        { icon:'◉', iconCls:'asc-icon-purple', badgeTxt:'Precedents', badgeCls:'badge-purple', title:'Cases & Precedents'           },
+  constitution: { icon:'§', iconCls:'asc-icon-teal',   badgeTxt:'Law',        badgeCls:'badge-teal',   title:'Constitutional Provisions'    },
+  score:        { icon:'◎', iconCls:'asc-icon-gold',   badgeTxt:'Score',      badgeCls:'badge-gold',   title:'Moot Readiness Score'         },
+  oral:         { icon:'♦', iconCls:'asc-icon-blue',   badgeTxt:'Oral',       badgeCls:'badge-blue',   title:'Oral Round Difficulty'        },
+  research:     { icon:'◈', iconCls:'asc-icon-purple', badgeTxt:'Research',   badgeCls:'badge-purple', title:'Research Complexity'          },
+  strategy:     { icon:'✦', iconCls:'asc-icon-gold',   badgeTxt:'Strategy',   badgeCls:'badge-gold',   title:'Strategic Insights'           },
+  default:      { icon:'◎', iconCls:'asc-icon-gold',   badgeTxt:'Section',    badgeCls:'badge-gold',   title:''                             },
+};
 
-  <div class="mc-hero">
-
-    <div class="mc-score-ring">
-      <div class="mc-score-value">92</div>
-      <div class="mc-score-label">Moot Strength</div>
-    </div>
-
-    <div>
-
-      <div class="mc-verdict">
-        AI ANALYSIS COMPLETE
-      </div>
-
-      <div class="mc-judge-note">
-        Strong constitutional framing with emotionally compelling facts.
-        Defense arguments are persuasive, but precedent support can be improved.
-      </div>
-
-      <div class="mc-metrics">
-
-        <div class="mc-metric">
-          <span>Issue Clarity</span>
-          <strong>94%</strong>
-        </div>
-
-        <div class="mc-metric">
-          <span>Argument Depth</span>
-          <strong>89%</strong>
-        </div>
-
-        <div class="mc-metric">
-          <span>Precedent Use</span>
-          <strong>78%</strong>
-        </div>
-
-        <div class="mc-metric">
-          <span>Bench Readiness</span>
-          <strong>91%</strong>
-        </div>
-
-      </div>
-
-    </div>
-
-  </div>
-
-  <div class="analysis-content">
-    ${renderMarkdown(responseText)}
-  </div>
-
-</div>
-`;
-
-  document.getElementById('res-empty').style.display  = 'none';
-  document.getElementById('res-filled').style.display = 'flex';
-
-  // ── FIX #1: actually switch to the results panel ──────────────────────
-  showWsPanel('results');
-  // ─────────────────────────────────────────────────────────────────────
-
-  document.getElementById('btn-analyze').disabled = false;
+function classifySection(heading) {
+  const h = heading.toLowerCase();
+  if (/summary/.test(h))                                 return 'summary';
+  if (/legal.issue|^issue/.test(h))                      return 'legal';
+  if (/petitioner|appellant|claimant/.test(h))           return 'petitioner';
+  if (/respondent|defendant/.test(h))                    return 'respondent';
+  if (/case|precedent|judgment|citation/.test(h))        return 'cases';
+  if (/constitution|provision|article|statute/.test(h))  return 'constitution';
+  if (/readiness|moot.score|score/.test(h))              return 'score';
+  if (/oral|hearing|difficulty/.test(h))                 return 'oral';
+  if (/research|complex/.test(h))                        return 'research';
+  if (/strateg|insight|tip|tactical|recommend/.test(h))  return 'strategy';
+  return 'default';
 }
 
+function parseAnalysisSections(rawText) {
+  const sections = [];
+
+  // Strategy 1: bold numbered  **1. Heading**
+  const boldNum = [...rawText.matchAll(/\n\s*\*{1,2}(\d+)[.)]\s*([^*\n]{3,80}?)\*{0,2}\s*\n/g)];
+  if (boldNum.length >= 3) {
+    boldNum.forEach((m, i) => {
+      const start = m.index + m[0].length;
+      const end   = i + 1 < boldNum.length ? boldNum[i+1].index : rawText.length;
+      sections.push({ num: +m[1], heading: m[2].trim(), content: rawText.slice(start, end).trim() });
+    });
+    return sections;
+  }
+
+  // Strategy 2: plain numbered  1. Heading
+  const plainNum = [...rawText.matchAll(/\n(\d+)[.)]\s+([^\n]{3,60})\n/g)];
+  if (plainNum.length >= 3) {
+    plainNum.forEach((m, i) => {
+      const start = m.index + m[0].length;
+      const end   = i + 1 < plainNum.length ? plainNum[i+1].index : rawText.length;
+      sections.push({ num: +m[1], heading: m[2].replace(/\*+/g,'').trim(), content: rawText.slice(start, end).trim() });
+    });
+    return sections;
+  }
+
+  // Strategy 3: markdown headers
+  const mdHeads = [...rawText.matchAll(/\n#{1,3}\s+([^\n]+)\n/g)];
+  if (mdHeads.length >= 2) {
+    mdHeads.forEach((m, i) => {
+      const start = m.index + m[0].length;
+      const end   = i + 1 < mdHeads.length ? mdHeads[i+1].index : rawText.length;
+      sections.push({ num: i+1, heading: m[1].replace(/\*+/g,'').trim(), content: rawText.slice(start, end).trim() });
+    });
+    return sections;
+  }
+
+  // Fallback: single block
+  return [{ num: 1, heading: 'Full Analysis', content: rawText }];
+}
+
+function extractScore(sections) {
+  const s = sections.find(x => classifySection(x.heading) === 'score');
+  if (!s) return null;
+  const m = s.content.match(/(\d{1,3})\s*(?:\/\s*100|out of 100|\s*%)/i);
+  return m ? Math.min(100, +m[1]) : null;
+}
+
+function getDiffLevel(content) {
+  const t = content.toLowerCase();
+  if (/high|difficult|complex|challenging|hard/.test(t))   return 'high';
+  if (/low|easy|simple|straightforward/.test(t))           return 'low';
+  return 'medium';
+}
+
+function fmtInline(text) {
+  return String(text)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g,'<em>$1</em>')
+    .replace(/`(.+?)`/g,'<code style="background:rgba(255,255,255,.07);padding:1px 5px;border-radius:4px;font-size:.82em;color:var(--gold);">$1</code>');
+}
+
+function extractBullets(content) {
+  const lines = content.split('\n').map(l => l.trim()).filter(Boolean);
+  const items = [];
+  let cur = '';
+  for (const line of lines) {
+    const isBullet = /^[-•*◆→▶]/.test(line) || /^\d+[.)]\s/.test(line);
+    if (isBullet) { if (cur) items.push(cur); cur = line.replace(/^[-•*◆→▶\d.)]\s*/,'').trim(); }
+    else if (cur)  { cur += ' ' + line; }
+    else           { items.push(line); }
+  }
+  if (cur) items.push(cur);
+  return items.filter(x => x.length > 2);
+}
+
+function renderBullets(content, bulletExtraCls = '') {
+  const items = extractBullets(content);
+  if (!items.length) return `<p style="font-size:.85rem;color:var(--white-2);line-height:1.75;padding:2px 0;">${fmtInline(content)}</p>`;
+  return `<ul class="insight-list">${items.map(t=>`
+    <li class="insight-item">
+      <div class="insight-bullet ${bulletExtraCls}"></div>
+      <div class="insight-text">${fmtInline(t)}</div>
+    </li>`).join('')}</ul>`;
+}
+
+function renderCases(content) {
+  const items = extractBullets(content);
+  if (!items.length) return renderBullets(content, 'ib-purple');
+  return items.map((line, i) => {
+    const parts = line.split(/\s+[-–:]\s+/);
+    const name  = parts[0];
+    const desc  = parts.slice(1).join(' — ');
+    const n     = i + 1;
+    return `
+    <div class="case-card">
+      <div class="case-num">${n < 10 ? '0'+n : n}</div>
+      <div>
+        <div class="case-name">${fmtInline(name)}</div>
+        ${desc ? `<div class="case-desc">${fmtInline(desc)}</div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderProvisions(content) {
+  const items = extractBullets(content);
+  if (!items.length) return renderBullets(content);
+  return `<div class="provision-tags">${items.map(t=>`
+    <div class="provision-tag"><span class="provision-tag-sym">§</span>${fmtInline(t)}</div>`
+  ).join('')}</div>`;
+}
+
+function renderStrategy(content) {
+  const items = extractBullets(content);
+  if (!items.length) return `<div class="strategy-item">${fmtInline(content)}</div>`;
+  return items.map(t=>`<div class="strategy-item">${fmtInline(t)}</div>`).join('');
+}
+
+function renderDifficulty(content) {
+  const level = getDiffLevel(content);
+  const cls   = { high:'dp-high', medium:'dp-medium', low:'dp-low' }[level];
+  const label = { high:'High Difficulty', medium:'Moderate Difficulty', low:'Low Difficulty' }[level];
+  return `<div><span class="diff-pill ${cls}">${label}</span></div>${renderBullets(content)}`;
+}
+
+function renderScoreBody(content, score) {
+  if (score === null) return renderBullets(content);
+  const pct  = Math.min(100, Math.max(0, score));
+  const lbl  = pct >= 75 ? 'Strong Readiness' : pct >= 50 ? 'Moderate Readiness' : 'Needs Preparation';
+  const bCls = pct >= 75 ? 'sf-green' : pct >= 50 ? 'sf-gold' : 'sf-red';
+  return `
+    <div style="display:flex;align-items:center;gap:24px;margin-bottom:20px;flex-wrap:wrap;">
+      <div style="text-align:center;">
+        <div style="font-family:var(--serif);font-size:4.5rem;font-weight:500;color:var(--gold);line-height:1;">${score}</div>
+        <div style="font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:var(--white-muted);margin-top:4px;">/ 100</div>
+      </div>
+      <div style="flex:1;min-width:160px;">
+        <div style="font-size:.8rem;font-weight:500;color:var(--white);margin-bottom:10px;">${lbl}</div>
+        <div class="sc-bar" style="height:5px;border-radius:3px;"><div class="sc-bar-fill ${bCls}" data-target="${pct}%" style="width:0%"></div></div>
+        <div style="font-size:.7rem;color:var(--white-muted);margin-top:8px;">${pct}% moot-ready</div>
+      </div>
+    </div>
+    ${renderBullets(content)}`;
+}
+
+function renderSummaryBody(content) {
+  const cleaned = fmtInline(content);
+  return `
+    <div class="summary-card">
+      <div class="summary-quote">"</div>
+      <div class="summary-body">${cleaned}</div>
+    </div>`;
+}
+
+function renderSectionBody(type, content, score) {
+  switch(type) {
+    case 'summary':      return renderSummaryBody(content);
+    case 'legal':        return renderBullets(content,'ib-blue');
+    case 'petitioner':   return renderBullets(content,'ib-green');
+    case 'respondent':   return renderBullets(content,'ib-red');
+    case 'cases':        return renderCases(content);
+    case 'constitution': return renderProvisions(content);
+    case 'score':        return renderScoreBody(content, score);
+    case 'oral':
+    case 'research':     return renderDifficulty(content);
+    case 'strategy':     return renderStrategy(content);
+    default:             return renderBullets(content);
+  }
+}
+
+function buildScoreHero(sections) {
+  const score   = extractScore(sections);
+  const oralSec = sections.find(s => classifySection(s.heading) === 'oral');
+  const resSec  = sections.find(s => classifySection(s.heading) === 'research');
+  const oralD   = oralSec ? getDiffLevel(oralSec.content) : null;
+  const resD    = resSec  ? getDiffLevel(resSec.content)  : null;
+
+  if (score === null && !oralD && !resD) return '';
+
+  const dlabel = { high:'High', medium:'Moderate', low:'Low' };
+  const oralPct = oralD === 'high' ? 84 : oralD === 'medium' ? 52 : 26;
+  const resPct  = resD  === 'high' ? 88 : resD  === 'medium' ? 56 : 28;
+
+  const cards = [];
+  if (score !== null) cards.push(`
+    <div class="score-card">
+      <div class="sc-label"><span class="sc-label-dot"></span>Moot Readiness</div>
+      <div class="sc-value">${score}</div>
+      <div class="sc-sub">out of 100</div>
+      <div class="sc-bar"><div class="sc-bar-fill sf-gold" data-target="${score}%" style="width:0%"></div></div>
+    </div>`);
+  if (oralD) cards.push(`
+    <div class="score-card">
+      <div class="sc-label"><span class="sc-label-dot"></span>Oral Difficulty</div>
+      <div class="sc-value" style="font-size:1.55rem;padding-top:8px;">${dlabel[oralD]}</div>
+      <div class="sc-sub">${oralD === 'high' ? 'Intense bench expected' : oralD === 'medium' ? 'Moderate bench' : 'Accessible bench'}</div>
+      <div class="sc-bar"><div class="sc-bar-fill sf-blue" data-target="${oralPct}%" style="width:0%"></div></div>
+    </div>`);
+  if (resD) cards.push(`
+    <div class="score-card">
+      <div class="sc-label"><span class="sc-label-dot"></span>Research Load</div>
+      <div class="sc-value" style="font-size:1.55rem;padding-top:8px;">${dlabel[resD]}</div>
+      <div class="sc-sub">${resD === 'high' ? 'Extensive research req.' : resD === 'medium' ? 'Standard research' : 'Lean research'}</div>
+      <div class="sc-bar"><div class="sc-bar-fill sf-purple" data-target="${resPct}%" style="width:0%"></div></div>
+    </div>`);
+
+  // pad to 3 columns if fewer
+  while (cards.length < 3) cards.push('<div class="score-card" style="opacity:0;pointer-events:none;"></div>');
+  return `<div class="score-hero">${cards.join('')}</div>`;
+}
+
+function toggleSection(i) {
+  const h = document.getElementById(`asc-h-${i}`);
+  const b = document.getElementById(`asc-b-${i}`);
+  if (!h || !b) return;
+  const col = b.classList.contains('asc-collapsed');
+  b.classList.toggle('asc-collapsed', !col);
+  h.classList.toggle('asc-collapsed', !col);
+}
+
+function copySectionText(i, btn) {
+  const b = document.getElementById(`asc-b-${i}`);
+  if (!b) return;
+  navigator.clipboard.writeText(b.innerText).then(() => {
+    btn.textContent = '✓ Copied'; btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+function scrollToSection(i) {
+  const el = document.getElementById(`asc-card-${i}`);
+  const body = document.querySelector('.ws-results-panel .res-body');
+  if (el && body) body.scrollTo({ top: el.offsetTop - 50, behavior: 'smooth' });
+}
+
+function animateBars() {
+  requestAnimationFrame(() => {
+    setTimeout(() => {
+      document.querySelectorAll('.sc-bar-fill[data-target]').forEach(el => {
+        el.style.width = el.dataset.target;
+      });
+    }, 120);
+  });
+}
+
+function initScrollSpy() {
+  const resBody = document.querySelector('.ws-results-panel .res-body');
+  const navBtns = document.querySelectorAll('.rn-item');
+  if (!resBody || !navBtns.length) return;
+  resBody.addEventListener('scroll', () => {
+    let closest = 0, minDist = Infinity;
+    document.querySelectorAll('.analysis-section-card[id^="asc-card-"]').forEach(card => {
+      const dist = Math.abs(card.getBoundingClientRect().top - 120);
+      if (dist < minDist) { minDist = dist; closest = +card.id.replace('asc-card-',''); }
+    });
+    navBtns.forEach((n, i) => n.classList.toggle('active', i === closest));
+  }, { passive: true });
+}
+
+function showResults(rawText) {
+  lastAnalysis = rawText;
+
+  const sections   = parseAnalysisSections(rawText);
+  const globalScore = extractScore(sections);
+  const heroHTML   = buildScoreHero(sections);
+
+  /* Sticky nav */
+  const navHTML = sections.map((s, i) => {
+    const cfg = SECTION_CONFIGS[classifySection(s.heading)] || SECTION_CONFIGS.default;
+    return `<button class="rn-item" id="rn-${i}" onclick="scrollToSection(${i})">${cfg.icon} ${s.heading}</button>`;
+  }).join('');
+
+  /* Section cards */
+  const HERO_TYPES = new Set(['score','oral','research']);
+  const cardsHTML  = sections.map((sec, i) => {
+    const type  = classifySection(sec.heading);
+    const cfg   = SECTION_CONFIGS[type] || SECTION_CONFIGS.default;
+    const title = cfg.title || sec.heading;
+    const body  = renderSectionBody(type, sec.content, globalScore);
+    const startCollapsed = heroHTML && HERO_TYPES.has(type);
+    const hCls  = startCollapsed ? ' asc-collapsed' : '';
+    const bCls  = startCollapsed ? ' asc-collapsed' : '';
+    const delay = `${i * 0.055}s`;
+
+    return `
+      <div class="analysis-section-card" id="asc-card-${i}" style="animation-delay:${delay}">
+        <div class="asc-header${hCls}" id="asc-h-${i}" onclick="toggleSection(${i})">
+          <div class="asc-header-left">
+            <div class="asc-icon ${cfg.iconCls}">${cfg.icon}</div>
+            <div class="asc-title">${title}</div>
+          </div>
+          <div class="asc-header-right">
+            <span class="asc-badge ${cfg.badgeCls}">${cfg.badgeTxt}</span>
+            <button class="asc-copy" onclick="event.stopPropagation();copySectionText(${i},this)">Copy</button>
+            <span class="asc-chevron">▾</span>
+          </div>
+        </div>
+        <div class="asc-body${bCls}" id="asc-b-${i}" style="padding:20px 22px;">${body}</div>
+      </div>`;
+  }).join('');
+
+  /* Inject */
+  document.getElementById('analysis-output').innerHTML = `
+    <div class="result-grid">
+      ${heroHTML}
+      ${sections.length > 1 ? `<div class="result-divider"><span>Analysis Sections</span></div>` : ''}
+      ${cardsHTML}
+    </div>`;
+
+  /* Nav */
+  const navEl = document.getElementById('res-sticky-nav-inner');
+  if (navEl) { navEl.innerHTML = navHTML; }
+
+  /* Show panel */
+  document.getElementById('res-empty').style.display  = 'none';
+  document.getElementById('res-filled').style.display = 'flex';
+  showWsPanel('results');
+  document.getElementById('btn-analyze').disabled = false;
+
+  /* Animations */
+  setTimeout(() => { animateBars(); initScrollSpy(); }, 180);
+}
+
+/* Keep renderMarkdown for safety */
 function renderMarkdown(text) {
   return text
     .replace(/^### (.+)$/gm,'<h3>$1</h3>')
