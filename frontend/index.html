@@ -729,20 +729,11 @@ p  { color:var(--white-2); }
 .ws-sb-bottom button:hover { color:var(--white); }
 
 /* ── MAIN AREA ── */
-.ws-main {
-  flex:1;
-  overflow:hidden;
-  display:flex;
-  flex-direction:column;
-}
+.ws-main { flex:1; overflow-y:auto; display:flex; flex-direction:column; }
 
 /* panels */
 .ws-panel { display:none; flex:1; flex-direction:column; }
-.ws-panel.active {
-  display:flex;
-  flex-direction:column;
-  height:100%;
-}
+.ws-panel.active { display:flex; }
 
 /* Upload panel */
 .ws-upload-panel {
@@ -1230,13 +1221,12 @@ p  { color:var(--white-2); }
 
 .bench-chat {
   flex:1;
-  overflow:hidden;
+  overflow-y:auto;
   padding:20px 22px;
   display:flex;
   flex-direction:column;
   gap:14px;
-  scroll-behavior:smooth;
-  padding-bottom:120px;
+
 }
 
 .bench-input-row {
@@ -1247,10 +1237,7 @@ p  { color:var(--white-2); }
   gap:10px;
   flex-shrink:0;
   align-items:flex-end;
-
-  position:sticky;
-  bottom:0;
-  z-index:10;
+  
 }
 
 .bench-textarea {
