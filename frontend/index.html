@@ -1319,8 +1319,31 @@ p  { color:var(--white-2); }
   .pricing-grid { grid-template-columns:1fr; }
   .mockup-body { grid-template-columns:1fr 1fr; }
 }
+/* Mobile Navigation UI */
+.ws-mobile-menu-btn {
+  display:none; background:none; border:none; color:var(--white-muted); 
+  font-size:1.4rem; cursor:pointer; padding-right:12px; transition:color .2s;
+}
+.ws-mobile-menu-btn:hover { color:var(--white); }
+
+.ws-sidebar-overlay {
+  display:none; position:fixed; inset:0; z-index:80;
+  background:rgba(10,13,20,.7); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+  opacity:0; transition:opacity .3s ease;
+}
+.ws-sidebar-overlay.show { display:block; opacity:1; }
+
 @media (max-width:720px) {
-  .ws-sidebar { display:none; }
+  .ws-mobile-menu-btn { display:block; }
+  
+  /* Convert sidebar to an off-canvas slide-out menu */
+  .ws-sidebar { 
+    position:fixed; top:62px; bottom:0; left:0; z-index:90; 
+    transform:translateX(-100%); transition:transform .3s cubic-bezier(.22,.68,0,1.2); 
+    display:flex !important; box-shadow: 10px 0 30px rgba(0,0,0,.5);
+  }
+  .ws-sidebar.show { transform:translateX(0); }
+  
   .res-topbar { padding:16px 16px 0; }
   .res-meta { padding:8px 16px; }
   .res-body { padding:16px 16px 32px; }
@@ -1661,6 +1684,7 @@ p  { color:var(--white-2); }
 <!-- ═══ VIEW 3 — WORKSPACE ═══ -->
 <div id="view-workspace" class="view">
   <header class="ws-topbar">
+    <button class="ws-mobile-menu-btn" onclick="toggleMobileSidebar()">☰</button>
     <div class="ws-logo" onclick="navigate('landing')">Moot<span>Coach</span></div>
     <div class="ws-divider"></div>
     <div class="ws-name" id="ws-topbar-name">New Workspace</div>
@@ -1674,7 +1698,9 @@ p  { color:var(--white-2); }
   </header>
 
   <div class="ws-body">
-    <aside class="ws-sidebar">
+    <div class="ws-sidebar-overlay" id="ws-sidebar-overlay" onclick="toggleMobileSidebar()"></div>
+    
+    <aside class="ws-sidebar" id="ws-sidebar">
       <div class="ws-sb-section">
         <div class="ws-sb-label">Workspace</div>
         <button class="ws-sb-item active" id="wsb-upload" onclick="showWsPanel('upload')">
@@ -1871,7 +1897,15 @@ p  { color:var(--white-2); }
 <script>
 /* ─── CONFIG ─── */
 const BASE_URL = "https://mootcoach-backend-1.onrender.com";
-
+/* ─── MOBILE SIDEBAR TOGGLE ─── */
+function toggleMobileSidebar() {
+  const sidebar = document.getElementById('ws-sidebar');
+  const overlay = document.getElementById('ws-sidebar-overlay');
+  if (!sidebar || !overlay) return;
+  
+  sidebar.classList.toggle('show');
+  overlay.classList.toggle('show');
+}
 /* ─── ROUTER ─── */
 function navigate(view) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
@@ -1994,6 +2028,12 @@ function showWsPanel(name) {
   if (name === 'bench' && !benchActive) {
     const noCtx = document.getElementById('bench-no-context');
     if (noCtx) noCtx.style.display = currentPropositionContext ? 'none' : 'block';
+  }
+
+  // NEW: Automatically close mobile sidebar if it's open
+  const sidebar = document.getElementById('ws-sidebar');
+  if (sidebar && sidebar.classList.contains('show')) {
+    toggleMobileSidebar();
   }
 }
 
