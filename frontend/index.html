@@ -1225,7 +1225,7 @@ p  { color:var(--white-2); }
 
 /* Bench simulator layout */
 .bench-panel {
-  display:flex;
+  /* Removed 'display:flex;' so it properly hides when .ws-panel has display:none */
   flex-direction:column;
   flex:1;
   min-height:0;
@@ -1782,63 +1782,77 @@ p  { color:var(--white-2); }
             <div class="analysis-content" id="analysis-output"></div>
           </div>
         </div>
-    <!-- ORAL EVALUATION PANEL -->
-    <div class="ws-panel" id="wsp-oral" style="overflow-y:auto;">
-      <div style="padding:40px 32px;display:flex;flex-direction:column;align-items:center;min-height:100%;">
-        <div class="oral-panel-inner">
-          <div class="ws-up-eyebrow">Oral Advocacy</div>
-          <h2 style="font-family:var(--serif);font-size:2rem;font-weight:500;line-height:1.15;margin-bottom:.6rem;">Evaluate Your<br/><em style="color:var(--gold);font-style:italic;">Oral Submission</em></h2>
-          <p style="font-size:.88rem;color:var(--white-muted);margin-bottom:2rem;line-height:1.65;">Paste your oral argument below. MootCoach evaluates it as a competition judge — scoring legal accuracy, structure, persuasiveness, and identifying exact defects.</p>
+      </div>
 
-          <div id="oral-context-notice" style="display:none;align-items:center;gap:10px;margin-bottom:1.2rem;padding:10px 15px;background:rgba(201,168,76,.07);border:1px solid var(--gold-border);border-radius:8px;font-size:.78rem;color:var(--white-2);">
-            <span style="color:var(--gold);">✦</span>
-            <span>Proposition context loaded from last analysis.</span>
-            <button onclick="clearOralContext()" style="background:none;border:none;color:var(--gold);cursor:pointer;font-size:.78rem;text-decoration:underline;margin-left:auto;">Clear</button>
-          </div>
+      <!-- ORAL EVALUATION PANEL -->
+      <div class="ws-panel" id="wsp-oral" style="overflow-y:auto;">
+        <div style="padding:40px 32px;display:flex;flex-direction:column;align-items:center;min-height:100%;">
+          <div class="oral-panel-inner">
+            <div class="ws-up-eyebrow">Oral Advocacy</div>
+            <h2 style="font-family:var(--serif);font-size:2rem;font-weight:500;line-height:1.15;margin-bottom:.6rem;">Evaluate Your<br/><em style="color:var(--gold);font-style:italic;">Oral Submission</em></h2>
+            <p style="font-size:.88rem;color:var(--white-muted);margin-bottom:2rem;line-height:1.65;">Paste your oral argument below. MootCoach evaluates it as a competition judge — scoring legal accuracy, structure, persuasiveness, and identifying exact defects.</p>
 
-          <div class="ws-field">
-            <label>Evaluation Mode</label>
-            <div class="oral-difficulty-row">
-              <button class="diff-btn active-easy"    id="oral-diff-easy"     onclick="setOralDifficulty('easy',this)">Easy Bench</button>
-              <button class="diff-btn"                id="oral-diff-moderate" onclick="setOralDifficulty('moderate',this)">Moderate Bench</button>
-              <button class="diff-btn"                id="oral-diff-hard"     onclick="setOralDifficulty('hard',this)">Hard Bench</button>
+            <div id="oral-context-notice" style="display:none;align-items:center;gap:10px;margin-bottom:1.2rem;padding:10px 15px;background:rgba(201,168,76,.07);border:1px solid var(--gold-border);border-radius:8px;font-size:.78rem;color:var(--white-2);">
+              <span style="color:var(--gold);">✦</span>
+              <span>Proposition context loaded from last analysis.</span>
+              <button onclick="clearOralContext()" style="background:none;border:none;color:var(--gold);cursor:pointer;font-size:.78rem;text-decoration:underline;margin-left:auto;">Clear</button>
             </div>
-          </div>
 
-          <div class="ws-field">
-            <label>Your Oral Argument / Submission</label>
-            <textarea class="oral-textarea" id="oral-argument-input" placeholder="Paste your oral argument, opening submission, or any portion of your advocacy here. The more complete the submission, the more precise the evaluation…"></textarea>
-          </div>
+            <div class="ws-field">
+              <label>Evaluation Mode</label>
+              <div class="oral-difficulty-row">
+                <button class="diff-btn active-easy"    id="oral-diff-easy"     onclick="setOralDifficulty('easy',this)">Easy Bench</button>
+                <button class="diff-btn"                id="oral-diff-moderate" onclick="setOralDifficulty('moderate',this)">Moderate Bench</button>
+                <button class="diff-btn"                id="oral-diff-hard"     onclick="setOralDifficulty('hard',this)">Hard Bench</button>
+              </div>
+            </div>
 
-          <button class="btn-analyze" id="btn-oral-eval" onclick="runOralEvaluation()" disabled>
-            Evaluate Argument →
-          </button>
-          <p class="upload-note" style="margin-top:1rem;">Evaluated as a live competition judge · No content is stored.</p>
+            <div class="ws-field">
+              <label>Your Oral Argument / Submission</label>
+              <textarea class="oral-textarea" id="oral-argument-input" placeholder="Paste your oral argument, opening submission, or any portion of your advocacy here. The more complete the submission, the more precise the evaluation…"></textarea>
+            </div>
 
-          <div id="oral-results-area" style="display:none;margin-top:2.5rem;width:100%;">
-            <div class="sep" style="margin-bottom:2rem;"></div>
-            <div id="oral-results-content"></div>
+            <button class="btn-analyze" id="btn-oral-eval" onclick="runOralEvaluation()" disabled>
+              Evaluate Argument →
+            </button>
+            <p class="upload-note" style="margin-top:1rem;">Evaluated as a live competition judge · No content is stored.</p>
+
+            <div id="oral-results-area" style="display:none;margin-top:2.5rem;width:100%;">
+              <div class="sep" style="margin-bottom:2rem;"></div>
+              <div id="oral-results-content"></div>
+            </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- BENCH SIMULATION PANEL -->
-   
-  </main>
-  <div class="ws-panel bench-panel" id="wsp-bench">
-    <div class="bench-controls">
-      <div style="font-size:.62rem;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--white-muted);flex-shrink:0;">Difficulty</div>
-      <button class="diff-btn"                id="bench-diff-easy"     onclick="setBenchDifficulty('easy')">Easy</button>
-      <button class="diff-btn active-moderate" id="bench-diff-moderate" onclick="setBenchDifficulty('moderate')">Moderate</button>
-      <button class="diff-btn"                id="bench-diff-hard"     onclick="setBenchDifficulty('hard')">Hard</button>
-      <div style="flex:1;"></div>
-      <button class="btn-sm btn-sm-ghost" id="btn-bench-start" onclick="startBenchSession()">Start New Session</button>
-      <button class="btn-sm btn-sm-ghost" id="btn-bench-clear" onclick="clearBenchSession()" style="display:none;">Clear</button>
-    </div>  
-  </div>
-</div><!-- /ws-body -->
-  </div>
+      <!-- BENCH SIMULATION PANEL -->
+      <div class="ws-panel bench-panel" id="wsp-bench">
+        <div class="bench-controls">
+          <div style="font-size:.62rem;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--white-muted);flex-shrink:0;">Difficulty</div>
+          <button class="diff-btn"                id="bench-diff-easy"     onclick="setBenchDifficulty('easy')">Easy</button>
+          <button class="diff-btn active-moderate" id="bench-diff-moderate" onclick="setBenchDifficulty('moderate')">Moderate</button>
+          <button class="diff-btn"                id="bench-diff-hard"     onclick="setBenchDifficulty('hard')">Hard</button>
+          <div style="flex:1;"></div>
+          <button class="btn-sm btn-sm-ghost" id="btn-bench-start" onclick="startBenchSession()">Start New Session</button>
+          <button class="btn-sm btn-sm-ghost" id="btn-bench-clear" onclick="clearBenchSession()" style="display:none;">Clear</button>
+        </div>  
+        
+        <div class="bench-empty" id="bench-empty">
+          <div class="res-empty-icon">⚑</div>
+          <div class="res-empty-title">Bench Simulator</div>
+          <div class="res-empty-sub">Start a new session to face questions from the AI Bench.</div>
+          <div id="bench-no-context" style="display:none;margin-top:10px;font-size:0.8rem;color:#fbbf24;">Note: Upload and analyze a proposition first for contextual questions.</div>
+        </div>
+        
+        <div class="bench-chat" id="bench-chat"></div>
+        
+        <div class="bench-input-row" id="bench-input-row" style="display:none;">
+          <textarea class="bench-textarea" id="bench-input" placeholder="Type your response to the bench..." onkeydown="handleBenchKeydown(event)"></textarea>
+          <button class="btn-send" id="btn-bench-send" onclick="submitToBench()" disabled>Submit</button>
+        </div>
+      </div>
+    </main>
+  </div><!-- /ws-body -->
 </div>
 
 <!-- LOADING OVERLAY -->
