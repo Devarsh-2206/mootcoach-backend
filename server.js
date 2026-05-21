@@ -140,6 +140,7 @@ app.post("/analyze", upload.single("file"), async (req, res) => {
     return res.json({
       success: true,
       isStructured: true,
+      modelUsed: "gemini-1.5-flash", // <--- Update this to show the correct AI
       documentType: validationResult.documentType,
       response: analysisData
     });
