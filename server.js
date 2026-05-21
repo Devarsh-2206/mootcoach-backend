@@ -7,7 +7,6 @@ const multer = require("multer");
 const pdfParse = require("pdf-parse");
 const fs = require("fs");
 const Groq = require("groq-sdk");
-const { generateAIResponse } = require("./services/geminiService"); // <-- ADD THIS LINE
 
 // Routes
 const extractIssuesRoute = require("./routes/extractIssues");
@@ -34,6 +33,7 @@ const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY,
 });
 
+/* ─── /analyze (Now fully powered by Groq & Native JSON Mode) ─── */
 app.post("/analyze", upload.single("file"), async (req, res) => {
   let filePath = null;
 
@@ -63,31 +63,26 @@ app.post("/analyze", upload.single("file"), async (req, res) => {
       });
     }
 
-    // 🔥 THE FIX: REMOVED THE 14,000 CHARACTER LIMIT
-    // Safely limit to 110,000 characters (approx 35 pages) to perfectly fit the gemini-pro context window
-const fullPropositionText = extractedText.slice(0, 110000);
+    // THE FIX: Increased to 45,000 characters (12-15 pages). 
+    // This handles large moot propositions while staying safely inside Groq's Free Tier limits.
+    const fullPropositionText = extractedText.slice(0, 45000);
 
-    /* ── PHASE 1: Legal Domain Validation (Still using Groq for speed) ── */
+    /* ── PHASE 1: Legal Domain Validation ── */
     let validationResult = { isLegal: true, confidence: 60, documentType: "Unknown" };
 
     try {
       const validationCall = await groq.chat.completions.create({
         model: "llama-3.3-70b-versatile",
-        max_tokens: 80,
+        max_tokens: 150,
         temperature: 0.05,
+        response_format: { type: "json_object" }, // FORCES PERFECT JSON
         messages: [
           { role: "system", content: LEGAL_VALIDATION_PROMPT },
-          { role: "user",   content: `Classify this document:\n\n${fullPropositionText.slice(0, 2500)}` }
+          { role: "user",   content: `Classify this document. Return ONLY valid JSON:\n\n${fullPropositionText.slice(0, 3000)}` }
         ]
       });
 
-      const rawVal = validationCall.choices[0].message.content.trim();
-      const cleanedVal = rawVal.replace(/```json|```/g, '').trim();
-      const jsonStart = cleanedVal.indexOf('{');
-      const jsonEnd   = cleanedVal.lastIndexOf('}');
-      if (jsonStart !== -1 && jsonEnd !== -1) {
-        validationResult = JSON.parse(cleanedVal.slice(jsonStart, jsonEnd + 1));
-      }
+      validationResult = JSON.parse(validationCall.choices[0].message.content.trim());
     } catch (valErr) {
       console.error("Validation error (proceeding):", valErr.message);
     }
@@ -101,23 +96,30 @@ const fullPropositionText = extractedText.slice(0, 110000);
       });
     }
 
-    /* ── PHASE 2: Full Legal Analysis (🔥 ROUTED TO GEMINI 🔥) ── */
-    // We combine the System Prompt and the PDF text into one massive prompt for Gemini
-    const geminiPrompt = `${ANALYSIS_SYSTEM_PROMPT}\n\nAnalyze this legal proposition. Return ONLY the JSON object. No text before or after it:\n\n${fullPropositionText}`;
-    
-    const rawAnalysis = await generateAIResponse(geminiPrompt);
+    /* ── PHASE 2: Full Legal Analysis ── */
+    const analysisCall = await groq.chat.completions.create({
+      model: "llama-3.3-70b-versatile",
+      max_tokens: 4000,
+      temperature: 0.1,
+      response_format: { type: "json_object" }, // THE MAGIC: Impossible for the parser to break now
+      messages: [
+        { role: "system", content: ANALYSIS_SYSTEM_PROMPT },
+        {
+          role: "user",
+          content: `Analyze this legal proposition. Return ONLY a valid JSON object. No markdown:\n\n${fullPropositionText}`
+        }
+      ]
+    });
 
-    /* ── PHASE 3: Parse + Validate JSON ── */
+    const rawAnalysis = analysisCall.choices[0].message.content.trim();
+
+    /* ── PHASE 3: Parse JSON ── */
     let analysisData;
     try {
-      const cleaned  = rawAnalysis.replace(/```json|```/g, '').trim();
-      const jStart   = cleaned.indexOf('{');
-      const jEnd     = cleaned.lastIndexOf('}');
-      if (jStart === -1 || jEnd === -1) throw new Error("No JSON object in response");
-      analysisData = JSON.parse(cleaned.slice(jStart, jEnd + 1));
+      analysisData = JSON.parse(rawAnalysis);
     } catch (parseErr) {
-      console.error("JSON parse failed, returning raw text:", parseErr.message);
-      return res.json({ success: true, isStructured: false, response: rawAnalysis });
+      console.error("JSON parse failed. Error:", parseErr.message, "Raw:", rawAnalysis.substring(0, 200));
+      return res.status(500).json({ success: false, error: "AI failed to format response correctly." });
     }
 
     /* ── PHASE 4: Score Normalization ── */
@@ -140,7 +142,7 @@ const fullPropositionText = extractedText.slice(0, 110000);
     return res.json({
       success: true,
       isStructured: true,
-      modelUsed: "gemini-1.5-flash", // <--- Update this to show the correct AI
+      modelUsed: "llama-3.3-70b",
       documentType: validationResult.documentType,
       response: analysisData
     });
@@ -160,44 +162,26 @@ app.post("/evaluate-oral", express.json(), async (req, res) => {
   const { argument, propositionContext, difficulty } = req.body;
 
   if (!argument || argument.trim().length < 30) {
-    return res.status(400).json({
-      success: false,
-      error: "Please provide your oral argument text (minimum 30 characters)."
-    });
+    return res.status(400).json({ success: false, error: "Please provide your oral argument text." });
   }
 
-  const contextBlock = propositionContext
-    ? `PROPOSITION CONTEXT:\n${propositionContext.slice(0, 800)}\n\n`
-    : '';
+  const contextBlock = propositionContext ? `PROPOSITION CONTEXT:\n${propositionContext.slice(0, 800)}\n\n` : '';
 
   try {
     const evalCall = await groq.chat.completions.create({
       model: "llama-3.3-70b-versatile",
       max_tokens: 2000,
       temperature: 0.2,
+      response_format: { type: "json_object" }, // Bulletproofing the oral grader too
       messages: [
         { role: "system", content: ORAL_EVAL_PROMPT },
-        {
-          role: "user",
-          content: `${contextBlock}ORAL SUBMISSION TO EVALUATE:\n\n${argument.trim().slice(0, 4000)}\n\nReturn ONLY the JSON object.`
-        }
+        { role: "user", content: `${contextBlock}ORAL SUBMISSION TO EVALUATE:\n\n${argument.trim().slice(0, 4000)}\n\nReturn ONLY a valid JSON object.` }
       ]
     });
 
-    const rawEval = evalCall.choices[0].message.content.trim();
-
-    let evalData;
-    try {
-      const cleaned = rawEval.replace(/```json|```/g, '').trim();
-      const jStart  = cleaned.indexOf('{');
-      const jEnd    = cleaned.lastIndexOf('}');
-      if (jStart === -1 || jEnd === -1) throw new Error("No JSON found");
-      evalData = JSON.parse(cleaned.slice(jStart, jEnd + 1));
-    } catch (parseErr) {
-      return res.json({ success: true, isStructured: false, response: rawEval });
-    }
-
+    const evalData = JSON.parse(evalCall.choices[0].message.content.trim());
     evalData.overallScore = Math.min(100, Math.max(0, Number(evalData.overallScore) || 0));
+    
     const s = evalData.overallScore;
     if      (s >= 85) evalData.grade = 'A';
     else if (s >= 70) evalData.grade = 'B';
@@ -206,7 +190,6 @@ app.post("/evaluate-oral", express.json(), async (req, res) => {
     else              evalData.grade = 'F';
 
     return res.json({ success: true, isStructured: true, response: evalData });
-
   } catch (error) {
     console.error("/evaluate-oral error:", error);
     return res.status(500).json({ success: false, error: "Evaluation failed. Please try again." });
@@ -225,43 +208,24 @@ app.post("/simulate-bench", express.json(), async (req, res) => {
   const judgeSystemPrompt = buildJudgePrompt(validDifficulty, propositionSummary || '');
 
   const messages = [{ role: "system", content: judgeSystemPrompt }];
-
   const recentHistory = (conversationHistory || []).slice(-12);
+  
   for (const turn of recentHistory) {
-    messages.push({
-      role: turn.role === 'judge' ? 'assistant' : 'user',
-      content: turn.content
-    });
+    messages.push({ role: turn.role === 'judge' ? 'assistant' : 'user', content: turn.content });
   }
-  messages.push({ role: "user", content: studentStatement.trim().slice(0, 1000) });
+  messages.push({ role: "user", content: `${studentStatement.trim().slice(0, 1000)}\n\nReturn ONLY a valid JSON object.` });
 
   try {
     const judgeCall = await groq.chat.completions.create({
       model: "llama-3.3-70b-versatile",
       max_tokens: 250,
       temperature: validDifficulty === 'hard' ? 0.7 : validDifficulty === 'easy' ? 0.3 : 0.5,
+      response_format: { type: "json_object" }, // Bulletproofing the bench simulator
       messages
     });
 
-    const rawJudge = judgeCall.choices[0].message.content.trim();
-
-    let judgeData;
-    try {
-      const cleaned = rawJudge.replace(/```json|```/g, '').trim();
-      const jStart  = cleaned.indexOf('{');
-      const jEnd    = cleaned.lastIndexOf('}');
-      if (jStart === -1 || jEnd === -1) throw new Error("No JSON");
-      judgeData = JSON.parse(cleaned.slice(jStart, jEnd + 1));
-    } catch (e) {
-      judgeData = {
-        judgeResponse: rawJudge.replace(/[{}"]/g,'').slice(0, 350),
-        targetWeakness: "General submission",
-        pressureLevel: 3
-      };
-    }
-
+    const judgeData = JSON.parse(judgeCall.choices[0].message.content.trim());
     return res.json({ success: true, ...judgeData });
-
   } catch (error) {
     console.error("/simulate-bench error:", error);
     return res.status(500).json({ success: false, error: "Bench simulation failed. Please try again." });
