@@ -131,13 +131,15 @@ app.post("/analyze", upload.single("file"), async (req, res) => {
       analysisData.overallScore = computedSum;
     }
 
-    analysisData.overallScore = Math.min(94, Math.max(10, analysisData.overallScore));
+    // THE FIX: Allow scores to go all the way down to 0 (removed the Math.max(10) safety net)
+    analysisData.overallScore = Math.min(94, Math.max(0, analysisData.overallScore));
 
     const s = analysisData.overallScore;
     if      (s >= 88) analysisData.scoreVerdict = "Exceptional";
     else if (s >= 73) analysisData.scoreVerdict = "Strong";
     else if (s >= 51) analysisData.scoreVerdict = "Average";
-    else              analysisData.scoreVerdict = "Weak";
+    else if (s >= 28) analysisData.scoreVerdict = "Weak";
+    else              analysisData.scoreVerdict = "Critically Flawed";
 
     return res.json({
       success: true,
