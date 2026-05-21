@@ -2,7 +2,7 @@ const { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } = require("@googl
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-// Disable safety filters so it doesn't block legal/criminal facts
+// Disable safety filters to allow criminal/legal facts
 const safetySettings = [
   { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
   { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
@@ -22,24 +22,20 @@ const withTimeout = (promise, ms = 120000) => {
 };
 
 const generateAIResponse = async (prompt, retries = 2) => {
-  // THE FIX: Using the universally available gemini-1.5-flash
+  // THE FIX: gemini-pro (1.0) is universally available and supports ~120,000 characters
   const model = genAI.getGenerativeModel({ 
-    model: "gemini-1.5-flash", 
-    safetySettings,
-    generationConfig: {
-      responseMimeType: "application/json",
-      temperature: 0.1 // Low temp for stable JSON formatting
-    }
+    model: "gemini-pro", 
+    safetySettings 
   });
 
-  // Force AI to return pure JSON without markdown wrappers
-  const fullPrompt = `${prompt}\n\nIMPORTANT: Return ONLY the JSON object. Do not include markdown or conversational text.`;
+  // Strict prompt to enforce JSON since we removed the MimeType config
+  const fullPrompt = `${prompt}\n\nCRITICAL INSTRUCTION: You must respond ONLY with a valid, parseable JSON object. Do not include markdown blocks (like \`\`\`json). Do not include any text before or after the JSON.`;
 
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
       const result = await withTimeout(
         model.generateContent(fullPrompt),
-        120000 // 2 minute timeout for massive PDFs
+        120000 // 2 minutes
       );
 
       const response = result?.response?.text?.();
@@ -52,16 +48,14 @@ const generateAIResponse = async (prompt, retries = 2) => {
     } catch (error) {
       console.error(`Gemini attempt ${attempt + 1} failed:`, error.message);
       
-      // If it's a 404 or auth error, stop retrying
       if (error.message.includes("404") || error.message.includes("API key")) {
-        throw error;
+        throw error; // Fatal error, don't retry
       }
 
       if (attempt < retries) {
         await delay(2000 * (attempt + 1));
         continue;
       }
-
       throw error;
     }
   }

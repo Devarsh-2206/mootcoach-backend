@@ -64,8 +64,8 @@ app.post("/analyze", upload.single("file"), async (req, res) => {
     }
 
     // 🔥 THE FIX: REMOVED THE 14,000 CHARACTER LIMIT
-    // We now allow up to 400,000 characters (~100 pages), which Gemini can easily handle.
-    const fullPropositionText = extractedText.slice(0, 400000); 
+    // Safely limit to 110,000 characters (approx 35 pages) to perfectly fit the gemini-pro context window
+const fullPropositionText = extractedText.slice(0, 110000);
 
     /* ── PHASE 1: Legal Domain Validation (Still using Groq for speed) ── */
     let validationResult = { isLegal: true, confidence: 60, documentType: "Unknown" };
