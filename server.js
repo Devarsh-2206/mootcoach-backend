@@ -7,6 +7,7 @@ const multer = require("multer");
 const pdfParse = require("pdf-parse");
 const fs = require("fs");
 const Groq = require("groq-sdk");
+const { generateAIResponse } = require("./services/geminiService"); // <-- ADD THIS LINE
 
 // Routes
 const extractIssuesRoute = require("./routes/extractIssues");
@@ -33,7 +34,6 @@ const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY,
 });
 
-/* ─── /analyze ─── */
 app.post("/analyze", upload.single("file"), async (req, res) => {
   let filePath = null;
 
@@ -54,7 +54,6 @@ app.post("/analyze", upload.single("file"), async (req, res) => {
       extractedText = "";
     }
 
-    // Clean up file immediately
     try { fs.unlinkSync(filePath); filePath = null; } catch (e) {}
 
     if (!extractedText || extractedText.trim().length < 80) {
@@ -64,9 +63,11 @@ app.post("/analyze", upload.single("file"), async (req, res) => {
       });
     }
 
-    const truncatedText = extractedText.slice(0, 14000);
+    // 🔥 THE FIX: REMOVED THE 14,000 CHARACTER LIMIT
+    // We now allow up to 400,000 characters (~100 pages), which Gemini can easily handle.
+    const fullPropositionText = extractedText.slice(0, 400000); 
 
-    /* ── PHASE 1: Legal Domain Validation ── */
+    /* ── PHASE 1: Legal Domain Validation (Still using Groq for speed) ── */
     let validationResult = { isLegal: true, confidence: 60, documentType: "Unknown" };
 
     try {
@@ -76,7 +77,7 @@ app.post("/analyze", upload.single("file"), async (req, res) => {
         temperature: 0.05,
         messages: [
           { role: "system", content: LEGAL_VALIDATION_PROMPT },
-          { role: "user",   content: `Classify this document:\n\n${truncatedText.slice(0, 2500)}` }
+          { role: "user",   content: `Classify this document:\n\n${fullPropositionText.slice(0, 2500)}` }
         ]
       });
 
@@ -91,31 +92,20 @@ app.post("/analyze", upload.single("file"), async (req, res) => {
       console.error("Validation error (proceeding):", valErr.message);
     }
 
-    // Hard reject with high confidence non-legal
     if (validationResult.isLegal === false && validationResult.confidence >= 75) {
       return res.status(422).json({
         success: false,
         isRejection: true,
         documentType: validationResult.documentType || "Non-legal document",
-        error: `This document does not appear to be a legal proposition, moot problem, case file, memorial, statute-based dispute, or judicial/legal text. MootCoach currently supports only legal and moot-court-related analysis. Detected content type: "${validationResult.documentType}".`
+        error: `This document does not appear to be a legal proposition. Detected: "${validationResult.documentType}".`
       });
     }
 
-    /* ── PHASE 2: Full Legal Analysis ── */
-    const analysisCall = await groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
-      max_tokens: 4096,
-      temperature: 0.25,
-      messages: [
-        { role: "system", content: ANALYSIS_SYSTEM_PROMPT },
-        {
-          role: "user",
-          content: `Analyze this legal proposition. Return ONLY the JSON object. No text before or after it:\n\n${truncatedText}`
-        }
-      ]
-    });
-
-    const rawAnalysis = analysisCall.choices[0].message.content.trim();
+    /* ── PHASE 2: Full Legal Analysis (🔥 ROUTED TO GEMINI 🔥) ── */
+    // We combine the System Prompt and the PDF text into one massive prompt for Gemini
+    const geminiPrompt = `${ANALYSIS_SYSTEM_PROMPT}\n\nAnalyze this legal proposition. Return ONLY the JSON object. No text before or after it:\n\n${fullPropositionText}`;
+    
+    const rawAnalysis = await generateAIResponse(geminiPrompt);
 
     /* ── PHASE 3: Parse + Validate JSON ── */
     let analysisData;
