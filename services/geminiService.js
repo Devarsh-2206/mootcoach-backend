@@ -2,8 +2,13 @@ const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-// FIX: Define the model! Using Gemini 1.5 Flash for fast, massive document processing.
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+// FIX: Added "-latest" to prevent 404s, and enforced Strict JSON Mode
+const model = genAI.getGenerativeModel({ 
+  model: "gemini-1.5-flash-latest", 
+  generationConfig: {
+    responseMimeType: "application/json",
+  }
+});
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
