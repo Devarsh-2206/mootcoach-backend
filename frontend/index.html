@@ -189,19 +189,9 @@ html { scroll-behavior:smooth; }
 }
 
 @media(max-width:900px){
-
-  .mc-hero{
-    grid-template-columns:1fr;
-  }
-
-  .mc-score-ring{
-    margin:auto;
-  }
-
-  .mc-metrics{
-    grid-template-columns:1fr 1fr;
-  }
-
+  .mc-hero{ grid-template-columns:1fr; }
+  .mc-score-ring{ margin:auto; }
+  .mc-metrics{ grid-template-columns:1fr 1fr; }
 }
 
 body {
@@ -280,7 +270,6 @@ p  { color:var(--white-2); }
   width:100%; height:1px;
   background:linear-gradient(90deg,transparent,var(--glass-b) 30%,var(--glass-b) 70%,transparent);
 }
-
 
 /* ── NAV ── */
 .land-nav {
@@ -1708,11 +1697,14 @@ p  { color:var(--white-2); }
         </button>
       </div>
       <div class="ws-sb-divider"></div>
+      
+      <!-- ADDED RECENT MOOTS SECTION -->
       <div class="ws-sb-section" id="ws-recent-section" style="display:none;">
         <div class="ws-sb-label">Recent Moots</div>
         <div id="ws-recent-list"></div>
       </div>
       <div class="ws-sb-divider"></div>
+
       <div class="ws-sb-section">
         <div class="ws-sb-label">Moot Details</div>
         <div class="ws-sb-infobox">
@@ -1899,6 +1891,25 @@ p  { color:var(--white-2); }
 </div>
 
 <script>
+/* ─── TOAST NOTIFICATIONS ─── */
+function showToast(msg, type = 'err') {
+  let stack = document.querySelector('.toast-stack');
+  if (!stack) {
+    stack = document.createElement('div');
+    stack.className = 'toast-stack';
+    document.body.appendChild(stack);
+  }
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  const icon = type === 'err' ? '✕' : type === 'ok' ? '✓' : 'ℹ';
+  t.innerHTML = `<div class="toast-icon">${icon}</div><div>${esc(msg)}</div>`;
+  stack.appendChild(t);
+  setTimeout(() => {
+    t.classList.add('removing');
+    setTimeout(() => t.remove(), 250);
+  }, 4000);
+}
+
 /* ─── FIREBASE INITIALIZATION ─── */
 const firebaseConfig = {
   apiKey: "AIzaSyAJj3zDJo3VLl_LfKBrKZ-JbU8ZC5_j_-E",
@@ -1973,6 +1984,7 @@ function toggleMobileSidebar() {
   sidebar.classList.toggle('show');
   overlay.classList.toggle('show');
 }
+
 /* ─── ROUTER ─── */
 function navigate(view) {
   // If trying to access workspace without being logged in, force to login
@@ -1981,7 +1993,9 @@ function navigate(view) {
   }
 
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-  document.getElementById('view-' + view).classList.add('active');
+  const targetView = document.getElementById('view-' + view);
+  if (targetView) targetView.classList.add('active');
+  
   document.body.style.overflow = (view === 'workspace') ? 'hidden' : 'auto';
   window.scrollTo(0, 0);
   if (view === 'workspace') checkBackend();
@@ -1992,6 +2006,8 @@ document.body.style.overflow = 'auto';
 async function checkBackend() {
   const statusEl = document.getElementById('backend-status');
   const labelEl  = document.getElementById('bs-label');
+  if (!statusEl || !labelEl) return;
+  
   statusEl.className = 'backend-status checking';
   labelEl.textContent = 'Checking server…';
   try {
@@ -2014,20 +2030,31 @@ async function checkBackend() {
   }
 }
 
-/* ─── AUTHENTICATION LOGIC (FIREBASE WIRED) ─── */
+/* ─── AUTHENTICATION LOGIC ─── */
 function switchAuthTab(tab) {
   const isLogin = tab === 'login';
-  document.getElementById('tab-login').classList.toggle('active', isLogin);
-  document.getElementById('tab-signup').classList.toggle('active', !isLogin);
-  document.getElementById('form-login').style.display   = isLogin ? '' : 'none';
-  document.getElementById('form-signup').style.display  = isLogin ? 'none' : '';
-  document.getElementById('note-login').style.display   = isLogin ? '' : 'none';
-  document.getElementById('note-signup').style.display  = isLogin ? 'none' : '';
-  document.getElementById('auth-success').style.display = 'none';
+  const tabL = document.getElementById('tab-login');
+  const tabS = document.getElementById('tab-signup');
+  if (tabL) tabL.classList.toggle('active', isLogin);
+  if (tabS) tabS.classList.toggle('active', !isLogin);
+  
+  const formL = document.getElementById('form-login');
+  const formS = document.getElementById('form-signup');
+  if (formL) formL.style.display = isLogin ? '' : 'none';
+  if (formS) formS.style.display = isLogin ? 'none' : '';
+  
+  const noteL = document.getElementById('note-login');
+  const noteS = document.getElementById('note-signup');
+  if (noteL) noteL.style.display = isLogin ? '' : 'none';
+  if (noteS) noteS.style.display = isLogin ? 'none' : '';
+  
+  const successMsg = document.getElementById('auth-success');
+  if (successMsg) successMsg.style.display = 'none';
 }
 
 function setLoading(btnId, on, txt) {
   const b = document.getElementById(btnId);
+  if (!b) return;
   b.disabled = on;
   b.innerHTML = on ? '<span class="spinner"></span>Please wait…' : txt;
 }
@@ -2035,8 +2062,8 @@ function markErr(id, has) { document.getElementById(id)?.classList.toggle('err',
 function showHint(id, show) { document.getElementById(id)?.classList.toggle('show', show); }
 
 async function handleLogin() {
-  const email = document.getElementById('li-email').value.trim();
-  const pass  = document.getElementById('li-pass').value;
+  const email = document.getElementById('li-email')?.value.trim();
+  const pass  = document.getElementById('li-pass')?.value;
   let ok = true;
   
   const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -2050,43 +2077,41 @@ async function handleLogin() {
   try {
     await auth.signInWithEmailAndPassword(email, pass);
     showAuthSuccess();
-    // The onAuthStateChanged listener will automatically redirect to workspace!
   } catch (err) {
     setLoading('btn-li', false, 'Sign In');
     const hint = document.getElementById('h-li-pass');
-    hint.textContent = err.message;
-    showHint('h-li-pass', true);
+    if (hint) {
+      hint.textContent = err.message;
+      showHint('h-li-pass', true);
+    }
     markErr('li-pass', true);
   }
 }
 
 async function handleSignup() {
-  const fname = document.getElementById('su-fname').value.trim();
-  const lname = document.getElementById('su-lname').value.trim();
-  const school = document.getElementById('su-school').value.trim();
-  const email = document.getElementById('su-email').value.trim();
-  const pass  = document.getElementById('su-pass').value;
+  const fname = document.getElementById('su-fname')?.value.trim();
+  const lname = document.getElementById('su-lname')?.value.trim();
+  const school = document.getElementById('su-school')?.value.trim();
+  const email = document.getElementById('su-email')?.value.trim();
+  const pass  = document.getElementById('su-pass')?.value;
   let ok = true;
 
   if(!fname){ markErr('su-fname',true); showHint('h-su-fname',true); ok=false; } else { markErr('su-fname',false); showHint('h-su-fname',false); }
   const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   markErr('su-email',!emailOk); showHint('h-su-email',!emailOk); if(!emailOk) ok=false;
-  if(pass.length < 8){ markErr('su-pass',true); showHint('h-su-pass',true); ok=false; } else { markErr('su-pass',false); showHint('h-su-pass',false); }
+  if(!pass || pass.length < 8){ markErr('su-pass',true); showHint('h-su-pass',true); ok=false; } else { markErr('su-pass',false); showHint('h-su-pass',false); }
   
   if(!ok) return;
 
   setLoading('btn-su', true, 'Create Account');
   
   try {
-    // 1. Create the user in Firebase Auth
     const userCredential = await auth.createUserWithEmailAndPassword(email, pass);
     const user = userCredential.user;
 
-    // 2. Update their display name
     await user.updateProfile({ displayName: fname });
 
-    // 3. Save their extended profile to Firestore Database
-    await db.collection('users').doc(user.uid).set({
+    await db.collection('artifacts').doc('mootcoach').collection('users').doc(user.uid).set({
       firstName: fname,
       lastName: lname,
       university: school,
@@ -2095,13 +2120,13 @@ async function handleSignup() {
     });
 
     showAuthSuccess();
-    // The onAuthStateChanged listener will automatically redirect to workspace!
-
   } catch (err) {
     setLoading('btn-su', false, 'Create Account');
     const hint = document.getElementById('h-su-pass');
-    hint.textContent = err.message;
-    showHint('h-su-pass', true);
+    if (hint) {
+      hint.textContent = err.message;
+      showHint('h-su-pass', true);
+    }
     markErr('su-pass', true);
   }
 }
@@ -2113,7 +2138,11 @@ async function handleGoogle() {
     showAuthSuccess();
   } catch (err) {
     console.error("Google Auth Error:", err);
-    alert("Google Sign-in failed: " + err.message);
+    if (err.code === 'auth/operation-not-supported-in-this-environment') {
+       showToast("Google Sign-In is blocked in this preview window. Please use Email/Password, or open your deployed site to use Google Auth.", "err");
+    } else {
+       showToast("Google Sign-in failed: " + err.message, "err");
+    }
   }
 }
 
@@ -2122,18 +2151,24 @@ function handleLogout() {
 }
 
 function showAuthSuccess() {
-  document.getElementById('form-login').style.display  = 'none';
-  document.getElementById('form-signup').style.display = 'none';
-  document.getElementById('auth-success').style.display = 'block';
-  document.getElementById('note-login').style.display  = 'none';
-  document.getElementById('note-signup').style.display = 'none';
+  const formL = document.getElementById('form-login');
+  const formS = document.getElementById('form-signup');
+  const authS = document.getElementById('auth-success');
+  const noteL = document.getElementById('note-login');
+  const noteS = document.getElementById('note-signup');
+  
+  if (formL) formL.style.display  = 'none';
+  if (formS) formS.style.display = 'none';
+  if (authS) authS.style.display = 'block';
+  if (noteL) noteL.style.display  = 'none';
+  if (noteS) noteS.style.display = 'none';
 }
 
 document.addEventListener('keydown', e => {
   if (e.key !== 'Enter') return;
   const view = document.querySelector('.view.active')?.id;
   if (view !== 'view-login') return;
-  const isLogin = document.getElementById('tab-login').classList.contains('active');
+  const isLogin = document.getElementById('tab-login')?.classList.contains('active');
   isLogin ? handleLogin() : handleSignup();
 });
 
@@ -2155,7 +2190,6 @@ function showWsPanel(name) {
     if (noCtx) noCtx.style.display = currentPropositionContext ? 'none' : 'block';
   }
 
-  // Automatically close mobile sidebar if it's open
   const sidebar = document.getElementById('ws-sidebar');
   if (sidebar && sidebar.classList.contains('show')) {
     toggleMobileSidebar();
@@ -2165,11 +2199,14 @@ function showWsPanel(name) {
 /* ─── MOOT NAME ─── */
 function updateWsMootName(val) {
   const nameEl = document.getElementById('ws-topbar-name');
-  nameEl.innerHTML = val.trim() ? `<strong>${val.trim()}</strong>` : 'New Workspace';
+  if (nameEl) nameEl.innerHTML = val.trim() ? `<strong>${val.trim()}</strong>` : 'New Workspace';
   const wsibMoot = document.getElementById('wsib-moot');
-  wsibMoot.textContent = val.trim() || 'Not set';
-  wsibMoot.className = 'wsib-value' + (val.trim() ? '' : ' empty');
-  document.getElementById('res-moot-title').textContent = val.trim() || 'Proposition Analysis';
+  if (wsibMoot) {
+    wsibMoot.textContent = val.trim() || 'Not set';
+    wsibMoot.className = 'wsib-value' + (val.trim() ? '' : ' empty');
+  }
+  const resMoot = document.getElementById('res-moot-title');
+  if (resMoot) resMoot.textContent = val.trim() || 'Proposition Analysis';
 }
 
 /* ─── FILE HANDLING ─── */
@@ -2184,7 +2221,10 @@ let benchDifficultyMode       = 'moderate';
 
 function handleFileSelect(file) {
   if (!file) return;
-  if (file.type !== 'application/pdf') { alert('Only PDF files are accepted.'); return; }
+  if (file.type !== 'application/pdf') { 
+    showToast('Only PDF files are accepted.', 'err'); 
+    return; 
+  }
   selectedFile = file;
   const mb = (file.size / 1048576).toFixed(2);
   document.getElementById('fp-name').textContent = file.name;
@@ -2199,18 +2239,25 @@ function handleFileSelect(file) {
 
 function removeFile() {
   selectedFile = null;
-  document.getElementById('ws-file-input').value = '';
-  document.getElementById('ws-file-pill').classList.remove('show');
+  const fi = document.getElementById('ws-file-input');
+  if (fi) fi.value = '';
+  document.getElementById('ws-file-pill')?.classList.remove('show');
   document.getElementById('ws-dropzone').style.display = '';
   document.getElementById('btn-analyze').disabled = true;
-  document.getElementById('wsib-file').textContent = 'No file uploaded';
-  document.getElementById('wsib-file').className = 'wsib-value empty';
+  
+  const wsibFile = document.getElementById('wsib-file');
+  if (wsibFile) {
+    wsibFile.textContent = 'No file uploaded';
+    wsibFile.className = 'wsib-value empty';
+  }
 }
 
 const dz = document.getElementById('ws-dropzone');
-dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
-dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'); });
-dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('drag-over'); if(e.dataTransfer.files[0]) handleFileSelect(e.dataTransfer.files[0]); });
+if (dz) {
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+  dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('drag-over'); if(e.dataTransfer.files[0]) handleFileSelect(e.dataTransfer.files[0]); });
+}
 
 /* ─── LOADING STEPS ─── */
 const STEP_MSGS = ['Reading your PDF…','Extracting text content…','Sending to Groq AI…','Generating analysis…','Saving securely to Cloud…'];
@@ -2218,14 +2265,18 @@ let stepTimer = null, currentStep = 0;
 
 function startSteps() {
   currentStep = 0;
-  for(let i=1;i<=5;i++) document.getElementById(`ls-${i}`).className='lo-step';
+  for(let i=1;i<=5;i++) {
+    const s = document.getElementById(`ls-${i}`);
+    if (s) s.className='lo-step';
+  }
   activateStep(1);
   stepTimer = setInterval(() => { if(currentStep<4){ doneStep(currentStep); activateStep(currentStep+1); } }, 900);
 }
 function activateStep(n) {
   currentStep = n;
   document.getElementById(`ls-${n}`)?.classList.add('active');
-  document.getElementById('lo-label').textContent = STEP_MSGS[n-1];
+  const label = document.getElementById('lo-label');
+  if (label) label.textContent = STEP_MSGS[n-1];
 }
 function doneStep(n) {
   const el = document.getElementById(`ls-${n}`);
@@ -2234,7 +2285,8 @@ function doneStep(n) {
 function stopSteps() {
   clearInterval(stepTimer);
   for(let i=1;i<=5;i++) doneStep(i);
-  document.getElementById('lo-label').textContent = 'Saved!';
+  const label = document.getElementById('lo-label');
+  if (label) label.textContent = 'Saved!';
 }
 
 /* ─── ANALYSIS CALL & FIRESTORE SAVING ─── */
@@ -2261,7 +2313,6 @@ async function runAnalysis() {
       return { analysis: t };
     });
 
-    // Rejection: non-legal document
     if (data.isRejection) {
       stopSteps();
       await sleep(400);
@@ -2270,10 +2321,7 @@ async function runAnalysis() {
       return;
     }
 
-    // Structured JSON response
     if (data.isStructured && data.response && typeof data.response === 'object') {
-      
-      // === SAVE TO FIRESTORE ===
       if (currentUser) {
         try {
           const mootName = document.getElementById('ws-moot-name').value.trim() || 'Untitled Moot';
@@ -2299,7 +2347,6 @@ async function runAnalysis() {
       return;
     }
 
-    // Fallback: plain text response
     const raw = data.response || data.analysis || data.result || data.text ||
                 (typeof data === 'string' ? data : JSON.stringify(data));
     const rawStr = typeof raw === 'string' ? raw : JSON.stringify(raw);
@@ -2402,8 +2449,8 @@ const SECTION_CONFIGS = {
   missing:      { icon:'◌', iconCls:'asc-icon-purple', badgeTxt:'Gaps',       badgeCls:'badge-purple', title:'Missing Legal Angles'         },
   strengths:    { icon:'▲', iconCls:'asc-icon-green',  badgeTxt:'Strengths',  badgeCls:'badge-green',  title:'Proposition Strengths'        },
   weaknesses:   { icon:'▼', iconCls:'asc-icon-red',    badgeTxt:'Weaknesses', badgeCls:'badge-red',    title:'Proposition Weaknesses'       },
-  scoring:    { icon:'◎', iconCls:'asc-icon-gold',   badgeTxt:'Evaluation', badgeCls:'badge-gold',   title:'Scoring Breakdown'         },
-  argDefects: { icon:'◬', iconCls:'asc-icon-red',    badgeTxt:'Defects',    badgeCls:'badge-red',    title:'Argument Defect Analysis'  },
+  scoring:      { icon:'◎', iconCls:'asc-icon-gold',   badgeTxt:'Evaluation', badgeCls:'badge-gold',   title:'Scoring Breakdown'         },
+  argDefects:   { icon:'◬', iconCls:'asc-icon-red',    badgeTxt:'Defects',    badgeCls:'badge-red',    title:'Argument Defect Analysis'  },
 };
 
 function classifySection(heading) {
@@ -2430,8 +2477,6 @@ function classifySection(heading) {
 
 function parseAnalysisSections(rawText) {
   const sections = [];
-
-  // Strategy 1: bold numbered  **1. Heading**
   const boldNum = [...rawText.matchAll(/\n\s*\*{1,2}(\d+)[.)]\s*([^*\n]{3,80}?)\*{0,2}\s*\n/g)];
   if (boldNum.length >= 3) {
     boldNum.forEach((m, i) => {
@@ -2441,8 +2486,6 @@ function parseAnalysisSections(rawText) {
     });
     return sections;
   }
-
-  // Strategy 2: plain numbered  1. Heading
   const plainNum = [...rawText.matchAll(/\n(\d+)[.)]\s+([^\n]{3,60})\n/g)];
   if (plainNum.length >= 3) {
     plainNum.forEach((m, i) => {
@@ -2452,8 +2495,6 @@ function parseAnalysisSections(rawText) {
     });
     return sections;
   }
-
-  // Strategy 3: markdown headers
   const mdHeads = [...rawText.matchAll(/\n#{1,3}\s+([^\n]+)\n/g)];
   if (mdHeads.length >= 2) {
     mdHeads.forEach((m, i) => {
@@ -2463,8 +2504,6 @@ function parseAnalysisSections(rawText) {
     });
     return sections;
   }
-
-  // Fallback: single block
   return [{ num: 1, heading: 'Full Analysis', content: rawText }];
 }
 
@@ -2541,7 +2580,6 @@ function renderCases(content, rawCasesArray) {
       </div>`;
     }).join('');
   }
-
   const items = extractBullets(content);
   if (!items.length) return renderBullets(content, 'ib-purple');
   return items.map((line, i) => {
@@ -2778,7 +2816,6 @@ function showResults(rawText) {
   setTimeout(() => { animateBars(); initScrollSpy(); }, 180);
 }
 
-/* ─── ARGUMENT DEFECTS RENDERER ─── */
 function renderArgumentDefects(defectsData) {
   if (!defectsData || (!defectsData.petitioner?.length && !defectsData.respondent?.length)) {
     return `<div style="font-size:.82rem;color:#4caf82;padding:6px 0;">No significant argument defects identified in this proposition.</div>`;
@@ -2820,7 +2857,6 @@ function renderArgumentDefects(defectsData) {
          renderSideDefects(defectsData.respondent,  'Respondent');
 }
 
-/* ─── REJECTION UI ─── */
 function showRejection(msg, documentType) {
   document.getElementById('analysis-output').innerHTML = `
     <div style="padding:36px 28px;">
@@ -2844,7 +2880,6 @@ function showRejection(msg, documentType) {
   document.getElementById('btn-analyze').disabled = false;
 }
 
-/* ─── CATEGORY SCORE CARD ─── */
 function renderCategoryScores(categoryScores) {
   if (!categoryScores) return '';
   const cats = [
@@ -2891,7 +2926,6 @@ function renderCategoryScores(categoryScores) {
     </div>`;
 }
 
-/* ─── STRUCTURED SCORE HERO ─── */
 function buildStructuredScoreHero(data) {
   const score  = Number(data.overallScore) || 0;
   const oralD  = data.oralDifficulty  || 'medium';
@@ -2902,7 +2936,6 @@ function buildStructuredScoreHero(data) {
   const rPct   = resD  === 'high' ? 88 : resD  === 'low' ? 28 : 56;
   const sBCls  = score >= 73 ? 'sf-green' : score >= 51 ? 'sf-gold' : 'sf-red';
   
-  // DYNAMIC COLOR CLASS FOR THE SCORE TEXT
   const txtCls = score >= 73 ? 'text-green' : score >= 51 ? 'text-gold' : 'text-red';
   
   const dlbl   = { high:'High', medium:'Moderate', low:'Low' };
@@ -2931,7 +2964,6 @@ function buildStructuredScoreHero(data) {
     </div>`;
 }
 
-/* ─── MAIN STRUCTURED RENDERER ─── */
 function showStructuredResults(data) {
   lastAnalysis = JSON.stringify(data, null, 2);
   currentPropositionContext = data.summary || '';
@@ -3418,9 +3450,7 @@ function renderMarkdown(text) {
     .join('\n');
 }
 
-
 function showError(msg) {
- 
   document.getElementById('res-empty').style.display  = 'none';
   document.getElementById('res-filled').style.display = 'flex';
   document.getElementById('analysis-output').innerHTML = `
@@ -3434,7 +3464,6 @@ function showError(msg) {
   document.getElementById('btn-analyze').disabled = false;
 }
 
-
 function copyAnalysis() {
   if(!lastAnalysis) return;
   navigator.clipboard.writeText(lastAnalysis).then(()=>{
@@ -3445,7 +3474,6 @@ function copyAnalysis() {
     }
   });
 }
-
 
 function hideLoading() { document.getElementById('loading-overlay').classList.remove('show'); }
 function sleep(ms) { return new Promise(r=>setTimeout(r,ms)); }
