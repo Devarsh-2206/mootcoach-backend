@@ -183,6 +183,11 @@ p  { color:var(--white-2); }
 }
 .badge-dot { width:5px; height:5px; border-radius:50%; background:var(--gold); opacity:.7; flex-shrink:0; }
 
+/* ── PREMIUM TRUST BANNER ── */
+.trust-banner { display:flex; align-items:center; justify-content:center; gap:3rem; padding:2rem 6vw; border-top:1px solid var(--glass-b); border-bottom:1px solid var(--glass-b); background:rgba(255,255,255,.01); flex-wrap:wrap; opacity:.7; margin-bottom: 2rem; }
+.trust-item { font-family:var(--serif); font-size:1.15rem; color:var(--white-muted); display:flex; align-items:center; gap:10px; }
+.trust-item svg { width:22px; height:22px; fill:var(--gold); opacity:.7; }
+
 /* ── SECTION SHARED ── */
 .land-section { position:relative; z-index:1; }
 .section-wrap { padding:100px 6vw; max-width:1100px; margin:0 auto; }
@@ -766,11 +771,6 @@ p  { color:var(--white-2); }
 .lm-body ul { margin-bottom:1rem; padding-left:1.2rem; }
 .lm-body li { margin-bottom:.4rem; }
 
-/* ── PREMIUM TRUST BANNER ── */
-.trust-banner { display:flex; align-items:center; justify-content:center; gap:3rem; padding:2rem 6vw; border-top:1px solid var(--glass-b); border-bottom:1px solid var(--glass-b); background:rgba(255,255,255,.01); flex-wrap:wrap; opacity:.7; margin-bottom: 2rem; }
-.trust-item { font-family:var(--serif); font-size:1.15rem; color:var(--white-muted); display:flex; align-items:center; gap:10px; }
-.trust-item svg { width:22px; height:22px; fill:var(--gold); opacity:.7; }
-
 /* ═══════════════════════════════════════════
    PREMIUM RESULT RENDERER
 ═══════════════════════════════════════════ */
@@ -1290,9 +1290,10 @@ p  { color:var(--white-2); }
     <ul class="footer-links">
       <li><a href="#how">How it Works</a></li>
       <li><a href="#features">Features</a></li>
-      <li><a href="#pricing">Access</a></li>
+      <li><a href="#" onclick="openLegalModal('terms'); return false;">Terms</a></li>
+      <li><a href="#" onclick="openLegalModal('privacy'); return false;">Privacy</a></li>
     </ul>
-    <div class="footer-copy">© 2025 MootCoach. All rights reserved.</div>
+    <div class="footer-copy">© 2026 MootCoach. All rights reserved. Strictly confidential workspace.</div>
   </footer>
 </div>
 
@@ -1361,25 +1362,16 @@ p  { color:var(--white-2); }
             <div class="field-hint" id="h-su-pass">Must be at least 8 characters.</div>
           </div>
           <button class="btn-submit" id="btn-su" onclick="handleSignup()">Create Account</button>
-          <div class="google-soon" id="google-soon-signup">
-            <span class="google-soon-icon">◎</span>
-            <span>Google Sign-in is coming soon. Use email & password for now.</span>
-            <button class="google-soon-close" onclick="document.getElementById('google-soon-signup').classList.remove('show')">✕</button>
-          </div>
+          <div class="auth-divider"><span>or</span></div>
+          <button class="btn-google" onclick="handleGoogle()">
+            <svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.2l6.8-6.8C35.9 2.2 30.3 0 24 0 14.7 0 6.7 5.4 2.6 13.3l7.9 6.1C12.4 13 17.8 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4.1 7.1-10.1 7.1-17z"/><path fill="#FBBC05" d="M10.5 28.6A14.4 14.4 0 0 1 9.5 24c0-1.6.3-3.2.8-4.6L2.4 13.3A24 24 0 0 0 0 24c0 3.9.9 7.5 2.5 10.8l8-6.2z"/><path fill="#34A853" d="M24 48c6.5 0 12-2.1 16-5.8l-7.5-5.8c-2.2 1.5-5 2.3-8.5 2.3-6.2 0-11.5-4.2-13.4-9.9l-8 6.2C6.6 42.5 14.7 48 24 48z"/></svg>
+            Continue with Google
+          </button>
           <p class="auth-terms">By creating an account you agree to our <a href="#" onclick="openLegalModal('terms'); return false;">Terms of Service</a> and <a href="#" onclick="openLegalModal('privacy'); return false;">Privacy Policy</a>.</p>
         </div>
         <!-- SUCCESS -->
-  <footer class="land-footer">
-    <div class="footer-brand">Moot<span>Coach</span></div>
-    <ul class="footer-links">
-      <li><a href="#how">How it Works</a></li>
-      <li><a href="#features">Features</a></li>
-      <li><a href="#" onclick="openLegalModal('terms'); return false;">Terms</a></li>
-      <li><a href="#" onclick="openLegalModal('privacy'); return false;">Privacy</a></li>
-    </ul>
-    <div class="footer-copy">© 2026 MootCoach. All rights reserved. Strictly confidential workspace.</div>
-  </footer>
-</div>
+        <div class="auth-success" id="auth-success">
+          <div class="success-icon">✦</div>
           <h3>You're in.</h3>
           <p>Taking you to your workspace now...</p>
         </div>
@@ -1388,7 +1380,7 @@ p  { color:var(--white-2); }
       <p class="auth-footer-note" id="note-signup" style="display:none">Already have an account? <a href="#" onclick="switchAuthTab('login');return false;">Sign in →</a></p>
     </div>
   </main>
-  <footer class="login-footer">© 2025 MootCoach. All rights reserved.</footer>
+  <footer class="login-footer">© 2026 MootCoach. All rights reserved. Strictly confidential workspace.</footer>
 </div>
 
 
@@ -1627,6 +1619,26 @@ p  { color:var(--white-2); }
 </div>
 
 <script>
+/* ─── FIREBASE INITIALIZATION ─── */
+const firebaseConfig = {
+  apiKey: "AIzaSyAJj3zDJo3VLl_LfKBrKZ-JbU8ZC5_j_-E",
+  authDomain: "mootcoach-acbae.firebaseapp.com",
+  projectId: "mootcoach-acbae",
+  storageBucket: "mootcoach-acbae.firebasestorage.app",
+  messagingSenderId: "323059898410",
+  appId: "1:323059898410:web:d77cdf41b2e892b2bf8b53",
+  measurementId: "G-L9KLT2ZDNE"
+};
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+let currentUser = null;
+
+/* ─── CONFIG ─── */
+const BASE_URL = "https://mootcoach-backend-1.onrender.com";
+
 /* ─── ALL FUNCTION DECLARATIONS FIRST (PREVENTS HOISTING/REFERENCE ERRORS) ─── */
 
 function showToast(msg, type = 'err') {
@@ -1996,6 +2008,13 @@ function removeFile() {
   document.getElementById('btn-analyze').disabled = true;
   const wsibFile = document.getElementById('wsib-file');
   if (wsibFile) { wsibFile.textContent = 'No file uploaded'; wsibFile.className = 'wsib-value empty'; }
+}
+
+const dz = document.getElementById('ws-dropzone');
+if (dz) {
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+  dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('drag-over'); if(e.dataTransfer.files[0]) handleFileSelect(e.dataTransfer.files[0]); });
 }
 
 const STEP_MSGS = ['Reading your PDF…','Extracting text content…','Sending to Groq AI…','Generating analysis…','Saving securely to Cloud…'];
@@ -3214,39 +3233,21 @@ function hideLoading() { document.getElementById('loading-overlay').classList.re
 function sleep(ms) { return new Promise(r=>setTimeout(r,ms)); }
 function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-/* ─── FIREBASE INITIALIZATION ─── */
-const firebaseConfig = {
-  apiKey: "AIzaSyAJj3zDJo3VLl_LfKBrKZ-JbU8ZC5_j_-E",
-  authDomain: "mootcoach-acbae.firebaseapp.com",
-  projectId: "mootcoach-acbae",
-  storageBucket: "mootcoach-acbae.firebasestorage.app",
-  messagingSenderId: "323059898410",
-  appId: "1:323059898410:web:d77cdf41b2e892b2bf8b53",
-  measurementId: "G-L9KLT2ZDNE"
-};
-
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const db = firebase.firestore();
-
-let currentUser = null;
-
-/* ─── AUTHENTICATION LISTENER ─── */
+/* ─── AUTH STATE HANDLER ─── */
 auth.onAuthStateChanged(user => {
   if (user) {
     currentUser = user;
     
     const initial = user.displayName ? user.displayName.charAt(0) : (user.email ? user.email.charAt(0) : 'U');
-    document.getElementById('ws-avatar').textContent = initial.toUpperCase();
+    const avatar = document.getElementById('ws-avatar');
+    if (avatar) avatar.textContent = initial.toUpperCase();
     
-    // Change nav buttons to say "Dashboard" when logged in
     document.querySelectorAll('.btn-login-nav').forEach(btn => {
       btn.textContent = 'Dashboard →';
     });
     const loginNavBtn = document.getElementById('nav-btn-login');
     if (loginNavBtn) loginNavBtn.style.display = 'none';
     
-    // If they are on the login page specifically, move them to the workspace.
     const currentView = document.querySelector('.view.active')?.id;
     if (currentView === 'view-login') {
       navigate('workspace');
@@ -3262,13 +3263,13 @@ auth.onAuthStateChanged(user => {
     const loginNavBtn = document.getElementById('nav-btn-login');
     if (loginNavBtn) loginNavBtn.style.display = 'inline-block';
     
-    // If they are logged out but in the workspace, kick them out to landing
     const currentView = document.querySelector('.view.active')?.id;
     if (currentView === 'view-workspace') {
       navigate('landing');
     }
   }
 });
+
 </script>
 </body>
 </html>
