@@ -127,7 +127,7 @@ app.post("/analyze", upload.single("file"), async (req, res) => {
     const computedSum = Object.values(catScores).reduce((sum, c) => sum + (Number(c.score) || 0), 0);
     const aiScore = Number(analysisData.overallScore) || 0;
 
-    if (computedSum > 0 && Math.abs(aiScore - computedSum) > 6) {
+    if (computedSum > 0 && aiScore !== computedSum) {
       analysisData.overallScore = computedSum;
     }
 
