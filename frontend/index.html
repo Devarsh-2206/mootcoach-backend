@@ -478,8 +478,15 @@ p  { color:var(--white-2); }
 .ws-sidebar {
   width:255px; background:var(--navy-2); border-right:1px solid var(--glass-b);
   display:flex; flex-direction:column; flex-shrink:0; height:100%;
-  overflow-y:auto; overflow-x:hidden;
+  overflow:hidden;
 }
+.ws-sb-content {
+  flex:1; overflow-y:auto; overflow-x:hidden;
+  display:flex; flex-direction:column; min-height:0;
+}
+.ws-sb-content::-webkit-scrollbar { width:4px; height:4px; }
+.ws-sb-content::-webkit-scrollbar-thumb { background:var(--glass-b); border-radius:4px; }
+
 .ws-sb-section { padding:12px 14px 6px; flex-shrink:0; }
 .ws-sb-label {
   font-size:.63rem; font-weight:500; letter-spacing:.16em; text-transform:uppercase;
@@ -506,7 +513,8 @@ p  { color:var(--white-2); }
   padding-right: 4px;
 }
 #ws-recent-list::-webkit-scrollbar { width:4px; height:4px; }
-#ws-recent-list::-webkit-scrollbar-thumb { background:var(--glass-b); border-radius:4px; }
+#ws-recent-list::-webkit-scrollbar-thumb { background:rgba(255,255,255,.2); border-radius:4px; }
+#ws-recent-list::-webkit-scrollbar-thumb:hover { background:var(--gold); }
 
 .ws-sb-infobox { margin:8px 14px; padding:10px 12px; background:var(--glass); border:1px solid var(--glass-b); border-radius:var(--r); }
 .wsib-label { font-size:.62rem; font-weight:500; letter-spacing:.14em; text-transform:uppercase; color:var(--white-muted); opacity:.6; margin-bottom:4px; }
@@ -1405,50 +1413,52 @@ p  { color:var(--white-2); }
     <div class="ws-sidebar-overlay" id="ws-sidebar-overlay" onclick="toggleMobileSidebar()"></div>
     
     <aside class="ws-sidebar" id="ws-sidebar">
-      <div class="ws-sb-section">
-        <div class="ws-sb-label">Workspace</div>
-        <button class="ws-sb-item active" id="wsb-upload" onclick="showWsPanel('upload')">
-          <span class="ws-sb-icon">⊕</span> Analyze Proposition
-        </button>
-        <button class="ws-sb-item" id="wsb-results" onclick="showWsPanel('results')">
-          <span class="ws-sb-icon">◎</span> Analysis Results
-        </button>
-      </div>
-      <div class="ws-sb-divider"></div>
-      
-      <!-- ADDED RECENT MOOTS SECTION -->
-      <div class="ws-sb-section" id="ws-recent-section" style="display:none; flex-direction:column; flex:1; min-height:0; padding-bottom:0;">
-        <div class="ws-sb-label">Recent Moots</div>
-        <div id="ws-recent-list"></div>
-      </div>
-      <div class="ws-sb-divider"></div>
+      <div class="ws-sb-content">
+        <div class="ws-sb-section">
+          <div class="ws-sb-label">Workspace</div>
+          <button class="ws-sb-item active" id="wsb-upload" onclick="showWsPanel('upload')">
+            <span class="ws-sb-icon">⊕</span> Analyze Proposition
+          </button>
+          <button class="ws-sb-item" id="wsb-results" onclick="showWsPanel('results')">
+            <span class="ws-sb-icon">◎</span> Analysis Results
+          </button>
+        </div>
+        <div class="ws-sb-divider"></div>
+        
+        <!-- ADDED RECENT MOOTS SECTION -->
+        <div class="ws-sb-section" id="ws-recent-section" style="display:none; flex-direction:column; flex:1; min-height:0; padding-bottom:0;">
+          <div class="ws-sb-label">Recent Moots</div>
+          <div id="ws-recent-list"></div>
+        </div>
+        <div class="ws-sb-divider"></div>
 
-      <div class="ws-sb-section">
-        <div class="ws-sb-label">Moot Details</div>
-        <div class="ws-sb-infobox">
-          <div class="wsib-label">Moot Name</div>
-          <div class="wsib-value empty" id="wsib-moot">Not set</div>
+        <div class="ws-sb-section">
+          <div class="ws-sb-label">Moot Details</div>
+          <div class="ws-sb-infobox">
+            <div class="wsib-label">Moot Name</div>
+            <div class="wsib-value empty" id="wsib-moot">Not set</div>
+          </div>
+          <div class="ws-sb-infobox" style="margin-top:6px">
+            <div class="wsib-label">Proposition File</div>
+            <div class="wsib-value empty" id="wsib-file">No file uploaded</div>
+          </div>
         </div>
-        <div class="ws-sb-infobox" style="margin-top:6px">
-          <div class="wsib-label">Proposition File</div>
-          <div class="wsib-value empty" id="wsib-file">No file uploaded</div>
+        <div class="ws-sb-divider"></div>
+        <div class="ws-sb-section">
+          <div class="ws-sb-label">Practice Tools</div>
+          <button class="ws-sb-item" id="wsb-oral" onclick="showWsPanel('oral')">
+            <span class="ws-sb-icon">◎</span> Oral Evaluation
+          </button>
+          <button class="ws-sb-item" id="wsb-bench" onclick="showWsPanel('bench')">
+            <span class="ws-sb-icon">⚖</span> Bench Simulator
+          </button>
         </div>
-      </div>
-      <div class="ws-sb-divider"></div>
-      <div class="ws-sb-section">
-        <div class="ws-sb-label">Practice Tools</div>
-        <button class="ws-sb-item" id="wsb-oral" onclick="showWsPanel('oral')">
-          <span class="ws-sb-icon">◎</span> Oral Evaluation
-        </button>
-        <button class="ws-sb-item" id="wsb-bench" onclick="showWsPanel('bench')">
-          <span class="ws-sb-icon">⚖</span> Bench Simulator
-        </button>
-      </div>
-      <div class="ws-sb-divider"></div>
-      <div class="ws-sb-section">
-        <div class="ws-sb-label">Coming Soon</div>
-        <button class="ws-sb-item locked"><span class="ws-sb-icon" style="opacity: 0.5;">🔒</span> Argument Builder</button>
-        <button class="ws-sb-item locked"><span class="ws-sb-icon" style="opacity: 0.5;">🔒</span> Memorial Guide</button>
+        <div class="ws-sb-divider"></div>
+        <div class="ws-sb-section">
+          <div class="ws-sb-label">Coming Soon</div>
+          <button class="ws-sb-item locked"><span class="ws-sb-icon" style="opacity: 0.5;">🔒</span> Argument Builder</button>
+          <button class="ws-sb-item locked"><span class="ws-sb-icon" style="opacity: 0.5;">🔒</span> Memorial Guide</button>
+        </div>
       </div>
       <div class="ws-sb-bottom">
         <button class="logout" onclick="handleLogout()">
@@ -2092,6 +2102,7 @@ async function runAnalysis() {
           loadRecentSessions(); 
         } catch (fbError) {
           console.error("Failed to save to cloud:", fbError);
+          showToast("Failed to save to cloud: " + fbError.message, "err");
         }
       }
 
@@ -2148,6 +2159,7 @@ async function loadRecentSessions() {
     list.innerHTML = html;
   } catch (e) {
     console.error("Failed to load history", e);
+    showToast("Failed to load history: " + e.message, "err");
   }
 }
 
@@ -2183,6 +2195,7 @@ async function loadSavedSession(docId) {
     hideLoading();
     if (stepsDiv) stepsDiv.style.display = 'flex'; 
     showError("Could not load saved session: " + e.message);
+    showToast("Failed to load saved session: " + e.message, "err");
   }
 }
 
