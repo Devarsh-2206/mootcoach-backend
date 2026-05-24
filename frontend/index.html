@@ -478,8 +478,9 @@ p  { color:var(--white-2); }
 .ws-sidebar {
   width:255px; background:var(--navy-2); border-right:1px solid var(--glass-b);
   display:flex; flex-direction:column; flex-shrink:0; height:100%;
+  overflow-y:auto; overflow-x:hidden;
 }
-.ws-sb-section { padding:18px 14px 6px; flex-shrink:0; }
+.ws-sb-section { padding:12px 14px 6px; flex-shrink:0; }
 .ws-sb-label {
   font-size:.63rem; font-weight:500; letter-spacing:.16em; text-transform:uppercase;
   color:var(--white-muted); opacity:.6; padding:0 8px; margin-bottom:6px;
@@ -496,7 +497,7 @@ p  { color:var(--white-2); }
 .ws-sb-icon { font-size:.95rem; flex-shrink:0; width:18px; text-align:center; }
 .ws-sb-item.locked { opacity:.35; cursor:not-allowed; }
 
-.ws-sb-divider { height:1px; background:var(--glass-b); margin:8px 14px; flex-shrink:0;}
+.ws-sb-divider { height:1px; background:var(--glass-b); margin:6px 14px; flex-shrink:0;}
 
 /* RECENT MOOTS (SCROLLABLE AREA) */
 #ws-recent-list {
@@ -507,7 +508,7 @@ p  { color:var(--white-2); }
 #ws-recent-list::-webkit-scrollbar { width:4px; height:4px; }
 #ws-recent-list::-webkit-scrollbar-thumb { background:var(--glass-b); border-radius:4px; }
 
-.ws-sb-infobox { margin:12px 14px; padding:13px; background:var(--glass); border:1px solid var(--glass-b); border-radius:var(--r); }
+.ws-sb-infobox { margin:8px 14px; padding:10px 12px; background:var(--glass); border:1px solid var(--glass-b); border-radius:var(--r); }
 .wsib-label { font-size:.62rem; font-weight:500; letter-spacing:.14em; text-transform:uppercase; color:var(--white-muted); opacity:.6; margin-bottom:4px; }
 .wsib-value { font-size:.8rem; color:var(--white-2); line-height:1.4; word-break:break-word; }
 .wsib-value.empty { color:var(--white-faint); font-style:italic; }
@@ -1428,7 +1429,7 @@ p  { color:var(--white-2); }
           <div class="wsib-label">Moot Name</div>
           <div class="wsib-value empty" id="wsib-moot">Not set</div>
         </div>
-        <div class="ws-sb-infobox" style="margin-top:10px">
+        <div class="ws-sb-infobox" style="margin-top:6px">
           <div class="wsib-label">Proposition File</div>
           <div class="wsib-value empty" id="wsib-file">No file uploaded</div>
         </div>
