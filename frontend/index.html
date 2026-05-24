@@ -2970,7 +2970,7 @@ function renderOralResults(data) {
     </div>
 
     <div class="analysis-section-card" style="margin-bottom:14px;">
-      <div class="asc-header" onclick="toggleSection('oral-dims')">
+      <div class="asc-header" id="asc-h-oral-dims" onclick="toggleSection('oral-dims')">
         <div class="asc-header-left"><div class="asc-icon asc-icon-gold">◎</div><div class="asc-title">Dimension Scores</div></div>
         <div class="asc-header-right"><span class="asc-badge badge-gold">Breakdown</span><span class="asc-chevron" id="asc-ch-oral-dims">▾</span></div>
       </div>
@@ -2978,7 +2978,7 @@ function renderOralResults(data) {
     </div>
 
     <div class="analysis-section-card" style="margin-bottom:14px;">
-      <div class="asc-header" onclick="toggleSection('oral-defects')">
+      <div class="asc-header" id="asc-h-oral-defects" onclick="toggleSection('oral-defects')">
         <div class="asc-header-left"><div class="asc-icon asc-icon-red">◬</div><div class="asc-title">Defects Found</div></div>
         <div class="asc-header-right"><span class="asc-badge badge-red">Issues</span><span class="asc-chevron" id="asc-ch-oral-defects">▾</span></div>
       </div>
@@ -2987,7 +2987,7 @@ function renderOralResults(data) {
 
     ${(data.strengths||[]).length ? `
     <div class="analysis-section-card" style="margin-bottom:14px;">
-      <div class="asc-header" onclick="toggleSection('oral-str')">
+      <div class="asc-header" id="asc-h-oral-str" onclick="toggleSection('oral-str')">
         <div class="asc-header-left"><div class="asc-icon asc-icon-green">▲</div><div class="asc-title">Strengths Observed</div></div>
         <div class="asc-header-right"><span class="asc-badge badge-green">Positives</span><span class="asc-chevron" id="asc-ch-oral-str">▾</span></div>
       </div>
@@ -2996,7 +2996,7 @@ function renderOralResults(data) {
 
     ${(data.immediateCorrections||[]).length ? `
     <div class="analysis-section-card" style="margin-bottom:14px;">
-      <div class="asc-header" onclick="toggleSection('oral-fix')">
+      <div class="asc-header" id="asc-h-oral-fix" onclick="toggleSection('oral-fix')">
         <div class="asc-header-left"><div class="asc-icon asc-icon-blue">↯</div><div class="asc-title">Immediate Corrections</div></div>
         <div class="asc-header-right"><span class="asc-badge badge-blue">Action Items</span><span class="asc-chevron" id="asc-ch-oral-fix">▾</span></div>
       </div>
@@ -3079,7 +3079,12 @@ function startBenchSession() {
   benchConversation.push({ role:'judge', content: opening });
 
   const input = document.getElementById('bench-input');
-  if (input) { input.value = ''; input.focus(); }
+  if (input) { 
+    input.value = ''; 
+    input.disabled = false;
+    input.placeholder = "Type your response to the bench...";
+    input.focus(); 
+  }
   const sendBtn = document.getElementById('btn-bench-send');
   if (sendBtn) sendBtn.disabled = true;
 }
@@ -3133,6 +3138,116 @@ function appendBenchMessage(role, text, pressureLevel, targetWeakness, displayPr
   chat.scrollTo({ top: chat.scrollHeight, behavior:'smooth' });
 }
 
+function appendBenchPerformanceReview(review) {
+  const chat = document.getElementById('bench-chat');
+  if (!chat) return;
+
+  const div = document.createElement('div');
+  div.className = 'bench-msg bench-msg-system';
+  div.style.maxWidth = '100%';
+  div.style.width = '100%';
+  div.style.textAlign = 'left';
+  div.style.background = 'var(--navy-3)';
+  div.style.border = '1px solid var(--glass-b)';
+  div.style.borderRadius = '14px';
+  div.style.padding = '24px';
+  div.style.marginTop = '20px';
+  div.style.boxSizing = 'border-box';
+
+  const grade = review.grade || 'C';
+  const score = Number(review.overallScore) || 0;
+  const gradeCls = `grade-${grade}`;
+
+  const defectsHTML = (review.substantiveDefects || []).length
+    ? (review.substantiveDefects).map(d => `
+        <div style="margin-bottom:10px;padding:12px 14px;background:rgba(224,82,82,.04);border:1px solid rgba(224,82,82,.15);border-left:3px solid #e05252;border-radius:0 8px 8px 0;">
+          <div style="font-size:.82rem;color:var(--white-2);line-height:1.6;">${fmtInline(d)}</div>
+        </div>`).join('')
+    : `<div style="font-size:.82rem;color:#4caf82;padding:8px 0;">No substantive defects recorded.</div>`;
+
+  const strengthsHTML = (review.strengthPoints || []).length
+    ? (review.strengthPoints).map(s => `
+        <div style="margin-bottom:10px;padding:12px 14px;background:rgba(76,175,130,.04);border:1px solid rgba(76,175,130,.15);border-left:3px solid #4caf82;border-radius:0 8px 8px 0;">
+          <div style="font-size:.82rem;color:var(--white-2);line-height:1.6;">${fmtInline(s)}</div>
+        </div>`).join('')
+    : `<div style="font-size:.82rem;color:var(--white-muted);padding:8px 0;">No specific strengths recorded.</div>`;
+
+  const adviceHTML = (review.strategicAdvice || []).length
+    ? (review.strategicAdvice).map(a => `
+        <div style="margin-bottom:10px;padding:12px 14px;background:rgba(96,165,250,.04);border:1px solid rgba(96,165,250,.15);border-left:3px solid #60a5fa;border-radius:0 8px 8px 0;">
+          <div style="font-size:.82rem;color:var(--white-2);line-height:1.6;">${fmtInline(a)}</div>
+        </div>`).join('')
+    : `<div style="font-size:.82rem;color:var(--white-muted);padding:8px 0;">No strategic advice recorded.</div>`;
+
+  div.innerHTML = `
+    <div style="display:flex;align-items:center;gap:18px;margin-bottom:20px;padding:16px 20px;background:var(--navy-4);border:1px solid var(--glass-b);border-radius:12px;flex-wrap:wrap;justify-content:space-between;width:100%;box-sizing:border-box;">
+      <div style="display:flex;align-items:center;gap:18px;">
+        <div class="oral-grade-badge ${gradeCls}" style="flex-shrink:0;margin:0;width:50px;height:50px;font-size:1.6rem;line-height:48px;">${grade}</div>
+        <div>
+          <div style="font-family:var(--serif);font-size:2.2rem;font-weight:500;color:var(--white);line-height:1;" id="animated-bench-score">0<span style="font-size:1rem;color:var(--white-muted);font-family:var(--sans);">/100</span></div>
+          <div style="font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:var(--white-muted);margin-top:3px;">Bench Advocacy Score</div>
+        </div>
+      </div>
+      <button class="btn-sm btn-sm-ghost" onclick="startBenchSession()" style="align-self:center;">Restart Session</button>
+    </div>
+
+    ${review.finalVerdict ? `
+    <div style="margin-bottom:20px;padding:16px;background:rgba(255,255,255,.02);border:1px solid var(--glass-b);border-radius:10px;">
+      <div style="font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:var(--white-muted);margin-bottom:8px;font-weight:600;">Court's Verdict</div>
+      <div style="font-family:var(--serif);font-size:.95rem;font-style:italic;color:var(--white-2);line-height:1.7;">"${fmtInline(review.finalVerdict)}"</div>
+    </div>` : ''}
+
+    <div class="analysis-section-card" style="margin-bottom:12px;background:var(--navy-4);">
+      <div class="asc-header" id="asc-h-bench-defects" onclick="toggleSection('bench-defects')">
+        <div class="asc-header-left"><div class="asc-icon asc-icon-red">◬</div><div class="asc-title">Substantive Defects</div></div>
+        <div class="asc-header-right"><span class="asc-badge badge-red">Issues</span><span class="asc-chevron" id="asc-ch-bench-defects">▾</span></div>
+      </div>
+      <div class="asc-body" id="asc-b-bench-defects" style="padding:16px 18px;">${defectsHTML}</div>
+    </div>
+
+    <div class="analysis-section-card" style="margin-bottom:12px;background:var(--navy-4);">
+      <div class="asc-header" id="asc-h-bench-strengths" onclick="toggleSection('bench-strengths')">
+        <div class="asc-header-left"><div class="asc-icon asc-icon-green">▲</div><div class="asc-title">Strengths Observed</div></div>
+        <div class="asc-header-right"><span class="asc-badge badge-green">Positives</span><span class="asc-chevron" id="asc-ch-bench-strengths">▾</span></div>
+      </div>
+      <div class="asc-body" id="asc-b-bench-strengths" style="padding:16px 18px;">${strengthsHTML}</div>
+    </div>
+
+    <div class="analysis-section-card" style="margin-bottom:0;background:var(--navy-4);">
+      <div class="asc-header" id="asc-h-bench-advice" onclick="toggleSection('bench-advice')">
+        <div class="asc-header-left"><div class="asc-icon asc-icon-blue">↯</div><div class="asc-title">Strategic Advice</div></div>
+        <div class="asc-header-right"><span class="asc-badge badge-blue">Advice</span><span class="asc-chevron" id="asc-ch-bench-advice">▾</span></div>
+      </div>
+      <div class="asc-body" id="asc-b-bench-advice" style="padding:16px 18px;">${adviceHTML}</div>
+    </div>
+  `;
+
+  chat.appendChild(div);
+  chat.scrollTo({ top: chat.scrollHeight, behavior:'smooth' });
+
+  // Animate the score
+  setTimeout(() => {
+    const scoreEl = document.getElementById('animated-bench-score');
+    if (scoreEl) {
+       let startTimestamp = null;
+       const duration = 1500;
+       const step = (timestamp) => {
+         if (!startTimestamp) startTimestamp = timestamp;
+         const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+         const ease = 1 - Math.pow(1 - progress, 4);
+         const currentScore = Math.floor(ease * score);
+         scoreEl.innerHTML = `${currentScore}<span style="font-size:1rem;color:var(--white-muted);font-family:var(--sans);">/100</span>`;
+         if (progress < 1) {
+           window.requestAnimationFrame(step);
+         } else {
+           scoreEl.innerHTML = `${score}<span style="font-size:1rem;color:var(--white-muted);font-family:var(--sans);">/100</span>`; 
+         }
+       };
+       window.requestAnimationFrame(step);
+    }
+  }, 100);
+}
+
 async function submitToBench() {
   if (benchSubmitting || !benchActive) return;
   const input   = document.getElementById('bench-input');
@@ -3175,14 +3290,25 @@ async function submitToBench() {
 
     if (!data.success) throw new Error(data.error || 'No response from bench.');
 
+    if (data.isSessionEnd) {
+      appendBenchPerformanceReview(data.performanceReview);
+      benchActive = false;
+      if (input) {
+        input.disabled = true;
+        input.placeholder = "Session ended. Click 'Restart Session' to try again.";
+      }
+      if (sendBtn) sendBtn.disabled = true;
+      return;
+    }
+
     const judgeText = data.judgeResponse || 'Proceed, Counsel.';
     appendBenchMessage('judge', judgeText, data.pressureLevel, data.targetWeakness);
     requestAnimationFrame(() => {
-  const chat = document.getElementById('bench-chat');
-  if (chat) {
-    chat.scrollTop = chat.scrollHeight;
-  }
-});
+      const chat = document.getElementById('bench-chat');
+      if (chat) {
+        chat.scrollTop = chat.scrollHeight;
+      }
+    });
     benchConversation.push({ role:'judge', content: judgeText });
 
   } catch (err) {
@@ -3190,8 +3316,10 @@ async function submitToBench() {
     appendBenchMessage('system', `Connection error: ${err.message} — Please try again.`);
   } finally {
     benchSubmitting = false;
-    if (sendBtn) sendBtn.disabled = false;
-    if (input)   input.focus();
+    if (benchActive) {
+      if (sendBtn) sendBtn.disabled = false;
+      if (input)   input.focus();
+    }
   }
 }
 

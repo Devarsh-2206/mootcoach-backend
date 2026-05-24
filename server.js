@@ -16,6 +16,7 @@ const LEGAL_VALIDATION_PROMPT = require("./prompts/legalValidationPrompt");
 const ANALYSIS_SYSTEM_PROMPT = require("./prompts/analysisSystemPrompt");
 const ORAL_EVAL_PROMPT = require("./prompts/oralEvalPrompt");
 const buildJudgePrompt = require("./prompts/benchJudgePrompt");
+const buildEvaluationPrompt = require("./prompts/benchEvaluationPrompt");
 
 const app = express();
 app.use(cors());
@@ -207,10 +208,55 @@ app.post("/simulate-bench", express.json(), async (req, res) => {
   }
 
   const validDifficulty = ['easy','moderate','hard'].includes(difficulty) ? difficulty : 'moderate';
-  const judgeSystemPrompt = buildJudgePrompt(validDifficulty, propositionSummary || '');
+  const history = conversationHistory || [];
+  
+  // Count advocate turns (previous turns in history + current turn)
+  const advocateTurnsCount = history.filter(t => t.role === 'advocate' || t.role === 'user').length + 1;
+  const MAX_TURNS = 5; // Session ends after 5 advocate submissions
 
+  const conversationHistoryWithNewTurn = [
+    ...history,
+    { role: 'advocate', content: studentStatement }
+  ];
+
+  if (advocateTurnsCount >= MAX_TURNS) {
+    // End of session: Generate Performance Review
+    try {
+      const evalPrompt = buildEvaluationPrompt(validDifficulty, propositionSummary || '', conversationHistoryWithNewTurn);
+      const evalCall = await groq.chat.completions.create({
+        model: "llama-3.3-70b-versatile",
+        max_tokens: 1500,
+        temperature: 0.2,
+        response_format: { type: "json_object" },
+        messages: [{ role: "user", content: evalPrompt }]
+      });
+
+      const reviewData = JSON.parse(evalCall.choices[0].message.content.trim());
+      
+      // Ensure grade and score properties are normalized
+      reviewData.overallScore = Math.min(100, Math.max(0, Number(reviewData.overallScore) || 0));
+      const s = reviewData.overallScore;
+      if      (s >= 85) reviewData.grade = 'A';
+      else if (s >= 70) reviewData.grade = 'B';
+      else if (s >= 55) reviewData.grade = 'C';
+      else if (s >= 40) reviewData.grade = 'D';
+      else              reviewData.grade = 'F';
+
+      return res.json({
+        success: true,
+        isSessionEnd: true,
+        performanceReview: reviewData
+      });
+    } catch (evalErr) {
+      console.error("Bench evaluation error:", evalErr);
+      return res.status(500).json({ success: false, error: "Failed to generate performance review." });
+    }
+  }
+
+  // Normal turn: Generate next judge question
+  const judgeSystemPrompt = buildJudgePrompt(validDifficulty, propositionSummary || '');
   const messages = [{ role: "system", content: judgeSystemPrompt }];
-  const recentHistory = (conversationHistory || []).slice(-12);
+  const recentHistory = history.slice(-12);
   
   for (const turn of recentHistory) {
     messages.push({ role: turn.role === 'judge' ? 'assistant' : 'user', content: turn.content });
@@ -222,12 +268,16 @@ app.post("/simulate-bench", express.json(), async (req, res) => {
       model: "llama-3.3-70b-versatile",
       max_tokens: 250,
       temperature: validDifficulty === 'hard' ? 0.7 : validDifficulty === 'easy' ? 0.3 : 0.5,
-      response_format: { type: "json_object" }, // Bulletproofing the bench simulator
+      response_format: { type: "json_object" },
       messages
     });
 
     const judgeData = JSON.parse(judgeCall.choices[0].message.content.trim());
-    return res.json({ success: true, ...judgeData });
+    return res.json({
+      success: true,
+      isSessionEnd: false,
+      ...judgeData
+    });
   } catch (error) {
     console.error("/simulate-bench error:", error);
     return res.status(500).json({ success: false, error: "Bench simulation failed. Please try again." });
