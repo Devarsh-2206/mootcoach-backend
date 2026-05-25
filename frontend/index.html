@@ -3142,22 +3142,11 @@ async function startOralRound() {
       }
     });
 
-    let workletLoaded = false;
     try {
       await voiceAudioContext.audioWorklet.addModule('/pcm-processor.js');
-      workletLoaded = true;
     } catch (err) {
-      console.warn("Failed to load /pcm-processor.js, trying relative paths...", err);
-    }
-    
-    if (!workletLoaded) {
-      try {
-        await voiceAudioContext.audioWorklet.addModule('pcm-processor.js');
-        workletLoaded = true;
-      } catch (err) {
-        console.error("Failed to load worklet from relative fallback too", err);
-        throw new Error("Could not load pcm-processor.js audio worklet. Please check path.");
-      }
+      console.error("Failed to load /pcm-processor.js", err);
+      throw new Error("Could not load pcm-processor.js audio worklet. Please check path.");
     }
 
     voiceSourceNode = voiceAudioContext.createMediaStreamSource(voiceMicrophoneStream);
