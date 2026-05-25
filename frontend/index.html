@@ -1587,7 +1587,13 @@ p  { color:var(--white-2); }
           <button class="diff-btn"                id="bench-diff-easy"     onclick="setBenchDifficulty('easy')">Easy</button>
           <button class="diff-btn active-moderate" id="bench-diff-moderate" onclick="setBenchDifficulty('moderate')">Moderate</button>
           <button class="diff-btn"                id="bench-diff-hard"     onclick="setBenchDifficulty('hard')">Hard</button>
-          <div style="flex:1;"></div>
+          <div style="flex:1; display:flex; align-items:center; gap:10px; padding-left:15px;">
+            <div id="bench-voice-status" class="backend-status checking" style="display:none; padding:3px 10px; font-size:.65rem; border-radius:100px;">
+              <div class="bs-dot" id="bench-voice-dot"></div>
+              <span id="bench-voice-text">Connecting...</span>
+            </div>
+          </div>
+          <button class="btn-sm btn-sm-gold" id="btn-bench-oral" onclick="startOralRound()">Start Oral Round</button>
           <button class="btn-sm btn-sm-ghost" id="btn-bench-start" onclick="startBenchSession()">Start New Session</button>
           <button class="btn-sm btn-sm-ghost" id="btn-bench-clear" onclick="clearBenchSession()" style="display:none;">Clear</button>
         </div>  
@@ -3037,6 +3043,300 @@ function renderOralResultsFallback(text) {
   if (!area || !content) return;
   content.innerHTML = `<div class="analysis-box"><div class="analysis-box-header"><div class="abh-title">Evaluation Result</div></div><div class="analysis-content">${renderMarkdown(text)}</div></div>`;
   area.style.display = 'block';
+}
+
+/* ─── VOICE SIMULATOR (AUDIO WORKLET + WEBSOCKET) FUNCTIONS ─── */
+let voiceWebSocket = null;
+let voiceAudioContext = null;
+let voiceMicrophoneStream = null;
+let voiceWorkletNode = null;
+let voiceSourceNode = null;
+let voiceSessionActive = false;
+let voiceSessionStartTime = null;
+let voiceNextPlayTime = 0;
+let voicePlaybackSources = [];
+
+function getWsUrl() {
+  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    return 'ws://localhost:3000/ws/voice';
+  }
+  return 'wss://mootcoach-backend-1.onrender.com/ws/voice';
+}
+
+function updateVoiceUI(status, text) {
+  const badge = document.getElementById('bench-voice-status');
+  const dot = document.getElementById('bench-voice-dot');
+  const label = document.getElementById('bench-voice-text');
+  
+  if (!badge || !dot || !label) return;
+  
+  badge.style.display = 'flex';
+  label.textContent = text;
+  
+  if (status === 'connecting') {
+    badge.className = 'backend-status checking';
+    dot.className = 'bs-dot';
+    label.style.color = 'var(--gold)';
+  } else if (status === 'listening') {
+    badge.className = 'backend-status online';
+    dot.className = 'bs-dot';
+    label.style.color = 'var(--success)';
+  } else if (status === 'speaking') {
+    badge.className = 'backend-status checking';
+    dot.className = 'bs-dot';
+    label.style.color = '#fbbf24';
+  } else if (status === 'error') {
+    badge.className = 'backend-status offline';
+    dot.className = 'bs-dot';
+    label.style.color = 'var(--error)';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+async function startOralRound() {
+  if (voiceSessionActive) {
+    stopOralRound();
+    return;
+  }
+
+  console.log("🎙️ Initiating oral round...");
+  benchConversation = [];
+  voiceSessionActive = true;
+  voiceSessionStartTime = Date.now();
+  voiceNextPlayTime = 0;
+  voicePlaybackSources = [];
+  
+  const chat = document.getElementById('bench-chat');
+  const empty = document.getElementById('bench-empty');
+  const btnOral = document.getElementById('btn-bench-oral');
+  const btnStart = document.getElementById('btn-bench-start');
+  const btnClear = document.getElementById('btn-bench-clear');
+  const inputRow = document.getElementById('bench-input-row');
+  
+  if (empty) empty.style.display = 'none';
+  if (btnOral) btnOral.textContent = 'End Oral Round';
+  if (btnStart) btnStart.disabled = true;
+  if (btnClear) btnClear.style.display = '';
+  if (inputRow) inputRow.style.display = 'none';
+
+  if (chat) {
+    chat.querySelectorAll('.bench-msg').forEach(m => m.remove());
+  }
+
+  updateVoiceUI('connecting', 'Connecting...');
+  appendBenchMessage('system', 'Starting Oral Round. Please grant microphone permissions.');
+
+  try {
+    const wsUrl = getWsUrl();
+    console.log(`Connecting to voice WebSocket: ${wsUrl}`);
+    voiceWebSocket = new WebSocket(wsUrl);
+    
+    voiceAudioContext = new (window.AudioContext || window.webkitAudioContext)();
+    
+    voiceMicrophoneStream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true
+      }
+    });
+
+    let workletLoaded = false;
+    try {
+      await voiceAudioContext.audioWorklet.addModule('/pcm-processor.js');
+      workletLoaded = true;
+    } catch (err) {
+      console.warn("Failed to load /pcm-processor.js, trying relative paths...", err);
+    }
+    
+    if (!workletLoaded) {
+      try {
+        await voiceAudioContext.audioWorklet.addModule('pcm-processor.js');
+        workletLoaded = true;
+      } catch (err) {
+        console.error("Failed to load worklet from relative fallback too", err);
+        throw new Error("Could not load pcm-processor.js audio worklet. Please check path.");
+      }
+    }
+
+    voiceSourceNode = voiceAudioContext.createMediaStreamSource(voiceMicrophoneStream);
+    voiceWorkletNode = new AudioWorkletNode(voiceAudioContext, 'pcm-processor');
+
+    voiceWorkletNode.port.onmessage = (event) => {
+      if (voiceWebSocket && voiceWebSocket.readyState === WebSocket.OPEN) {
+        const base64Audio = arrayBufferToBase64(event.data);
+        voiceWebSocket.send(JSON.stringify({
+          type: "audio",
+          data: base64Audio
+        }));
+      }
+    };
+
+    voiceSourceNode.connect(voiceWorkletNode);
+    voiceWorkletNode.connect(voiceAudioContext.destination);
+
+    voiceWebSocket.onopen = () => {
+      console.log("🎙️ Voice WebSocket opened.");
+    };
+
+    voiceWebSocket.onmessage = (event) => {
+      try {
+        const msg = JSON.parse(event.data);
+        if (msg.type === 'status') {
+          if (msg.status === 'connected') {
+            updateVoiceUI('listening', 'Listening...');
+            appendBenchMessage('system', 'Oral round active. Speak when ready, and the judge will respond or cross-examine.');
+          }
+        } else if (msg.type === 'audio') {
+          updateVoiceUI('speaking', 'Judge Speaking...');
+          const float32Data = base64ToFloat32Array(msg.data);
+          scheduleVoicePlayback(float32Data);
+        } else if (msg.type === 'text') {
+          appendBenchMessage('judge', msg.text);
+        } else if (msg.type === 'interrupted') {
+          console.log("⚡ Judge interrupted. Stop audio playback.");
+          stopVoicePlayback();
+          updateVoiceUI('listening', 'Listening...');
+        } else if (msg.type === 'turnComplete') {
+          updateVoiceUI('listening', 'Listening...');
+        } else if (msg.type === 'error') {
+          console.error("Voice server error:", msg.message);
+          appendBenchMessage('system', `Judge Error: ${msg.message}`);
+        }
+      } catch (err) {
+        console.error("Error parsing WebSocket message:", err);
+      }
+    };
+
+    voiceWebSocket.onerror = (err) => {
+      console.error("Voice WebSocket Error:", err);
+      updateVoiceUI('error', 'Connection Error');
+    };
+
+    voiceWebSocket.onclose = () => {
+      console.log("🎙️ Voice WebSocket closed.");
+      if (voiceSessionActive) {
+        stopOralRound();
+      }
+    };
+
+  } catch (err) {
+    console.error("Failed to start oral round:", err);
+    appendBenchMessage('system', `Failed to start: ${err.message}`);
+    stopOralRound();
+  }
+}
+
+function stopOralRound() {
+  if (!voiceSessionActive) return;
+  console.log("🎙️ Stopping oral round...");
+  voiceSessionActive = false;
+
+  const btnOral = document.getElementById('btn-bench-oral');
+  const btnStart = document.getElementById('btn-bench-start');
+  const empty = document.getElementById('bench-empty');
+  const inputRow = document.getElementById('bench-input-row');
+  
+  if (btnOral) btnOral.textContent = 'Start Oral Round';
+  if (btnStart) btnStart.disabled = false;
+  if (empty && document.getElementById('bench-chat')?.children?.length === 0) empty.style.display = '';
+  
+  if (voiceWebSocket) {
+    try { voiceWebSocket.close(); } catch(e){}
+    voiceWebSocket = null;
+  }
+
+  if (voiceMicrophoneStream) {
+    voiceMicrophoneStream.getTracks().forEach(track => track.stop());
+    voiceMicrophoneStream = null;
+  }
+
+  if (voiceSourceNode) {
+    try { voiceSourceNode.disconnect(); } catch(e){}
+    voiceSourceNode = null;
+  }
+  if (voiceWorkletNode) {
+    try { voiceWorkletNode.disconnect(); } catch(e){}
+    voiceWorkletNode = null;
+  }
+
+  if (voiceAudioContext) {
+    try { voiceAudioContext.close(); } catch(e){}
+    voiceAudioContext = null;
+  }
+
+  stopVoicePlayback();
+  updateVoiceUI('disconnected', 'Round Ended');
+
+  if (currentUser && voiceSessionStartTime) {
+    const durationSec = Math.floor((Date.now() - voiceSessionStartTime) / 1000);
+    const mootName = document.getElementById('ws-moot-name')?.value?.trim() || 'Untitled Moot';
+    
+    db.collection('artifacts').doc('mootcoach').collection('users').doc(currentUser.uid).collection('voice_sessions').add({
+      mootName: mootName,
+      timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+      durationSeconds: durationSec
+    }).then(() => {
+      console.log("💾 Voice session metadata logged to Firestore.");
+      showToast("Oral round saved to account.", "ok");
+    }).catch(err => {
+      console.error("Failed to log voice session to Firestore:", err);
+    });
+  }
+}
+
+function arrayBufferToBase64(buffer) {
+  let binary = '';
+  const bytes = new Uint8Array(buffer);
+  const len = bytes.byteLength;
+  for (let i = 0; i < len; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
+}
+
+function base64ToFloat32Array(base64) {
+  const binaryString = atob(base64);
+  const len = binaryString.length;
+  const bytes = new Uint8Array(len);
+  for (let i = 0; i < len; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+  const int16Array = new Int16Array(bytes.buffer);
+  const float32Array = new Float32Array(int16Array.length);
+  for (let i = 0; i < int16Array.length; i++) {
+    float32Array[i] = int16Array[i] / 32768.0;
+  }
+  return float32Array;
+}
+
+function scheduleVoicePlayback(float32Array) {
+  if (!voiceAudioContext) return;
+
+  const sampleRate = 24000;
+  const buffer = voiceAudioContext.createBuffer(1, float32Array.length, sampleRate);
+  buffer.copyToChannel(float32Array, 0);
+
+  const source = voiceAudioContext.createBufferSource();
+  source.buffer = buffer;
+  source.connect(voiceAudioContext.destination);
+
+  const currentTime = voiceAudioContext.currentTime;
+  let startTime = Math.max(currentTime, voiceNextPlayTime);
+  
+  source.start(startTime);
+  voiceNextPlayTime = startTime + buffer.duration;
+  
+  voicePlaybackSources.push(source);
+}
+
+function stopVoicePlayback() {
+  voicePlaybackSources.forEach(source => {
+    try { source.stop(); } catch(e){}
+  });
+  voicePlaybackSources = [];
+  voiceNextPlayTime = 0;
 }
 
 /* ─── BENCH SIMULATOR FUNCTIONS ─── */

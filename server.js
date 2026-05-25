@@ -11,6 +11,9 @@ const Groq = require("groq-sdk");
 // Routes
 const extractIssuesRoute = require("./routes/extractIssues");
 
+// Services
+const { handleLiveVoiceConnection } = require("./services/geminiService");
+
 // Prompts
 const LEGAL_VALIDATION_PROMPT = require("./prompts/legalValidationPrompt");
 const ANALYSIS_SYSTEM_PROMPT = require("./prompts/analysisSystemPrompt");
@@ -21,6 +24,8 @@ const buildEvaluationPrompt = require("./prompts/benchEvaluationPrompt");
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use(express.static("frontend"));
+app.use(express.static("public"));
 
 app.use("/extract-issues", extractIssuesRoute);
 
@@ -284,6 +289,19 @@ app.post("/simulate-bench", express.json(), async (req, res) => {
   }
 });
 
-app.listen(3000, () => {
-  console.log("🚀 MootCoach AI running on port 3000");
+const PORT = process.env.PORT || 3000;
+const server = app.listen(PORT, () => {
+  console.log(`🚀 MootCoach AI running on port ${PORT}`);
+});
+
+// Set up WebSocket server for real-time voice engine
+const { WebSocketServer } = require("ws");
+const wss = new WebSocketServer({ server });
+
+wss.on("connection", (ws, req) => {
+  if (req.url === "/ws/voice" || req.url.startsWith("/ws/voice")) {
+    handleLiveVoiceConnection(ws);
+  } else {
+    ws.close();
+  }
 });
