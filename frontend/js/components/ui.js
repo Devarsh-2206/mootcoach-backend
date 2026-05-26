@@ -283,15 +283,21 @@ export async function loadSavedSession(docId) {
     updateWsMootName(data.mootName || '');
     document.getElementById('res-file-chip').textContent = `· ${data.fileName || 'Saved Document'}`;
     
-    setTimeout(() => {
-      hideLoading();
-      if (stepsDiv) stepsDiv.style.display = 'flex'; 
-      if (data.analysisData) {
-        showStructuredResults(data.analysisData);
-      } else {
-        showError("Invalid saved data.");
-      }
-    }, 500);
+    const wsibFile = document.getElementById('wsib-file');
+    if (wsibFile) {
+      wsibFile.textContent = data.fileName || 'Saved Document';
+      wsibFile.className = 'wsib-value';
+    }
+    
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    hideLoading();
+    if (stepsDiv) stepsDiv.style.display = 'flex'; 
+    if (data.analysisData) {
+      showStructuredResults(data.analysisData);
+    } else {
+      showError("Invalid saved data.");
+    }
   } catch (e) {
     hideLoading();
     if (stepsDiv) stepsDiv.style.display = 'flex'; 

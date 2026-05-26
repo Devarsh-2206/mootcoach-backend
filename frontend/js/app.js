@@ -239,6 +239,45 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Ensure "New Workspace" / Dashboard view is default visible on load
   switchWorkspaceView('upload');
+
+  // Recent Moots click delegation
+  const recentList = document.getElementById('ws-recent-list');
+  if (recentList) {
+    recentList.addEventListener('click', async (e) => {
+      const btn = e.target.closest('.ws-sb-item');
+      if (!btn) return;
+
+      e.preventDefault();
+      e.stopPropagation();
+
+      const onclickAttr = btn.getAttribute('onclick');
+      const match = onclickAttr ? onclickAttr.match(/loadSavedSession\('([^']+)'\)/) : null;
+      if (!match) return;
+      const docId = match[1];
+
+      // Remove active styling from all other sidebar buttons
+      document.querySelectorAll('.ws-sb-item').forEach(item => {
+        item.classList.remove('active', 'bg-moot-accent/10', 'text-moot-accent');
+      });
+
+      // Add active styling to the clicked item
+      btn.classList.add('active', 'bg-moot-accent/10', 'text-moot-accent');
+
+      const titleText = btn.title || btn.textContent.trim().replace(/^📄\s*/, '') || 'Untitled Moot';
+
+      try {
+        await loadSavedSession(docId);
+      } catch (err) {
+        console.error("Error loading session:", err);
+      }
+
+      // Update the "MOOT NAME" text in the "MOOT DETAILS" panel to match the clicked item's name
+      updateWsMootName(titleText);
+
+      // Switch back to the Dashboard/New Workspace view so the user can interact with that specific moot
+      switchWorkspaceView('upload', btn);
+    });
+  }
 });
 
 // Map handlers to window to preserve inline HTML onclick/onkeydown mappings
