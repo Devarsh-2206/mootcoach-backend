@@ -19,7 +19,8 @@ import {
   toggleSection,
   copySectionText,
   scrollToSection,
-  currentPropositionContext
+  currentPropositionContext,
+  switchAuthTab
 } from './components/ui.js';
 
 import {
@@ -197,6 +198,38 @@ document.addEventListener('DOMContentLoaded', () => {
     dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
     dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
     dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('drag-over'); if(e.dataTransfer.files[0]) handleFileSelect(e.dataTransfer.files[0]); });
+  }
+
+  const tabLogin = document.getElementById('tab-login');
+  if (tabLogin) {
+    tabLogin.addEventListener('click', (e) => {
+      e.preventDefault();
+      switchAuthTab('login');
+    });
+  }
+
+  const tabSignup = document.getElementById('tab-signup');
+  if (tabSignup) {
+    tabSignup.addEventListener('click', (e) => {
+      e.preventDefault();
+      switchAuthTab('signup');
+    });
+  }
+
+  const linkGotoSignup = document.getElementById('link-goto-signup');
+  if (linkGotoSignup) {
+    linkGotoSignup.addEventListener('click', (e) => {
+      e.preventDefault();
+      switchAuthTab('signup');
+    });
+  }
+
+  const linkGotoLogin = document.getElementById('link-goto-login');
+  if (linkGotoLogin) {
+    linkGotoLogin.addEventListener('click', (e) => {
+      e.preventDefault();
+      switchAuthTab('login');
+    });
   }
 
   const oralTA = document.getElementById('oral-argument-input');

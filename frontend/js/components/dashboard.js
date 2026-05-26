@@ -15,9 +15,7 @@ export let selectedFile = null;
 
 export function initDashboard() {
   const dz = document.getElementById('ws-dropzone');
-  const fileInput = document.getElementById('ws-file-input');
-  const analyzeBtn = document.getElementById('btn-analyze');
-  const removeBtn = document.querySelector('.fp-remove');
+  const removeBtn = document.getElementById('fp-remove');
 
   if (dz) {
     dz.addEventListener('dragover', e => { 
@@ -34,16 +32,15 @@ export function initDashboard() {
     });
   }
 
-  if (fileInput) {
-    fileInput.addEventListener('change', (e) => {
-      if (e.target.files[0]) {
-        handleFileSelect(e.target.files[0]);
-      }
-    });
+  const uploadInput = document.getElementById('proposition-upload');
+  if (uploadInput) {
+    uploadInput.addEventListener('change', handleFileSelect);
   }
 
+  const analyzeBtn = document.getElementById('analyze-submit-btn');
   if (analyzeBtn) {
-    analyzeBtn.addEventListener('click', async () => {
+    analyzeBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
       await runAnalysis();
     });
   }
@@ -55,7 +52,8 @@ export function initDashboard() {
   }
 }
 
-export function handleFileSelect(file) {
+export function handleFileSelect(fileOrEvent) {
+  const file = (fileOrEvent instanceof Event) ? fileOrEvent.target.files[0] : fileOrEvent;
   if (!file) return;
   if (file.type !== 'application/pdf') { 
     showToast('Only PDF files are accepted.', 'err'); 
@@ -70,7 +68,7 @@ export function handleFileSelect(file) {
   const resFileChip = document.getElementById('res-file-chip');
   const filePill = document.getElementById('ws-file-pill');
   const dropzone = document.getElementById('ws-dropzone');
-  const analyzeBtn = document.getElementById('btn-analyze');
+  const analyzeBtn = document.getElementById('analyze-submit-btn');
 
   if (fpName) fpName.textContent = file.name;
   if (fpSize) fpSize.textContent = `${mb} MB · PDF`;
@@ -86,12 +84,12 @@ export function handleFileSelect(file) {
 
 export function removeFile() {
   selectedFile = null;
-  const fi = document.getElementById('ws-file-input');
+  const fi = document.getElementById('proposition-upload');
   if (fi) fi.value = '';
   
   const filePill = document.getElementById('ws-file-pill');
   const dropzone = document.getElementById('ws-dropzone');
-  const analyzeBtn = document.getElementById('btn-analyze');
+  const analyzeBtn = document.getElementById('analyze-submit-btn');
   const wsibFile = document.getElementById('wsib-file');
 
   if (filePill) filePill.classList.remove('show');
@@ -151,7 +149,7 @@ function sleep(ms) {
 export async function runAnalysis() {
   if (!selectedFile) return;
 
-  const analyzeBtn = document.getElementById('btn-analyze');
+  const analyzeBtn = document.getElementById('analyze-submit-btn');
   const loadingOverlay = document.getElementById('loading-overlay');
 
   if (loadingOverlay) loadingOverlay.classList.add('show');

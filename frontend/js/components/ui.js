@@ -687,7 +687,7 @@ export function showResults(rawText) {
     document.getElementById('res-empty').style.display  = 'none';
     document.getElementById('res-filled').style.display = 'flex';
     showWsPanel('results');
-    document.getElementById('btn-analyze').disabled = false;
+    document.getElementById('analyze-submit-btn').disabled = false;
 
     setTimeout(() => { animateBars(); initScrollSpy(); }, 180);
   } catch (error) {
@@ -759,7 +759,7 @@ export function showRejection(msg, documentType) {
   document.getElementById('res-empty').style.display = 'none';
   document.getElementById('res-filled').style.display = 'flex';
   showWsPanel('results');
-  document.getElementById('btn-analyze').disabled = false;
+  document.getElementById('analyze-submit-btn').disabled = false;
 }
 
 export function renderCategoryScores(categoryScores) {
@@ -927,7 +927,7 @@ export function showStructuredResults(data) {
     document.getElementById('res-empty').style.display  = 'none';
     document.getElementById('res-filled').style.display = 'flex';
     showWsPanel('results');
-    document.getElementById('btn-analyze').disabled = false;
+    document.getElementById('analyze-submit-btn').disabled = false;
 
     const scoreElement = document.getElementById('animated-main-score');
     
@@ -976,7 +976,7 @@ export function showError(msg) {
     </div>
   `;
   showWsPanel('results');
-  document.getElementById('btn-analyze').disabled = false;
+  document.getElementById('analyze-submit-btn').disabled = false;
 }
 
 export function copyAnalysis() {

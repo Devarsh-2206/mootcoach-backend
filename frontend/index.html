@@ -1346,8 +1346,8 @@ p  { color:var(--white-2); }
         <p>Your AI moot preparation workspace.</p>
       </div>
       <div class="auth-tabs">
-        <button class="auth-tab active" id="tab-login" onclick="switchAuthTab('login')">Sign In</button>
-        <button class="auth-tab" id="tab-signup" onclick="switchAuthTab('signup')">Create Account</button>
+        <button class="auth-tab active" id="tab-login">Sign In</button>
+        <button class="auth-tab" id="tab-signup">Create Account</button>
       </div>
       <div class="auth-card">
         <!-- LOGIN FORM -->
@@ -1411,8 +1411,8 @@ p  { color:var(--white-2); }
           <p>Taking you to your workspace now...</p>
         </div>
       </div>
-      <p class="auth-footer-note" id="note-login">Don't have an account? <a href="#" onclick="switchAuthTab('signup');return false;">Create one free →</a></p>
-      <p class="auth-footer-note" id="note-signup" style="display:none">Already have an account? <a href="#" onclick="switchAuthTab('login');return false;">Sign in →</a></p>
+      <p class="auth-footer-note" id="note-login">Don't have an account? <a href="#" id="link-goto-signup">Create one free →</a></p>
+      <p class="auth-footer-note" id="note-signup" style="display:none">Already have an account? <a href="#" id="link-goto-login">Sign in →</a></p>
     </div>
   </main>
   <footer class="login-footer">© 2026 MootCoach. All rights reserved. Strictly confidential workspace.</footer>
@@ -1507,7 +1507,7 @@ p  { color:var(--white-2); }
             <input type="text" id="ws-moot-name" placeholder="e.g. NALSAR MCC 2025 – Environmental Law" oninput="updateWsMootName(this.value)"/>
           </div>
           <div class="dropzone" id="ws-dropzone">
-            <input type="file" id="ws-file-input" accept=".pdf" onchange="handleFileSelect(this.files[0])"/>
+            <input type="file" id="proposition-upload" accept=".pdf" />
             <div class="dz-icon">⬆</div>
             <div class="dz-title">Lodge Proposition Dossier (.pdf)</div>
             <div class="dz-sub">or <span>click to browse</span> · PDF only</div>
@@ -1518,9 +1518,9 @@ p  { color:var(--white-2); }
               <div class="fp-name" id="fp-name">—</div>
               <div class="fp-size" id="fp-size">—</div>
             </div>
-            <button class="fp-remove" onclick="removeFile()">✕</button>
+            <button class="fp-remove" id="fp-remove">✕</button>
           </div>
-          <button class="btn-analyze tracking-widest font-medium" id="btn-analyze" onclick="runAnalysis()" disabled>
+          <button class="btn-analyze tracking-widest font-medium" id="analyze-submit-btn" disabled>
             File Submission
           </button>
           <p class="upload-note">Analysis powered by Groq · llama3-70b-8192 · Automatically saved to your account.</p>
