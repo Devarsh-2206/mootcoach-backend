@@ -1658,8 +1658,9 @@ const db = firebase.firestore();
 
 let currentUser = null;
 
-/* ─── CONFIG ─── */
-const BASE_URL = "https://mootcoach-backend-1.onrender.com";
+const BASE_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+  ? 'http://localhost:3000'
+  : 'https://mootcoach-backend-1.onrender.com';
 
 /* ─── ALL FUNCTION DECLARATIONS FIRST (PREVENTS HOISTING/REFERENCE ERRORS) ─── */
 
@@ -3057,10 +3058,7 @@ let voiceNextPlayTime = 0;
 let voicePlaybackSources = [];
 
 function getWsUrl() {
-  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-    return 'ws://localhost:3000/ws/voice';
-  }
-  return 'wss://mootcoach-backend-1.onrender.com/ws/voice';
+  return BASE_URL.replace(/^http/, 'ws') + '/ws/voice';
 }
 
 function updateVoiceUI(status, text) {
@@ -3318,6 +3316,13 @@ function scheduleVoicePlayback(float32Array) {
   voiceNextPlayTime = startTime + buffer.duration;
   
   voicePlaybackSources.push(source);
+
+  source.onended = () => {
+    const idx = voicePlaybackSources.indexOf(source);
+    if (idx > -1) {
+      voicePlaybackSources.splice(idx, 1);
+    }
+  };
 }
 
 function stopVoicePlayback() {

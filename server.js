@@ -1,12 +1,32 @@
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 require("dotenv").config();
+
+if (process.env.NODE_ENV !== "production") {
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+}
 
 const express = require("express");
 const cors = require("cors");
 const multer = require("multer");
-const pdfParse = require("pdf-parse");
 const fs = require("fs");
 const Groq = require("groq-sdk");
+const { Worker } = require("worker_threads");
+const path = require("path");
+
+function parsePdfAsync(buffer) {
+  return new Promise((resolve, reject) => {
+    const worker = new Worker(path.join(__dirname, "pdf-worker.js"), {
+      workerData: { buffer: buffer }
+    });
+    worker.on("message", (msg) => {
+      if (msg.success) resolve(msg.text);
+      else reject(new Error(msg.error));
+    });
+    worker.on("error", reject);
+    worker.on("exit", (code) => {
+      if (code !== 0) reject(new Error(`PDF Worker stopped with exit code ${code}`));
+    });
+  });
+}
 
 // Routes
 const extractIssuesRoute = require("./routes/extractIssues");
@@ -25,7 +45,6 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.static("frontend"));
-app.use(express.static("public"));
 
 app.use("/extract-issues", extractIssuesRoute);
 
@@ -37,6 +56,7 @@ const upload = multer({ dest: "uploads/" });
 
 const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY,
+  timeout: 30000, // 30 seconds global timeout
 });
 
 /* ─── /analyze (Now fully powered by Groq & Native JSON Mode) ─── */
@@ -53,8 +73,7 @@ app.post("/analyze", upload.single("file"), async (req, res) => {
 
     let extractedText = "";
     try {
-      const pdfData = await pdfParse(dataBuffer);
-      extractedText = pdfData.text || "";
+      extractedText = await parsePdfAsync(dataBuffer);
     } catch (err) {
       console.error("PDF Parse Error:", err);
       extractedText = "";
@@ -299,9 +318,29 @@ const { WebSocketServer } = require("ws");
 const wss = new WebSocketServer({ server });
 
 wss.on("connection", (ws, req) => {
+  ws.isAlive = true;
+  ws.on("pong", () => {
+    ws.isAlive = true;
+  });
+
   if (req.url === "/ws/voice" || req.url.startsWith("/ws/voice")) {
     handleLiveVoiceConnection(ws);
   } else {
     ws.close();
   }
+});
+
+const heartbeatInterval = setInterval(() => {
+  wss.clients.forEach((ws) => {
+    if (ws.isAlive === false) {
+      console.log("🔌 Terminating inactive WebSocket connection (missed pong).");
+      return ws.terminate();
+    }
+    ws.isAlive = false;
+    ws.ping();
+  });
+}, 30000);
+
+wss.on("close", () => {
+  clearInterval(heartbeatInterval);
 });
