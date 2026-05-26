@@ -7,7 +7,8 @@ import {
   showStructuredResults,
   showResults,
   showError,
-  showRejection
+  showRejection,
+  loadSavedSession
 } from './ui.js';
 
 // Controller State
@@ -170,11 +171,12 @@ export async function runAnalysis() {
       return;
     }
 
+    let newMootId = null;
     if (data.isStructured && data.response && typeof data.response === 'object') {
       if (currentUser) {
         try {
           const mootName = document.getElementById('ws-moot-name')?.value?.trim() || 'Untitled Moot';
-          await logSessionSecurely({
+          const logRes = await logSessionSecurely({
             uid: currentUser.uid,
             type: 'analysis',
             mootName: mootName,
@@ -182,7 +184,8 @@ export async function runAnalysis() {
             score: data.response.overallScore || 0,
             analysisData: data.response
           });
-          loadRecentSessions(); 
+          newMootId = logRes.id;
+          await loadRecentSessions(); 
         } catch (fbError) {
           console.error("Failed to save to cloud:", fbError);
           showToast("Failed to save to cloud: " + fbError.message, "err");
@@ -192,7 +195,12 @@ export async function runAnalysis() {
       stopSteps();
       await sleep(400);
       hideLoading();
-      showStructuredResults(data.response);
+      
+      if (newMootId) {
+        await loadSavedSession(newMootId);
+      } else {
+        showStructuredResults(data.response);
+      }
       return;
     }
 

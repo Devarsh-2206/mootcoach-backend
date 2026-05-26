@@ -288,30 +288,11 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!match) return;
       const docId = match[1];
 
-      // Remove active styling from all other sidebar buttons
-      document.querySelectorAll('.ws-sb-item').forEach(item => {
-        item.classList.remove('active', 'bg-moot-accent/10', 'text-moot-accent');
-      });
-
-      // Add active styling to the clicked item
-      btn.classList.add('active', 'bg-moot-accent/10', 'text-moot-accent');
-
-      const titleText = btn.title || btn.textContent.trim().replace(/^📄\s*/, '') || 'Untitled Moot';
-
       try {
         await loadSavedSession(docId);
       } catch (err) {
         console.error("Error loading session:", err);
       }
-
-      // Update the "MOOT NAME" text in the "MOOT DETAILS" panel to match the clicked item's name
-      updateWsMootName(titleText);
-
-      // Switch main view to the Analysis Results container
-      switchWorkspaceView('results');
-
-      // Keep the clicked Recent Moot item active alongside Analysis Results
-      btn.classList.add('active', 'bg-moot-accent/10', 'text-moot-accent');
     });
   }
 });

@@ -266,6 +266,16 @@ export async function loadRecentSessions() {
 
 export async function loadSavedSession(docId) {
   if (!currentUser) return;
+  
+  // Failsafe in case it's passed a click event instead of docId string
+  if (docId && typeof docId === 'object' && docId.target) {
+    const btn = docId.target.closest('.ws-sb-item');
+    const onclickAttr = btn ? btn.getAttribute('onclick') : '';
+    const match = onclickAttr ? onclickAttr.match(/loadSavedSession\('([^']+)'\)/) : null;
+    docId = match ? match[1] : null;
+  }
+  if (!docId || typeof docId !== 'string') return;
+
   document.getElementById('loading-overlay').classList.add('show');
   
   const stepsDiv = document.querySelector('.lo-steps');
@@ -295,6 +305,19 @@ export async function loadSavedSession(docId) {
     if (stepsDiv) stepsDiv.style.display = 'flex'; 
     if (data.analysisData) {
       showStructuredResults(data.analysisData);
+      
+      // Update sidebar active styling: highlight results tab and the loaded moot button
+      document.querySelectorAll('.ws-sb-item').forEach(item => {
+        item.classList.remove('active', 'bg-moot-accent/10', 'text-moot-accent');
+      });
+      const resultsTab = document.getElementById('wsb-results');
+      if (resultsTab) {
+        resultsTab.classList.add('active', 'bg-moot-accent/10', 'text-moot-accent');
+      }
+      const recentBtn = document.querySelector(`button[onclick*="${docId}"]`);
+      if (recentBtn) {
+        recentBtn.classList.add('active', 'bg-moot-accent/10', 'text-moot-accent');
+      }
     } else {
       showError("Invalid saved data.");
     }
