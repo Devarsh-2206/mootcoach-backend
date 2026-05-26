@@ -274,8 +274,11 @@ document.addEventListener('DOMContentLoaded', () => {
       // Update the "MOOT NAME" text in the "MOOT DETAILS" panel to match the clicked item's name
       updateWsMootName(titleText);
 
-      // Switch back to the Dashboard/New Workspace view so the user can interact with that specific moot
-      switchWorkspaceView('upload', btn);
+      // Switch main view to the Analysis Results container
+      switchWorkspaceView('results');
+
+      // Keep the clicked Recent Moot item active alongside Analysis Results
+      btn.classList.add('active', 'bg-moot-accent/10', 'text-moot-accent');
     });
   }
 });
@@ -324,7 +327,10 @@ export function switchWorkspaceView(viewName, buttonEl) {
   // Hide all panels
   views.forEach(v => {
     const el = document.getElementById('wsp-' + v);
-    if (el) el.classList.remove('active');
+    if (el) {
+      el.classList.remove('active');
+      el.classList.add('hidden');
+    }
   });
   
   // Deactivate all sidebar items and remove active styles including Tailwind classes
@@ -334,7 +340,10 @@ export function switchWorkspaceView(viewName, buttonEl) {
   
   // Show target panel
   const targetPanel = document.getElementById('wsp-' + viewName);
-  if (targetPanel) targetPanel.classList.add('active');
+  if (targetPanel) {
+    targetPanel.classList.add('active');
+    targetPanel.classList.remove('hidden');
+  }
   
   // Activate clicked button or matching button
   if (buttonEl) {
