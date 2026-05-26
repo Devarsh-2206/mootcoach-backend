@@ -169,12 +169,24 @@ app.post("/analyze", aiLimiter, upload.single("file"), async (req, res) => {
     const rawAnalysis = analysisCall.text;
 
     /* ── PHASE 3: Parse JSON ── */
+    let cleanText = rawAnalysis.trim();
+    // Strip markdown code block backticks injected by Gemini
+    if (cleanText.startsWith('```json')) {
+        cleanText = cleanText.substring(7);
+    } else if (cleanText.startsWith('```')) {
+        cleanText = cleanText.substring(3);
+    }
+    if (cleanText.endsWith('```')) {
+        cleanText = cleanText.substring(0, cleanText.length - 3);
+    }
+    cleanText = cleanText.trim();
+    
     let analysisData;
     try {
-      analysisData = JSON.parse(rawAnalysis);
+        analysisData = JSON.parse(cleanText);
     } catch (parseErr) {
-      console.error("JSON parse failed. Error:", parseErr.message, "Raw:", rawAnalysis.substring(0, 200));
-      return res.status(500).json({ success: false, error: "AI failed to format response correctly." });
+        console.error("FATAL JSON PARSE ERROR. Cleaned Text:", cleanText.substring(0, 200));
+        return res.status(500).json({ success: false, error: "AI failed to format response correctly." });
     }
 
     /* ── PHASE 4: Score Normalization ── */
