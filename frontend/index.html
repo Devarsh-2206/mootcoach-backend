@@ -2104,13 +2104,21 @@ async function runAnalysis() {
       if (currentUser) {
         try {
           const mootName = document.getElementById('ws-moot-name').value.trim() || 'Untitled Moot';
-          await db.collection('artifacts').doc('mootcoach').collection('users').doc(currentUser.uid).collection('analyses').add({
-            mootName: mootName,
-            fileName: selectedFile.name,
-            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-            score: data.response.overallScore || 0,
-            analysisData: data.response
+          const logRes = await fetch(`${BASE_URL}/api/log-session`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              uid: currentUser.uid,
+              type: 'analysis',
+              mootName: mootName,
+              fileName: selectedFile.name,
+              score: data.response.overallScore || 0,
+              analysisData: data.response
+            })
           });
+          if (!logRes.ok) {
+            throw new Error(`Secure database log failed with status ${logRes.status}`);
+          }
           loadRecentSessions(); 
         } catch (fbError) {
           console.error("Failed to save to cloud:", fbError);
@@ -3260,15 +3268,21 @@ function stopOralRound() {
     const durationSec = Math.floor((Date.now() - voiceSessionStartTime) / 1000);
     const mootName = document.getElementById('ws-moot-name')?.value?.trim() || 'Untitled Moot';
     
-    db.collection('artifacts').doc('mootcoach').collection('users').doc(currentUser.uid).collection('voice_sessions').add({
-      mootName: mootName,
-      timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-      durationSeconds: durationSec
-    }).then(() => {
-      console.log("💾 Voice session metadata logged to Firestore.");
+    fetch(`${BASE_URL}/api/log-session`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        uid: currentUser.uid,
+        type: 'voice_session',
+        mootName: mootName,
+        durationSeconds: durationSec
+      })
+    }).then(res => {
+      if (!res.ok) throw new Error(`Status ${res.status}`);
+      console.log("💾 Voice session metadata logged to secure backend.");
       showToast("Oral round saved to account.", "ok");
     }).catch(err => {
-      console.error("Failed to log voice session to Firestore:", err);
+      console.error("Failed to log voice session securely:", err);
     });
   }
 }

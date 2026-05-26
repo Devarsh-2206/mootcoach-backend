@@ -11,6 +11,45 @@ const fs = require("fs");
 const Groq = require("groq-sdk");
 const { Worker } = require("worker_threads");
 const path = require("path");
+const admin = require("firebase-admin");
+const rateLimit = require("express-rate-limit");
+
+// Initialize Firebase Admin SDK securely
+try {
+  if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+    const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount)
+    });
+    console.log("🔥 Firebase Admin SDK initialized successfully.");
+  } else {
+    console.warn("⚠️ FIREBASE_SERVICE_ACCOUNT env var is missing.");
+  }
+} catch (error) {
+  console.error("❌ Failed to initialize Firebase Admin SDK:", error.message);
+}
+
+// Timeout helper for Groq circuit breaker (15 seconds)
+const withTimeout = (promise, ms = 15000) => {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("Groq API Timeout")), ms)
+    )
+  ]);
+};
+
+// Rate limiter for heavy AI and logging routes
+const aiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 15,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    error: "Too many requests from this IP. Please try again after 15 minutes."
+  }
+});
 
 function parsePdfAsync(buffer) {
   return new Promise((resolve, reject) => {
@@ -60,7 +99,7 @@ const groq = new Groq({
 });
 
 /* ─── /analyze (Now fully powered by Groq & Native JSON Mode) ─── */
-app.post("/analyze", upload.single("file"), async (req, res) => {
+app.post("/analyze", aiLimiter, upload.single("file"), async (req, res) => {
   let filePath = null;
 
   try {
@@ -96,7 +135,7 @@ app.post("/analyze", upload.single("file"), async (req, res) => {
     let validationResult = { isLegal: true, confidence: 60, documentType: "Unknown" };
 
     try {
-      const validationCall = await groq.chat.completions.create({
+      const validationCall = await withTimeout(groq.chat.completions.create({
         model: "llama-3.3-70b-versatile",
         max_tokens: 150,
         temperature: 0.05,
@@ -105,11 +144,14 @@ app.post("/analyze", upload.single("file"), async (req, res) => {
           { role: "system", content: LEGAL_VALIDATION_PROMPT },
           { role: "user",   content: `Classify this document. Return ONLY valid JSON:\n\n${fullPropositionText.slice(0, 3000)}` }
         ]
-      });
+      }), 15000);
 
       validationResult = JSON.parse(validationCall.choices[0].message.content.trim());
     } catch (valErr) {
       console.error("Validation error (proceeding):", valErr.message);
+      if (valErr.message.includes("Timeout")) {
+        throw valErr; // Propagate timeout up to the main catch block
+      }
     }
 
     if (validationResult.isLegal === false && validationResult.confidence >= 75) {
@@ -122,7 +164,7 @@ app.post("/analyze", upload.single("file"), async (req, res) => {
     }
 
     /* ── PHASE 2: Full Legal Analysis ── */
-    const analysisCall = await groq.chat.completions.create({
+    const analysisCall = await withTimeout(groq.chat.completions.create({
       model: "llama-3.3-70b-versatile",
       max_tokens: 4000,
       temperature: 0.1,
@@ -134,7 +176,7 @@ app.post("/analyze", upload.single("file"), async (req, res) => {
           content: `Analyze this legal proposition. Return ONLY a valid JSON object. No markdown:\n\n${fullPropositionText}`
         }
       ]
-    });
+    }), 15000);
 
     const rawAnalysis = analysisCall.choices[0].message.content.trim();
 
@@ -177,15 +219,18 @@ app.post("/analyze", upload.single("file"), async (req, res) => {
   } catch (error) {
     console.error("Analyze route error:", error);
     if (filePath) { try { fs.unlinkSync(filePath); } catch (e) {} }
-    return res.status(500).json({
+    const isTimeout = error.message && error.message.includes("Timeout");
+    return res.status(isTimeout ? 504 : 500).json({
       success: false,
-      error: "Analysis failed. Please try again. If the problem persists, the AI service may be temporarily unavailable."
+      error: isTimeout
+        ? "AI analysis request timed out. Please try again."
+        : "Analysis failed. Please try again. If the problem persists, the AI service may be temporarily unavailable."
     });
   }
 });
 
 /* ─── /evaluate-oral ─── */
-app.post("/evaluate-oral", express.json(), async (req, res) => {
+app.post("/evaluate-oral", aiLimiter, express.json(), async (req, res) => {
   const { argument, propositionContext, difficulty } = req.body;
 
   if (!argument || argument.trim().length < 30) {
@@ -195,7 +240,7 @@ app.post("/evaluate-oral", express.json(), async (req, res) => {
   const contextBlock = propositionContext ? `PROPOSITION CONTEXT:\n${propositionContext.slice(0, 800)}\n\n` : '';
 
   try {
-    const evalCall = await groq.chat.completions.create({
+    const evalCall = await withTimeout(groq.chat.completions.create({
       model: "llama-3.3-70b-versatile",
       max_tokens: 2000,
       temperature: 0.2,
@@ -204,7 +249,7 @@ app.post("/evaluate-oral", express.json(), async (req, res) => {
         { role: "system", content: ORAL_EVAL_PROMPT },
         { role: "user", content: `${contextBlock}ORAL SUBMISSION TO EVALUATE:\n\n${argument.trim().slice(0, 4000)}\n\nReturn ONLY a valid JSON object.` }
       ]
-    });
+    }), 15000);
 
     const evalData = JSON.parse(evalCall.choices[0].message.content.trim());
     evalData.overallScore = Math.min(100, Math.max(0, Number(evalData.overallScore) || 0));
@@ -219,7 +264,13 @@ app.post("/evaluate-oral", express.json(), async (req, res) => {
     return res.json({ success: true, isStructured: true, response: evalData });
   } catch (error) {
     console.error("/evaluate-oral error:", error);
-    return res.status(500).json({ success: false, error: "Evaluation failed. Please try again." });
+    const isTimeout = error.message && error.message.includes("Timeout");
+    return res.status(isTimeout ? 504 : 500).json({
+      success: false,
+      error: isTimeout
+        ? "AI evaluation timed out. Please try again."
+        : "Evaluation failed. Please try again."
+    });
   }
 });
 
@@ -247,13 +298,13 @@ app.post("/simulate-bench", express.json(), async (req, res) => {
     // End of session: Generate Performance Review
     try {
       const evalPrompt = buildEvaluationPrompt(validDifficulty, propositionSummary || '', conversationHistoryWithNewTurn);
-      const evalCall = await groq.chat.completions.create({
+      const evalCall = await withTimeout(groq.chat.completions.create({
         model: "llama-3.3-70b-versatile",
         max_tokens: 1500,
         temperature: 0.2,
         response_format: { type: "json_object" },
         messages: [{ role: "user", content: evalPrompt }]
-      });
+      }), 15000);
 
       const reviewData = JSON.parse(evalCall.choices[0].message.content.trim());
       
@@ -273,7 +324,13 @@ app.post("/simulate-bench", express.json(), async (req, res) => {
       });
     } catch (evalErr) {
       console.error("Bench evaluation error:", evalErr);
-      return res.status(500).json({ success: false, error: "Failed to generate performance review." });
+      const isTimeout = evalErr.message && evalErr.message.includes("Timeout");
+      return res.status(isTimeout ? 504 : 500).json({
+        success: false,
+        error: isTimeout
+          ? "Bench evaluation timed out. Please try again."
+          : "Failed to generate performance review."
+      });
     }
   }
 
@@ -288,13 +345,13 @@ app.post("/simulate-bench", express.json(), async (req, res) => {
   messages.push({ role: "user", content: `${studentStatement.trim().slice(0, 1000)}\n\nReturn ONLY a valid JSON object.` });
 
   try {
-    const judgeCall = await groq.chat.completions.create({
+    const judgeCall = await withTimeout(groq.chat.completions.create({
       model: "llama-3.3-70b-versatile",
       max_tokens: 250,
       temperature: validDifficulty === 'hard' ? 0.7 : validDifficulty === 'easy' ? 0.3 : 0.5,
       response_format: { type: "json_object" },
       messages
-    });
+    }), 15000);
 
     const judgeData = JSON.parse(judgeCall.choices[0].message.content.trim());
     return res.json({
@@ -304,7 +361,56 @@ app.post("/simulate-bench", express.json(), async (req, res) => {
     });
   } catch (error) {
     console.error("/simulate-bench error:", error);
-    return res.status(500).json({ success: false, error: "Bench simulation failed. Please try again." });
+    const isTimeout = error.message && error.message.includes("Timeout");
+    return res.status(isTimeout ? 504 : 500).json({
+      success: false,
+      error: isTimeout
+        ? "Bench simulation timed out. Please try again."
+        : "Bench simulation failed. Please try again."
+    });
+  }
+});
+
+/* ─── /api/log-session (Secure Backend Logging) ─── */
+app.post("/api/log-session", aiLimiter, express.json(), async (req, res) => {
+  const { uid, type, mootName, fileName, score, analysisData, durationSeconds } = req.body;
+
+  if (!uid) {
+    return res.status(400).json({ success: false, error: "uid is required." });
+  }
+
+  if (admin.apps.length === 0) {
+    console.error("❌ Firebase Admin has not been initialized. Check FIREBASE_SERVICE_ACCOUNT env var.");
+    return res.status(503).json({ success: false, error: "Database service is unconfigured." });
+  }
+
+  try {
+    const db = admin.firestore();
+    const userDocRef = db.collection('artifacts').doc('mootcoach').collection('users').doc(uid);
+
+    let result;
+    if (type === 'analysis') {
+      result = await userDocRef.collection('analyses').add({
+        mootName: mootName || 'Untitled Moot',
+        fileName: fileName || '',
+        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+        score: score || 0,
+        analysisData: analysisData || {}
+      });
+    } else if (type === 'voice_session') {
+      result = await userDocRef.collection('voice_sessions').add({
+        mootName: mootName || 'Untitled Moot',
+        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+        durationSeconds: durationSeconds || 0
+      });
+    } else {
+      return res.status(400).json({ success: false, error: "Invalid log type." });
+    }
+
+    return res.json({ success: true, id: result.id });
+  } catch (err) {
+    console.error("Firestore secure log error:", err);
+    return res.status(500).json({ success: false, error: "Failed to save data securely to Cloud Firestore." });
   }
 });
 
