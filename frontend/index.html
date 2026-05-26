@@ -6,8 +6,7 @@
 <title>MootCoach — AI Moot Operating System</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Merriweather:ital,wght@0,300;0,400;0,700;1,400&display=swap" rel="stylesheet">
 
 <!-- Tailwind CSS CDN & Config to prevent breaking vanilla CSS -->
 <script src="https://cdn.tailwindcss.com"></script>
@@ -21,7 +20,8 @@
         colors: {
           'moot-border': 'rgba(255, 255, 255, 0.08)',
           'moot-muted': 'rgba(245, 243, 239, 0.45)',
-        }
+        },
+        fontFamily: { sans: ['Inter', 'sans-serif'], serif: ['Merriweather', 'serif'] }
       }
     }
   }
@@ -56,8 +56,8 @@
   --glass-b:     rgba(255,255,255,.08);
   --success:     #4caf82;
   --error:       #e05252;
-  --serif: 'Cormorant Garamond', Georgia, serif;
-  --sans:  'DM Sans', system-ui, sans-serif;
+  --serif: 'Merriweather', Georgia, serif;
+  --sans:  'Inter', system-ui, sans-serif;
   --r:  10px;
   --rl: 16px;
 }
@@ -110,7 +110,7 @@ p  { color:var(--white-2); }
   letter-spacing:.08em; text-transform:uppercase;
   color:var(--navy); background:var(--gold);
   border:none; cursor:pointer; padding:10px 22px;
-  border-radius:4px; transition:background .2s,transform .15s;
+  border-radius:4px; transition: all 0.2s ease-in-out;
   text-decoration:none; display:inline-block;
 }
 .btn-primary:hover  { background:var(--gold-light); transform:translateY(-1px); }
@@ -122,19 +122,19 @@ p  { color:var(--white-2); }
   letter-spacing:.08em; text-transform:uppercase;
   color:var(--gold); background:transparent;
   border:1px solid var(--gold-border); cursor:pointer; padding:10px 22px;
-  border-radius:4px; transition:background .2s,border-color .2s,transform .15s;
+  border-radius:4px; transition: all 0.2s ease-in-out;
   text-decoration:none; display:inline-block;
 }
-.btn-outline:hover { background:var(--gold-muted); border-color:var(--gold); transform:translateY(-1px); }
+.btn-outline:hover { background:rgba(255, 255, 255, 0.05); border-color:rgba(255, 255, 255, 0.08); transform:translateY(-1px); }
 
 .btn-ghost {
   font-family:var(--sans); font-size:.85rem; font-weight:400;
   letter-spacing:.06em; text-transform:uppercase;
   color:var(--white-muted); background:none; border:none;
-  cursor:pointer; padding:8px 12px; transition:color .2s;
+  cursor:pointer; padding:8px 12px; transition: all 0.2s ease-in-out;
   text-decoration:none;
 }
-.btn-ghost:hover { color:var(--white); }
+.btn-ghost:hover { color:var(--white); background:rgba(255, 255, 255, 0.05); border-radius:4px; }
 
 .sep {
   width:100%; height:1px;
@@ -413,7 +413,7 @@ p  { color:var(--white-2); }
   letter-spacing:.1em; text-transform:uppercase;
   color:var(--navy); background:var(--gold); border:none; cursor:pointer;
   padding:14px; border-radius:var(--r); margin-top:.4rem;
-  transition:background .2s,transform .15s; position:relative; overflow:hidden;
+  transition: all 0.2s ease-in-out; position:relative; overflow:hidden;
 }
 .btn-submit:hover { background:var(--gold-light); transform:translateY(-1px); }
 .btn-submit:disabled { opacity:.55; cursor:not-allowed; transform:none; }
@@ -429,9 +429,9 @@ p  { color:var(--white-2); }
   font-family:var(--sans); font-size:.84rem; font-weight:400;
   color:var(--white-2); background:var(--glass); border:1px solid var(--glass-b);
   border-radius:var(--r); padding:11px; cursor:pointer;
-  transition:background .2s,border-color .2s,transform .15s;
+  transition: all 0.2s ease-in-out;
 }
-.btn-google:hover { background:var(--navy-4); border-color:rgba(255,255,255,.14); transform:translateY(-1px); }
+.btn-google:hover { background:rgba(255, 255, 255, 0.05); border-color:rgba(255, 255, 255, 0.05); transform:translateY(-1px); }
 .btn-google svg { width:17px; height:17px; flex-shrink:0; }
 
 .auth-footer-note { text-align:center; font-size:.78rem; color:var(--white-muted); margin-top:1.4rem; }
@@ -514,10 +514,10 @@ p  { color:var(--white-2); }
   display:flex; align-items:center; gap:10px;
   padding:9px 8px; border-radius:var(--r);
   color:var(--white-muted); font-size:.83rem; font-weight:300;
-  cursor:pointer; transition:background .15s,color .15s;
+  cursor:pointer; transition: all 0.2s ease-in-out;
   background:none; border:none; width:100%; text-align:left;
 }
-.ws-sb-item:hover { background:var(--glass); color:var(--white-2); }
+.ws-sb-item:hover { background:rgba(255, 255, 255, 0.05); color:var(--white-2); }
 .ws-sb-item.active { background:var(--gold-muted); color:var(--gold); border:1px solid var(--gold-border); }
 .ws-sb-icon { font-size:.95rem; flex-shrink:0; width:18px; text-align:center; }
 .ws-sb-item.locked { opacity:.35; cursor:not-allowed; }
@@ -543,9 +543,10 @@ p  { color:var(--white-2); }
 .ws-sb-bottom button {
   display:flex; align-items:center; gap:8px;
   font-size:.76rem; color:var(--white-muted); background:none; border:none; cursor:pointer;
-  transition:color .2s; font-family:var(--sans); font-weight:300; width: 100%; justify-content: center;
+  transition: all 0.2s ease-in-out; font-family:var(--sans); font-weight:300; width: 100%; justify-content: center;
+  border-radius:4px; padding:6px 0;
 }
-.ws-sb-bottom button:hover { color:var(--white); }
+.ws-sb-bottom button:hover { color:var(--white); background:rgba(255, 255, 255, 0.05); }
 .ws-sb-bottom button.logout:hover { color:var(--error); } 
 
 /* ── MAIN AREA ── */
@@ -631,7 +632,7 @@ p  { color:var(--white-2); }
   width:100%; font-family:var(--sans); font-size:.84rem; font-weight:500;
   letter-spacing:.1em; text-transform:uppercase;
   color:var(--navy); background:var(--gold); border:none; cursor:pointer;
-  padding:15px; border-radius:var(--r); transition:background .2s,transform .15s,opacity .2s;
+  padding:15px; border-radius:var(--r); transition: all 0.2s ease-in-out;
 }
 .btn-analyze:hover:not(:disabled) { background:var(--gold-light); transform:translateY(-1px); }
 .btn-analyze:disabled { opacity:.4; cursor:not-allowed; }
@@ -687,10 +688,10 @@ p  { color:var(--white-2); }
 .btn-sm {
   font-family:var(--sans); font-size:.72rem; font-weight:400; letter-spacing:.08em;
   text-transform:uppercase; padding:8px 15px; border-radius:6px; cursor:pointer;
-  transition:background .2s,color .2s,transform .15s; border:none;
+  transition: all 0.2s ease-in-out; border:none;
 }
 .btn-sm-ghost { color:var(--white-muted); background:var(--glass); border:1px solid var(--glass-b); }
-.btn-sm-ghost:hover { background:var(--navy-4); color:var(--white); }
+.btn-sm-ghost:hover { background:rgba(255, 255, 255, 0.05); border-color:rgba(255, 255, 255, 0.05); color:var(--white); }
 .btn-sm-gold { color:var(--navy); background:var(--gold); }
 .btn-sm-gold:hover { background:var(--gold-light); transform:translateY(-1px); }
 
@@ -1114,7 +1115,7 @@ p  { color:var(--white-2); }
   font-family:var(--sans); font-size:.72rem; font-weight:500; letter-spacing:.08em;
   text-transform:uppercase; color:var(--navy); background:var(--gold); border:none;
   border-radius:var(--r); padding:10px 18px; cursor:pointer; flex-shrink:0;
-  transition:background .2s,transform .15s;
+  transition: all 0.2s ease-in-out;
 }
 .btn-send:hover:not(:disabled) { background:var(--gold-light); transform:translateY(-1px); }
 .btn-send:disabled { opacity:.4; cursor:not-allowed; }
@@ -1423,7 +1424,7 @@ p  { color:var(--white-2); }
     <button class="ws-mobile-menu-btn" onclick="toggleMobileSidebar()">☰</button>
     <div class="ws-logo" onclick="navigate('landing')">Moot<span>Coach</span></div>
     <div class="ws-divider"></div>
-    <div class="ws-name" id="ws-topbar-name">New Workspace</div>
+    <div class="ws-name" id="ws-topbar-name">Active Docket</div>
     <div class="ws-right">
       <div class="backend-status checking" id="backend-status" title="Backend server status">
         <div class="bs-dot"></div><span id="bs-label">Checking server…</span>
@@ -1444,7 +1445,7 @@ p  { color:var(--white-2); }
             <span class="ws-sb-icon">⊕</span> Analyze Proposition
           </button>
           <button class="ws-sb-item" id="wsb-results" onclick="showWsPanel('results')">
-            <span class="ws-sb-icon">◎</span> Analysis Results
+            <span class="ws-sb-icon">◎</span> Proposition Briefing
           </button>
         </div>
         <div class="ws-sb-divider"></div>
@@ -1469,7 +1470,7 @@ p  { color:var(--white-2); }
         </div>
         <div class="ws-sb-divider"></div>
         <div class="ws-sb-section">
-          <div class="ws-sb-label">Practice Tools</div>
+          <div class="ws-sb-label">Advocacy Simulator</div>
           <button class="ws-sb-item" id="wsb-oral" onclick="showWsPanel('oral')">
             <span class="ws-sb-icon">◎</span> Oral Evaluation
           </button>
@@ -1498,7 +1499,7 @@ p  { color:var(--white-2); }
       <div class="ws-panel ws-upload-panel active" id="wsp-upload">
         <div class="ws-upload-inner">
           <div class="ws-up-eyebrow">New Analysis</div>
-          <h2>Upload Your<br/><em>Moot Proposition</em></h2>
+          <h2>Lodge<br/><em>Proposition</em></h2>
           <p>Provide your moot problem as a PDF. The AI will analyze it — surfacing key legal issues, contestable arguments, and strategic angles.</p>
           <div class="ws-field">
             <label>Moot Name <span style="opacity:.5;font-size:.9em">(optional)</span></label>
@@ -1507,7 +1508,7 @@ p  { color:var(--white-2); }
           <div class="dropzone" id="ws-dropzone">
             <input type="file" id="ws-file-input" accept=".pdf" onchange="handleFileSelect(this.files[0])"/>
             <div class="dz-icon">⬆</div>
-            <div class="dz-title">Drop your proposition PDF here</div>
+            <div class="dz-title">Lodge Proposition Dossier (.pdf)</div>
             <div class="dz-sub">or <span>click to browse</span> · PDF only</div>
           </div>
           <div class="file-pill" id="ws-file-pill">
@@ -1519,7 +1520,7 @@ p  { color:var(--white-2); }
             <button class="fp-remove" onclick="removeFile()">✕</button>
           </div>
           <button class="btn-analyze" id="btn-analyze" onclick="runAnalysis()" disabled>
-            Analyze Proposition →
+            File Submission
           </button>
           <p class="upload-note">Analysis powered by Groq · llama3-70b-8192 · Automatically saved to your account.</p>
         </div>
@@ -1537,7 +1538,7 @@ p  { color:var(--white-2); }
           <div class="res-topbar">
             <div>
               <div class="res-eyebrow">AI Analysis Complete</div>
-              <div class="res-title" id="res-moot-title">Proposition Analysis</div>
+              <div class="res-title" id="res-moot-title">Proposition Briefing</div>
             </div>
             <div class="res-actions">
               <button class="btn-sm btn-sm-ghost" onclick="showWsPanel('upload')">New Analysis</button>
@@ -1640,7 +1641,7 @@ p  { color:var(--white-2); }
           <!-- LEFT COLUMN: INPUT FORM -->
           <div class="builder-input-col" style="display:flex; flex-direction:column; gap:20px;">
             <div class="ws-up-eyebrow">Argument Builder</div>
-            <h2 style="font-family:var(--serif); font-size:2rem; font-weight:500; line-height:1.15; margin-bottom:.3rem;">Construct Your<br/><em style="color:var(--gold); font-style:italic;">IRAC Argument</em></h2>
+            <h2 style="font-family:var(--serif); font-size:2rem; font-weight:500; line-height:1.15; margin-bottom:.3rem;">Draft Your<br/><em style="color:var(--gold); font-style:italic;">Submission</em></h2>
             <p style="font-size:.84rem; color:var(--white-muted); line-height:1.6; margin-bottom:10px;">
               Select your stance and issue, paste your raw notes, precedents, or draft points, and transform them into a structured appellate-level submission.
             </p>
@@ -1683,7 +1684,7 @@ p  { color:var(--white-2); }
               </div>
               
               <button class="btn-analyze" id="btn-builder-submit" style="width:100%;" disabled>
-                Build Argument →
+                Draft Submission →
               </button>
             </form>
           </div>
@@ -1699,10 +1700,20 @@ p  { color:var(--white-2); }
             </div>
             
             <!-- Loading State -->
-            <div id="builder-loading-state" style="display:none; text-align:center; flex-direction:column; align-items:center; gap:16px;">
-              <span class="spinner" style="width:36px; height:36px; border-width:3px; border-color:var(--gold) transparent var(--gold) transparent;"></span>
-              <div style="font-family:var(--serif); font-size:1.25rem; font-weight:500; color:var(--white-2);">Weaving Argument...</div>
-              <div style="font-size:.78rem; color:var(--white-muted); line-height:1.5;">Applying IRAC method and litigator persona. Please wait.</div>
+            <div id="builder-loading-state" style="display:none; text-align:left; flex-direction:column; width:100%;">
+              <div class="w-full space-y-6 animate-pulse">
+                <div class="h-4 bg-moot-border/50 rounded w-1/4 mb-4"></div>
+                <div class="space-y-3">
+                  <div class="h-3 bg-moot-border/30 rounded w-full"></div>
+                  <div class="h-3 bg-moot-border/30 rounded w-5/6"></div>
+                  <div class="h-3 bg-moot-border/30 rounded w-full"></div>
+                </div>
+                <div class="h-4 bg-moot-border/50 rounded w-1/3 mt-6 mb-4"></div>
+                <div class="space-y-3">
+                  <div class="h-3 bg-moot-border/30 rounded w-full"></div>
+                  <div class="h-3 bg-moot-border/30 rounded w-4/5"></div>
+                </div>
+              </div>
             </div>
             
             <!-- Output State -->
@@ -1782,15 +1793,31 @@ p  { color:var(--white-2); }
 
 <!-- LOADING OVERLAY -->
 <div class="loading-overlay" id="loading-overlay">
-  <div class="lo-glow"><div class="lo-symbol">✦</div></div>
-  <div class="lo-steps">
-    <div class="lo-step" id="ls-1"><div class="lo-dot"></div>Reading PDF</div>
-    <div class="lo-step" id="ls-2"><div class="lo-dot"></div>Extracting text</div>
-    <div class="lo-step" id="ls-3"><div class="lo-dot"></div>Sending to Groq AI</div>
-    <div class="lo-step" id="ls-4"><div class="lo-dot"></div>Generating analysis</div>
-    <div class="lo-step" id="ls-5"><div class="lo-dot"></div>Saving to Cloud</div>
+  <div style="width: 100%; max-width: 500px; padding: 32px; background: var(--navy-3); border: 1px solid var(--glass-b); border-radius: var(--rl); display: flex; flex-direction: column; gap: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.5);">
+    <div class="w-full space-y-6 animate-pulse">
+      <div class="h-4 bg-moot-border/50 rounded w-1/4 mb-4"></div>
+      <div class="space-y-3">
+        <div class="h-3 bg-moot-border/30 rounded w-full"></div>
+        <div class="h-3 bg-moot-border/30 rounded w-5/6"></div>
+        <div class="h-3 bg-moot-border/30 rounded w-full"></div>
+      </div>
+      <div class="h-4 bg-moot-border/50 rounded w-1/3 mt-6 mb-4"></div>
+      <div class="space-y-3">
+        <div class="h-3 bg-moot-border/30 rounded w-full"></div>
+        <div class="h-3 bg-moot-border/30 rounded w-4/5"></div>
+      </div>
+    </div>
+    
+    <div class="lo-steps" style="display: none;">
+      <div class="lo-step" id="ls-1"><div class="lo-dot"></div>Reading PDF</div>
+      <div class="lo-step" id="ls-2"><div class="lo-dot"></div>Extracting text</div>
+      <div class="lo-step" id="ls-3"><div class="lo-dot"></div>Sending to Groq AI</div>
+      <div class="lo-step" id="ls-4"><div class="lo-dot"></div>Generating analysis</div>
+      <div class="lo-step" id="ls-5"><div class="lo-dot"></div>Saving to Cloud</div>
+    </div>
+    
+    <div class="lo-label" id="lo-label" style="text-align: center; font-family: var(--serif); font-size: 1.25rem; color: var(--white-2);">Analyzing your proposition…</div>
   </div>
-  <div class="lo-label" id="lo-label">Analyzing your proposition…</div>
 </div>
 
 <!-- ── LEGAL MODALS ── -->

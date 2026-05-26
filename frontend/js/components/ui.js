@@ -220,14 +220,14 @@ export function showWsPanel(name) {
 
 export function updateWsMootName(val) {
   const nameEl = document.getElementById('ws-topbar-name');
-  if (nameEl) nameEl.innerHTML = val.trim() ? `<strong>${val.trim()}</strong>` : 'New Workspace';
+  if (nameEl) nameEl.innerHTML = val.trim() ? `<strong>${val.trim()}</strong>` : 'Active Docket';
   const wsibMoot = document.getElementById('wsib-moot');
   if (wsibMoot) {
     wsibMoot.textContent = val.trim() || 'Not set';
     wsibMoot.className = 'wsib-value' + (val.trim() ? '' : ' empty');
   }
   const resMoot = document.getElementById('res-moot-title');
-  if (resMoot) resMoot.textContent = val.trim() || 'Proposition Analysis';
+  if (resMoot) resMoot.textContent = val.trim() || 'Proposition Briefing';
 }
 
 // Decoupled upload logic is now managed inside components/dashboard.js

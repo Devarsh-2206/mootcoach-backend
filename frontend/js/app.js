@@ -237,7 +237,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Ensure "New Workspace" / Dashboard view is default visible on load
+  // Ensure "Active Docket" / Dashboard view is default visible on load
   switchWorkspaceView('upload');
 
   // Recent Moots click delegation

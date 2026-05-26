@@ -87,7 +87,7 @@ async function generateArgument() {
     }
   } finally {
     submitBtn.disabled = false;
-    submitBtn.textContent = 'Build Argument →';
+    submitBtn.textContent = 'Draft Submission →';
   }
 }
 
