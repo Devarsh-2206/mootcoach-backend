@@ -43,6 +43,41 @@ const aiLimiter = rateLimit({
   }
 });
 
+function extractAndParseJSON(text) {
+  if (!text) throw new Error("Empty text provided");
+  let cleanText = text.trim();
+  
+  // Try direct parse first
+  try {
+    return JSON.parse(cleanText);
+  } catch (e) {
+    // Continue
+  }
+
+  // Attempt markdown block extraction
+  const match = cleanText.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+  if (match) {
+    try {
+      return JSON.parse(match[1].trim());
+    } catch (e) {
+      // Continue
+    }
+  }
+
+  // Attempt extraction between first { and last }
+  const firstBrace = cleanText.indexOf('{');
+  const lastBrace = cleanText.lastIndexOf('}');
+  if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+    try {
+      return JSON.parse(cleanText.substring(firstBrace, lastBrace + 1));
+    } catch (e) {
+      // Continue
+    }
+  }
+
+  throw new Error("Invalid JSON structure returned by AI");
+}
+
 function parsePdfAsync(buffer) {
   return new Promise((resolve, reject) => {
     const worker = new Worker(path.join(__dirname, "pdf-worker.js"), {
@@ -135,7 +170,7 @@ app.post("/analyze", aiLimiter, upload.single("file"), async (req, res) => {
         requestLabel: "Legal Domain Validation"
       });
 
-      validationResult = JSON.parse(validationCall.text);
+      validationResult = extractAndParseJSON(validationCall.text);
     } catch (valErr) {
       console.error("Validation error (proceeding):", valErr.message);
       if (valErr.message.includes("Timeout")) {
@@ -169,24 +204,12 @@ app.post("/analyze", aiLimiter, upload.single("file"), async (req, res) => {
     const rawAnalysis = analysisCall.text;
 
     /* ── PHASE 3: Parse JSON ── */
-    let cleanText = rawAnalysis.trim();
-    // Strip markdown code block backticks injected by Gemini
-    if (cleanText.startsWith('```json')) {
-        cleanText = cleanText.substring(7);
-    } else if (cleanText.startsWith('```')) {
-        cleanText = cleanText.substring(3);
-    }
-    if (cleanText.endsWith('```')) {
-        cleanText = cleanText.substring(0, cleanText.length - 3);
-    }
-    cleanText = cleanText.trim();
-    
     let analysisData;
     try {
-        analysisData = JSON.parse(cleanText);
+      analysisData = extractAndParseJSON(rawAnalysis);
     } catch (parseErr) {
-        console.error("FATAL JSON PARSE ERROR. Cleaned Text:", cleanText.substring(0, 200));
-        return res.status(500).json({ success: false, error: "AI failed to format response correctly." });
+      console.error("FATAL JSON PARSE ERROR. Raw text:", rawAnalysis.substring(0, 200));
+      return res.status(500).json({ success: false, error: "AI failed to format response correctly." });
     }
 
     /* ── PHASE 4: Score Normalization ── */
@@ -250,7 +273,7 @@ app.post("/evaluate-oral", aiLimiter, express.json(), async (req, res) => {
       requestLabel: "Oral Evaluation"
     });
 
-    const evalData = JSON.parse(evalCall.text);
+    const evalData = extractAndParseJSON(evalCall.text);
     evalData.overallScore = Math.min(100, Math.max(0, Number(evalData.overallScore) || 0));
     
     const s = evalData.overallScore;
@@ -304,7 +327,7 @@ app.post("/simulate-bench", express.json(), async (req, res) => {
         requestLabel: "Bench Simulation Performance Review"
       });
 
-      const reviewData = JSON.parse(evalCall.text);
+      const reviewData = extractAndParseJSON(evalCall.text);
       
       // Ensure grade and score properties are normalized
       reviewData.overallScore = Math.min(100, Math.max(0, Number(reviewData.overallScore) || 0));
@@ -350,7 +373,7 @@ app.post("/simulate-bench", express.json(), async (req, res) => {
       requestLabel: "Bench Simulation Next Question"
     });
 
-    const judgeData = JSON.parse(judgeCall.text);
+    const judgeData = extractAndParseJSON(judgeCall.text);
     return res.json({
       success: true,
       isSessionEnd: false,
@@ -393,7 +416,7 @@ app.post("/api/build-argument", aiLimiter, express.json(), async (req, res) => {
       requestLabel: "Build Argument IRAC"
     });
 
-    const data = JSON.parse(responseCall.text);
+    const data = extractAndParseJSON(responseCall.text);
     return res.json({ success: true, response: data });
   } catch (error) {
     console.error("/api/build-argument error:", error);
