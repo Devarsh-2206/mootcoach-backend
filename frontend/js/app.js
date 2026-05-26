@@ -40,6 +40,12 @@ import {
   stopOralRound
 } from './components/benchSimulator.js';
 
+import {
+  initArgumentBuilder,
+  populateIssuesFromAnalysis,
+  copyBuilderArgument
+} from './components/argumentBuilder.js';
+
 // Auth Event Handlers
 async function handleLogin() {
   const email = document.getElementById('li-email')?.value.trim();
@@ -203,6 +209,8 @@ document.addEventListener('DOMContentLoaded', () => {
       if (btn) btn.disabled = benchTA.value.trim().length < 3;
     });
   }
+
+  initArgumentBuilder();
 });
 
 // Map handlers to window to preserve inline HTML onclick/onkeydown mappings
@@ -239,3 +247,15 @@ window.submitToBench = submitToBench;
 window.handleBenchKeydown = handleBenchKeydown;
 window.startOralRound = startOralRound;
 window.stopOralRound = stopOralRound;
+
+window.copyBuilderArgument = copyBuilderArgument;
+window.populateIssuesFromAnalysis = populateIssuesFromAnalysis;
+
+// Intercept showWsPanel to update issues dropdown dynamically
+const originalShowWsPanel = window.showWsPanel;
+window.showWsPanel = function(name) {
+  originalShowWsPanel(name);
+  if (name === 'builder') {
+    populateIssuesFromAnalysis();
+  }
+};

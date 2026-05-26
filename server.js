@@ -373,6 +373,46 @@ app.post("/simulate-bench", express.json(), async (req, res) => {
   }
 });
 
+/* ─── /api/build-argument ─── */
+app.post("/api/build-argument", aiLimiter, express.json(), async (req, res) => {
+  const { stance, issue, notes } = req.body;
+
+  if (!stance || !issue || !notes || notes.trim().length < 5) {
+    return res.status(400).json({ success: false, error: "Please provide stance, issue, and notes." });
+  }
+
+  try {
+    const responseCall = await withTimeout(groq.chat.completions.create({
+      model: "llama-3.3-70b-versatile",
+      max_tokens: 2000,
+      temperature: 0.3,
+      response_format: { type: "json_object" },
+      messages: [
+        {
+          role: "system",
+          content: "You are an elite appellate litigator. Transform the user's raw notes into a strict IRAC format (Issue, Rule, Application, Conclusion) based on the provided stance and issue. Output strictly as a JSON object with keys: 'issue', 'rule', 'application', 'conclusion'."
+        },
+        {
+          role: "user",
+          content: `STANCE: ${stance}\nISSUE: ${issue}\nRAW NOTES: ${notes.trim()}\n\nGenerate the IRAC argument.`
+        }
+      ]
+    }), 15000);
+
+    const data = JSON.parse(responseCall.choices[0].message.content.trim());
+    return res.json({ success: true, response: data });
+  } catch (error) {
+    console.error("/api/build-argument error:", error);
+    const isTimeout = error.message && error.message.includes("Timeout");
+    return res.status(isTimeout ? 504 : 500).json({
+      success: false,
+      error: isTimeout
+        ? "Argument builder timed out. Please try again."
+        : "Failed to build argument. Please try again."
+    });
+  }
+});
+
 /* ─── /api/log-session (Secure Backend Logging) ─── */
 app.post("/api/log-session", aiLimiter, express.json(), async (req, res) => {
   const { uid, type, mootName, fileName, score, analysisData, durationSeconds } = req.body;

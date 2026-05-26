@@ -51,3 +51,17 @@ export async function logSessionSecurely(payload) {
   }
   return data;
 }
+
+export async function buildArgument(stance, issue, notes) {
+  const res = await fetch(`${BASE_URL}/api/build-argument`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ stance, issue, notes })
+  });
+  const data = await res.json();
+  if (!res.ok || !data.success) {
+    throw new Error(data.error || `Failed to build argument with status ${res.status}`);
+  }
+  return data;
+}
+

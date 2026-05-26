@@ -1457,11 +1457,13 @@ p  { color:var(--white-2); }
           <button class="ws-sb-item" id="wsb-bench" onclick="showWsPanel('bench')">
             <span class="ws-sb-icon">⚖</span> Bench Simulator
           </button>
+          <button class="ws-sb-item" id="wsb-builder" onclick="showWsPanel('builder')">
+            <span class="ws-sb-icon">✦</span> Argument Builder
+          </button>
         </div>
         <div class="ws-sb-divider"></div>
         <div class="ws-sb-section">
           <div class="ws-sb-label">Coming Soon</div>
-          <button class="ws-sb-item locked"><span class="ws-sb-icon" style="opacity: 0.5;">🔒</span> Argument Builder</button>
           <button class="ws-sb-item locked"><span class="ws-sb-icon" style="opacity: 0.5;">🔒</span> Memorial Guide</button>
         </div>
       </div>
@@ -1612,6 +1614,134 @@ p  { color:var(--white-2); }
           <button class="btn-send" id="btn-bench-send" onclick="submitToBench()" disabled>Submit</button>
         </div>
       </div>
+      <!-- ARGUMENT BUILDER PANEL -->
+      <div class="ws-panel" id="wsp-builder" style="overflow-y:auto;">
+        <div class="builder-container" style="padding:40px 32px; display:grid; grid-template-columns: 1fr 1.2fr; gap:32px; min-height:100%; max-width:1400px; margin:0 auto; width:100%; box-sizing:border-box;">
+          
+          <!-- LEFT COLUMN: INPUT FORM -->
+          <div class="builder-input-col" style="display:flex; flex-direction:column; gap:20px;">
+            <div class="ws-up-eyebrow">Argument Builder</div>
+            <h2 style="font-family:var(--serif); font-size:2rem; font-weight:500; line-height:1.15; margin-bottom:.3rem;">Construct Your<br/><em style="color:var(--gold); font-style:italic;">IRAC Argument</em></h2>
+            <p style="font-size:.84rem; color:var(--white-muted); line-height:1.6; margin-bottom:10px;">
+              Select your stance and issue, paste your raw notes, precedents, or draft points, and transform them into a structured appellate-level submission.
+            </p>
+            
+            <form id="builder-form" onsubmit="event.preventDefault();" style="display:flex; flex-direction:column; gap:18px;">
+              <!-- Stance Toggle -->
+              <div class="ws-field">
+                <label>Stance / Side</label>
+                <div style="display:flex; gap:16px; margin-top:6px;">
+                  <label class="radio-label" style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:.85rem; color:var(--white-2);">
+                    <input type="radio" name="stance" value="Petitioner" checked style="accent-color:var(--gold);"/> Petitioner / Appellant
+                  </label>
+                  <label class="radio-label" style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:.85rem; color:var(--white-2);">
+                    <input type="radio" name="stance" value="Respondent" style="accent-color:var(--gold);"/> Respondent / Opposition
+                  </label>
+                </div>
+              </div>
+              
+              <!-- Issue Dropdown -->
+              <div class="ws-field">
+                <label for="builder-issue-select">Legal Issue</label>
+                <select id="builder-issue-select" class="oral-select" style="width:100%; padding:11px 14px; background:var(--navy-3); border:1px solid var(--glass-b); border-radius:6px; color:var(--white); font-family:var(--sans); font-size:.82rem; margin-top:6px; outline:none; transition:border-color .2s;">
+                  <option value="Issue 1: Jurisdiction & Maintainability">Issue 1: Jurisdiction & Maintainability</option>
+                  <option value="Issue 2: Constitutional Validity of the Act/Provision">Issue 2: Constitutional Validity of the Act/Provision</option>
+                  <option value="Issue 3: Substantive Merits & Breach of Rights">Issue 3: Substantive Merits & Breach of Rights</option>
+                  <option value="Issue 4: Appropriate Remedies & Relief Sought">Issue 4: Appropriate Remedies & Relief Sought</option>
+                </select>
+              </div>
+              
+              <!-- Raw Notes -->
+              <div class="ws-field">
+                <label for="builder-notes-input">Raw Notes & Precedents</label>
+                <textarea id="builder-notes-input" class="oral-textarea" placeholder="Enter your raw thoughts, key citations, facts, or draft arguments. The AI will weave these into a professional, logically sound IRAC structure..." style="height:180px; margin-top:6px; font-size:.82rem;"></textarea>
+              </div>
+              
+              <button class="btn-analyze" id="btn-builder-submit" style="width:100%;" disabled>
+                Build Argument →
+              </button>
+            </form>
+          </div>
+          
+          <!-- RIGHT COLUMN: OUTPUT DISPLAY -->
+          <div class="builder-output-col" style="display:flex; flex-direction:column; background:var(--navy-2); border:1px solid var(--glass-b); border-radius:14px; padding:28px; box-sizing:border-box; min-height:400px; justify-content:center; position:relative; overflow:hidden;">
+            
+            <!-- Empty State -->
+            <div id="builder-empty-state" style="text-align:center; display:flex; flex-direction:column; align-items:center; gap:12px;">
+              <div style="font-size:3rem; color:var(--white-muted); opacity:0.4;">✦</div>
+              <div style="font-family:var(--serif); font-size:1.3rem; font-weight:500; color:var(--white-2);">No argument built yet</div>
+              <div style="font-size:.78rem; color:var(--white-muted); max-width:280px; line-height:1.5;">Fill out the form on the left with your notes to generate a structured IRAC argument.</div>
+            </div>
+            
+            <!-- Loading State -->
+            <div id="builder-loading-state" style="display:none; text-align:center; flex-direction:column; align-items:center; gap:16px;">
+              <span class="spinner" style="width:36px; height:36px; border-width:3px; border-color:var(--gold) transparent var(--gold) transparent;"></span>
+              <div style="font-family:var(--serif); font-size:1.25rem; font-weight:500; color:var(--white-2);">Weaving Argument...</div>
+              <div style="font-size:.78rem; color:var(--white-muted); line-height:1.5;">Applying IRAC method and litigator persona. Please wait.</div>
+            </div>
+            
+            <!-- Output State -->
+            <div id="builder-output-state" style="display:none; flex-direction:column; gap:20px; width:100%; height:100%; text-align:left;">
+              <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--glass-b); padding-bottom:12px;">
+                <div>
+                  <div style="font-size:.58rem; font-weight:500; letter-spacing:.14em; text-transform:uppercase; color:var(--gold);">Appellate Submission</div>
+                  <div style="font-family:var(--serif); font-size:1.25rem; font-weight:500; color:var(--white);" id="builder-res-title">Structured IRAC Argument</div>
+                </div>
+                <button class="btn-sm btn-sm-ghost" id="btn-builder-copy" onclick="copyBuilderArgument()">Copy Argument</button>
+              </div>
+              
+              <!-- Scrollable Content -->
+              <div style="display:flex; flex-direction:column; gap:16px; overflow-y:auto; flex:1; max-height: 600px; padding-right:6px;" class="res-body">
+                <!-- Issue Section -->
+                <div class="analysis-section-card" style="background:var(--navy-3);">
+                  <div class="asc-header" style="cursor:default; border-bottom:1px solid var(--glass-b);">
+                    <div class="asc-header-left">
+                      <div class="asc-icon asc-icon-blue">⚖</div>
+                      <div class="asc-title" style="font-size:.85rem; font-weight:600;">I — Issue</div>
+                    </div>
+                  </div>
+                  <div class="asc-body" id="builder-irac-issue" style="padding:16px 18px; font-size:.82rem; color:var(--white-2); line-height:1.65;"></div>
+                </div>
+                
+                <!-- Rule Section -->
+                <div class="analysis-section-card" style="background:var(--navy-3);">
+                  <div class="asc-header" style="cursor:default; border-bottom:1px solid var(--glass-b);">
+                    <div class="asc-header-left">
+                      <div class="asc-icon asc-icon-purple">§</div>
+                      <div class="asc-title" style="font-size:.85rem; font-weight:600;">R — Rule (Precedent & Law)</div>
+                    </div>
+                  </div>
+                  <div class="asc-body" id="builder-irac-rule" style="padding:16px 18px; font-size:.82rem; color:var(--white-2); line-height:1.65;"></div>
+                </div>
+                
+                <!-- Application Section -->
+                <div class="analysis-section-card" style="background:var(--navy-3);">
+                  <div class="asc-header" style="cursor:default; border-bottom:1px solid var(--glass-b);">
+                    <div class="asc-header-left">
+                      <div class="asc-icon asc-icon-gold">◈</div>
+                      <div class="asc-title" style="font-size:.85rem; font-weight:600;">A — Application (Analysis & Facts)</div>
+                    </div>
+                  </div>
+                  <div class="asc-body" id="builder-irac-application" style="padding:16px 18px; font-size:.82rem; color:var(--white-2); line-height:1.65;"></div>
+                </div>
+                
+                <!-- Conclusion Section -->
+                <div class="analysis-section-card" style="background:var(--navy-3);">
+                  <div class="asc-header" style="cursor:default; border-bottom:1px solid var(--glass-b);">
+                    <div class="asc-header-left">
+                      <div class="asc-icon asc-icon-green">▲</div>
+                      <div class="asc-title" style="font-size:.85rem; font-weight:600;">C — Conclusion</div>
+                    </div>
+                  </div>
+                  <div class="asc-body" id="builder-irac-conclusion" style="padding:16px 18px; font-size:.82rem; color:var(--white-2); line-height:1.65;"></div>
+                </div>
+              </div>
+            </div>
+            
+          </div>
+        </div>
+      </div>
+
     </main>
   </div><!-- /ws-body -->
 </div>

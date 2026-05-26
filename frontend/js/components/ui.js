@@ -198,7 +198,7 @@ export function showAuthSuccess() {
 }
 
 export function showWsPanel(name) {
-  ['upload','results','oral','bench'].forEach(n => {
+  ['upload','results','oral','bench','builder'].forEach(n => {
     document.getElementById('wsp-'+n)?.classList.remove('active');
     document.getElementById('wsb-'+n)?.classList.remove('active');
   });
