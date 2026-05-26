@@ -45,6 +45,7 @@ const aiLimiter = rateLimit({
   max: 15,
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { trustProxy: false },
   message: {
     success: false,
     error: "Too many requests from this IP. Please try again after 15 minutes."
@@ -81,6 +82,7 @@ const buildJudgePrompt = require("./prompts/benchJudgePrompt");
 const buildEvaluationPrompt = require("./prompts/benchEvaluationPrompt");
 
 const app = express();
+app.set('trust proxy', 1);
 app.use(cors());
 app.use(express.json());
 app.use(express.static("frontend"));
