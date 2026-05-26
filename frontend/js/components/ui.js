@@ -634,61 +634,68 @@ export function initScrollSpy() {
 }
 
 export function showResults(rawText) {
-  lastAnalysis = rawText;
+  try {
+    lastAnalysis = rawText;
 
-  const sections   = parseAnalysisSections(rawText);
-  const globalScore = extractScore(sections);
-  const heroHTML   = buildScoreHero(sections);
+    const sections   = parseAnalysisSections(rawText);
+    const globalScore = extractScore(sections);
+    const heroHTML   = buildScoreHero(sections);
 
-  const navHTML = sections.map((s, i) => {
-    const cfg = SECTION_CONFIGS[classifySection(s.heading)] || SECTION_CONFIGS.default;
-    return `<button class="rn-item" id="rn-${i}" onclick="scrollToSection(${i})">${cfg.icon} ${s.heading}</button>`;
-  }).join('');
+    const navHTML = sections.map((s, i) => {
+      const cfg = SECTION_CONFIGS[classifySection(s.heading)] || SECTION_CONFIGS.default;
+      return `<button class="rn-item" id="rn-${i}" onclick="scrollToSection(${i})">${cfg.icon} ${s.heading}</button>`;
+    }).join('');
 
-  const HERO_TYPES = new Set(['score','oral','research']);
-  const cardsHTML  = sections.map((sec, i) => {
-    const type  = classifySection(sec.heading);
-    const cfg   = SECTION_CONFIGS[type] || SECTION_CONFIGS.default;
-    const title = cfg.title || sec.heading;
-    const body  = renderSectionBody(type, sec.content, globalScore);
-    const startCollapsed = heroHTML && HERO_TYPES.has(type);
-    const hCls  = startCollapsed ? ' asc-collapsed' : '';
-    const bCls  = startCollapsed ? ' asc-collapsed' : '';
-    const delay = `${i * 0.055}s`;
+    const HERO_TYPES = new Set(['score','oral','research']);
+    const cardsHTML  = sections.map((sec, i) => {
+      const type  = classifySection(sec.heading);
+      const cfg   = SECTION_CONFIGS[type] || SECTION_CONFIGS.default;
+      const title = cfg.title || sec.heading;
+      const body  = renderSectionBody(type, sec.content, globalScore);
+      const startCollapsed = heroHTML && HERO_TYPES.has(type);
+      const hCls  = startCollapsed ? ' asc-collapsed' : '';
+      const bCls  = startCollapsed ? ' asc-collapsed' : '';
+      const delay = `${i * 0.055}s`;
 
-    return `
-      <div class="analysis-section-card" id="asc-card-${i}" style="animation-delay:${delay}">
-        <div class="asc-header${hCls}" id="asc-h-${i}" onclick="toggleSection(${i})">
-          <div class="asc-header-left">
-            <div class="asc-icon ${cfg.iconCls}">${cfg.icon}</div>
-            <div class="asc-title">${title}</div>
+      return `
+        <div class="analysis-section-card" id="asc-card-${i}" style="animation-delay:${delay}">
+          <div class="asc-header${hCls}" id="asc-h-${i}" onclick="toggleSection(${i})">
+            <div class="asc-header-left">
+              <div class="asc-icon ${cfg.iconCls}">${cfg.icon}</div>
+              <div class="asc-title">${title}</div>
+            </div>
+            <div class="asc-header-right">
+              <span class="asc-badge ${cfg.badgeCls}">${cfg.badgeTxt}</span>
+              <button class="asc-copy" onclick="event.stopPropagation();copySectionText(${i},this)">Copy</button>
+              <span class="asc-chevron">▾</span>
+            </div>
           </div>
-          <div class="asc-header-right">
-            <span class="asc-badge ${cfg.badgeCls}">${cfg.badgeTxt}</span>
-            <button class="asc-copy" onclick="event.stopPropagation();copySectionText(${i},this)">Copy</button>
-            <span class="asc-chevron">▾</span>
-          </div>
-        </div>
-        <div class="asc-body${bCls}" id="asc-b-${i}" style="padding:20px 22px;">${body}</div>
+          <div class="asc-body${bCls}" id="asc-b-${i}" style="padding:20px 22px;">${body}</div>
+        </div>`;
+    }).join('');
+
+    document.getElementById('analysis-output').innerHTML = `
+      <div class="result-grid">
+        ${heroHTML}
+        ${sections.length > 1 ? `<div class="result-divider"><span>Analysis Sections</span></div>` : ''}
+        ${cardsHTML}
       </div>`;
-  }).join('');
 
-  document.getElementById('analysis-output').innerHTML = `
-    <div class="result-grid">
-      ${heroHTML}
-      ${sections.length > 1 ? `<div class="result-divider"><span>Analysis Sections</span></div>` : ''}
-      ${cardsHTML}
-    </div>`;
+    const navEl = document.getElementById('res-sticky-nav-inner');
+    if (navEl) { navEl.innerHTML = navHTML; }
 
-  const navEl = document.getElementById('res-sticky-nav-inner');
-  if (navEl) { navEl.innerHTML = navHTML; }
+    document.getElementById('res-empty').style.display  = 'none';
+    document.getElementById('res-filled').style.display = 'flex';
+    showWsPanel('results');
+    document.getElementById('btn-analyze').disabled = false;
 
-  document.getElementById('res-empty').style.display  = 'none';
-  document.getElementById('res-filled').style.display = 'flex';
-  showWsPanel('results');
-  document.getElementById('btn-analyze').disabled = false;
-
-  setTimeout(() => { animateBars(); initScrollSpy(); }, 180);
+    setTimeout(() => { animateBars(); initScrollSpy(); }, 180);
+  } catch (error) {
+    console.error("Rendering Error:", error);
+    alert("The analysis succeeded, but the UI failed to render. Check the console.");
+    hideLoading();
+    showWsPanel('upload');
+  }
 }
 
 export function renderArgumentDefects(defectsData) {
@@ -840,94 +847,101 @@ export function buildStructuredScoreHero(data) {
 }
 
 export function showStructuredResults(data) {
-  lastAnalysis = JSON.stringify(data, null, 2);
-  currentPropositionContext = data.summary || '';
+  try {
+    lastAnalysis = JSON.stringify(data, null, 2);
+    currentPropositionContext = data.summary || '';
 
-  const toList = arr => (arr || []).map(x => `- ${x}`).join('\n');
+    const toList = arr => (arr || []).map(x => `- ${x}`).join('\n');
 
-  const sections = [
-    data.summary && { type:'summary', heading:'Case Summary', content: data.summary },
-    (data.legalIssues || []).length          && { type:'legal',         heading:'Legal Issues',              content: toList(data.legalIssues) },
-    (data.petitionerArguments || []).length  && { type:'petitioner',    heading:'Petitioner Arguments',      content: toList(data.petitionerArguments) },
-    (data.respondentArguments || []).length  && { type:'respondent',    heading:'Respondent Arguments',      content: toList(data.respondentArguments) },
-    (data.argumentDefects?.petitioner?.length || data.argumentDefects?.respondent?.length) && {
-      type:'argDefects', heading:'Argument Defect Analysis', content:'', _raw: data.argumentDefects
-    },
-    (data.constitutionalIssues || []).length && { type:'constitution',  heading:'Constitutional Provisions', content: toList(data.constitutionalIssues) },
-    (data.precedentsNeeded || []).length     && {
-      type:'cases', heading:'Cases & Precedents',
-      content: toList((data.precedentsNeeded || []).map(c => typeof c === 'string' ? c : `${c.caseName} — ${c.holdingRelevant || ''}`)),
-      _rawCases: data.precedentsNeeded
-    },
-    (data.benchQuestions || []).length       && { type:'bench',         heading:'Bench Questions',           content: toList(data.benchQuestions) },
-    (data.benchVulnerabilities || []).length && { type:'vulnerability', heading:'Bench Vulnerabilities',     content: toList(data.benchVulnerabilities) },
-    (data.strengths || []).length            && { type:'strengths',     heading:'Proposition Strengths',     content: toList(data.strengths) },
-    (data.weaknesses || []).length           && { type:'weaknesses',    heading:'Proposition Weaknesses',    content: toList(data.weaknesses) },
-    (data.missingAngles || []).length        && { type:'missing',       heading:'Missing Legal Angles',      content: toList(data.missingAngles) },
-    (data.mostContestableIssue || data.finalVerdict) && {
-      type:'strategy', heading:'Strategic Insights',
-      content: [
-        data.mostContestableIssue && `**Most Contestable Issue:** ${data.mostContestableIssue}`,
-        data.finalVerdict && `**Final Verdict:** ${data.finalVerdict}`,
-      ].filter(Boolean).join('\n\n')
-    },
-  ].filter(Boolean);
+    const sections = [
+      data.summary && { type:'summary', heading:'Case Summary', content: data.summary },
+      (data.legalIssues || []).length          && { type:'legal',         heading:'Legal Issues',              content: toList(data.legalIssues) },
+      (data.petitionerArguments || []).length  && { type:'petitioner',    heading:'Petitioner Arguments',      content: toList(data.petitionerArguments) },
+      (data.respondentArguments || []).length  && { type:'respondent',    heading:'Respondent Arguments',      content: toList(data.respondentArguments) },
+      (data.argumentDefects?.petitioner?.length || data.argumentDefects?.respondent?.length) && {
+        type:'argDefects', heading:'Argument Defect Analysis', content:'', _raw: data.argumentDefects
+      },
+      (data.constitutionalIssues || []).length && { type:'constitution',  heading:'Constitutional Provisions', content: toList(data.constitutionalIssues) },
+      (data.precedentsNeeded || []).length     && {
+        type:'cases', heading:'Cases & Precedents',
+        content: toList((data.precedentsNeeded || []).map(c => typeof c === 'string' ? c : `${c.caseName} — ${c.holdingRelevant || ''}`)),
+        _rawCases: data.precedentsNeeded
+      },
+      (data.benchQuestions || []).length       && { type:'bench',         heading:'Bench Questions',           content: toList(data.benchQuestions) },
+      (data.benchVulnerabilities || []).length && { type:'vulnerability', heading:'Bench Vulnerabilities',     content: toList(data.benchVulnerabilities) },
+      (data.strengths || []).length            && { type:'strengths',     heading:'Proposition Strengths',     content: toList(data.strengths) },
+      (data.weaknesses || []).length           && { type:'weaknesses',    heading:'Proposition Weaknesses',    content: toList(data.weaknesses) },
+      (data.missingAngles || []).length        && { type:'missing',       heading:'Missing Legal Angles',      content: toList(data.missingAngles) },
+      (data.mostContestableIssue || data.finalVerdict) && {
+        type:'strategy', heading:'Strategic Insights',
+        content: [
+          data.mostContestableIssue && `**Most Contestable Issue:** ${data.mostContestableIssue}`,
+          data.finalVerdict && `**Final Verdict:** ${data.finalVerdict}`,
+        ].filter(Boolean).join('\n\n')
+      },
+    ].filter(Boolean);
 
-  const heroHTML    = buildStructuredScoreHero(data);
-  const scoringHTML = renderCategoryScores(data.categoryScores);
+    const heroHTML    = buildStructuredScoreHero(data);
+    const scoringHTML = renderCategoryScores(data.categoryScores);
 
-  const navHTML = sections.map((s, i) => {
-    const cfg = SECTION_CONFIGS[s.type] || SECTION_CONFIGS.default;
-    return `<button class="rn-item" id="rn-${i}" onclick="scrollToSection(${i})">${cfg.icon} ${s.heading}</button>`;
-  }).join('');
+    const navHTML = sections.map((s, i) => {
+      const cfg = SECTION_CONFIGS[s.type] || SECTION_CONFIGS.default;
+      return `<button class="rn-item" id="rn-${i}" onclick="scrollToSection(${i})">${cfg.icon} ${s.heading}</button>`;
+    }).join('');
 
-  const cardsHTML = sections.map((sec, i) => {
-    const cfg = SECTION_CONFIGS[sec.type] || SECTION_CONFIGS.default;
-    let body;
-    if (sec.type === 'argDefects')                      body = renderArgumentDefects(sec._raw);
-    else if (sec.type === 'cases' && sec._rawCases)     body = renderCases(sec.content, sec._rawCases);
-    else                                                body = renderSectionBody(sec.type, sec.content, data.overallScore);
+    const cardsHTML = sections.map((sec, i) => {
+      const cfg = SECTION_CONFIGS[sec.type] || SECTION_CONFIGS.default;
+      let body;
+      if (sec.type === 'argDefects')                      body = renderArgumentDefects(sec._raw);
+      else if (sec.type === 'cases' && sec._rawCases)     body = renderCases(sec.content, sec._rawCases);
+      else                                                body = renderSectionBody(sec.type, sec.content, data.overallScore);
 
-    return `
-      <div class="analysis-section-card" id="asc-card-${i}" style="animation-delay:${(i + 2) * 0.055}s">
-        <div class="asc-header" id="asc-h-${i}" onclick="toggleSection(${i})">
-          <div class="asc-header-left">
-            <div class="asc-icon ${cfg.iconCls}">${cfg.icon}</div>
-            <div class="asc-title">${cfg.title || sec.heading}</div>
+      return `
+        <div class="analysis-section-card" id="asc-card-${i}" style="animation-delay:${(i + 2) * 0.055}s">
+          <div class="asc-header" id="asc-h-${i}" onclick="toggleSection(${i})">
+            <div class="asc-header-left">
+              <div class="asc-icon ${cfg.iconCls}">${cfg.icon}</div>
+              <div class="asc-title">${cfg.title || sec.heading}</div>
+            </div>
+            <div class="asc-header-right">
+              <span class="asc-badge ${cfg.badgeCls}">${cfg.badgeTxt}</span>
+              <button class="asc-copy" onclick="event.stopPropagation();copySectionText(${i},this)">Copy</button>
+              <span class="asc-chevron">▾</span>
+            </div>
           </div>
-          <div class="asc-header-right">
-            <span class="asc-badge ${cfg.badgeCls}">${cfg.badgeTxt}</span>
-            <button class="asc-copy" onclick="event.stopPropagation();copySectionText(${i},this)">Copy</button>
-            <span class="asc-chevron">▾</span>
-          </div>
-        </div>
-        <div class="asc-body" id="asc-b-${i}" style="padding:20px 22px;">${body}</div>
+          <div class="asc-body" id="asc-b-${i}" style="padding:20px 22px;">${body}</div>
+        </div>`;
+    }).join('');
+
+    document.getElementById('analysis-output').innerHTML = `
+      <div class="result-grid">
+        ${heroHTML}
+        ${scoringHTML}
+        <div class="result-divider"><span>Detailed Analysis</span></div>
+        ${cardsHTML}
       </div>`;
-  }).join('');
 
-  document.getElementById('analysis-output').innerHTML = `
-    <div class="result-grid">
-      ${heroHTML}
-      ${scoringHTML}
-      <div class="result-divider"><span>Detailed Analysis</span></div>
-      ${cardsHTML}
-    </div>`;
+    const navEl = document.getElementById('res-sticky-nav-inner');
+    if (navEl) navEl.innerHTML = navHTML;
 
-  const navEl = document.getElementById('res-sticky-nav-inner');
-  if (navEl) navEl.innerHTML = navHTML;
+    document.getElementById('res-empty').style.display  = 'none';
+    document.getElementById('res-filled').style.display = 'flex';
+    showWsPanel('results');
+    document.getElementById('btn-analyze').disabled = false;
 
-  document.getElementById('res-empty').style.display  = 'none';
-  document.getElementById('res-filled').style.display = 'flex';
-  showWsPanel('results');
-  document.getElementById('btn-analyze').disabled = false;
-
-  const scoreElement = document.getElementById('animated-main-score');
-  
-  setTimeout(() => { 
-    animateBars(); 
-    initScrollSpy(); 
-    if (scoreElement) animateValue(scoreElement, 0, data.overallScore || 0, 1500);
-  }, 180);
+    const scoreElement = document.getElementById('animated-main-score');
+    
+    setTimeout(() => { 
+      animateBars(); 
+      initScrollSpy(); 
+      if (scoreElement) animateValue(scoreElement, 0, data.overallScore || 0, 1500);
+    }, 180);
+  } catch (error) {
+    console.error("Rendering Error:", error);
+    alert("The analysis succeeded, but the UI failed to render. Check the console.");
+    hideLoading();
+    showWsPanel('upload');
+  }
 }
 
 export function renderMarkdown(text) {
