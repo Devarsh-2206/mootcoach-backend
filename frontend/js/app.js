@@ -13,16 +13,21 @@ import {
   closeLegalModal,
   toggleMobileSidebar,
   showWsPanel,
-  handleFileSelect,
-  removeFile,
-  runAnalysis,
   loadSavedSession,
   copyAnalysis,
   updateWsMootName,
   toggleSection,
   copySectionText,
-  scrollToSection
+  scrollToSection,
+  currentPropositionContext
 } from './components/ui.js';
+
+import {
+  initDashboard,
+  handleFileSelect,
+  removeFile,
+  runAnalysis
+} from './components/dashboard.js';
 
 import {
   setOralDifficulty,
@@ -211,6 +216,29 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   initArgumentBuilder();
+  initDashboard();
+
+  // Sidebar navigation click listeners
+  const navItems = [
+    { id: 'wsb-upload', view: 'upload' },
+    { id: 'wsb-results', view: 'results' },
+    { id: 'wsb-oral', view: 'oral' },
+    { id: 'wsb-bench', view: 'bench' },
+    { id: 'wsb-builder', view: 'builder' }
+  ];
+
+  navItems.forEach(item => {
+    const btn = document.getElementById(item.id);
+    if (btn) {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        switchWorkspaceView(item.view, btn);
+      });
+    }
+  });
+
+  // Ensure "New Workspace" / Dashboard view is default visible on load
+  switchWorkspaceView('upload');
 });
 
 // Map handlers to window to preserve inline HTML onclick/onkeydown mappings
@@ -251,11 +279,60 @@ window.stopOralRound = stopOralRound;
 window.copyBuilderArgument = copyBuilderArgument;
 window.populateIssuesFromAnalysis = populateIssuesFromAnalysis;
 
-// Intercept showWsPanel to update issues dropdown dynamically
-const originalShowWsPanel = window.showWsPanel;
-window.showWsPanel = function(name) {
-  originalShowWsPanel(name);
-  if (name === 'builder') {
-    populateIssuesFromAnalysis();
+export function switchWorkspaceView(viewName, buttonEl) {
+  const views = ['upload', 'results', 'oral', 'bench', 'builder'];
+  
+  // Hide all panels
+  views.forEach(v => {
+    const el = document.getElementById('wsp-' + v);
+    if (el) el.classList.remove('active');
+  });
+  
+  // Deactivate all sidebar items and remove active styles including Tailwind classes
+  document.querySelectorAll('.ws-sb-item').forEach(btn => {
+    btn.classList.remove('active', 'bg-moot-accent/10', 'text-moot-accent');
+  });
+  
+  // Show target panel
+  const targetPanel = document.getElementById('wsp-' + viewName);
+  if (targetPanel) targetPanel.classList.add('active');
+  
+  // Activate clicked button or matching button
+  if (buttonEl) {
+    buttonEl.classList.add('active', 'bg-moot-accent/10', 'text-moot-accent');
+  } else {
+    const btn = document.getElementById('wsb-' + viewName);
+    if (btn) btn.classList.add('active', 'bg-moot-accent/10', 'text-moot-accent');
   }
+
+  // Preserve context checks
+  if (viewName === 'oral') {
+    const notice = document.getElementById('oral-context-notice');
+    if (notice) {
+      const hasContext = !!(currentPropositionContext || document.getElementById('wsib-file')?.textContent?.trim() !== 'No file uploaded');
+      notice.style.display = hasContext ? 'flex' : 'none';
+    }
+  }
+  if (viewName === 'bench' && !window.benchActive) {
+    const noCtx = document.getElementById('bench-no-context');
+    if (noCtx) {
+      const hasContext = !!(currentPropositionContext || document.getElementById('wsib-file')?.textContent?.trim() !== 'No file uploaded');
+      noCtx.style.display = hasContext ? 'none' : 'block';
+    }
+  }
+  if (viewName === 'builder') {
+    if (typeof window.populateIssuesFromAnalysis === 'function') {
+      window.populateIssuesFromAnalysis();
+    }
+  }
+
+  const sidebar = document.getElementById('ws-sidebar');
+  if (sidebar && sidebar.classList.contains('show')) {
+    toggleMobileSidebar();
+  }
+}
+
+// Override showWsPanel to run switchWorkspaceView
+window.showWsPanel = function(name) {
+  switchWorkspaceView(name);
 };

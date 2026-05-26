@@ -1,13 +1,11 @@
 import { BASE_URL } from '../config.js';
 import { currentUser, db, firebaseRef } from '../services/firebase.js';
-import { analyzeProposition, logSessionSecurely, checkBackendHealth } from '../services/api.js';
+import { logSessionSecurely, checkBackendHealth } from '../services/api.js';
 
 // Shared State Variables
-export let selectedFile = null;
 export let lastAnalysis = '';
 export let currentPropositionContext = '';
 
-export function setSelectedFile(val) { selectedFile = val; }
 export function setLastAnalysis(val) { lastAnalysis = val; }
 export function setCurrentPropositionContext(val) { currentPropositionContext = val; }
 
@@ -232,126 +230,7 @@ export function updateWsMootName(val) {
   if (resMoot) resMoot.textContent = val.trim() || 'Proposition Analysis';
 }
 
-/* ─── UPLOAD AND PDF STEPS ─── */
-export function handleFileSelect(file) {
-  if (!file) return;
-  if (file.type !== 'application/pdf') { 
-    showToast('Only PDF files are accepted.', 'err'); 
-    return; 
-  }
-  selectedFile = file;
-  const mb = (file.size / 1048576).toFixed(2);
-  document.getElementById('fp-name').textContent = file.name;
-  document.getElementById('fp-size').textContent = `${mb} MB · PDF`;
-  document.getElementById('wsib-file').textContent = file.name;
-  document.getElementById('wsib-file').className = 'wsib-value';
-  document.getElementById('res-file-chip').textContent = `· ${file.name}`;
-  document.getElementById('ws-file-pill').classList.add('show');
-  document.getElementById('ws-dropzone').style.display = 'none';
-  document.getElementById('btn-analyze').disabled = false;
-}
-
-export function removeFile() {
-  selectedFile = null;
-  const fi = document.getElementById('ws-file-input');
-  if (fi) fi.value = '';
-  document.getElementById('ws-file-pill')?.classList.remove('show');
-  document.getElementById('ws-dropzone').style.display = '';
-  document.getElementById('btn-analyze').disabled = true;
-  const wsibFile = document.getElementById('wsib-file');
-  if (wsibFile) { wsibFile.textContent = 'No file uploaded'; wsibFile.className = 'wsib-value empty'; }
-}
-
-const STEP_MSGS = ['Reading your PDF…','Extracting text content…','Sending to Groq AI…','Generating analysis…','Saving securely to Cloud…'];
-let stepTimer = null, currentStep = 0;
-
-function startSteps() {
-  currentStep = 0;
-  for(let i=1;i<=5;i++) {
-    const s = document.getElementById(`ls-${i}`);
-    if (s) s.className='lo-step';
-  }
-  activateStep(1);
-  stepTimer = setInterval(() => { if(currentStep<4){ doneStep(currentStep); activateStep(currentStep+1); } }, 900);
-}
-function activateStep(n) {
-  currentStep = n;
-  document.getElementById(`ls-${n}`)?.classList.add('active');
-  const label = document.getElementById('lo-label');
-  if (label) label.textContent = STEP_MSGS[n-1];
-}
-function doneStep(n) {
-  const el = document.getElementById(`ls-${n}`);
-  if(el){ el.classList.remove('active'); el.classList.add('done'); }
-}
-function stopSteps() {
-  clearInterval(stepTimer);
-  for(let i=1;i<=5;i++) doneStep(i);
-  const label = document.getElementById('lo-label');
-  if (label) label.textContent = 'Saved!';
-}
-
-export async function runAnalysis() {
-  if (!selectedFile) return;
-
-  document.getElementById('loading-overlay').classList.add('show');
-  startSteps();
-  document.getElementById('btn-analyze').disabled = true;
-
-  try {
-    const data = await analyzeProposition(selectedFile);
-
-    if (data.isRejection) {
-      stopSteps();
-      await sleep(400);
-      hideLoading();
-      showRejection(data.error, data.documentType);
-      return;
-    }
-
-    if (data.isStructured && data.response && typeof data.response === 'object') {
-      if (currentUser) {
-        try {
-          const mootName = document.getElementById('ws-moot-name').value.trim() || 'Untitled Moot';
-          await logSessionSecurely({
-            uid: currentUser.uid,
-            type: 'analysis',
-            mootName: mootName,
-            fileName: selectedFile.name,
-            score: data.response.overallScore || 0,
-            analysisData: data.response
-          });
-          loadRecentSessions(); 
-        } catch (fbError) {
-          console.error("Failed to save to cloud:", fbError);
-          showToast("Failed to save to cloud: " + fbError.message, "err");
-        }
-      }
-
-      stopSteps();
-      await sleep(400);
-      hideLoading();
-      showStructuredResults(data.response);
-      return;
-    }
-
-    const raw = data.response || data.analysis || data.result || data.text ||
-                (typeof data === 'string' ? data : JSON.stringify(data));
-    const rawStr = typeof raw === 'string' ? raw : JSON.stringify(raw);
-    if (!rawStr || rawStr.length < 20) throw new Error('AI analysis returned an empty response. Please try again.');
-    
-    stopSteps();
-    await sleep(400);
-    hideLoading();
-    showResults(rawStr);
-
-  } catch(err) {
-    stopSteps();
-    await sleep(400);
-    hideLoading();
-    showError(err.message);
-  }
-}
+// Decoupled upload logic is now managed inside components/dashboard.js
 
 export async function loadRecentSessions() {
   if (!currentUser) return;

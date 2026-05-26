@@ -13,9 +13,7 @@ export async function checkBackendHealth() {
   }
 }
 
-export async function analyzeProposition(file) {
-  const formData = new FormData();
-  formData.append('file', file);
+export async function analyzeProposition(formData) {
   const res = await fetch(`${BASE_URL}/analyze`, { method: 'POST', body: formData });
   if (!res.ok) {
     const txt = await res.text().catch(() => 'Unknown server error.');
