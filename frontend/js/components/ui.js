@@ -195,21 +195,56 @@ export function showAuthSuccess() {
   if (noteS) noteS.style.display = 'none';
 }
 
-export function showWsPanel(name) {
-  ['upload','results','oral','bench','builder'].forEach(n => {
-    document.getElementById('wsp-'+n)?.classList.remove('active');
-    document.getElementById('wsb-'+n)?.classList.remove('active');
+export function showWsPanel(name, buttonEl) {
+  const views = ['upload', 'results', 'oral', 'bench', 'builder'];
+  
+  // Hide all panels
+  views.forEach(v => {
+    const el = document.getElementById('wsp-' + v);
+    if (el) {
+      el.classList.remove('active');
+      el.classList.add('hidden');
+    }
   });
-  document.getElementById('wsp-'+name)?.classList.add('active');
-  document.getElementById('wsb-'+name)?.classList.add('active');
+  
+  // Deactivate all sidebar items
+  document.querySelectorAll('.ws-sb-item').forEach(btn => {
+    btn.classList.remove('active', 'bg-moot-accent/10', 'text-moot-accent');
+  });
+  
+  // Show target panel
+  const targetPanel = document.getElementById('wsp-' + name);
+  if (targetPanel) {
+    targetPanel.classList.add('active');
+    targetPanel.classList.remove('hidden');
+  }
+  
+  // Activate clicked button or matching button
+  if (buttonEl) {
+    buttonEl.classList.add('active', 'bg-moot-accent/10', 'text-moot-accent');
+  } else {
+    const btn = document.getElementById('wsb-' + name);
+    if (btn) btn.classList.add('active', 'bg-moot-accent/10', 'text-moot-accent');
+  }
 
+  // Preserve context checks
+  const hasContext = !!(currentPropositionContext || document.getElementById('wsib-file')?.textContent?.trim() !== 'No file uploaded');
   if (name === 'oral') {
     const notice = document.getElementById('oral-context-notice');
-    if (notice) notice.style.display = currentPropositionContext ? 'flex' : 'none';
+    if (notice) {
+      notice.style.display = hasContext ? 'flex' : 'none';
+    }
   }
   if (name === 'bench' && !window.benchActive) {
     const noCtx = document.getElementById('bench-no-context');
-    if (noCtx) noCtx.style.display = currentPropositionContext ? 'none' : 'block';
+    if (noCtx) {
+      noCtx.style.display = hasContext ? 'none' : 'block';
+    }
+  }
+  if (name === 'builder') {
+    if (typeof window.populateIssuesFromAnalysis === 'function') {
+      window.populateIssuesFromAnalysis();
+    }
   }
 
   const sidebar = document.getElementById('ws-sidebar');
@@ -306,14 +341,7 @@ export async function loadSavedSession(docId) {
     if (data.analysisData) {
       showStructuredResults(data.analysisData);
       
-      // Update sidebar active styling: highlight results tab and the loaded moot button
-      document.querySelectorAll('.ws-sb-item').forEach(item => {
-        item.classList.remove('active', 'bg-moot-accent/10', 'text-moot-accent');
-      });
-      const resultsTab = document.getElementById('wsb-results');
-      if (resultsTab) {
-        resultsTab.classList.add('active', 'bg-moot-accent/10', 'text-moot-accent');
-      }
+      // Highlight matching recent moot button in sidebar (results tab is already highlighted by showWsPanel inside showStructuredResults)
       const recentBtn = document.querySelector(`button[onclick*="${docId}"]`);
       if (recentBtn) {
         recentBtn.classList.add('active', 'bg-moot-accent/10', 'text-moot-accent');

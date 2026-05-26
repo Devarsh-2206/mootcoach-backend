@@ -265,13 +265,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btn) {
       btn.addEventListener('click', (e) => {
         e.preventDefault();
-        switchWorkspaceView(item.view, btn);
+        showWsPanel(item.view, btn);
       });
     }
   });
 
   // Ensure "Active Docket" / Dashboard view is default visible on load
-  switchWorkspaceView('upload');
+  showWsPanel('upload');
 
   // Recent Moots click delegation
   const recentList = document.getElementById('ws-recent-list');
@@ -335,66 +335,4 @@ window.stopOralRound = stopOralRound;
 window.copyBuilderArgument = copyBuilderArgument;
 window.populateIssuesFromAnalysis = populateIssuesFromAnalysis;
 
-export function switchWorkspaceView(viewName, buttonEl) {
-  const views = ['upload', 'results', 'oral', 'bench', 'builder'];
-  
-  // Hide all panels
-  views.forEach(v => {
-    const el = document.getElementById('wsp-' + v);
-    if (el) {
-      el.classList.remove('active');
-      el.classList.add('hidden');
-    }
-  });
-  
-  // Deactivate all sidebar items and remove active styles including Tailwind classes
-  document.querySelectorAll('.ws-sb-item').forEach(btn => {
-    btn.classList.remove('active', 'bg-moot-accent/10', 'text-moot-accent');
-  });
-  
-  // Show target panel
-  const targetPanel = document.getElementById('wsp-' + viewName);
-  if (targetPanel) {
-    targetPanel.classList.add('active');
-    targetPanel.classList.remove('hidden');
-  }
-  
-  // Activate clicked button or matching button
-  if (buttonEl) {
-    buttonEl.classList.add('active', 'bg-moot-accent/10', 'text-moot-accent');
-  } else {
-    const btn = document.getElementById('wsb-' + viewName);
-    if (btn) btn.classList.add('active', 'bg-moot-accent/10', 'text-moot-accent');
-  }
 
-  // Preserve context checks
-  if (viewName === 'oral') {
-    const notice = document.getElementById('oral-context-notice');
-    if (notice) {
-      const hasContext = !!(currentPropositionContext || document.getElementById('wsib-file')?.textContent?.trim() !== 'No file uploaded');
-      notice.style.display = hasContext ? 'flex' : 'none';
-    }
-  }
-  if (viewName === 'bench' && !window.benchActive) {
-    const noCtx = document.getElementById('bench-no-context');
-    if (noCtx) {
-      const hasContext = !!(currentPropositionContext || document.getElementById('wsib-file')?.textContent?.trim() !== 'No file uploaded');
-      noCtx.style.display = hasContext ? 'none' : 'block';
-    }
-  }
-  if (viewName === 'builder') {
-    if (typeof window.populateIssuesFromAnalysis === 'function') {
-      window.populateIssuesFromAnalysis();
-    }
-  }
-
-  const sidebar = document.getElementById('ws-sidebar');
-  if (sidebar && sidebar.classList.contains('show')) {
-    toggleMobileSidebar();
-  }
-}
-
-// Override showWsPanel to run switchWorkspaceView
-window.showWsPanel = function(name) {
-  switchWorkspaceView(name);
-};
