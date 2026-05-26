@@ -8,7 +8,6 @@ const express = require("express");
 const cors = require("cors");
 const multer = require("multer");
 const fs = require("fs");
-const Groq = require("groq-sdk");
 const { Worker } = require("worker_threads");
 const path = require("path");
 const admin = require("firebase-admin");
@@ -29,15 +28,7 @@ try {
   console.error("❌ Failed to initialize Firebase Admin SDK:", error.message);
 }
 
-// Timeout helper for Groq circuit breaker (15 seconds)
-const withTimeout = (promise, ms = 15000) => {
-  return Promise.race([
-    promise,
-    new Promise((_, reject) =>
-      setTimeout(() => reject(new Error("Groq API Timeout")), ms)
-    )
-  ]);
-};
+
 
 // Rate limiter for heavy AI and logging routes
 const aiLimiter = rateLimit({
@@ -72,7 +63,7 @@ function parsePdfAsync(buffer) {
 const extractIssuesRoute = require("./routes/extractIssues");
 
 // Services
-const { handleLiveVoiceConnection } = require("./services/geminiService");
+const { handleLiveVoiceConnection, getChatCompletion } = require("./services/geminiService");
 
 // Prompts
 const LEGAL_VALIDATION_PROMPT = require("./prompts/legalValidationPrompt");
@@ -95,10 +86,7 @@ app.get("/health", (req, res) => {
 
 const upload = multer({ dest: "uploads/" });
 
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY,
-  timeout: 30000, // 30 seconds global timeout
-});
+
 
 /* ─── /analyze (Now fully powered by Groq & Native JSON Mode) ─── */
 app.post("/analyze", aiLimiter, upload.single("file"), async (req, res) => {
@@ -137,18 +125,17 @@ app.post("/analyze", aiLimiter, upload.single("file"), async (req, res) => {
     let validationResult = { isLegal: true, confidence: 60, documentType: "Unknown" };
 
     try {
-      const validationCall = await withTimeout(groq.chat.completions.create({
-        model: "llama-3.3-70b-versatile",
-        max_tokens: 150,
-        temperature: 0.05,
-        response_format: { type: "json_object" }, // FORCES PERFECT JSON
+      const validationCall = await getChatCompletion({
         messages: [
           { role: "system", content: LEGAL_VALIDATION_PROMPT },
           { role: "user",   content: `Classify this document. Return ONLY valid JSON:\n\n${fullPropositionText.slice(0, 3000)}` }
-        ]
-      }), 15000);
+        ],
+        temperature: 0.05,
+        max_tokens: 150,
+        requestLabel: "Legal Domain Validation"
+      });
 
-      validationResult = JSON.parse(validationCall.choices[0].message.content.trim());
+      validationResult = JSON.parse(validationCall.text);
     } catch (valErr) {
       console.error("Validation error (proceeding):", valErr.message);
       if (valErr.message.includes("Timeout")) {
@@ -166,21 +153,20 @@ app.post("/analyze", aiLimiter, upload.single("file"), async (req, res) => {
     }
 
     /* ── PHASE 2: Full Legal Analysis ── */
-    const analysisCall = await withTimeout(groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
-      max_tokens: 4000,
-      temperature: 0.1,
-      response_format: { type: "json_object" }, // THE MAGIC: Impossible for the parser to break now
+    const analysisCall = await getChatCompletion({
       messages: [
         { role: "system", content: ANALYSIS_SYSTEM_PROMPT },
         {
           role: "user",
           content: `Analyze this legal proposition. Return ONLY a valid JSON object. No markdown:\n\n${fullPropositionText}`
         }
-      ]
-    }), 15000);
+      ],
+      temperature: 0.1,
+      max_tokens: 4000,
+      requestLabel: "Full Legal Analysis"
+    });
 
-    const rawAnalysis = analysisCall.choices[0].message.content.trim();
+    const rawAnalysis = analysisCall.text;
 
     /* ── PHASE 3: Parse JSON ── */
     let analysisData;
@@ -213,7 +199,7 @@ app.post("/analyze", aiLimiter, upload.single("file"), async (req, res) => {
     return res.json({
       success: true,
       isStructured: true,
-      modelUsed: "llama-3.3-70b",
+      modelUsed: analysisCall.model,
       documentType: validationResult.documentType,
       response: analysisData
     });
@@ -242,18 +228,17 @@ app.post("/evaluate-oral", aiLimiter, express.json(), async (req, res) => {
   const contextBlock = propositionContext ? `PROPOSITION CONTEXT:\n${propositionContext.slice(0, 800)}\n\n` : '';
 
   try {
-    const evalCall = await withTimeout(groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
-      max_tokens: 2000,
-      temperature: 0.2,
-      response_format: { type: "json_object" }, // Bulletproofing the oral grader too
+    const evalCall = await getChatCompletion({
       messages: [
         { role: "system", content: ORAL_EVAL_PROMPT },
         { role: "user", content: `${contextBlock}ORAL SUBMISSION TO EVALUATE:\n\n${argument.trim().slice(0, 4000)}\n\nReturn ONLY a valid JSON object.` }
-      ]
-    }), 15000);
+      ],
+      temperature: 0.2,
+      max_tokens: 2000,
+      requestLabel: "Oral Evaluation"
+    });
 
-    const evalData = JSON.parse(evalCall.choices[0].message.content.trim());
+    const evalData = JSON.parse(evalCall.text);
     evalData.overallScore = Math.min(100, Math.max(0, Number(evalData.overallScore) || 0));
     
     const s = evalData.overallScore;
@@ -300,15 +285,14 @@ app.post("/simulate-bench", express.json(), async (req, res) => {
     // End of session: Generate Performance Review
     try {
       const evalPrompt = buildEvaluationPrompt(validDifficulty, propositionSummary || '', conversationHistoryWithNewTurn);
-      const evalCall = await withTimeout(groq.chat.completions.create({
-        model: "llama-3.3-70b-versatile",
-        max_tokens: 1500,
+      const evalCall = await getChatCompletion({
+        messages: [{ role: "user", content: evalPrompt }],
         temperature: 0.2,
-        response_format: { type: "json_object" },
-        messages: [{ role: "user", content: evalPrompt }]
-      }), 15000);
+        max_tokens: 1500,
+        requestLabel: "Bench Simulation Performance Review"
+      });
 
-      const reviewData = JSON.parse(evalCall.choices[0].message.content.trim());
+      const reviewData = JSON.parse(evalCall.text);
       
       // Ensure grade and score properties are normalized
       reviewData.overallScore = Math.min(100, Math.max(0, Number(reviewData.overallScore) || 0));
@@ -347,15 +331,14 @@ app.post("/simulate-bench", express.json(), async (req, res) => {
   messages.push({ role: "user", content: `${studentStatement.trim().slice(0, 1000)}\n\nReturn ONLY a valid JSON object.` });
 
   try {
-    const judgeCall = await withTimeout(groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
-      max_tokens: 250,
+    const judgeCall = await getChatCompletion({
+      messages,
       temperature: validDifficulty === 'hard' ? 0.7 : validDifficulty === 'easy' ? 0.3 : 0.5,
-      response_format: { type: "json_object" },
-      messages
-    }), 15000);
+      max_tokens: 250,
+      requestLabel: "Bench Simulation Next Question"
+    });
 
-    const judgeData = JSON.parse(judgeCall.choices[0].message.content.trim());
+    const judgeData = JSON.parse(judgeCall.text);
     return res.json({
       success: true,
       isSessionEnd: false,
@@ -382,11 +365,7 @@ app.post("/api/build-argument", aiLimiter, express.json(), async (req, res) => {
   }
 
   try {
-    const responseCall = await withTimeout(groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
-      max_tokens: 2000,
-      temperature: 0.3,
-      response_format: { type: "json_object" },
+    const responseCall = await getChatCompletion({
       messages: [
         {
           role: "system",
@@ -396,10 +375,13 @@ app.post("/api/build-argument", aiLimiter, express.json(), async (req, res) => {
           role: "user",
           content: `STANCE: ${stance}\nISSUE: ${issue}\nRAW NOTES: ${notes.trim()}\n\nGenerate the IRAC argument.`
         }
-      ]
-    }), 15000);
+      ],
+      temperature: 0.3,
+      max_tokens: 2000,
+      requestLabel: "Build Argument IRAC"
+    });
 
-    const data = JSON.parse(responseCall.choices[0].message.content.trim());
+    const data = JSON.parse(responseCall.text);
     return res.json({ success: true, response: data });
   } catch (error) {
     console.error("/api/build-argument error:", error);

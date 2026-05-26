@@ -191,4 +191,150 @@ Keep your responses short, sharp, and interrogative. Challenge their locus stand
   });
 };
 
-module.exports = { generateAIResponse, handleLiveVoiceConnection };
+const Groq = require("groq-sdk");
+const groq = new Groq({
+  apiKey: process.env.GROQ_API_KEY
+});
+
+function convertMessagesToGemini(messages) {
+  let systemInstruction = "";
+  const contents = [];
+
+  for (const msg of messages) {
+    if (msg.role === "system") {
+      systemInstruction += (systemInstruction ? "\n" : "") + msg.content;
+    } else {
+      const role = msg.role === "assistant" ? "model" : "user";
+      contents.push({
+        role: role,
+        parts: [{ text: msg.content }]
+      });
+    }
+  }
+
+  // Gemini requires at least one content block if there is a request.
+  // If the contents array is empty, we must inject a placeholder or handle it safely.
+  if (contents.length === 0) {
+    contents.push({
+      role: "user",
+      parts: [{ text: "Process the system instructions." }]
+    });
+  }
+
+  return { systemInstruction, contents };
+}
+
+async function getChatCompletion({
+  messages,
+  temperature = 0.1,
+  max_tokens = 4000,
+  response_format = { type: "json_object" },
+  primaryProvider = "gemini",
+  requestLabel = "AI request"
+}) {
+  const startTime = Date.now();
+  console.log(`[AI TRACE] [${requestLabel}] Starting request. Primary provider: ${primaryProvider}`);
+
+  const runGroq = async () => {
+    console.log(`[AI TRACE] [${requestLabel}] Attempting Groq (llama-3.3-70b-versatile)...`);
+    const response = await Promise.race([
+      groq.chat.completions.create({
+        model: "llama-3.3-70b-versatile",
+        messages,
+        temperature,
+        max_tokens,
+        response_format
+      }),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("Groq API Timeout")), 25000)
+      )
+    ]);
+    const duration = Date.now() - startTime;
+    console.log(`[AI TRACE] [${requestLabel}] Groq completed successfully in ${duration}ms.`);
+    return {
+      provider: "groq",
+      model: "llama-3.3-70b",
+      text: response.choices[0].message.content.trim(),
+      duration
+    };
+  };
+
+  const runGemini = async () => {
+    const model = "gemini-2.5-flash";
+    let lastError = null;
+
+    for (let attempt = 0; attempt <= 2; attempt++) {
+      try {
+        console.log(`[AI TRACE] [${requestLabel}] Attempting Gemini (${model}), attempt ${attempt + 1}...`);
+        const { systemInstruction, contents } = convertMessagesToGemini(messages);
+        
+        const response = await Promise.race([
+          ai.models.generateContent({
+            model: model,
+            contents,
+            config: {
+              responseMimeType: response_format?.type === "json_object" ? "application/json" : "text/plain",
+              systemInstruction,
+              temperature
+            }
+          }),
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error(`Gemini Timeout`)), 35000)
+          )
+        ]);
+        
+        const duration = Date.now() - startTime;
+        console.log(`[AI TRACE] [${requestLabel}] Gemini (${model}) completed successfully in ${duration}ms. Raw text length: ${response.text?.length}`);
+        console.log(`[AI TRACE] [${requestLabel}] Raw response:`, response.text);
+        return {
+          provider: "gemini",
+          model: model,
+          text: response.text?.trim(),
+          duration
+        };
+      } catch (err) {
+        console.warn(`[AI TRACE] [${requestLabel}] Gemini (${model}) attempt ${attempt + 1} failed: ${err.message}`);
+        lastError = err;
+        
+        // Fatal error (like auth error/API key error), don't retry
+        if (err.message.includes("API key") || err.message.includes("403") || err.message.includes("404")) {
+          throw err;
+        }
+        
+        if (attempt < 2) {
+          // Wait 1.5 seconds, then 3 seconds
+          await new Promise(r => setTimeout(r, 1500 * (attempt + 1)));
+        }
+      }
+    }
+    throw lastError || new Error("Gemini call failed after all attempts");
+  };
+
+  if (primaryProvider === "gemini") {
+    try {
+      return await runGemini();
+    } catch (geminiError) {
+      console.warn(`[AI TRACE] [${requestLabel}] Gemini failed: ${geminiError.message}. Falling back to Groq...`);
+      try {
+        return await runGroq();
+      } catch (groqError) {
+        console.error(`[AI TRACE] [${requestLabel}] Both providers failed. Groq error: ${groqError.message}`);
+        throw new Error(`AI providers exhausted. Gemini: ${geminiError.message}. Groq: ${groqError.message}`);
+      }
+    }
+  } else {
+    try {
+      return await runGroq();
+    } catch (groqError) {
+      console.warn(`[AI TRACE] [${requestLabel}] Groq failed: ${groqError.message}. Falling back to Gemini...`);
+      try {
+        return await runGemini();
+      } catch (geminiError) {
+        console.error(`[AI TRACE] [${requestLabel}] Both providers failed. Gemini error: ${geminiError.message}`);
+        throw new Error(`AI providers exhausted. Groq: ${groqError.message}. Gemini: ${geminiError.message}`);
+      }
+    }
+  }
+}
+
+module.exports = { generateAIResponse, handleLiveVoiceConnection, getChatCompletion };
