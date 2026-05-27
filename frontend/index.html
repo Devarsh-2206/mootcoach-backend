@@ -1658,10 +1658,10 @@ p  { color:var(--white-2); }
       </div>
       <!-- ARGUMENT BUILDER PANEL -->
       <div class="ws-panel" id="wsp-builder" style="overflow-y:auto;">
-        <div class="builder-container" style="padding:40px 32px; display:grid; grid-template-columns: 1fr 1.2fr; gap:32px; min-height:100%; max-width:1400px; margin:0 auto; width:100%; box-sizing:border-box;">
+        <div class="builder-container grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10" style="padding:40px 32px; min-height:100%; max-width:1400px; margin:0 auto; width:100%; box-sizing:border-box;">
           
           <!-- LEFT COLUMN: INPUT FORM -->
-          <div class="builder-input-col" style="display:flex; flex-direction:column; gap:20px;">
+          <div class="builder-input-col col-span-1 lg:col-span-5 flex flex-col space-y-6">
             <div class="ws-up-eyebrow">Argument Builder</div>
             <h2 style="font-family:var(--serif); font-size:2rem; font-weight:500; line-height:1.15; margin-bottom:.3rem;">Draft Your<br/><em style="color:var(--gold); font-style:italic;">Submission</em></h2>
             <p style="font-size:.84rem; color:var(--white-muted); line-height:1.6; margin-bottom:10px;">
@@ -1691,7 +1691,7 @@ p  { color:var(--white-2); }
               <!-- Issue Dropdown -->
               <div class="ws-field">
                 <label for="builder-issue-select" class="tracking-wide">Legal Issue</label>
-                <select id="builder-issue-select" class="oral-select" style="width:100%; padding:11px 14px; background:var(--navy-3); border:1px solid var(--glass-b); border-radius:6px; color:var(--white); font-family:var(--sans); font-size:.82rem; margin-top:6px; outline:none; transition:border-color .2s;">
+                <select id="builder-issue-select" class="oral-select w-full" style="padding:11px 14px; background:var(--navy-3); border:1px solid var(--glass-b); border-radius:6px; color:var(--white); font-family:var(--sans); font-size:.82rem; margin-top:6px; outline:none; transition:border-color .2s;">
                   <option value="Issue 1: Jurisdiction & Maintainability">Issue 1: Jurisdiction & Maintainability</option>
                   <option value="Issue 2: Constitutional Validity of the Act/Provision">Issue 2: Constitutional Validity of the Act/Provision</option>
                   <option value="Issue 3: Substantive Merits & Breach of Rights">Issue 3: Substantive Merits & Breach of Rights</option>
@@ -1702,23 +1702,23 @@ p  { color:var(--white-2); }
               <!-- Raw Notes -->
               <div class="ws-field">
                 <label for="builder-notes-input" class="tracking-wide">Raw Notes & Precedents</label>
-                <textarea id="builder-notes-input" class="oral-textarea" placeholder="Enter your raw thoughts, key citations, facts, or draft arguments. The AI will weave these into a professional, logically sound IRAC structure..." style="height:180px; margin-top:6px; font-size:.82rem;"></textarea>
+                <textarea id="builder-notes-input" class="oral-textarea w-full" placeholder="Enter your raw thoughts, key citations, facts, or draft arguments. The AI will weave these into a professional, logically sound IRAC structure..." style="height:180px; margin-top:6px; font-size:.82rem;"></textarea>
               </div>
               
-              <button class="btn-analyze tracking-widest font-medium" id="btn-builder-submit" style="width:100%;" disabled>
+              <button class="btn-analyze w-full py-4 text-sm tracking-widest font-medium" id="btn-builder-submit" disabled>
                 Draft Submission →
               </button>
             </form>
           </div>
           
           <!-- RIGHT COLUMN: OUTPUT DISPLAY -->
-          <div class="builder-output-col" style="display:flex; flex-direction:column; background:var(--navy-2); border:1px solid var(--glass-b); border-radius:14px; padding:28px; box-sizing:border-box; min-height:400px; justify-content:center; position:relative; overflow:hidden;">
+          <div class="builder-output-col col-span-1 lg:col-span-7" style="display:flex; flex-direction:column; background:var(--navy-2); border:1px solid var(--glass-b); border-radius:14px; padding:28px; box-sizing:border-box; min-height:400px; justify-content:center; position:relative; overflow:hidden;">
             
             <!-- Empty State -->
-            <div id="builder-empty-state" style="text-align:center; display:flex; flex-direction:column; align-items:center; gap:12px;">
-              <div style="font-size:3rem; color:var(--white-muted); opacity:0.4;">✦</div>
-              <div style="font-family:var(--serif); font-size:1.3rem; font-weight:500; color:var(--white-2);">No argument built yet</div>
-              <div style="font-size:.78rem; color:var(--white-muted); max-width:280px; line-height:1.5;">Fill out the form on the left with your notes to generate a structured IRAC argument.</div>
+            <div id="builder-empty-state" class="flex flex-col items-center justify-center text-center p-8 border-2 border-dashed border-gray-800 bg-[#0a0f18]/50 rounded-xl transition-all duration-500 min-h-[250px] lg:min-h-[600px]">
+              <div class="text-gray-700 text-5xl">✦</div>
+              <h3 class="text-xl font-serif text-gray-500 mt-4">No argument built yet</h3>
+              <p class="text-sm text-gray-600 mt-2 max-w-sm">Fill out the form on the left with your notes to generate a structured IRAC argument.</p>
             </div>
             
             <!-- Loading State -->
