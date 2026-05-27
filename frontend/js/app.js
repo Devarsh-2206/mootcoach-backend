@@ -311,6 +311,9 @@ function handleLogout() {
 
 // Global Auth Observer Setup
 onAuthChanged(user => {
+  const dashboardView = document.getElementById('view-workspace');
+  const authView = document.getElementById('auth-overlay');
+
   if (user) {
     const initial = user.displayName ? user.displayName.charAt(0) : (user.email ? user.email.charAt(0) : 'U');
     const avatar = document.getElementById('ws-avatar');
@@ -322,11 +325,14 @@ onAuthChanged(user => {
     const loginNavBtn = document.getElementById('nav-btn-login');
     if (loginNavBtn) loginNavBtn.style.display = 'none';
     
-    // Hide Auth UI overlay
-    const overlay = document.getElementById('auth-overlay');
-    if (overlay) {
-      overlay.classList.remove('show');
-      overlay.classList.add('opacity-0', 'pointer-events-none');
+    // User is logged in: Show dashboard, hide auth
+    if (authView) {
+      authView.classList.add('hidden');
+      authView.classList.remove('show');
+    }
+    if (dashboardView) {
+      dashboardView.classList.remove('hidden');
+      dashboardView.classList.add('active');
     }
     
     // Automatically navigate to workspace
@@ -340,17 +346,15 @@ onAuthChanged(user => {
     const loginNavBtn = document.getElementById('nav-btn-login');
     if (loginNavBtn) loginNavBtn.style.display = 'inline-block';
     
-    // Hide main dashboard
-    document.getElementById('view-workspace')?.classList.remove('active');
-
-    // Show Auth UI overlay if they were trying to access workspace or login
-    const currentView = document.querySelector('.view.active')?.id;
-    if (currentView === 'view-workspace' || currentView === 'view-login') {
-      const overlay = document.getElementById('auth-overlay');
-      if (overlay) {
-        overlay.classList.add('show');
-        overlay.classList.remove('opacity-0', 'pointer-events-none');
-      }
+    // User is NOT logged in: Hide dashboard, force auth screen
+    if (dashboardView) {
+      dashboardView.classList.add('hidden');
+      dashboardView.classList.remove('active');
+    }
+    if (authView) {
+      authView.classList.remove('hidden');
+      authView.classList.add('show');
+      authView.classList.remove('opacity-0', 'pointer-events-none');
     }
   }
 });

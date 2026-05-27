@@ -120,6 +120,7 @@ export function navigate(view) {
     // Show Auth UI overlay
     const overlay = document.getElementById('auth-overlay');
     if (overlay) {
+      overlay.classList.remove('hidden');
       overlay.classList.add('show');
       overlay.classList.remove('opacity-0', 'pointer-events-none');
     }
@@ -132,6 +133,7 @@ export function navigate(view) {
       // Show Auth UI overlay
       const overlay = document.getElementById('auth-overlay');
       if (overlay) {
+        overlay.classList.remove('hidden');
         overlay.classList.add('show');
         overlay.classList.remove('opacity-0', 'pointer-events-none');
       }
@@ -143,7 +145,7 @@ export function navigate(view) {
   const overlay = document.getElementById('auth-overlay');
   if (overlay) {
     overlay.classList.remove('show');
-    overlay.classList.add('opacity-0', 'pointer-events-none');
+    overlay.classList.add('opacity-0', 'pointer-events-none', 'hidden');
   }
 
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
