@@ -445,7 +445,7 @@ app.post("/api/log-session", aiLimiter, express.json(), async (req, res) => {
 
   try {
     const db = admin.firestore();
-    const userDocRef = db.collection('artifacts').doc('mootcoach').collection('users').doc(uid);
+    const userDocRef = db.collection('artifacts').doc('moot.coach').collection('users').doc(uid);
 
     let result;
     if (type === 'analysis') {

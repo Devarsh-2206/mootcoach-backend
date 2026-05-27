@@ -20,6 +20,8 @@
         colors: {
           'moot-border': 'rgba(255, 255, 255, 0.08)',
           'moot-muted': 'rgba(245, 243, 239, 0.45)',
+          'moot-panel': '#0e1220',
+          'moot-accent': '#c9a84c',
         },
         fontFamily: { sans: ['Inter', 'sans-serif'], serif: ['Merriweather', 'serif'] }
       }
@@ -341,6 +343,25 @@ p  { color:var(--white-2); }
   min-height:100vh; display:none; flex-direction:column;
 }
 #view-login.active { display:flex; }
+
+/* Auth Overlay Styling */
+#auth-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(4, 5, 8, 0.95);
+  backdrop-filter: blur(12px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+#auth-overlay.show {
+  opacity: 1;
+  pointer-events: auto;
+}
 
 #view-login::after {
   content:''; position:fixed; top:-300px; left:50%; transform:translateX(-50%);
@@ -1790,6 +1811,62 @@ p  { color:var(--white-2); }
 
     </main>
   </div><!-- /ws-body -->
+</div>
+
+<!-- PREMIUM AUTH OVERLAY -->
+<div id="auth-overlay" class="opacity-0 pointer-events-none">
+  <div class="w-full max-w-[420px] bg-moot-panel border border-moot-border rounded-xl p-8 shadow-2xl relative">
+    <a href="#" id="auth-overlay-back" class="absolute top-4 left-4 text-xs text-moot-muted hover:text-white transition-colors" onclick="event.preventDefault(); window.navigate('landing');">← Back</a>
+    <h2 class="text-center font-serif text-3xl font-light text-white mb-6 mt-2">MootCoach Chambers</h2>
+    
+    <!-- Sign In / Sign Up form container -->
+    <div id="auth-overlay-form" class="space-y-4 text-left">
+      <!-- Fields shown only for signup -->
+      <div id="auth-overlay-signup-fields" style="display: none;" class="space-y-4">
+        <div class="flex gap-4">
+          <div class="flex-1">
+            <label class="block text-[10px] uppercase tracking-wider text-moot-muted mb-1">First Name</label>
+            <input type="text" id="auth-fname" placeholder="Arjun" class="w-full bg-moot-panel border border-moot-border rounded px-3 py-2 text-white text-sm focus:border-moot-accent focus:outline-none transition-colors" />
+            <div class="text-[10px] text-red-400 mt-1 hidden" id="h-auth-fname">First name is required.</div>
+          </div>
+          <div class="flex-1">
+            <label class="block text-[10px] uppercase tracking-wider text-moot-muted mb-1">Last Name</label>
+            <input type="text" id="auth-lname" placeholder="Mehta" class="w-full bg-moot-panel border border-moot-border rounded px-3 py-2 text-white text-sm focus:border-moot-accent focus:outline-none transition-colors" />
+          </div>
+        </div>
+        <div>
+          <label class="block text-[10px] uppercase tracking-wider text-moot-muted mb-1">Law School / University</label>
+          <input type="text" id="auth-school" placeholder="NALSAR, NLS, NUJS..." class="w-full bg-moot-panel border border-moot-border rounded px-3 py-2 text-white text-sm focus:border-moot-accent focus:outline-none transition-colors" />
+        </div>
+      </div>
+      
+      <!-- Always visible Email / Password -->
+      <div>
+        <label class="block text-[10px] uppercase tracking-wider text-moot-muted mb-1">Email Address</label>
+        <input type="email" id="auth-email" placeholder="you@lawschool.edu" class="w-full bg-moot-panel border border-moot-border rounded px-3 py-2 text-white text-sm focus:border-moot-accent focus:outline-none transition-colors" />
+        <div class="text-[10px] text-red-400 mt-1 hidden" id="h-auth-email">Please enter a valid email.</div>
+      </div>
+      <div>
+        <label class="block text-[10px] uppercase tracking-wider text-moot-muted mb-1">Password</label>
+        <input type="password" id="auth-password" placeholder="Your password" class="w-full bg-moot-panel border border-moot-border rounded px-3 py-2 text-white text-sm focus:border-moot-accent focus:outline-none transition-colors" />
+        <div class="text-[10px] text-red-400 mt-1 hidden" id="h-auth-password">Password is required.</div>
+      </div>
+      
+      <!-- Error placeholder -->
+      <div id="auth-overlay-error" class="hidden text-xs text-red-400 mt-2"></div>
+      
+      <!-- Submit Button -->
+      <button id="auth-overlay-submit" class="w-full py-3 bg-moot-accent hover:bg-opacity-90 text-navy font-medium rounded text-sm tracking-wider uppercase transition-all mt-6 cursor-pointer">
+        Sign In
+      </button>
+    </div>
+    
+    <!-- Switch mode text toggle -->
+    <p class="text-center text-xs text-moot-muted mt-6 mb-0">
+      <span id="auth-overlay-toggle-text">Don't have an account?</span> 
+      <a href="#" id="auth-overlay-toggle-btn" class="text-moot-accent hover:underline ml-1">Create Account</a>
+    </p>
+  </div>
 </div>
 
 <!-- LOADING OVERLAY -->

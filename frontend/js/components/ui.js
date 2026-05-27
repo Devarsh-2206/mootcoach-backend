@@ -117,10 +117,33 @@ export function toggleMobileSidebar() {
 
 export function navigate(view) {
   if (view === 'workspace' && !currentUser) {
-    view = 'login';
+    // Show Auth UI overlay
+    const overlay = document.getElementById('auth-overlay');
+    if (overlay) {
+      overlay.classList.add('show');
+      overlay.classList.remove('opacity-0', 'pointer-events-none');
+    }
+    return;
   }
-  if (view === 'login' && currentUser) {
-    view = 'workspace';
+  if (view === 'login') {
+    if (currentUser) {
+      view = 'workspace';
+    } else {
+      // Show Auth UI overlay
+      const overlay = document.getElementById('auth-overlay');
+      if (overlay) {
+        overlay.classList.add('show');
+        overlay.classList.remove('opacity-0', 'pointer-events-none');
+      }
+      return;
+    }
+  }
+
+  // Hide Auth UI overlay when navigating elsewhere
+  const overlay = document.getElementById('auth-overlay');
+  if (overlay) {
+    overlay.classList.remove('show');
+    overlay.classList.add('opacity-0', 'pointer-events-none');
   }
 
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
@@ -274,7 +297,7 @@ export async function loadRecentSessions() {
   if(!sec || !list) return;
 
   try {
-    const snapshot = await db.collection('artifacts').doc('mootcoach')
+    const snapshot = await db.collection('artifacts').doc('moot.coach')
       .collection('users').doc(currentUser.uid).collection('analyses')
       .orderBy('timestamp', 'desc').limit(6).get();
       
@@ -319,7 +342,7 @@ export async function loadSavedSession(docId) {
   if (labelEl) labelEl.textContent = 'Loading saved analysis...';
   
   try {
-    const doc = await db.collection('artifacts').doc('mootcoach')
+    const doc = await db.collection('artifacts').doc('moot.coach')
       .collection('users').doc(currentUser.uid).collection('analyses').doc(docId).get();
       
     if (!doc.exists) throw new Error("Analysis not found.");

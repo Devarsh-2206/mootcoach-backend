@@ -1,4 +1,13 @@
-import { auth, db, onAuthChanged } from './services/firebase.js';
+import { 
+  auth, 
+  db, 
+  onAuthChanged,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut,
+  signInWithPopup,
+  GoogleAuthProvider
+} from './services/firebase.js';
 import { BASE_URL } from './config.js';
 import { 
   showToast,
@@ -52,7 +61,148 @@ import {
   copyBuilderArgument
 } from './components/argumentBuilder.js';
 
-// Auth Event Handlers
+// Auth Overlay State and Handlers
+let isOverlaySignUpMode = false;
+
+function toggleOverlayMode(signup) {
+  isOverlaySignUpMode = signup;
+  const toggleBtn = document.getElementById('auth-overlay-toggle-btn');
+  const toggleText = document.getElementById('auth-overlay-toggle-text');
+  const submitBtn = document.getElementById('auth-overlay-submit');
+  const signupFields = document.getElementById('auth-overlay-signup-fields');
+  const errorDiv = document.getElementById('auth-overlay-error');
+
+  if (errorDiv) errorDiv.classList.add('hidden');
+  
+  // Clear any existing field errors
+  markErr('auth-email', false);
+  markErr('auth-password', false);
+  markErr('auth-fname', false);
+
+  if (signup) {
+    if (toggleBtn) toggleBtn.textContent = 'Sign In';
+    if (toggleText) toggleText.textContent = 'Already have an account?';
+    if (submitBtn) submitBtn.textContent = 'Create Account';
+    if (signupFields) signupFields.style.display = 'block';
+  } else {
+    if (toggleBtn) toggleBtn.textContent = 'Create Account';
+    if (toggleText) toggleText.textContent = "Don't have an account?";
+    if (submitBtn) submitBtn.textContent = 'Sign In';
+    if (signupFields) signupFields.style.display = 'none';
+  }
+}
+
+async function handleOverlayLogin() {
+  const emailInput = document.getElementById('auth-email');
+  const passInput = document.getElementById('auth-password');
+  const email = emailInput?.value.trim();
+  const pass = passInput?.value;
+  const errorDiv = document.getElementById('auth-overlay-error');
+  
+  let ok = true;
+  const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  markErr('auth-email', !emailOk);
+  if (!emailOk) ok = false;
+  
+  if (!pass) {
+    markErr('auth-password', true);
+    ok = false;
+  } else {
+    markErr('auth-password', false);
+  }
+  
+  if (!ok) return;
+  
+  setLoading('auth-overlay-submit', true, 'Sign In');
+  if (errorDiv) errorDiv.classList.add('hidden');
+
+  try {
+    await signInWithEmailAndPassword(auth, email, pass);
+    // Success: observer will handle hiding overlay and showing dashboard
+    setLoading('auth-overlay-submit', false, 'Sign In');
+  } catch (err) {
+    setLoading('auth-overlay-submit', false, 'Sign In');
+    if (errorDiv) {
+      errorDiv.textContent = getFriendlyError(err.code);
+      errorDiv.classList.remove('hidden');
+    }
+    markErr('auth-password', true);
+  }
+}
+
+async function handleOverlaySignup() {
+  const fnameInput = document.getElementById('auth-fname');
+  const lnameInput = document.getElementById('auth-lname');
+  const schoolInput = document.getElementById('auth-school');
+  const emailInput = document.getElementById('auth-email');
+  const passInput = document.getElementById('auth-password');
+  const errorDiv = document.getElementById('auth-overlay-error');
+
+  const fname = fnameInput?.value.trim();
+  const lname = lnameInput?.value.trim();
+  const school = schoolInput?.value.trim();
+  const email = emailInput?.value.trim();
+  const pass = passInput?.value;
+
+  let ok = true;
+
+  if (!fname) {
+    markErr('auth-fname', true);
+    ok = false;
+  } else {
+    markErr('auth-fname', false);
+  }
+
+  const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  markErr('auth-email', !emailOk);
+  if (!emailOk) ok = false;
+
+  if (!pass || pass.length < 8) {
+    markErr('auth-password', true);
+    ok = false;
+    if (errorDiv) {
+      errorDiv.textContent = "Password must be at least 8 characters.";
+      errorDiv.classList.remove('hidden');
+    }
+  } else {
+    markErr('auth-password', false);
+  }
+
+  if (!ok) return;
+
+  setLoading('auth-overlay-submit', true, 'Create Account');
+  if (errorDiv) errorDiv.classList.add('hidden');
+
+  try {
+    const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
+    const user = userCredential.user;
+    
+    if (typeof user.updateProfile === 'function') {
+      await user.updateProfile({ displayName: fname });
+    }
+    
+    // Save to Firestore under the new secure path moot.coach
+    await db.collection('artifacts').doc('moot.coach').collection('users').doc(user.uid).set({
+      firstName: fname,
+      lastName: lname || '',
+      university: school || '',
+      email: email,
+      createdAt: window.firebase.firestore.FieldValue.serverTimestamp()
+    });
+    
+    // Success will be handled by auth state observer
+    setLoading('auth-overlay-submit', false, 'Create Account');
+  } catch (err) {
+    setLoading('auth-overlay-submit', false, 'Create Account');
+    if (errorDiv) {
+      errorDiv.textContent = getFriendlyError(err.code);
+      errorDiv.classList.remove('hidden');
+    }
+    markErr('auth-password', true);
+  }
+}
+
+// Auth Event Handlers (Compat / Legacy)
 async function handleLogin() {
   const email = document.getElementById('li-email')?.value.trim();
   const pass  = document.getElementById('li-pass')?.value;
@@ -67,7 +217,7 @@ async function handleLogin() {
   
   setLoading('btn-li', true, 'Sign In');
   try {
-    await auth.signInWithEmailAndPassword(email, pass);
+    await signInWithEmailAndPassword(auth, email, pass);
     showAuthSuccess();
   } catch (err) {
     setLoading('btn-li', false, 'Sign In');
@@ -98,10 +248,10 @@ async function handleSignup() {
   setLoading('btn-su', true, 'Create Account');
   
   try {
-    const userCredential = await auth.createUserWithEmailAndPassword(email, pass);
+    const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
     const user = userCredential.user;
     await user.updateProfile({ displayName: fname });
-    await db.collection('artifacts').doc('mootcoach').collection('users').doc(user.uid).set({
+    await db.collection('artifacts').doc('moot.coach').collection('users').doc(user.uid).set({
       firstName: fname, lastName: lname, university: school, email: email,
       createdAt: window.firebase.firestore.FieldValue.serverTimestamp()
     });
@@ -119,8 +269,8 @@ async function handleSignup() {
 
 async function handleGoogle() {
   try {
-    const provider = new window.firebase.auth.GoogleAuthProvider();
-    await auth.signInWithPopup(provider);
+    const provider = new GoogleAuthProvider();
+    await signInWithPopup(auth, provider);
     showAuthSuccess();
   } catch (err) {
     console.error("Google Auth Error:", err);
@@ -145,6 +295,7 @@ async function handleForgotPassword() {
     return;
   }
   try {
+    // Keep using legacy auth for other features if necessary, or update to modular later. Compat auth still works.
     await auth.sendPasswordResetEmail(email);
     showToast("Password reset link sent to your email!", "ok");
     showHint('h-li-email', false);
@@ -155,7 +306,7 @@ async function handleForgotPassword() {
 }
 
 function handleLogout() {
-  auth.signOut();
+  signOut(auth);
 }
 
 // Global Auth Observer Setup
@@ -171,10 +322,15 @@ onAuthChanged(user => {
     const loginNavBtn = document.getElementById('nav-btn-login');
     if (loginNavBtn) loginNavBtn.style.display = 'none';
     
-    const currentView = document.querySelector('.view.active')?.id;
-    if (currentView === 'view-login') {
-      navigate('workspace');
+    // Hide Auth UI overlay
+    const overlay = document.getElementById('auth-overlay');
+    if (overlay) {
+      overlay.classList.remove('show');
+      overlay.classList.add('opacity-0', 'pointer-events-none');
     }
+    
+    // Automatically navigate to workspace
+    navigate('workspace');
     
     loadRecentSessions(); 
   } else {
@@ -184,9 +340,17 @@ onAuthChanged(user => {
     const loginNavBtn = document.getElementById('nav-btn-login');
     if (loginNavBtn) loginNavBtn.style.display = 'inline-block';
     
+    // Hide main dashboard
+    document.getElementById('view-workspace')?.classList.remove('active');
+
+    // Show Auth UI overlay if they were trying to access workspace or login
     const currentView = document.querySelector('.view.active')?.id;
-    if (currentView === 'view-workspace') {
-      navigate('landing');
+    if (currentView === 'view-workspace' || currentView === 'view-login') {
+      const overlay = document.getElementById('auth-overlay');
+      if (overlay) {
+        overlay.classList.add('show');
+        overlay.classList.remove('opacity-0', 'pointer-events-none');
+      }
     }
   }
 });
@@ -292,6 +456,27 @@ document.addEventListener('DOMContentLoaded', () => {
         await loadSavedSession(docId);
       } catch (err) {
         console.error("Error loading session:", err);
+      }
+    });
+  }
+
+  // Auth Overlay toggle and submit listeners
+  const overlayToggleBtn = document.getElementById('auth-overlay-toggle-btn');
+  if (overlayToggleBtn) {
+    overlayToggleBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      toggleOverlayMode(!isOverlaySignUpMode);
+    });
+  }
+
+  const overlaySubmitBtn = document.getElementById('auth-overlay-submit');
+  if (overlaySubmitBtn) {
+    overlaySubmitBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      if (isOverlaySignUpMode) {
+        await handleOverlaySignup();
+      } else {
+        await handleOverlayLogin();
       }
     });
   }

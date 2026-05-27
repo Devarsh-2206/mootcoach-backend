@@ -8,14 +8,37 @@ const firebaseConfig = {
   measurementId: "G-L9KLT2ZDNE"
 };
 
+import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { 
+  getAuth, 
+  signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword, 
+  onAuthStateChanged, 
+  signOut,
+  signInWithPopup,
+  GoogleAuthProvider
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
 const firebase = window.firebase;
 if (!firebase.apps.length) {
   firebase.initializeApp(firebaseConfig);
 }
 
-export const auth = firebase.auth();
+// Get the modular App instance
+const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+
+export const auth = getAuth(app);
 export const db = firebase.firestore();
 export const firebaseRef = firebase;
+
+export { 
+  signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword, 
+  onAuthStateChanged, 
+  signOut,
+  signInWithPopup,
+  GoogleAuthProvider
+};
 
 export let currentUser = null;
 const authListeners = [];
@@ -25,7 +48,8 @@ export function onAuthChanged(callback) {
   callback(currentUser);
 }
 
-auth.onAuthStateChanged(user => {
+onAuthStateChanged(auth, user => {
   currentUser = user;
   authListeners.forEach(cb => cb(user));
 });
+
