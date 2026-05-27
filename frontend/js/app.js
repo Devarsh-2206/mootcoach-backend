@@ -508,16 +508,24 @@ document.addEventListener('DOMContentLoaded', () => {
   const recentList = document.getElementById('ws-recent-list');
   if (recentList) {
     recentList.addEventListener('click', async (e) => {
+      console.log("[DEBUG] Click event on ws-recent-list. target:", e.target, "currentTarget:", e.currentTarget);
       const btn = e.target.closest('.ws-sb-item');
-      if (!btn) return;
+      if (!btn) {
+        console.log("[DEBUG] No .ws-sb-item closest to click target.");
+        return;
+      }
 
       e.preventDefault();
       e.stopPropagation();
 
       const onclickAttr = btn.getAttribute('onclick');
       const match = onclickAttr ? onclickAttr.match(/loadSavedSession\('([^']+)'\)/) : null;
-      if (!match) return;
+      if (!match) {
+        console.log("[DEBUG] Click target has no matching loadSavedSession onclick attr.");
+        return;
+      }
       const docId = match[1];
+      console.log("[DEBUG] Click delegation calling loadSavedSession for docId:", docId);
 
       try {
         await loadSavedSession(docId);

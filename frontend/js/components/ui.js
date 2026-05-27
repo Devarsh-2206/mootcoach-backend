@@ -325,6 +325,8 @@ export async function loadRecentSessions() {
 }
 
 export async function loadSavedSession(docId) {
+  console.log("[DEBUG] loadSavedSession invoked with docId:", docId);
+  console.trace("[DEBUG] loadSavedSession trace");
   if (!currentUser) return;
   
   // Failsafe in case it's passed a click event instead of docId string
