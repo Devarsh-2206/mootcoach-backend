@@ -6,7 +6,8 @@ import {
   createUserWithEmailAndPassword,
   signOut,
   signInWithPopup,
-  GoogleAuthProvider
+  GoogleAuthProvider,
+  sendPasswordResetEmail
 } from './services/firebase.js';
 import { BASE_URL } from './config.js';
 import { 
@@ -305,9 +306,54 @@ async function handleForgotPassword() {
   }
 }
 
+async function handleOverlayForgotPassword() {
+  const emailInput = document.getElementById('auth-email');
+  const email = emailInput?.value.trim();
+  const statusMsg = document.getElementById('auth-status-message');
+  const errorDiv = document.getElementById('auth-overlay-error');
+  
+  if (statusMsg) {
+    statusMsg.className = "text-xs text-center mt-3";
+    statusMsg.textContent = "";
+  }
+  if (errorDiv) {
+    errorDiv.classList.add('hidden');
+    errorDiv.textContent = "";
+  }
+
+  if (!email) {
+    markErr('auth-email', true);
+    if (errorDiv) {
+      errorDiv.textContent = "Please enter your email address to reset your password.";
+      errorDiv.classList.remove('hidden');
+    }
+    return;
+  }
+
+  markErr('auth-email', false);
+
+  try {
+    setLoading('forgot-password-btn', true, 'Sending...');
+    await sendPasswordResetEmail(auth, email);
+    setLoading('forgot-password-btn', false, 'Forgot password?');
+    if (statusMsg) {
+      statusMsg.className = "text-xs text-center mt-3 text-green-400";
+      statusMsg.textContent = "Password reset link sent to your email!";
+    }
+  } catch (err) {
+    setLoading('forgot-password-btn', false, 'Forgot password?');
+    if (errorDiv) {
+      errorDiv.textContent = getFriendlyError(err.code);
+      errorDiv.classList.remove('hidden');
+    }
+  }
+}
+
 function handleLogout() {
   signOut(auth);
 }
+
+let isInitialAuthCheck = true;
 
 // Global Auth Observer Setup
 onAuthChanged(async (user) => {
@@ -352,16 +398,25 @@ onAuthChanged(async (user) => {
     const loginNavBtn = document.getElementById('nav-btn-login');
     if (loginNavBtn) loginNavBtn.style.display = 'inline-block';
     
-    // User is NOT logged in: Hide dashboard, hide auth overlay
+    // User is NOT logged in: Hide dashboard
     if (dashboardView) {
       dashboardView.classList.add('hidden');
       dashboardView.classList.remove('active');
     }
+    
+    // Enforce unhiding auth overlay when user signs out, preventing black void
     if (authView) {
-      authView.classList.add('hidden');
-      authView.classList.remove('show');
+      if (!isInitialAuthCheck) {
+        authView.classList.remove('hidden');
+        authView.classList.add('show');
+        authView.classList.remove('opacity-0', 'pointer-events-none');
+      } else {
+        authView.classList.add('hidden');
+        authView.classList.remove('show');
+      }
     }
   }
+  isInitialAuthCheck = false;
 });
 
 // Setup DOM Event Listeners
@@ -489,6 +544,14 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
+
+  const forgotPasswordBtn = document.getElementById('forgot-password-btn');
+  if (forgotPasswordBtn) {
+    forgotPasswordBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      await handleOverlayForgotPassword();
+    });
+  }
 });
 
 // Map handlers to window to preserve inline HTML onclick/onkeydown mappings
@@ -496,6 +559,7 @@ window.handleLogin = handleLogin;
 window.handleSignup = handleSignup;
 window.handleGoogle = handleGoogle;
 window.handleForgotPassword = handleForgotPassword;
+window.handleOverlayForgotPassword = handleOverlayForgotPassword;
 window.handleLogout = handleLogout;
 
 window.openLegalModal = openLegalModal;

@@ -16,7 +16,8 @@ import {
   onAuthStateChanged, 
   signOut,
   signInWithPopup,
-  GoogleAuthProvider
+  GoogleAuthProvider,
+  sendPasswordResetEmail
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
 const firebase = window.firebase;
@@ -37,7 +38,8 @@ export {
   onAuthStateChanged, 
   signOut,
   signInWithPopup,
-  GoogleAuthProvider
+  GoogleAuthProvider,
+  sendPasswordResetEmail
 };
 
 let hasCheckedAuth = false;
