@@ -310,11 +310,14 @@ function handleLogout() {
 }
 
 // Global Auth Observer Setup
-onAuthChanged(user => {
+onAuthChanged(async (user) => {
   const dashboardView = document.getElementById('view-workspace');
   const authView = document.getElementById('auth-overlay');
 
   if (user) {
+    // Set global user first
+    window.currentUser = user;
+
     const initial = user.displayName ? user.displayName.charAt(0) : (user.email ? user.email.charAt(0) : 'U');
     const avatar = document.getElementById('ws-avatar');
     if (avatar) avatar.textContent = initial.toUpperCase();
@@ -338,23 +341,25 @@ onAuthChanged(user => {
     // Automatically navigate to workspace
     navigate('workspace');
     
-    loadRecentSessions(); 
+    // ONLY fetch moots AFTER the UI is stable and user is set
+    await loadRecentSessions(); 
   } else {
+    window.currentUser = null;
+
     document.querySelectorAll('.btn-login-nav').forEach(btn => {
       btn.textContent = btn.getAttribute('data-default') || 'Get Started'; 
     });
     const loginNavBtn = document.getElementById('nav-btn-login');
     if (loginNavBtn) loginNavBtn.style.display = 'inline-block';
     
-    // User is NOT logged in: Hide dashboard, force auth screen
+    // User is NOT logged in: Hide dashboard, hide auth overlay
     if (dashboardView) {
       dashboardView.classList.add('hidden');
       dashboardView.classList.remove('active');
     }
     if (authView) {
-      authView.classList.remove('hidden');
-      authView.classList.add('show');
-      authView.classList.remove('opacity-0', 'pointer-events-none');
+      authView.classList.add('hidden');
+      authView.classList.remove('show');
     }
   }
 });

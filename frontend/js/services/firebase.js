@@ -40,16 +40,20 @@ export {
   GoogleAuthProvider
 };
 
+let hasCheckedAuth = false;
 export let currentUser = null;
 const authListeners = [];
 
 export function onAuthChanged(callback) {
   authListeners.push(callback);
-  callback(currentUser);
+  if (hasCheckedAuth) {
+    callback(currentUser);
+  }
 }
 
 onAuthStateChanged(auth, user => {
   currentUser = user;
+  hasCheckedAuth = true;
   authListeners.forEach(cb => cb(user));
 });
 
