@@ -925,6 +925,10 @@ export function buildStructuredScoreHero(data) {
 }
 
 export function showStructuredResults(data) {
+  if (!data || Object.keys(data).length === 0) {
+    showError("No structured analysis data available for this session.");
+    return;
+  }
   try {
     lastAnalysis = JSON.stringify(data, null, 2);
     currentPropositionContext = data.summary || '';

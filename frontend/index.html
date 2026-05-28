@@ -1220,6 +1220,402 @@ p  { color:var(--white-2); }
   .land-footer { flex-direction:column; align-items:flex-start; }
   .beta-card { padding:26px 20px; }
 }
+
+/* ═══════════════════════════════════════════
+   PREMIUM UI POLISH (SIDEBAR, TOPBAR, CARDS)
+   ═══════════════════════════════════════════ */
+.ws-sb-item {
+  position: relative;
+  overflow: hidden;
+  border-left: 3px solid transparent;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.ws-sb-item:hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--white);
+  padding-left: 12px;
+}
+.ws-sb-item.active {
+  background: linear-gradient(90deg, rgba(201, 168, 76, 0.08) 0%, transparent 100%) !important;
+  color: var(--gold) !important;
+  border-left-color: var(--gold) !important;
+  border-top: none !important;
+  border-right: none !important;
+  border-bottom: none !important;
+  border-radius: 0 8px 8px 0;
+  box-shadow: inset 1px 0 0 rgba(201, 168, 76, 0.1);
+  padding-left: 12px;
+}
+.ws-topbar {
+  background: linear-gradient(180deg, rgba(14, 18, 32, 0.95) 0%, rgba(10, 13, 20, 0.95) 100%);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+.ws-sidebar {
+  background: #0b0e17;
+}
+.dropzone {
+  border: 1.5px dashed rgba(201, 168, 76, 0.2);
+  transition: all 0.3s ease;
+}
+.dropzone:hover {
+  border-color: var(--gold);
+  background: rgba(201, 168, 76, 0.03);
+}
+
+/* ═══════════════════════════════════════════
+   VIRTUAL COURTROOM SCREEN (ORAL ROUND)
+   ═══════════════════════════════════════════ */
+.courtroom-view {
+  display: none;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  background: radial-gradient(circle at top, #141b2e 0%, var(--navy) 100%);
+  position: relative;
+}
+.courtroom-view.active {
+  display: flex;
+}
+
+/* Courtroom Header */
+.cr-header {
+  padding: 16px 24px;
+  background: rgba(10, 13, 20, 0.4);
+  border-bottom: 1px solid var(--glass-b);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+}
+.cr-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.cr-session-title {
+  font-family: var(--serif);
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: var(--white);
+}
+.cr-session-meta {
+  font-size: 0.7rem;
+  color: var(--gold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.cr-header-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.cr-timer {
+  font-family: monospace;
+  font-size: 1.1rem;
+  color: var(--white-muted);
+  background: var(--navy-3);
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--glass-b);
+  letter-spacing: 0.05em;
+}
+.cr-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 100px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+  transition: all 0.3s ease;
+}
+.cr-status-badge.connecting {
+  background: rgba(201, 168, 76, 0.1);
+  border-color: var(--gold-border);
+  color: var(--gold);
+}
+.cr-status-badge.listening {
+  background: rgba(76, 175, 130, 0.1);
+  border-color: rgba(76, 175, 130, 0.3);
+  color: var(--success);
+}
+.cr-status-badge.speaking-judge {
+  background: rgba(224, 82, 82, 0.1);
+  border-color: rgba(224, 82, 82, 0.3);
+  color: #e05252;
+}
+.cr-status-badge.speaking-user {
+  background: rgba(96, 165, 250, 0.1);
+  border-color: rgba(96, 165, 250, 0.3);
+  color: #60a5fa;
+}
+.cr-status-badge.processing {
+  background: rgba(167, 139, 250, 0.1);
+  border-color: rgba(167, 139, 250, 0.3);
+  color: #a78bfa;
+}
+
+/* Courtroom Stage (Avatars) */
+.cr-stage {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding: 30px 20px;
+  background: rgba(255, 255, 255, 0.01);
+  border-bottom: 1px solid var(--glass-b);
+  flex-shrink: 0;
+  gap: 20px;
+}
+.cr-avatar-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: 140px;
+  position: relative;
+}
+.cr-avatar {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background: var(--navy-3);
+  border: 2px solid var(--glass-b);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.8rem;
+  transition: all 0.4s ease;
+  position: relative;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+.cr-avatar::after {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  opacity: 0;
+  transition: all 0.4s ease;
+}
+
+/* Speaking glow animations */
+.cr-avatar.speaking-judge {
+  border-color: #e05252;
+  box-shadow: 0 0 20px rgba(224, 82, 82, 0.4);
+}
+.cr-avatar.speaking-judge::after {
+  border-color: rgba(224, 82, 82, 0.4);
+  animation: cr-pulse-red 1.5s infinite;
+  opacity: 1;
+}
+.cr-avatar.speaking-user {
+  border-color: #60a5fa;
+  box-shadow: 0 0 20px rgba(96, 165, 250, 0.4);
+}
+.cr-avatar.speaking-user::after {
+  border-color: rgba(96, 165, 250, 0.4);
+  animation: cr-pulse-blue 1.5s infinite;
+  opacity: 1;
+}
+.cr-avatar.listening-user {
+  border-color: var(--success);
+  box-shadow: 0 0 15px rgba(76, 175, 130, 0.2);
+}
+
+@keyframes cr-pulse-red {
+  0% { transform: scale(1); opacity: 0.8; }
+  100% { transform: scale(1.25); opacity: 0; }
+}
+@keyframes cr-pulse-blue {
+  0% { transform: scale(1); opacity: 0.8; }
+  100% { transform: scale(1.25); opacity: 0; }
+}
+
+.cr-avatar-name {
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--white-muted);
+  text-align: center;
+  transition: color 0.3s;
+}
+.cr-avatar.speaking-judge + .cr-avatar-name { color: #e05252; }
+.cr-avatar.speaking-user + .cr-avatar-name { color: #60a5fa; }
+
+/* Visualizer Waveform */
+.cr-visualizer-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 24px;
+  width: 100%;
+}
+.cr-wave-bar {
+  width: 3px;
+  height: 4px;
+  background: var(--glass-b);
+  border-radius: 20px;
+  transition: all 0.25s ease;
+}
+.cr-visualizer-bar.active .cr-wave-bar {
+  background: var(--gold);
+  animation: cr-wave-bounce 1s ease-in-out infinite alternate;
+}
+.cr-visualizer-bar.active.judge .cr-wave-bar {
+  background: #e05252;
+}
+.cr-visualizer-bar.active.user .cr-wave-bar {
+  background: #60a5fa;
+}
+
+/* Stagger animations for wave bars */
+.cr-visualizer-bar.active .cr-wave-bar:nth-child(1) { animation-delay: 0.1s; height: 16px; }
+.cr-visualizer-bar.active .cr-wave-bar:nth-child(2) { animation-delay: 0.35s; height: 8px; }
+.cr-visualizer-bar.active .cr-wave-bar:nth-child(3) { animation-delay: 0.2s; height: 22px; }
+.cr-visualizer-bar.active .cr-wave-bar:nth-child(4) { animation-delay: 0.5s; height: 12px; }
+.cr-visualizer-bar.active .cr-wave-bar:nth-child(5) { animation-delay: 0.15s; height: 18px; }
+.cr-visualizer-bar.active .cr-wave-bar:nth-child(6) { animation-delay: 0.4s; height: 6px; }
+.cr-visualizer-bar.active .cr-wave-bar:nth-child(7) { animation-delay: 0.3s; height: 14px; }
+
+@keyframes cr-wave-bounce {
+  0% { transform: scaleY(0.3); }
+  100% { transform: scaleY(1.2); }
+}
+
+/* Courtroom Transcript Feed */
+.cr-transcript-feed {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 0;
+}
+.cr-transcript-feed::-webkit-scrollbar { width: 4px; }
+.cr-transcript-feed::-webkit-scrollbar-thumb { background: var(--glass-b); border-radius: 4px; }
+
+.cr-transcript-msg {
+  max-width: 85%;
+  animation: secReveal 0.3s ease both;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.cr-transcript-msg.judge {
+  align-self: flex-start;
+  background: rgba(224, 82, 82, 0.04);
+  border: 1px solid rgba(224, 82, 82, 0.12);
+  border-radius: 0 12px 12px 12px;
+  padding: 12px 16px;
+}
+.cr-transcript-msg.advocate {
+  align-self: flex-end;
+  background: rgba(96, 165, 250, 0.04);
+  border: 1px solid rgba(96, 165, 250, 0.12);
+  border-radius: 12px 0 12px 12px;
+  padding: 12px 16px;
+}
+.cr-transcript-msg.system {
+  align-self: center;
+  max-width: 90%;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--glass-b);
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 0.8rem;
+  color: var(--white-muted);
+  text-align: center;
+}
+
+.cr-msg-role {
+  font-size: 0.58rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.cr-msg-role.judge { color: #e05252; }
+.cr-msg-role.advocate { color: #60a5fa; }
+
+.cr-msg-text {
+  font-size: 0.86rem;
+  color: var(--white-2);
+  line-height: 1.65;
+}
+
+/* User speech bubble */
+.cr-interim-bubble {
+  align-self: flex-end;
+  max-width: 85%;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px dashed var(--glass-b);
+  border-radius: 12px 12px 0 12px;
+  padding: 10px 14px;
+  font-size: 0.84rem;
+  color: var(--white-muted);
+  font-style: italic;
+  animation: fadeIn 0.2s ease;
+}
+
+/* ── CHAMBERS EMPTY STATE ── */
+.be-card {
+  max-width: 540px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.02) 0%, rgba(255, 255, 255, 0.005) 100%);
+  border: 1px solid var(--glass-b);
+  border-radius: 16px;
+  padding: 40px 32px;
+  text-align: center;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+  transition: border-color 0.3s;
+}
+.be-card:hover {
+  border-color: var(--gold-border);
+}
+.be-icon {
+  font-size: 2.8rem;
+  color: var(--gold);
+  margin-bottom: 20px;
+  opacity: 0.85;
+}
+.be-title {
+  font-family: var(--serif);
+  font-size: 1.6rem;
+  color: var(--white);
+  margin-bottom: 12px;
+}
+.be-sub {
+  font-size: 0.88rem;
+  color: var(--white-muted);
+  line-height: 1.65;
+  margin-bottom: 28px;
+}
+.be-action-group {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+.be-action-group button {
+  padding: 12px 24px;
+}
+.be-notice {
+  font-size: 0.78rem;
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.06);
+  border: 1px solid rgba(251, 191, 36, 0.15);
+  border-radius: 8px;
+  padding: 10px 16px;
+  line-height: 1.5;
+  text-align: left;
+}
+}
 </style>
 </head>
 <body>
@@ -1642,14 +2038,71 @@ p  { color:var(--white-2); }
           <button class="btn-sm btn-sm-ghost tracking-widest font-medium" id="btn-bench-clear" onclick="clearBenchSession()" style="display:none;">Clear</button>
         </div>  
         
+        <!-- COURTROOM VIEW -->
+        <div class="courtroom-view" id="courtroom-view">
+          <div class="cr-header">
+            <div class="cr-header-left">
+              <div class="cr-session-title" id="cr-session-title">Supreme Court of Moot Coach</div>
+              <div class="cr-session-meta" id="cr-session-meta">VOICE BENCH SIMULATION · MODERATE</div>
+            </div>
+            <div class="cr-header-right">
+              <div class="cr-timer" id="cr-timer">ELAPSED: 00:00</div>
+              <div class="cr-status-badge connecting" id="cr-status-badge">
+                <span class="badge-dot"></span>Connecting
+              </div>
+            </div>
+          </div>
+          
+          <div class="cr-stage">
+            <div class="cr-avatar-container">
+              <div class="cr-avatar" id="cr-avatar-judge">⚖</div>
+              <div class="cr-avatar-name">Presiding Judge</div>
+            </div>
+            
+            <div style="flex:1; max-width: 200px; display:flex; flex-direction:column; align-items:center; gap:8px;">
+              <div style="font-size: 0.6rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--white-muted);">Audio Signal</div>
+              <div class="cr-visualizer-bar" id="cr-visualizer-bar">
+                <div class="cr-wave-bar"></div>
+                <div class="cr-wave-bar"></div>
+                <div class="cr-wave-bar"></div>
+                <div class="cr-wave-bar"></div>
+                <div class="cr-wave-bar"></div>
+                <div class="cr-wave-bar"></div>
+                <div class="cr-wave-bar"></div>
+              </div>
+            </div>
+            
+            <div class="cr-avatar-container">
+              <div class="cr-avatar" id="cr-avatar-user">🎓</div>
+              <div class="cr-avatar-name">Advocate</div>
+            </div>
+          </div>
+          
+          <div class="cr-transcript-feed" id="cr-transcript-feed"></div>
+        </div>
+
         <div class="bench-empty" id="bench-empty">
-          <div class="res-empty-icon">⚑</div>
-          <div class="res-empty-title">Bench Simulator</div>
-          <div class="res-empty-sub">Start a new session to face questions from the AI Bench.</div>
-          <div id="bench-no-context" style="display:none;margin-top:10px;font-size:0.8rem;color:#fbbf24;">Note: Upload and analyze a proposition first for contextual questions.</div>
+          <div class="be-card">
+            <div class="be-icon">⚖</div>
+            <h3 class="be-title">Judicial Chambers</h3>
+            <p class="be-sub">Practice appellate advocacy under intense questioning. Face a hostile AI Bench that probes your argument's logic, precedents, and structure.</p>
+            
+            <div class="be-action-group">
+              <button class="btn-primary tracking-widest font-medium" onclick="startOralRound()">
+                🎙️ Start Oral Round (Voice)
+              </button>
+              <button class="btn-outline tracking-widest font-medium" onclick="startBenchSession()">
+                ✍️ Start Text Session
+              </button>
+            </div>
+            
+            <div id="bench-no-context" class="be-notice" style="display:none; margin-top:20px;">
+              <span>⚠ No proposition loaded. The simulator will run with a general constitutional law docket. Upload a PDF first for a custom case briefing.</span>
+            </div>
+          </div>
         </div>
         
-        <div class="bench-chat" id="bench-chat"></div>
+        <div class="bench-chat" id="bench-chat" style="display:none;"></div>
         
         <div class="bench-input-row" id="bench-input-row" style="display:none;">
           <textarea class="bench-textarea" id="bench-input" placeholder="Type your response to the bench..." onkeydown="handleBenchKeydown(event)"></textarea>

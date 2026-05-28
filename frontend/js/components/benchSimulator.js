@@ -22,6 +22,11 @@ export let benchDifficultyMode = 'moderate';
 export let voiceSessionActive = false;
 export let voiceSessionStartTime = null;
 
+// Local Voice State
+let recognition = null;
+let voiceTimerInterval = null;
+let voiceElapsedTime = 0;
+
 // Expose benchActive on window for UI checks (e.g. showWsPanel)
 window.benchActive = false;
 
@@ -44,13 +49,16 @@ export function startBenchSession() {
   const inputRow = document.getElementById('bench-input-row');
   const btnClear = document.getElementById('btn-bench-clear');
   const btnStart = document.getElementById('btn-bench-start');
+  const courtroom = document.getElementById('courtroom-view');
 
+  if (courtroom) courtroom.classList.remove('active');
   if (empty)    empty.style.display    = 'none';
   if (inputRow) inputRow.style.display = 'flex';
   if (btnClear) btnClear.style.display = '';
   if (btnStart) btnStart.textContent   = 'Restart';
 
   if (chat) {
+    chat.style.display = 'flex';
     chat.querySelectorAll('.bench-msg').forEach(m => m.remove());
   }
 
@@ -86,8 +94,13 @@ export function clearBenchSession() {
   const btnClear = document.getElementById('btn-bench-clear');
   const btnStart = document.getElementById('btn-bench-start');
   const empty    = document.getElementById('bench-empty');
+  const courtroom = document.getElementById('courtroom-view');
 
-  if (chat) chat.querySelectorAll('.bench-msg').forEach(m => m.remove());
+  if (courtroom) courtroom.classList.remove('active');
+  if (chat) {
+    chat.style.display = 'none';
+    chat.querySelectorAll('.bench-msg').forEach(m => m.remove());
+  }
   if (inputRow) inputRow.style.display = 'none';
   if (btnClear) btnClear.style.display = 'none';
   if (btnStart) btnStart.textContent   = 'Start New Session';
@@ -325,27 +338,73 @@ function updateVoiceUI(status, text) {
   const dot = document.getElementById('bench-voice-dot');
   const label = document.getElementById('bench-voice-text');
   
+  // Courtroom UI elements
+  const crBadge = document.getElementById('cr-status-badge');
+  const crAvatarJudge = document.getElementById('cr-avatar-judge');
+  const crAvatarUser = document.getElementById('cr-avatar-user');
+  const crVisualizer = document.getElementById('cr-visualizer-bar');
+
   if (!badge || !dot || !label) return;
   
   badge.style.display = 'flex';
   label.textContent = text;
   
+  window.voiceStatus = status;
+
+  // Reset animations
+  if (crAvatarJudge) crAvatarJudge.className = 'cr-avatar';
+  if (crAvatarUser) crAvatarUser.className = 'cr-avatar';
+  if (crVisualizer) crVisualizer.className = 'cr-visualizer-bar';
+
+  if (crBadge) {
+    crBadge.className = 'cr-status-badge';
+    crBadge.innerHTML = `<span class="badge-dot"></span>${text}`;
+  }
+
   if (status === 'connecting') {
     badge.className = 'backend-status checking';
     dot.className = 'bs-dot';
     label.style.color = 'var(--gold)';
+    if (crBadge) crBadge.classList.add('connecting');
   } else if (status === 'listening') {
     badge.className = 'backend-status online';
     dot.className = 'bs-dot';
     label.style.color = 'var(--success)';
+    if (crBadge) {
+      crBadge.classList.add('listening');
+      crBadge.innerHTML = `<span class="badge-dot"></span>Court is Listening`;
+    }
+    if (crAvatarUser) crAvatarUser.classList.add('listening-user');
   } else if (status === 'speaking') {
     badge.className = 'backend-status checking';
     dot.className = 'bs-dot';
     label.style.color = '#fbbf24';
+    if (crBadge) {
+      crBadge.classList.add('speaking-judge');
+      crBadge.innerHTML = `<span class="badge-dot"></span>Judge Speaking`;
+    }
+    if (crAvatarJudge) crAvatarJudge.classList.add('speaking-judge');
+    if (crVisualizer) crVisualizer.classList.add('active', 'judge');
+  } else if (status === 'user_speaking') {
+    badge.className = 'backend-status online';
+    dot.className = 'bs-dot';
+    label.style.color = '#60a5fa';
+    if (crBadge) {
+      crBadge.classList.add('speaking-user');
+      crBadge.innerHTML = `<span class="badge-dot"></span>Advocate Speaking`;
+    }
+    if (crAvatarUser) crAvatarUser.classList.add('speaking-user');
+    if (crVisualizer) crVisualizer.classList.add('active', 'user');
+  } else if (status === 'processing') {
+    badge.className = 'backend-status checking';
+    dot.className = 'bs-dot';
+    label.style.color = '#a78bfa';
+    if (crBadge) crBadge.classList.add('processing');
   } else if (status === 'error') {
     badge.className = 'backend-status offline';
     dot.className = 'bs-dot';
     label.style.color = 'var(--error)';
+    if (crBadge) crBadge.classList.add('error');
   } else {
     badge.style.display = 'none';
   }
@@ -368,6 +427,7 @@ export async function startOralRound() {
   const btnStart = document.getElementById('btn-bench-start');
   const btnClear = document.getElementById('btn-bench-clear');
   const inputRow = document.getElementById('bench-input-row');
+  const courtroom = document.getElementById('courtroom-view');
   
   if (empty) empty.style.display = 'none';
   if (btnOral) btnOral.textContent = 'End Oral Round';
@@ -376,11 +436,28 @@ export async function startOralRound() {
   if (inputRow) inputRow.style.display = 'none';
 
   if (chat) {
+    chat.style.display = 'none';
     chat.querySelectorAll('.bench-msg').forEach(m => m.remove());
   }
 
+  // Clear courtroom feed and show courtroom view
+  const feed = document.getElementById('cr-transcript-feed');
+  if (feed) feed.innerHTML = '';
+  if (courtroom) courtroom.classList.add('active');
+
+  // Load Moot details into headers
+  const mootName = document.getElementById('ws-moot-name')?.value?.trim() || 'General Appellate Docket';
+  const sessionTitleEl = document.getElementById('cr-session-title');
+  const sessionMetaEl = document.getElementById('cr-session-meta');
+  if (sessionTitleEl) sessionTitleEl.textContent = mootName;
+  if (sessionMetaEl) sessionMetaEl.textContent = `VOICE BENCH SIMULATION · ${benchDifficultyMode.toUpperCase()} BENCH`;
+
   updateVoiceUI('connecting', 'Connecting...');
-  appendBenchMessage('system', 'Starting Oral Round. Please grant microphone permissions.');
+  appendCourtroomTranscript('system', 'Starting Oral Round. Please grant microphone permissions.');
+
+  // Start timers and local speech-to-text
+  startVoiceTimer();
+  startSpeechRecognition();
 
   try {
     await engineStartOralRound({
@@ -389,9 +466,11 @@ export async function startOralRound() {
       },
       onText: (text) => {
         appendBenchMessage('judge', text);
+        appendCourtroomTranscript('judge', text);
       },
       onError: (message) => {
         appendBenchMessage('system', `Judge Error: ${message}`);
+        appendCourtroomTranscript('system', `Judge Error: ${message}`);
       },
       onClose: () => {
         if (voiceSessionActive) {
@@ -401,7 +480,7 @@ export async function startOralRound() {
     });
   } catch (err) {
     console.error("Failed to start oral round:", err);
-    appendBenchMessage('system', `Failed to start: ${err.message}`);
+    appendCourtroomTranscript('system', `Failed to start: ${err.message}`);
     stopOralRound();
   }
 }
@@ -415,10 +494,16 @@ export function stopOralRound() {
   const btnStart = document.getElementById('btn-bench-start');
   const empty = document.getElementById('bench-empty');
   const inputRow = document.getElementById('bench-input-row');
+  const courtroom = document.getElementById('courtroom-view');
   
   if (btnOral) btnOral.textContent = 'Start Oral Round';
   if (btnStart) btnStart.disabled = false;
-  if (empty && document.getElementById('bench-chat')?.children?.length === 0) empty.style.display = '';
+  
+  if (courtroom) courtroom.classList.remove('active');
+  if (empty) empty.style.display = '';
+
+  stopVoiceTimer();
+  stopSpeechRecognition();
 
   const durationSec = engineStopOralRound();
   updateVoiceUI('disconnected', 'Round Ended');
@@ -439,4 +524,143 @@ export function stopOralRound() {
       console.error("Failed to log voice session securely:", err);
     });
   }
+}
+
+/* ─── VIRTUAL COURTROOM HELPERS ─── */
+export function appendCourtroomTranscript(role, text) {
+  const feed = document.getElementById('cr-transcript-feed');
+  if (!feed) return;
+
+  const interim = document.getElementById('cr-interim-bubble');
+  if (interim) interim.remove();
+
+  const div = document.createElement('div');
+  div.className = `cr-transcript-msg ${role}`;
+
+  if (role === 'system') {
+    div.innerHTML = `<div class="cr-msg-text">${esc(text)}</div>`;
+  } else {
+    const roleLabel = role === 'judge' ? 'BENCH' : 'COUNSEL';
+    const roleCls   = role === 'judge' ? 'judge' : 'advocate';
+    div.innerHTML = `
+      <div class="cr-msg-role ${roleCls}">${roleLabel}</div>
+      <div class="cr-msg-text">${fmtInline(text)}</div>
+    `;
+  }
+
+  feed.appendChild(div);
+  feed.scrollTo({ top: feed.scrollHeight, behavior: 'smooth' });
+}
+
+export function showInterimUserSpeech(text) {
+  const feed = document.getElementById('cr-transcript-feed');
+  if (!feed) return;
+
+  let interim = document.getElementById('cr-interim-bubble');
+  if (!interim) {
+    interim = document.createElement('div');
+    interim.className = 'cr-interim-bubble';
+    interim.id = 'cr-interim-bubble';
+    feed.appendChild(interim);
+  }
+  interim.textContent = text + '...';
+  feed.scrollTo({ top: feed.scrollHeight, behavior: 'smooth' });
+}
+
+function startSpeechRecognition() {
+  if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
+    console.log("Speech recognition not supported in this browser.");
+    return;
+  }
+  
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  recognition = new SpeechRecognition();
+  recognition.continuous = true;
+  recognition.interimResults = true;
+  recognition.lang = 'en-US';
+
+  recognition.onstart = () => {
+    console.log("🎙️ Local Speech Recognition active.");
+  };
+
+  recognition.onspeechstart = () => {
+    if (window.voiceStatus !== 'speaking') {
+      updateVoiceUI('user_speaking', 'Advocate Speaking');
+    }
+  };
+
+  recognition.onspeechend = () => {
+    if (window.voiceStatus === 'user_speaking') {
+      updateVoiceUI('listening', 'Court is listening...');
+    }
+  };
+
+  recognition.onresult = (event) => {
+    let interimTranscript = '';
+    let finalTranscript = '';
+
+    for (let i = event.resultIndex; i < event.results.length; ++i) {
+      if (event.results[i].isFinal) {
+        finalTranscript += event.results[i][0].transcript;
+      } else {
+        interimTranscript += event.results[i][0].transcript;
+      }
+    }
+
+    if (finalTranscript) {
+      appendCourtroomTranscript('advocate', finalTranscript);
+      benchConversation.push({ role: 'advocate', content: finalTranscript });
+      const interim = document.getElementById('cr-interim-bubble');
+      if (interim) interim.remove();
+    } else if (interimTranscript) {
+      showInterimUserSpeech(interimTranscript);
+    }
+  };
+
+  recognition.onerror = (e) => {
+    console.error("Local Speech Recognition error:", e.error);
+  };
+
+  recognition.onend = () => {
+    if (voiceSessionActive) {
+      try { recognition.start(); } catch(err){}
+    }
+  };
+
+  try {
+    recognition.start();
+  } catch (err) {
+    console.error("Failed to start Speech Recognition:", err);
+  }
+}
+
+function stopSpeechRecognition() {
+  if (recognition) {
+    recognition.onend = null;
+    try { recognition.stop(); } catch(e){}
+    recognition = null;
+  }
+}
+
+function startVoiceTimer() {
+  voiceElapsedTime = 0;
+  updateVoiceTimerDisplay();
+  clearInterval(voiceTimerInterval);
+  voiceTimerInterval = setInterval(() => {
+    voiceElapsedTime++;
+    updateVoiceTimerDisplay();
+  }, 1000);
+}
+
+function stopVoiceTimer() {
+  clearInterval(voiceTimerInterval);
+  voiceTimerInterval = null;
+}
+
+function updateVoiceTimerDisplay() {
+  const timerEl = document.getElementById('cr-timer');
+  if (!timerEl) return;
+  const mins = Math.floor(voiceElapsedTime / 60).toString().padStart(2, '0');
+  const secs = (voiceElapsedTime % 60).toString().padStart(2, '0');
+  timerEl.textContent = `ELAPSED: ${mins}:${secs}`;
 }
