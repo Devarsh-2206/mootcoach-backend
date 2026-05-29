@@ -10,6 +10,12 @@ import {
 // Argument Builder State
 export let lastBuiltArgument = null;
 
+// Side Panel State Management
+export let storedOralNotes = '';
+export let storedRebuttals = '';
+export let storedCitations = '';
+let activeTriggerElement = null;
+
 export function initArgumentBuilder() {
   const form = document.getElementById('builder-form');
   const notesInput = document.getElementById('builder-notes-input');
@@ -39,8 +45,30 @@ export function initArgumentBuilder() {
   // Expose methods to window for premium dynamic components
   window.copyBuilderArgument = copyBuilderArgument;
   window.exportDraftPDF = exportDraftPDF;
-  window.generateInteractiveEnhancement = generateInteractiveEnhancement;
-  window.closeEnhancementBox = closeEnhancementBox;
+  window.openAuxPanel = openAuxPanel;
+  window.closeAuxPanel = closeAuxPanel;
+
+  // Bind close panel listeners
+  const closeBtn = document.getElementById('aux-panel-close-btn');
+  const overlay = document.getElementById('aux-panel-overlay');
+  if (closeBtn) {
+    closeBtn.addEventListener('click', closeAuxPanel);
+  }
+  if (overlay) {
+    overlay.addEventListener('click', closeAuxPanel);
+  }
+
+  // Bind panel action buttons
+  const copyBtn = document.getElementById('btn-aux-copy');
+  const printBtn = document.getElementById('btn-aux-print');
+  if (copyBtn) {
+    copyBtn.addEventListener('click', copyPanelContent);
+  }
+  if (printBtn) {
+    printBtn.addEventListener('click', () => {
+      exportDraftPDF('aux-panel-content');
+    });
+  }
 }
 
 function updateLiveIntelligence(text) {
@@ -194,6 +222,26 @@ function renderIRAC(iracData) {
     rebuttalText = "If asked about extreme application scenarios, distinguish them by pointing out that the current petition is confined to the immediate facts of the case.";
   }
 
+  // Extract and store formatted HTML for the side panel suggestions
+  storedOralNotes = `
+    <div class="space-y-4">
+      <h4 class="text-sm font-semibold text-indigo-400 uppercase tracking-wider font-sans mb-2">🎙️ Oral Advocacy Notes</h4>
+      <div class="text-xs text-gray-300 whitespace-pre-wrap font-sans bg-white/[0.02] p-4 border border-white/5 rounded-lg leading-relaxed">${getOralNotesContent()}</div>
+    </div>
+  `;
+  storedRebuttals = `
+    <div class="space-y-4">
+      <h4 class="text-sm font-semibold text-red-400 uppercase tracking-wider font-sans mb-2">🛡️ Rebuttal Notes</h4>
+      <div class="text-xs text-gray-300 whitespace-pre-wrap font-sans bg-white/[0.02] p-4 border border-white/5 rounded-lg leading-relaxed">${getRebuttalNotesContent()}</div>
+    </div>
+  `;
+  storedCitations = `
+    <div class="space-y-4">
+      <h4 class="text-sm font-semibold text-amber-400 uppercase tracking-wider font-sans mb-2">📖 Citation Strengthener</h4>
+      <div class="text-xs text-gray-300 whitespace-pre-wrap font-sans bg-white/[0.02] p-4 border border-white/5 rounded-lg leading-relaxed">${getCitationStrengthenerContent()}</div>
+    </div>
+  `;
+
   outputState.innerHTML = `
 <div class="flex flex-col gap-5 w-full h-full">
   
@@ -213,13 +261,13 @@ function renderIRAC(iracData) {
       <button class="btn-sm btn-sm-ghost text-xs tracking-wider flex items-center gap-1.5 font-sans cursor-pointer" onclick="exportDraftPDF()">
         📄 Export PDF
       </button>
-      <button class="btn-sm btn-sm-ghost text-xs tracking-wider flex items-center gap-1.5 font-sans cursor-pointer" onclick="generateInteractiveEnhancement('oral')">
+      <button class="btn-sm btn-sm-ghost text-xs tracking-wider flex items-center gap-1.5 font-sans cursor-pointer" onclick="openAuxPanel('oral', this)">
         🎙️ Oral Notes
       </button>
-      <button class="btn-sm btn-sm-ghost text-xs tracking-wider flex items-center gap-1.5 font-sans cursor-pointer" onclick="generateInteractiveEnhancement('rebuttal')">
+      <button class="btn-sm btn-sm-ghost text-xs tracking-wider flex items-center gap-1.5 font-sans cursor-pointer" onclick="openAuxPanel('rebuttal', this)">
         🛡️ Rebuttal
       </button>
-      <button class="btn-sm btn-sm-ghost text-xs tracking-wider flex items-center gap-1.5 font-sans cursor-pointer" onclick="generateInteractiveEnhancement('strengthen')">
+      <button class="btn-sm btn-sm-ghost text-xs tracking-wider flex items-center gap-1.5 font-sans cursor-pointer" onclick="openAuxPanel('citations', this)">
         📖 Strengthen Citations
       </button>
     </div>
@@ -288,57 +336,6 @@ function renderIRAC(iracData) {
         <span id="vulnerability-rebuttal-strategy">${rebuttalText}</span>
       </div>
     </div>
-  </div>
-
-  <!-- Interactive Enhancement Canvas -->
-  <div id="interactive-enhancement-box" class="hidden p-4 rounded-xl border border-indigo-500/20 bg-indigo-500/5 flex flex-col gap-2 animate-[fadeIn_0.3s_ease]">
-    <div class="flex items-center justify-between border-b border-indigo-500/10 pb-2">
-      <span id="enhancement-title" class="text-xs font-semibold tracking-wider uppercase text-indigo-400 font-sans">AI Enhancement Output</span>
-      <button class="text-xs text-white-muted hover:text-white bg-transparent border-none cursor-pointer font-sans" onclick="closeEnhancementBox()">✕ Close</button>
-    </div>
-    <div id="enhancement-content" class="text-xs text-gray-300 leading-relaxed whitespace-pre-wrap font-sans"></div>
-  </div>
-
-  <!-- Auxiliary Outputs Accordions (Oral Notes, Rebuttal, Citation Strengthener) -->
-  <div class="flex flex-col gap-3">
-    <details class="group bg-white/5 border border-white/10 rounded-xl overflow-hidden transition-all duration-300 [&_summary::-webkit-details-marker]:hidden">
-      <summary class="flex items-center justify-between p-4 cursor-pointer select-none hover:bg-white/[0.02] list-none">
-        <div class="flex items-center gap-2">
-          <span class="text-indigo-400">🎙️</span>
-          <span class="text-xs font-semibold uppercase tracking-wider text-white-2 font-sans">Oral Advocacy Notes</span>
-        </div>
-        <span class="text-xs text-white-muted group-open:rotate-180 transition-transform duration-200">▼</span>
-      </summary>
-      <div class="p-4 border-t border-white/10 text-xs text-gray-300 leading-relaxed whitespace-pre-wrap font-sans bg-navy-5/30">
-        ${getOralNotesContent()}
-      </div>
-    </details>
-
-    <details class="group bg-white/5 border border-white/10 rounded-xl overflow-hidden transition-all duration-300 [&_summary::-webkit-details-marker]:hidden">
-      <summary class="flex items-center justify-between p-4 cursor-pointer select-none hover:bg-white/[0.02] list-none">
-        <div class="flex items-center gap-2">
-          <span class="text-red-400">🛡️</span>
-          <span class="text-xs font-semibold uppercase tracking-wider text-white-2 font-sans">Rebuttal Notes</span>
-        </div>
-        <span class="text-xs text-white-muted group-open:rotate-180 transition-transform duration-200">▼</span>
-      </summary>
-      <div class="p-4 border-t border-white/10 text-xs text-gray-300 leading-relaxed whitespace-pre-wrap font-sans bg-navy-5/30">
-        ${getRebuttalNotesContent()}
-      </div>
-    </details>
-
-    <details class="group bg-white/5 border border-white/10 rounded-xl overflow-hidden transition-all duration-300 [&_summary::-webkit-details-marker]:hidden">
-      <summary class="flex items-center justify-between p-4 cursor-pointer select-none hover:bg-white/[0.02] list-none">
-        <div class="flex items-center gap-2">
-          <span class="text-amber-400">📖</span>
-          <span class="text-xs font-semibold uppercase tracking-wider text-white-2 font-sans">Citation Strengthener</span>
-        </div>
-        <span class="text-xs text-white-muted group-open:rotate-180 transition-transform duration-200">▼</span>
-      </summary>
-      <div class="p-4 border-t border-white/10 text-xs text-gray-300 leading-relaxed whitespace-pre-wrap font-sans bg-navy-5/30">
-        ${getCitationStrengthenerContent()}
-      </div>
-    </details>
   </div>
 
   <!-- Premium Legal Document Canvas -->
@@ -446,18 +443,21 @@ export function copyBuilderArgument() {
     }
     showToast("IRAC argument copied to clipboard!", "ok");
   }).catch(err => {
-    showToast("Failed to copy argument: " + err.message, "err");
-  });
-}
+    showToast(export function exportDraftPDF(containerId = "legal-memorial-canvas") {
+  console.log(`[DEBUG AUDIT] Exporting ${containerId} as PDF...`);
+  const contentEl = document.getElementById(containerId);
+  if (!contentEl) return;
+  const printContent = contentEl.innerHTML;
+  
+  const isAux = containerId === "aux-panel-content";
+  const headerText = isAux ? "APPELLATE DRAFTING STUDIO · AUXILIARY GUIDELINES" : "BEFORE THE SUPREME COURT OF APPRENTICE ADVOCACY · MEMORIAL SUBMISSION";
+  const titleText = isAux ? "Appellate Auxiliary Guidelines" : "Appellate Memorial - MootCoach AI";
 
-function exportDraftPDF() {
-  console.log("[DEBUG AUDIT] Exporting draft as PDF...");
-  const printContent = document.getElementById("legal-memorial-canvas").innerHTML;
   const printWindow = window.open('', '_blank', 'width=800,height=600');
   printWindow.document.write(`
     <html>
       <head>
-        <title>Appellate Memorial - MootCoach AI</title>
+        <title>${titleText}</title>
         <link href="https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,300;0,400;0,700;1,400&display=swap" rel="stylesheet">
         <style>
           @page {
@@ -532,7 +532,7 @@ function exportDraftPDF() {
         </style>
       </head>
       <body>
-        <div class="header">BEFORE THE SUPREME COURT OF APPRENTICE ADVOCACY · MEMORIAL SUBMISSION</div>
+        <div class="header">${headerText}</div>
         ${printContent}
         <div class="footer">Appellate Drafting Studio · MootCoach AI</div>
       </body>
@@ -546,55 +546,127 @@ function exportDraftPDF() {
   }, 600);
 }
 
-function generateInteractiveEnhancement(type) {
-  const box = document.getElementById('interactive-enhancement-box');
-  const content = document.getElementById('enhancement-content');
-  const title = document.getElementById('enhancement-title');
-  if (!box || !content || !title) return;
+export function openAuxPanel(type, triggerElement) {
+  if (!lastBuiltArgument) {
+    showToast("Generate a submission first to unlock this workspace.", "info");
+    return;
+  }
 
-  box.classList.remove('hidden');
-  content.innerHTML = '<span class="animate-pulse text-indigo-300 font-sans">AI Counsel is analyzing and drafting enhancement notes...</span>';
+  activeTriggerElement = triggerElement || document.activeElement;
 
+  const overlay = document.getElementById('aux-panel-overlay');
+  const panel = document.getElementById('aux-panel');
+  const title = document.getElementById('aux-panel-title');
+  const content = document.getElementById('aux-panel-content');
+
+  if (!overlay || !panel || !title || !content) return;
+
+  // Set title and content based on type
+  if (type === 'oral') {
+    title.textContent = 'Oral Advocacy Notes';
+    content.innerHTML = storedOralNotes;
+  } else if (type === 'rebuttal') {
+    title.textContent = 'Rebuttal Strategy';
+    content.innerHTML = storedRebuttals;
+  } else if (type === 'citations') {
+    title.textContent = 'Citation Strengthener';
+    content.innerHTML = storedCitations;
+  }
+
+  // Open the panel
+  overlay.classList.remove('hidden');
+  // force reflow
+  overlay.offsetHeight;
+  overlay.classList.add('opacity-100');
+  panel.classList.remove('translate-x-full');
+  panel.classList.add('translate-x-0');
+
+  // Trapping focus & Keyboard accessibility
+  document.addEventListener('keydown', handlePanelKeyDown);
+  
+  // Set focus to the first focusable element inside the panel
   setTimeout(() => {
-    let generatedText = '';
-    if (type === 'oral') {
-      title.textContent = '🎙️ AI Oral Advocacy Notes';
-      generatedText = `=== SUGGESTED ORAL ROUND OUTLINE ===\n\n` +
-        `1. FORMAL OPENING (0:00 - 1:30):\n` +
-        `   "May it please this Court. My name is Counsel for the Petitioner. We raise one core constitutional issue today..."\n\n` +
-        `2. STATEMENT OF THE ISSUE (1:30 - 3:00):\n` +
-        `   Direct the Bench's attention to the conflict between the impugned provision and fundamental rights under Article 14/19/21.\n\n` +
-        `3. ARGUMENT SUBMISSION (3:00 - 12:00):\n` +
-        `   • Premise I: Focus heavily on the rule of law syllogism.\n` +
-        `   • Premise II: Apply the test of proportionality to demonstrate the overbreadth of the state restriction.\n\n` +
-        `4. CONCLUSION & PRAYER (12:00 - 15:00):\n` +
-        `   Request that this Court strike down the provision and grant appropriate consequential relief.`;
-    } else if (type === 'rebuttal') {
-      title.textContent = '🛡️ AI Rebuttal Talking Points';
-      generatedText = `=== DRAFT REBUTTAL ARGUMENTS ===\n\n` +
-        `1. REBUTTING STANDING CHALLENGES:\n` +
-        `   "The opposition asserts a lack of locus standi. However, under the doctrine of representative standing established in S.P. Gupta v. Union of India, public interest litigation is maintainable when fundamental rights of marginalized classes are systematically abridged."\n\n` +
-        `2. REBUTTING THE PRESUMPTION OF CONSTITUTIONALITY:\n` +
-        `   "While the State claims a presumption of constitutionality, that presumption is rebutted once a prima facie violation of a fundamental right is established. The burden then shifts to the State to justify the restriction under Article 19(2)-(6)."\n\n` +
-        `3. REBUTTING LEGISLATIVE COMPETENCE ARGS:\n` +
-        `   "The competence of the legislature cannot shield a statute from judicial review if its application violates Part III rights. Procedural correctness does not cure substantive unconstitutionality."`;
-    } else if (type === 'strengthen') {
-      title.textContent = '📖 Citation Strengthener';
-      generatedText = `=== SUGGESTED PRECEDENT ENHANCEMENTS ===\n\n` +
-        `• TO STRENGTHEN RULE OF LAW CLAIMS:\n` +
-        `  Cite 'E.P. Royappa v. State of Tamil Nadu' (1974) to argue against arbitrariness as the antithesis of Article 14.\n\n` +
-        `• TO STRENGTHEN PROPORTIONALITY CLAIMS:\n` +
-        `  Cite 'Modern Dental College v. State of M.P.' (2016) or 'K.S. Puttaswamy v. Union of India' (2017) to ground the four-pronged test of proportionality.\n\n` +
-        `• TO STRENGTHEN DUAL-CLASSIFICATION CLAIMS:\n` +
-        `  Cite 'State of West Bengal v. Anwar Ali Sarkar' (1952) to reinforce the requirements of intelligible differentia and rational nexus.`;
+    const focusables = panel.querySelectorAll('button, [tabindex]:not([tabindex="-1"])');
+    if (focusables.length > 0) {
+      focusables[0].focus();
     }
-    content.textContent = generatedText;
-  }, 1000);
+  }, 100);
 }
 
-function closeEnhancementBox() {
-  const box = document.getElementById('interactive-enhancement-box');
-  if (box) box.classList.add('hidden');
+export function closeAuxPanel() {
+  const overlay = document.getElementById('aux-panel-overlay');
+  const panel = document.getElementById('aux-panel');
+
+  if (!overlay || !panel) return;
+
+  overlay.classList.remove('opacity-100');
+  panel.classList.remove('translate-x-0');
+  panel.classList.add('translate-x-full');
+
+  document.removeEventListener('keydown', handlePanelKeyDown);
+
+  // Hide overlay after transition
+  setTimeout(() => {
+    if (!panel.classList.contains('translate-x-0')) {
+      overlay.classList.add('hidden');
+    }
+  }, 300);
+
+  // Restore focus
+  if (activeTriggerElement && typeof activeTriggerElement.focus === 'function') {
+    activeTriggerElement.focus();
+  }
+  activeTriggerElement = null;
+}
+
+function handlePanelKeyDown(e) {
+  if (e.key === 'Escape') {
+    closeAuxPanel();
+    return;
+  }
+
+  if (e.key === 'Tab') {
+    const panel = document.getElementById('aux-panel');
+    if (!panel) return;
+
+    const focusableSelector = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+    const focusables = panel.querySelectorAll(focusableSelector);
+    if (focusables.length === 0) return;
+
+    const firstFocusable = focusables[0];
+    const lastFocusable = focusables[focusables.length - 1];
+
+    if (e.shiftKey) { // Shift + Tab
+      if (document.activeElement === firstFocusable) {
+        lastFocusable.focus();
+        e.preventDefault();
+      }
+    } else { // Tab
+      if (document.activeElement === lastFocusable) {
+        firstFocusable.focus();
+        e.preventDefault();
+      }
+    }
+  }
+}
+
+function copyPanelContent() {
+  const content = document.getElementById('aux-panel-content');
+  if (!content) return;
+
+  const textToCopy = content.innerText;
+  navigator.clipboard.writeText(textToCopy).then(() => {
+    const btn = document.getElementById('btn-aux-copy');
+    if (btn) {
+      btn.textContent = '✓ Copied';
+      setTimeout(() => {
+        btn.textContent = '📋 Copy Content';
+      }, 2000);
+    }
+    showToast("Content copied to clipboard!", "ok");
+  }).catch(err => {
+    showToast("Failed to copy: " + err.message, "err");
+  });
 }
 
 function getOralNotesContent() {
