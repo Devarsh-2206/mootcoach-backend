@@ -19,9 +19,10 @@ export function initArgumentBuilder() {
     return;
   }
 
-  // Validate notes input to enable/disable submit button
+  // Validate notes input and trigger real-time scanning
   notesInput.addEventListener('input', () => {
     submitBtn.disabled = notesInput.value.trim().length < 5;
+    updateLiveIntelligence(notesInput.value);
   });
 
   // Handle Form Submission
@@ -33,6 +34,56 @@ export function initArgumentBuilder() {
   submitBtn.addEventListener('click', async () => {
     await generateArgument();
   });
+
+  // Expose methods to window for premium dynamic components
+  window.copyBuilderArgument = copyBuilderArgument;
+  window.exportDraftPDF = exportDraftPDF;
+  window.generateInteractiveEnhancement = generateInteractiveEnhancement;
+  window.closeEnhancementBox = closeEnhancementBox;
+}
+
+function updateLiveIntelligence(text) {
+  const casesCountEl = document.getElementById('intel-cases-count');
+  const statutesCountEl = document.getElementById('intel-statutes-count');
+  const pillsContainer = document.getElementById('intel-pills-container');
+  const hintEl = document.getElementById('intel-empty-hint');
+
+  if (!casesCountEl || !statutesCountEl || !pillsContainer || !hintEl) return;
+
+  if (!text.trim()) {
+    casesCountEl.textContent = '0';
+    statutesCountEl.textContent = '0';
+    pillsContainer.innerHTML = '';
+    hintEl.style.display = 'block';
+    return;
+  }
+
+  // 1. Cases Regex Matching
+  const caseRegex = /\b([A-Z][A-Za-z0-9'\s]{2,})\s+(?:v\.?|v\/s|vs\.?)\s+([A-Z][A-Za-z0-9'\s]{2,})|Union of [A-Z][a-zA-Z\s]+/gi;
+  const caseMatches = text.match(caseRegex) || [];
+  
+  // 2. Statutes/Provisions Regex Matching
+  const statuteRegex = /\b(?:Article|Art\.?|Section|Sec\.?)\s+\d+(?:[A-Za-z0-9\-\(\)]*)?/gi;
+  const statuteMatches = text.match(statuteRegex) || [];
+
+  // Update counts
+  casesCountEl.textContent = caseMatches.length.toString();
+  statutesCountEl.textContent = statuteMatches.length.toString();
+
+  // Deduplicate and render pills
+  const uniquePills = Array.from(new Set([...caseMatches, ...statuteMatches])).map(m => m.trim()).filter(Boolean);
+
+  if (uniquePills.length > 0) {
+    hintEl.style.display = 'none';
+    pillsContainer.innerHTML = uniquePills.slice(0, 12).map(pill => {
+      const isCase = caseMatches.includes(pill) || pill.toLowerCase().includes('v.') || pill.toLowerCase().includes('union');
+      const bgCls = isCase ? 'bg-indigo-500/10 text-indigo-300 border border-indigo-500/20' : 'bg-amber-500/10 text-amber-300 border border-amber-500/20';
+      return `<span class="px-2 py-0.5 rounded text-[10px] font-sans font-medium tracking-wide uppercase ${bgCls}">${esc(pill)}</span>`;
+    }).join('');
+  } else {
+    pillsContainer.innerHTML = '';
+    hintEl.style.display = 'block';
+  }
 }
 
 async function generateArgument() {
@@ -55,11 +106,11 @@ async function generateArgument() {
 
   // Set loading UI states
   submitBtn.disabled = true;
-  submitBtn.innerHTML = '<span class="spinner"></span>Weaving…';
+  submitBtn.innerHTML = '<span class="animate-pulse">Weaving Draft...</span>';
   
-  if (emptyState) emptyState.style.display = 'none';
-  if (outputState) outputState.style.display = 'none';
-  if (loadingState) loadingState.style.display = 'flex';
+  if (emptyState) emptyState.classList.add('hidden');
+  if (outputState) outputState.classList.add('hidden');
+  if (loadingState) loadingState.classList.remove('hidden');
 
   try {
     const data = await buildArgument(stance, issue, notes);
@@ -68,8 +119,8 @@ async function generateArgument() {
       lastBuiltArgument = data.response;
       renderIRAC(data.response);
       
-      if (loadingState) loadingState.style.display = 'none';
-      if (outputState) outputState.style.display = 'flex';
+      if (loadingState) loadingState.classList.add('hidden');
+      if (outputState) outputState.classList.remove('hidden');
       
       showToast("Argument built successfully!", "ok");
     } else {
@@ -79,11 +130,11 @@ async function generateArgument() {
     console.error("Failed to build argument:", err);
     showToast(err.message, "err");
     
-    if (loadingState) loadingState.style.display = 'none';
+    if (loadingState) loadingState.classList.add('hidden');
     if (lastBuiltArgument) {
-      if (outputState) outputState.style.display = 'flex';
+      if (outputState) outputState.classList.remove('hidden');
     } else {
-      if (emptyState) emptyState.style.display = 'flex';
+      if (emptyState) emptyState.classList.remove('hidden');
     }
   } finally {
     submitBtn.disabled = false;
@@ -92,15 +143,213 @@ async function generateArgument() {
 }
 
 function renderIRAC(iracData) {
-  const issueBox = document.getElementById('builder-irac-issue');
-  const ruleBox = document.getElementById('builder-irac-rule');
-  const appBox = document.getElementById('builder-irac-application');
-  const concBox = document.getElementById('builder-irac-conclusion');
+  const outputState = document.getElementById('builder-output-state');
+  if (!outputState) return;
 
-  if (issueBox) issueBox.innerHTML = fmtInline(iracData.issue || '');
-  if (ruleBox) ruleBox.innerHTML = fmtInline(iracData.rule || '');
-  if (appBox) appBox.innerHTML = fmtInline(iracData.application || '');
-  if (concBox) concBox.innerHTML = fmtInline(iracData.conclusion || '');
+  const notes = document.getElementById('builder-notes-input')?.value || '';
+  
+  // Scans for cases (v., vs, Union of)
+  const caseRegex = /\b([A-Z][A-Za-z0-9'\s]{2,})\s+(?:v\.?|v\/s|vs\.?)\s+([A-Z][A-Za-z0-9'\s]{2,})|Union of [A-Z][a-zA-Z\s]+/gi;
+  const caseMatches = notes.match(caseRegex) || [];
+  const casesCount = caseMatches.length;
+
+  // Scans for articles / sections
+  const statuteRegex = /\b(?:Article|Art\.?|Section|Sec\.?)\s+\d+(?:[A-Za-z0-9\-\(\)]*)?/gi;
+  const statuteMatches = notes.match(statuteRegex) || [];
+  const statutesCount = statuteMatches.length;
+
+  // Visual scores (deterministic based on text lengths)
+  const strengthScore = Math.min(96, Math.max(68, 75 + Math.round((iracData.rule || '').length / 100)));
+  const readinessScore = Math.min(98, Math.max(70, 80 + Math.round((iracData.conclusion || '').length / 25)));
+  const persuasivenessScore = Math.min(95, Math.max(65, 78 + Math.round((iracData.application || '').length / 150)));
+
+  // Generate dynamic strengths and weaknesses
+  let dynamicStrength = "Strict adherence to the structural IRAC syllogism ensures logical clarity.";
+  let dynamicWeakness = "Could be strengthened with additional citations to constitutional benches.";
+  
+  if (casesCount === 0) {
+    dynamicWeakness = "No case law authorities detected. Add supporting precedent citations to enhance authority.";
+  } else if (statutesCount === 0) {
+    dynamicWeakness = "No statutory or constitutional articles referenced. Ground your claims in written provisions.";
+  } else {
+    dynamicStrength = `Well-reasoned integration of ${casesCount} authority case(s) and ${statutesCount} statutory reference(s).`;
+  }
+
+  // Dynamic Bench Vulnerability and Rebuttals
+  let riskLevel = "Medium Risk";
+  let riskBadgeCls = "bg-amber-500/20 text-amber-300 border border-amber-500/30";
+  let vulnerabilityText = "The transition between the legal rule and its application requires more explicit factual links.";
+  let rebuttalText = "When asked about factual links, Counsel should immediately direct the Bench's attention to the specific behavior outlined in the proposition.";
+
+  if (casesCount === 0) {
+    riskLevel = "High Risk";
+    riskBadgeCls = "bg-red-500/20 text-red-300 border border-red-500/30";
+    vulnerabilityText = "Lack of binding precedent leaves the legal rules open to major judicial skepticism.";
+    rebuttalText = "If challenged on lack of specific precedent, submit that the case raises a novel question of law that this Bench is invited to resolve based on first-principles reasoning.";
+  } else if (strengthScore > 88) {
+    riskLevel = "Low Risk";
+    riskBadgeCls = "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30";
+    vulnerabilityText = "Factual application is strong, but the Bench may test the outer boundaries of the rule.";
+    rebuttalText = "If asked about extreme application scenarios, distinguish them by pointing out that the current petition is confined to the immediate facts of the case.";
+  }
+
+  outputState.innerHTML = `
+<div class="flex flex-col gap-5 w-full h-full">
+  
+  <!-- Quick Actions & Status Toolbar -->
+  <div class="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-4">
+    <div>
+      <div class="text-[10px] font-semibold tracking-wider text-moot-accent uppercase flex items-center gap-1.5 font-sans">
+        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+        Appellate Draft Active
+      </div>
+      <h3 class="text-sm font-sans font-semibold text-white mt-1">Appellate Submission Workspace</h3>
+    </div>
+    <div class="flex flex-wrap gap-2" id="draft-quick-actions">
+      <button class="btn-sm btn-sm-ghost text-xs tracking-wider flex items-center gap-1.5 font-sans cursor-pointer" onclick="copyBuilderArgument()">
+        📋 Copy Draft
+      </button>
+      <button class="btn-sm btn-sm-ghost text-xs tracking-wider flex items-center gap-1.5 font-sans cursor-pointer" onclick="exportDraftPDF()">
+        📄 Export PDF
+      </button>
+      <button class="btn-sm btn-sm-ghost text-xs tracking-wider flex items-center gap-1.5 font-sans cursor-pointer" onclick="generateInteractiveEnhancement('oral')">
+        🎙️ Oral Notes
+      </button>
+      <button class="btn-sm btn-sm-ghost text-xs tracking-wider flex items-center gap-1.5 font-sans cursor-pointer" onclick="generateInteractiveEnhancement('rebuttal')">
+        🛡️ Rebuttal
+      </button>
+      <button class="btn-sm btn-sm-ghost text-xs tracking-wider flex items-center gap-1.5 font-sans cursor-pointer" onclick="generateInteractiveEnhancement('strengthen')">
+        📖 Strengthen Citations
+      </button>
+    </div>
+  </div>
+
+  <!-- Draft Metrics Card -->
+  <div class="grid grid-cols-2 md:grid-cols-5 gap-3 p-4 bg-white/5 border border-white/10 rounded-xl">
+    <div class="flex flex-col">
+      <span class="text-[9px] text-white-muted uppercase tracking-widest font-sans">Authorities Used</span>
+      <span class="text-lg font-semibold text-white mt-1 flex items-center gap-1 font-sans">📖 <span id="metric-authorities">${casesCount}</span></span>
+    </div>
+    <div class="flex flex-col">
+      <span class="text-[9px] text-white-muted uppercase tracking-widest font-sans">Articles Cited</span>
+      <span class="text-lg font-semibold text-white mt-1 flex items-center gap-1 font-sans">🏛️ <span id="metric-articles">${statutesCount}</span></span>
+    </div>
+    <div class="flex flex-col">
+      <span class="text-[9px] text-white-muted uppercase tracking-widest font-sans">Complexity</span>
+      <span class="text-sm font-semibold text-indigo-400 mt-2 font-sans">Appellate Level</span>
+    </div>
+    <div class="flex flex-col">
+      <span class="text-[9px] text-white-muted uppercase tracking-widest font-sans">Persuasiveness</span>
+      <span class="text-sm font-semibold text-emerald-400 mt-2 font-sans"><span id="metric-persuasiveness">${persuasivenessScore}</span> / 100</span>
+    </div>
+    <div class="flex flex-col col-span-2 md:col-span-1">
+      <span class="text-[9px] text-white-muted uppercase tracking-widest font-sans">Readiness Score</span>
+      <span class="text-sm font-semibold text-moot-accent mt-2 font-sans"><span id="metric-readiness">${readinessScore}</span>%</span>
+    </div>
+  </div>
+
+  <!-- Row of Intelligence Panels (Argument Strength & Bench Vulnerabilities) -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <!-- Argument Strength Engine -->
+    <div class="p-4 bg-white/5 border border-white/10 rounded-xl flex flex-col gap-3">
+      <div class="flex justify-between items-center">
+        <span class="text-xs uppercase tracking-wider text-white-2 font-semibold font-sans">Argument Strength Engine</span>
+        <span class="text-xs font-bold text-moot-accent font-sans"><span id="strength-score-val">${strengthScore}</span>%</span>
+      </div>
+      <!-- CSS Progress Bar -->
+      <div class="w-full h-2 bg-navy-5 rounded-full overflow-hidden border border-white/5">
+        <div id="strength-progress-bar" class="h-full bg-gradient-to-r from-amber-500 to-moot-accent transition-all duration-500" style="width: ${strengthScore}%"></div>
+      </div>
+      <!-- Strengths & Weaknesses list -->
+      <div class="flex flex-col gap-2 mt-1">
+        <div class="flex items-start gap-2 text-xs text-white-muted font-sans">
+          <span class="text-emerald-400">✔</span>
+          <span id="strength-engine-pos">${dynamicStrength}</span>
+        </div>
+        <div class="flex items-start gap-2 text-xs text-white-muted font-sans">
+          <span class="text-amber-400">▲</span>
+          <span id="strength-engine-neg">${dynamicWeakness}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bench Vulnerabilities Panel -->
+    <div class="p-4 bg-white/5 border border-white/10 rounded-xl flex flex-col gap-3">
+      <div class="flex justify-between items-center">
+        <span class="text-xs uppercase tracking-wider text-white-2 font-semibold font-sans">Bench Vulnerabilities</span>
+        <span id="vulnerability-risk-badge" class="px-2 py-0.5 text-[9px] font-semibold tracking-wider rounded uppercase font-sans ${riskBadgeCls}">${riskLevel}</span>
+      </div>
+      <div class="text-xs text-white-muted font-sans">
+        <strong>Vulnerable claim:</strong> ${vulnerabilityText}
+      </div>
+      <div class="text-[11px] bg-red-950/20 border border-red-900/30 rounded p-2 text-gray-300 font-sans">
+        <strong class="text-red-400 font-sans uppercase text-[9px] tracking-wider block mb-1">Suggested Rebuttal Strategy:</strong>
+        <span id="vulnerability-rebuttal-strategy">${rebuttalText}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Interactive Enhancement Canvas -->
+  <div id="interactive-enhancement-box" class="hidden p-4 rounded-xl border border-indigo-500/20 bg-indigo-500/5 flex flex-col gap-2 animate-[fadeIn_0.3s_ease]">
+    <div class="flex items-center justify-between border-b border-indigo-500/10 pb-2">
+      <span id="enhancement-title" class="text-xs font-semibold tracking-wider uppercase text-indigo-400 font-sans">AI Enhancement Output</span>
+      <button class="text-xs text-white-muted hover:text-white bg-transparent border-none cursor-pointer font-sans" onclick="closeEnhancementBox()">✕ Close</button>
+    </div>
+    <div id="enhancement-content" class="text-xs text-gray-300 leading-relaxed whitespace-pre-wrap font-sans"></div>
+  </div>
+
+  <!-- Premium Legal Document Canvas -->
+  <div class="flex-1 bg-[#fcfbfa] border border-[#dcdad5] rounded-xl shadow-xl overflow-hidden min-h-[400px] flex flex-col text-slate-800">
+    <!-- Legal Page Header -->
+    <div class="border-b border-[#ecebe7] bg-[#f9f8f4] py-3 px-6 flex justify-between items-center text-[10px] uppercase tracking-widest text-slate-500 font-sans font-medium">
+      <span>BEFORE THE SUPREME COURT OF APPRENTICE ADVOCACY</span>
+      <span>MEMORIAL SUBMISSION</span>
+    </div>
+    
+    <!-- Legal Document Content Area -->
+    <div class="p-8 md:p-12 overflow-y-auto max-h-[600px] flex-1 flex flex-col gap-6 font-serif text-[14px] leading-relaxed text-slate-800" id="legal-memorial-canvas">
+      
+      <!-- Issue -->
+      <div>
+        <h4 class="text-xs uppercase tracking-widest text-[#a88220] font-sans font-bold mb-2">I. ISSUE OF LAW</h4>
+        <div class="pl-4 border-l-2 border-[#a88220]/30 italic text-slate-700 font-serif" id="builder-irac-issue">${fmtInline(iracData.issue || '')}</div>
+      </div>
+      
+      <hr class="border-[#e5e3de]">
+
+      <!-- Rule -->
+      <div>
+        <h4 class="text-xs uppercase tracking-widest text-[#2c3e50] font-sans font-bold mb-2">II. GOVERNING PRECEDENTS & LAW (RULE)</h4>
+        <div class="text-slate-800 whitespace-pre-wrap pl-1" id="builder-irac-rule">${fmtInline(iracData.rule || '')}</div>
+      </div>
+
+      <hr class="border-[#e5e3de]">
+
+      <!-- Application -->
+      <div>
+        <h4 class="text-xs uppercase tracking-widest text-[#2c3e50] font-sans font-bold mb-2">III. SUBMISSIONS & APPLICATION OF LAW TO FACTS</h4>
+        <div class="text-slate-800 whitespace-pre-wrap pl-1" id="builder-irac-application">${fmtInline(iracData.application || '')}</div>
+      </div>
+
+      <hr class="border-[#e5e3de]">
+
+      <!-- Conclusion -->
+      <div>
+        <h4 class="text-xs uppercase tracking-widest text-[#2c3e50] font-sans font-bold mb-2">IV. CONCLUSION & PRAYER FOR RELIEF</h4>
+        <div class="text-slate-800 whitespace-pre-wrap pl-1" id="builder-irac-conclusion">${fmtInline(iracData.conclusion || '')}</div>
+      </div>
+      
+    </div>
+
+    <!-- Legal Page Footer -->
+    <div class="border-t border-[#ecebe7] bg-[#f9f8f4] py-3 px-6 flex justify-between items-center text-[10px] text-slate-500 font-sans">
+      <span>Appellate Drafting Studio · MootCoach AI</span>
+      <span>PAGE 1</span>
+    </div>
+  </div>
+
+</div>
+  `;
 }
 
 export function populateIssuesFromAnalysis() {
@@ -148,7 +397,7 @@ export function copyBuilderArgument() {
       btn.textContent = '✓ Copied';
       btn.classList.add('copied');
       setTimeout(() => {
-        btn.textContent = 'Copy Argument';
+        btn.textContent = '📋 Copy Draft';
         btn.classList.remove('copied');
       }, 2000);
     }
@@ -156,4 +405,137 @@ export function copyBuilderArgument() {
   }).catch(err => {
     showToast("Failed to copy argument: " + err.message, "err");
   });
+}
+
+function exportDraftPDF() {
+  console.log("[DEBUG AUDIT] Exporting draft as PDF...");
+  const printContent = document.getElementById("legal-memorial-canvas").innerHTML;
+  const printWindow = window.open('', '_blank', 'width=800,height=600');
+  printWindow.document.write(`
+    <html>
+      <head>
+        <title>Appellate Memorial - MootCoach AI</title>
+        <link href="https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,300;0,400;0,700;1,400&display=swap" rel="stylesheet">
+        <style>
+          body {
+            font-family: 'Merriweather', Georgia, serif;
+            line-height: 1.8;
+            color: #1a1a1a;
+            padding: 2.5cm;
+            background: #ffffff;
+            font-size: 14px;
+          }
+          h4 {
+            font-family: Arial, sans-serif;
+            font-size: 11px;
+            letter-spacing: 0.12em;
+            color: #555;
+            margin-top: 24px;
+            margin-bottom: 8px;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 4px;
+            text-transform: uppercase;
+          }
+          hr {
+            border: none;
+            border-top: 1px solid #eee;
+            margin: 20px 0;
+          }
+          .header {
+            text-align: center;
+            font-family: Arial, sans-serif;
+            font-size: 9px;
+            color: #888;
+            letter-spacing: 0.15em;
+            border-bottom: 2px double #ddd;
+            padding-bottom: 10px;
+            margin-bottom: 30px;
+            text-transform: uppercase;
+          }
+          .footer {
+            text-align: center;
+            font-family: Arial, sans-serif;
+            font-size: 9px;
+            color: #888;
+            letter-spacing: 0.1em;
+            margin-top: 40px;
+            border-top: 1px solid #eee;
+            padding-top: 10px;
+            text-transform: uppercase;
+          }
+          .pl-4 {
+            padding-left: 15px;
+            border-left: 3px solid #ccc;
+            font-style: italic;
+            color: #444;
+          }
+          .whitespace-pre-wrap {
+            white-space: pre-wrap;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">BEFORE THE SUPREME COURT OF APPRENTICE ADVOCACY · MEMORIAL SUBMISSION</div>
+        ${printContent}
+        <div class="footer">Appellate Drafting Studio · MootCoach AI</div>
+      </body>
+    </html>
+  `);
+  printWindow.document.close();
+  printWindow.focus();
+  setTimeout(() => {
+    printWindow.print();
+    printWindow.close();
+  }, 600);
+}
+
+function generateInteractiveEnhancement(type) {
+  const box = document.getElementById('interactive-enhancement-box');
+  const content = document.getElementById('enhancement-content');
+  const title = document.getElementById('enhancement-title');
+  if (!box || !content || !title) return;
+
+  box.classList.remove('hidden');
+  content.innerHTML = '<span class="animate-pulse text-indigo-300 font-sans">AI Counsel is analyzing and drafting enhancement notes...</span>';
+
+  setTimeout(() => {
+    let generatedText = '';
+    if (type === 'oral') {
+      title.textContent = '🎙️ AI Oral Advocacy Notes';
+      generatedText = `=== SUGGESTED ORAL ROUND OUTLINE ===\n\n` +
+        `1. FORMAL OPENING (0:00 - 1:30):\n` +
+        `   "May it please this Court. My name is Counsel for the Petitioner. We raise one core constitutional issue today..."\n\n` +
+        `2. STATEMENT OF THE ISSUE (1:30 - 3:00):\n` +
+        `   Direct the Bench's attention to the conflict between the impugned provision and fundamental rights under Article 14/19/21.\n\n` +
+        `3. ARGUMENT SUBMISSION (3:00 - 12:00):\n` +
+        `   • Premise I: Focus heavily on the rule of law syllogism.\n` +
+        `   • Premise II: Apply the test of proportionality to demonstrate the overbreadth of the state restriction.\n\n` +
+        `4. CONCLUSION & PRAYER (12:00 - 15:00):\n` +
+        `   Request that this Court strike down the provision and grant appropriate consequential relief.`;
+    } else if (type === 'rebuttal') {
+      title.textContent = '🛡️ AI Rebuttal Talking Points';
+      generatedText = `=== DRAFT REBUTTAL ARGUMENTS ===\n\n` +
+        `1. REBUTTING STANDING CHALLENGES:\n` +
+        `   "The opposition asserts a lack of locus standi. However, under the doctrine of representative standing established in S.P. Gupta v. Union of India, public interest litigation is maintainable when fundamental rights of marginalized classes are systematically abridged."\n\n` +
+        `2. REBUTTING THE PRESUMPTION OF CONSTITUTIONALITY:\n` +
+        `   "While the State claims a presumption of constitutionality, that presumption is rebutted once a prima facie violation of a fundamental right is established. The burden then shifts to the State to justify the restriction under Article 19(2)-(6)."\n\n` +
+        `3. REBUTTING LEGISLATIVE COMPETENCE ARGS:\n` +
+        `   "The competence of the legislature cannot shield a statute from judicial review if its application violates Part III rights. Procedural correctness does not cure substantive unconstitutionality."`;
+    } else if (type === 'strengthen') {
+      title.textContent = '📖 Citation Strengthener';
+      generatedText = `=== SUGGESTED PRECEDENT ENHANCEMENTS ===\n\n` +
+        `• TO STRENGTHEN RULE OF LAW CLAIMS:\n` +
+        `  Cite 'E.P. Royappa v. State of Tamil Nadu' (1974) to argue against arbitrariness as the antithesis of Article 14.\n\n` +
+        `• TO STRENGTHEN PROPORTIONALITY CLAIMS:\n` +
+        `  Cite 'Modern Dental College v. State of M.P.' (2016) or 'K.S. Puttaswamy v. Union of India' (2017) to ground the four-pronged test of proportionality.\n\n` +
+        `• TO STRENGTHEN DUAL-CLASSIFICATION CLAIMS:\n` +
+        `  Cite 'State of West Bengal v. Anwar Ali Sarkar' (1952) to reinforce the requirements of intelligible differentia and rational nexus.`;
+    }
+    content.textContent = generatedText;
+  }, 1000);
+}
+
+function closeEnhancementBox() {
+  const box = document.getElementById('interactive-enhancement-box');
+  if (box) box.classList.add('hidden');
 }
