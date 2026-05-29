@@ -43,7 +43,7 @@ const aiLimiter = rateLimit({
   }
 });
 
-function extractAndParseJSON(text) {
+function extractAndParseJSON_legacy(text) {
   if (!text) throw new Error("Empty text provided");
   let cleanText = text.trim();
   
@@ -76,6 +76,108 @@ function extractAndParseJSON(text) {
   }
 
   throw new Error("Invalid JSON structure returned by AI");
+}
+
+function extractAndParseJSON(rawResponse, isIrac = false) {
+  console.log(
+    '[RAW AI RESPONSE START]\n',
+    rawResponse,
+    '\n[RAW AI RESPONSE END]'
+  );
+  console.log('[RAW RESPONSE LENGTH]', rawResponse?.length);
+
+  // Stage A: Normalize input.
+  let cleaned = String(rawResponse || '').trim();
+
+  // Remove markdown fences:
+  cleaned = cleaned
+    .replace(/```json/gi, '')
+    .replace(/```/g, '')
+    .trim();
+
+  // Stage B: Locate first opening brace and last closing brace.
+  const start = cleaned.indexOf('{');
+  const end = cleaned.lastIndexOf('}');
+
+  if (start === -1 || end === -1 || end <= start) {
+    console.error('[JSON PARSE FAILURE]');
+    console.error(cleaned);
+    console.error(new Error('No JSON object found'));
+    // Fallback to legacy parser
+    return extractAndParseJSON_legacy(rawResponse);
+  }
+
+  // Extract only the JSON region:
+  cleaned = cleaned.slice(start, end + 1);
+
+  let parsed = null;
+  let parseError = null;
+
+  // Stage C: Attempt parse.
+  try {
+    parsed = JSON.parse(cleaned);
+  } catch (err) {
+    console.warn('[PRIMARY PARSE FAILED]', err);
+    parseError = err;
+
+    // Stage D: Recovery pass.
+    // Normalize rogue control characters:
+    const repaired = cleaned
+      .replace(/\r/g, '\\r')
+      .replace(/\n/g, '\\n')
+      .replace(/\t/g, '\\t');
+
+    try {
+      parsed = JSON.parse(repaired);
+    } catch (recoveryErr) {
+      console.error('[RECOVERY PARSE FAILED]', recoveryErr);
+      parseError = recoveryErr;
+    }
+  }
+
+  // If primary and recovery failed, fallback to legacy
+  if (!parsed) {
+    console.error('[JSON PARSE FAILURE]');
+    console.error(cleaned);
+    if (parseError) console.error(parseError);
+
+    try {
+      parsed = extractAndParseJSON_legacy(rawResponse);
+    } catch (legacyErr) {
+      throw new Error("Invalid JSON structure returned by AI");
+    }
+  }
+
+  // STEP 4 — Validation
+  if (isIrac) {
+    try {
+      const required = [
+        'issue',
+        'rule',
+        'application',
+        'conclusion'
+      ];
+
+      for (const key of required) {
+        if (
+          !parsed[key] ||
+          typeof parsed[key] !== 'string' ||
+          !parsed[key].trim()
+        ) {
+          throw new Error(
+            `Missing required field: ${key}`
+          );
+        }
+      }
+    } catch (valErr) {
+      console.error('[VALIDATION FAILURE]');
+      console.error(parsed);
+      throw valErr;
+    }
+  }
+
+  console.log('[JSON PARSE SUCCESS]');
+  return parsed;
 }
 
 function parsePdfAsync(buffer) {
@@ -442,7 +544,7 @@ Generate the IRAC argument strictly based on the proposition facts.`
       requestLabel: "Build Argument IRAC"
     });
 
-    const data = extractAndParseJSON(responseCall.text);
+    const data = extractAndParseJSON(responseCall.text, true);
     return res.json({ success: true, response: data });
   } catch (error) {
     console.error("/api/build-argument error:", error);
