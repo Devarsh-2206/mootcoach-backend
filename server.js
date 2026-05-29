@@ -473,8 +473,8 @@ app.post("/api/log-session", aiLimiter, express.json(), async (req, res) => {
   }
 });
 
-const PORT = process.env.PORT || 3000;
-const server = app.listen(PORT, () => {
+const PORT = process.env.PORT || 10000;
+const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 MootCoach AI running on port ${PORT}`);
 });
 
