@@ -6,7 +6,8 @@ import {
   esc, 
   fmtInline, 
   showWsPanel, 
-  toggleSection 
+  toggleSection,
+  lastAnalysis
 } from './ui.js';
 import { 
   startOralRound as engineStartOralRound, 
@@ -26,6 +27,7 @@ export let voiceSessionStartTime = null;
 let recognition = null;
 let voiceTimerInterval = null;
 let voiceElapsedTime = 0;
+let localTtsSpeaking = false;
 
 // Expose benchActive on window for UI checks (e.g. showWsPanel)
 window.benchActive = false;
@@ -370,6 +372,95 @@ function getDeterministicJudge(str) {
   return `Justice ${JUDGE_NAMES[index].replace("Justice ", "")}`;
 }
 
+function getOpeningStatement() {
+  const genericOpening = "Counsel, please summarize the principal constitutional issue before this Bench.";
+  
+  if (!lastAnalysis) {
+    console.log("[DEBUG AUDIT] No lastAnalysis found, using generic opening statement.");
+    return genericOpening;
+  }
+
+  try {
+    const analysis = JSON.parse(lastAnalysis);
+    if (analysis && analysis.legalIssues && analysis.legalIssues.length > 0) {
+      const issue = analysis.legalIssues[0];
+      let cleanedIssue = issue.replace(/^(issue\s*\d+\s*:?\s*|whether\s+)/i, '').trim();
+      cleanedIssue = cleanedIssue.charAt(0).toUpperCase() + cleanedIssue.slice(1);
+      
+      if (!cleanedIssue.endsWith('?') && !cleanedIssue.endsWith('.')) {
+        cleanedIssue += '?';
+      }
+      
+      const dynamicOpening = `Counsel, the Bench would like you to address: ${cleanedIssue}`;
+      console.log("[DEBUG AUDIT] Generated dynamic proposition-aware opening statement:", dynamicOpening);
+      return dynamicOpening;
+    }
+  } catch (err) {
+    console.warn("Failed to parse lastAnalysis for opening statement:", err);
+  }
+
+  console.log("[DEBUG AUDIT] Parsing failed or no issues found, using generic opening statement.");
+  return genericOpening;
+}
+
+export function playJudgeAudio(text, callback) {
+  console.log("[DEBUG AUDIT] playJudgeAudio starting for text:", text);
+  if (!('speechSynthesis' in window)) {
+    console.warn("speechSynthesis not supported, executing callback directly.");
+    if (callback) callback();
+    return;
+  }
+
+  // Cancel any ongoing speech
+  window.speechSynthesis.cancel();
+
+  const utterance = new SpeechSynthesisUtterance(text);
+  
+  const voices = window.speechSynthesis.getVoices();
+  const preferredVoice = voices.find(v => v.name.includes("Google US English") || v.name.includes("Microsoft David") || v.lang === "en-US");
+  if (preferredVoice) utterance.voice = preferredVoice;
+  
+  utterance.rate = 1.0;
+  utterance.pitch = 0.9; // Slightly lower pitch for authority
+
+  utterance.onend = () => {
+    console.log("[DEBUG AUDIT] playJudgeAudio utterance.onend fired.");
+    if (callback) callback();
+  };
+
+  utterance.onerror = (e) => {
+    console.error("[DEBUG AUDIT] playJudgeAudio error:", e);
+    if (callback) callback();
+  };
+
+  window.speechSynthesis.speak(utterance);
+}
+
+function triggerJudgeOpeningStatement() {
+  console.log("[DEBUG AUDIT] Triggering Judge opening statement...");
+  updateBenchState('speaking');
+  localTtsSpeaking = true;
+  
+  const openingText = getOpeningStatement();
+  appendTranscript('judge', openingText);
+  console.log("[DEBUG AUDIT] Opening statement text appended to transcript:", openingText);
+
+  // Play opening statement via TTS
+  playJudgeAudio(openingText, () => {
+    console.log("[DEBUG AUDIT] Opening statement TTS completed.");
+    localTtsSpeaking = false;
+    updateBenchState('listening');
+    if (recognition) {
+      try {
+        recognition.start();
+        console.log("[DEBUG AUDIT] Microphone activated after opening statement.");
+      } catch (err) {
+        console.warn("Failed to start recognition:", err);
+      }
+    }
+  });
+}
+
 export function updateBenchState(state) {
   window.voiceStatus = state;
 
@@ -498,11 +589,31 @@ export async function startOralRound() {
         if (status === 'connecting') {
           updateBenchState('connecting');
         } else if (status === 'ready') {
-          updateBenchState('ready');
+          triggerJudgeOpeningStatement();
         } else if (status === 'listening') {
-          updateBenchState('listening');
+          if (!localTtsSpeaking) {
+            updateBenchState('listening');
+            if (recognition) {
+              try {
+                recognition.start();
+                console.log("[DEBUG AUDIT] Microphone activated from engine listening status.");
+              } catch (e) {
+                // Ignore if already started
+              }
+            }
+          } else {
+            console.log("[DEBUG AUDIT] Ignored engine status 'listening' because local TTS is speaking.");
+          }
         } else if (status === 'speaking') {
           updateBenchState('speaking');
+          if (recognition) {
+            try {
+              recognition.stop();
+              console.log("[DEBUG AUDIT] Mic stopped because Judge is speaking.");
+            } catch (e) {
+              console.warn("Failed to stop recognition:", e);
+            }
+          }
         } else if (status === 'user_speaking') {
           updateBenchState('listening');
         } else if (status === 'processing') {
@@ -528,6 +639,18 @@ export async function startOralRound() {
         if (voiceSessionActive) {
           stopOralRound();
         }
+      },
+      onPlaybackComplete: () => {
+        console.log("[DEBUG AUDIT] Gemini Live playback completed. Activating mic...");
+        updateBenchState('listening');
+        if (recognition) {
+          try {
+            recognition.start();
+            console.log("[DEBUG AUDIT] Microphone activated after Gemini response.");
+          } catch (err) {
+            console.warn("Failed to start recognition:", err);
+          }
+        }
       }
     });
   } catch (err) {
@@ -541,6 +664,7 @@ export function stopOralRound() {
   if (!voiceSessionActive) return;
   console.log("🎙️ Stopping oral round...");
   voiceSessionActive = false;
+  localTtsSpeaking = false;
 
   const btnOral = document.getElementById('btn-bench-oral');
   const btnStart = document.getElementById('btn-bench-start');
@@ -556,6 +680,10 @@ export function stopOralRound() {
 
   stopVoiceTimer();
   stopSpeechRecognition();
+
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.cancel();
+  }
 
   const durationSec = engineStopOralRound();
   updateBenchState('ended');
@@ -720,20 +848,27 @@ function startSpeechRecognition() {
   };
 
   recognition.onerror = (e) => {
+    if (e.error === 'no-speech') {
+      console.warn('No speech detected');
+      return;
+    }
     console.error("Local Speech Recognition error:", e.error);
   };
 
   recognition.onend = () => {
-    if (voiceSessionActive) {
-      try { recognition.start(); } catch(err){}
+    if (voiceSessionActive && window.voiceStatus === 'listening') {
+      setTimeout(() => {
+        try {
+          if (voiceSessionActive && window.voiceStatus === 'listening') {
+            recognition.start();
+            console.log("[DEBUG AUDIT] Mic restarted in onend.");
+          }
+        } catch (err) {
+          console.error('Mic restart failed', err);
+        }
+      }, 800);
     }
   };
-
-  try {
-    recognition.start();
-  } catch (err) {
-    console.error("Failed to start Speech Recognition:", err);
-  }
 }
 
 function stopSpeechRecognition() {

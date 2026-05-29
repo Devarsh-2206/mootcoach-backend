@@ -11,6 +11,9 @@ let voiceNextPlayTime = 0;
 let voicePlaybackSources = [];
 let micAnalyser = null;
 let playbackAnalyser = null;
+let latestPlaybackSource = null;
+let isTurnCompleteReceived = false;
+let onPlaybackCompleteCallback = null;
 
 function getWsUrl() {
   return BASE_URL.replace(/^http/, 'ws') + '/ws/voice';
@@ -55,6 +58,15 @@ export function stopVoicePlayback() {
   });
   voicePlaybackSources = [];
   voiceNextPlayTime = 0;
+  latestPlaybackSource = null;
+}
+
+function triggerTurnComplete() {
+  console.log("[DEBUG AUDIT] triggerTurnComplete: invoking onPlaybackCompleteCallback...");
+  isTurnCompleteReceived = false;
+  if (onPlaybackCompleteCallback) {
+    onPlaybackCompleteCallback();
+  }
 }
 
 export function scheduleVoicePlayback(float32Array) {
@@ -80,23 +92,34 @@ export function scheduleVoicePlayback(float32Array) {
   voiceNextPlayTime = startTime + buffer.duration;
   
   voicePlaybackSources.push(source);
+  latestPlaybackSource = source;
 
   source.onended = () => {
     const idx = voicePlaybackSources.indexOf(source);
     if (idx > -1) {
       voicePlaybackSources.splice(idx, 1);
     }
+    if (source === latestPlaybackSource) {
+      latestPlaybackSource = null;
+      console.log("[DEBUG AUDIT] Latest scheduled audio source onended fired. Remaining sources in queue:", voicePlaybackSources.length);
+      if (isTurnCompleteReceived) {
+        triggerTurnComplete();
+      }
+    }
   };
 }
 
 export async function startOralRound(callbacks) {
-  const { onStatusChange, onAudio, onText, onInterrupted, onTurnComplete, onError, onClose } = callbacks;
+  const { onStatusChange, onAudio, onText, onInterrupted, onTurnComplete, onPlaybackComplete, onError, onClose } = callbacks;
 
   console.log("🎙️ Initiating oral round...");
   voiceSessionActive = true;
   voiceSessionStartTime = Date.now();
   voiceNextPlayTime = 0;
   voicePlaybackSources = [];
+  latestPlaybackSource = null;
+  isTurnCompleteReceived = false;
+  onPlaybackCompleteCallback = onPlaybackComplete;
 
   try {
     const wsUrl = getWsUrl();
@@ -237,8 +260,11 @@ export async function startOralRound(callbacks) {
           onStatusChange('listening', 'Listening...');
           if (onInterrupted) onInterrupted();
         } else if (msg.type === 'turnComplete') {
-          onStatusChange('listening', 'Listening...');
-          if (onTurnComplete) onTurnComplete();
+          console.log("[DEBUG AUDIT] turnComplete received from server.");
+          isTurnCompleteReceived = true;
+          if (voicePlaybackSources.length === 0) {
+            triggerTurnComplete();
+          }
         } else if (msg.type === 'error') {
           console.error("Voice server error:", msg.message);
           if (onError) onError(msg.message);
