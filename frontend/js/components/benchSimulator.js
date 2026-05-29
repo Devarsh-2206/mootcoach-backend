@@ -424,13 +424,18 @@ export function playJudgeAudio(text, callback) {
   utterance.rate = 1.0;
   utterance.pitch = 0.9; // Slightly lower pitch for authority
 
+  console.log('[TTS] Starting');
+  console.log('[TTS] Voice:', utterance.voice?.name);
+
   utterance.onend = () => {
     console.log("[DEBUG AUDIT] playJudgeAudio utterance.onend fired.");
+    console.log('[TTS] Finished');
     if (callback) callback();
   };
 
   utterance.onerror = (e) => {
     console.error("[DEBUG AUDIT] playJudgeAudio error:", e);
+    console.log('[TTS] Finished');
     if (callback) callback();
   };
 
@@ -460,12 +465,12 @@ export function updateBenchState(state) {
   currentBenchState = state;
   updateDiagTimestamp(`State: ${state}`);
 
-  // Enforce strict turn taking: stop mic recognition if we enter non-listening states
+  // Enforce strict turn taking: stop/abort mic recognition if we enter non-listening states
   if (state === 'speaking' || state === 'processing' || state === 'connecting' || state === 'ended' || state === 'permission_denied') {
     if (recognition) {
       try {
-        recognition.stop();
-        console.log(`[VOICE] Stopped recognition because state is ${state}`);
+        recognition.abort();
+        console.log(`[VOICE] Aborted recognition because state is ${state}`);
         updateDiagActive(false);
       } catch (err) {
         // already stopped or not active
@@ -544,6 +549,17 @@ export async function startOralRound() {
   if (voiceSessionActive) {
     stopOralRound();
     return;
+  }
+
+  // Unlock SpeechSynthesis for mobile/iOS by playing a silent utterance in the direct click handler
+  if ('speechSynthesis' in window) {
+    try {
+      const silentUtterance = new SpeechSynthesisUtterance('');
+      window.speechSynthesis.speak(silentUtterance);
+      console.log("[DEBUG AUDIT] Warmed up SpeechSynthesis for iOS/mobile");
+    } catch (e) {
+      console.warn("Failed to warm up SpeechSynthesis:", e);
+    }
   }
 
   let fullJudgeResponse = '';
@@ -947,6 +963,7 @@ function startSpeechRecognition() {
   recognition.onstart = () => {
     console.log("🎙️ Local Speech Recognition active.");
     console.log("[VOICE] Recognition started");
+    console.log('[MIC] Started');
     updateDiagActive(true);
     updateDiagTimestamp('Recognition started');
   };
@@ -987,6 +1004,7 @@ function startSpeechRecognition() {
 
     if (finalTranscript) {
       console.log("[DEBUG AUDIT] User speech captured (final):", finalTranscript);
+      console.log('[MIC] Result:', finalTranscript);
       appendTranscript('advocate', finalTranscript);
       console.log("[DEBUG AUDIT] Advocate transcript appended:", finalTranscript);
       benchConversation.push({ role: 'advocate', content: finalTranscript });
@@ -1024,6 +1042,7 @@ function startSpeechRecognition() {
 
   recognition.onend = () => {
     console.log("[VOICE] Recognition ended");
+    console.log('[MIC] Ended');
     updateDiagActive(false);
     updateDiagTimestamp('Recognition ended');
     
@@ -1045,7 +1064,7 @@ function startSpeechRecognition() {
 function stopSpeechRecognition() {
   if (recognition) {
     recognition.onend = null;
-    try { recognition.stop(); } catch(e){}
+    try { recognition.abort(); } catch(e){}
     recognition = null;
   }
 }

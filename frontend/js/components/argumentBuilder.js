@@ -14,6 +14,8 @@ export let lastBuiltArgument = null;
 export let storedOralNotes = '';
 export let storedRebuttals = '';
 export let storedCitations = '';
+export let storedMemorialHTML = '';
+export let activePackTab = 'speech';
 let activeTriggerElement = null;
 
 export function initArgumentBuilder() {
@@ -47,6 +49,9 @@ export function initArgumentBuilder() {
   window.exportDraftPDF = exportDraftPDF;
   window.openAuxPanel = openAuxPanel;
   window.closeAuxPanel = closeAuxPanel;
+  window.openMemorialViewer = openMemorialViewer;
+  window.closeMemorialViewer = closeMemorialViewer;
+  window.copyMemorial = copyMemorial;
 
   // Bind close panel listeners
   const closeBtn = document.getElementById('aux-panel-close-btn');
@@ -55,7 +60,15 @@ export function initArgumentBuilder() {
     closeBtn.addEventListener('click', closeAuxPanel);
   }
   if (overlay) {
-    overlay.addEventListener('click', closeAuxPanel);
+    overlay.addEventListener('click', () => {
+      closeAuxPanel();
+      closeMemorialViewer();
+    });
+  }
+
+  const memorialCloseBtn = document.getElementById('memorial-panel-close-btn');
+  if (memorialCloseBtn) {
+    memorialCloseBtn.addEventListener('click', closeMemorialViewer);
   }
 
   // Bind panel action buttons
@@ -67,6 +80,17 @@ export function initArgumentBuilder() {
   if (printBtn) {
     printBtn.addEventListener('click', () => {
       exportDraftPDF('aux-panel-content');
+    });
+  }
+
+  const memorialCopyBtn = document.getElementById('btn-memorial-copy');
+  if (memorialCopyBtn) {
+    memorialCopyBtn.addEventListener('click', copyMemorial);
+  }
+  const memorialPrintBtn = document.getElementById('btn-memorial-print');
+  if (memorialPrintBtn) {
+    memorialPrintBtn.addEventListener('click', () => {
+      exportDraftPDF('memorial-viewer-canvas');
     });
   }
 }
@@ -223,23 +247,60 @@ function renderIRAC(iracData) {
   }
 
   // Extract and store formatted HTML for the side panel suggestions
-  storedOralNotes = `
-    <div class="space-y-4">
-      <h4 class="text-sm font-semibold text-indigo-400 uppercase tracking-wider font-sans mb-2">🎙️ Oral Advocacy Notes</h4>
-      <div class="text-xs text-gray-300 whitespace-pre-wrap font-sans bg-white/[0.02] p-4 border border-white/5 rounded-lg leading-relaxed">${getOralNotesContent()}</div>
+  storedOralNotes = getUpgradedOralNotes(iracData, stance, issue);
+  storedRebuttals = getUpgradedRebuttals(iracData, stance);
+  storedCitations = getUpgradedCitations(notes);
+
+  // Store memorial HTML separately
+  storedMemorialHTML = `
+  <div class="flex-1 bg-[#fcfbfa] border border-[#dcdad5] rounded-xl shadow-xl overflow-hidden min-h-[400px] flex flex-col text-slate-800">
+    <!-- Legal Page Header -->
+    <div class="border-b border-[#ecebe7] bg-[#f9f8f4] py-3 px-6 flex justify-between items-center text-[10px] uppercase tracking-widest text-slate-500 font-sans font-medium">
+      <span>BEFORE THE SUPREME COURT OF APPRENTICE ADVOCACY</span>
+      <span>MEMORIAL SUBMISSION</span>
     </div>
-  `;
-  storedRebuttals = `
-    <div class="space-y-4">
-      <h4 class="text-sm font-semibold text-red-400 uppercase tracking-wider font-sans mb-2">🛡️ Rebuttal Notes</h4>
-      <div class="text-xs text-gray-300 whitespace-pre-wrap font-sans bg-white/[0.02] p-4 border border-white/5 rounded-lg leading-relaxed">${getRebuttalNotesContent()}</div>
+    
+    <!-- Legal Document Content Area -->
+    <div class="p-8 md:p-12 flex-1 flex flex-col gap-6 font-serif text-[14px] leading-relaxed text-slate-800" id="memorial-viewer-canvas">
+      
+      <!-- Issue -->
+      <div>
+        <h4 class="text-xs uppercase tracking-widest text-[#a88220] font-sans font-bold mb-2">I. ISSUE OF LAW</h4>
+        <div class="pl-4 border-l-2 border-[#a88220]/30 italic text-slate-700 font-serif">${fmtInline(iracData.issue || '')}</div>
+      </div>
+      
+      <hr class="border-[#e5e3de]">
+
+      <!-- Rule -->
+      <div>
+        <h4 class="text-xs uppercase tracking-widest text-[#2c3e50] font-sans font-bold mb-2">II. GOVERNING PRECEDENTS & LAW (RULE)</h4>
+        <div class="text-slate-800 whitespace-pre-wrap pl-1">${fmtInline(iracData.rule || '')}</div>
+      </div>
+
+      <hr class="border-[#e5e3de]">
+
+      <!-- Application -->
+      <div>
+        <h4 class="text-xs uppercase tracking-widest text-[#2c3e50] font-sans font-bold mb-2">III. SUBMISSIONS & APPLICATION OF LAW TO FACTS</h4>
+        <div class="text-slate-800 whitespace-pre-wrap pl-1">${fmtInline(iracData.application || '')}</div>
+      </div>
+
+      <hr class="border-[#e5e3de]">
+
+      <!-- Conclusion -->
+      <div>
+        <h4 class="text-xs uppercase tracking-widest text-[#2c3e50] font-sans font-bold mb-2">IV. CONCLUSION & PRAYER FOR RELIEF</h4>
+        <div class="text-slate-800 whitespace-pre-wrap pl-1">${fmtInline(iracData.conclusion || '')}</div>
+      </div>
+      
     </div>
-  `;
-  storedCitations = `
-    <div class="space-y-4">
-      <h4 class="text-sm font-semibold text-amber-400 uppercase tracking-wider font-sans mb-2">📖 Citation Strengthener</h4>
-      <div class="text-xs text-gray-300 whitespace-pre-wrap font-sans bg-white/[0.02] p-4 border border-white/5 rounded-lg leading-relaxed">${getCitationStrengthenerContent()}</div>
+
+    <!-- Legal Page Footer -->
+    <div class="border-t border-[#ecebe7] bg-[#f9f8f4] py-3 px-6 flex justify-between items-center text-[10px] text-slate-500 font-sans">
+      <span>Appellate Drafting Studio · MootCoach AI</span>
+      <span>PAGE 1</span>
     </div>
+  </div>
   `;
 
   outputState.innerHTML = `
@@ -258,7 +319,7 @@ function renderIRAC(iracData) {
       <button class="btn-sm btn-sm-ghost text-xs tracking-wider flex items-center gap-1.5 font-sans cursor-pointer" onclick="copyBuilderArgument()">
         📋 Copy Draft
       </button>
-      <button class="btn-sm btn-sm-ghost text-xs tracking-wider flex items-center gap-1.5 font-sans cursor-pointer" onclick="exportDraftPDF()">
+      <button class="btn-sm btn-sm-ghost text-xs tracking-wider flex items-center gap-1.5 font-sans cursor-pointer" onclick="exportDraftPDF('memorial-viewer-canvas')">
         📄 Export PDF
       </button>
       <button class="btn-sm btn-sm-ghost text-xs tracking-wider flex items-center gap-1.5 font-sans cursor-pointer" onclick="openAuxPanel('oral', this)">
@@ -269,6 +330,9 @@ function renderIRAC(iracData) {
       </button>
       <button class="btn-sm btn-sm-ghost text-xs tracking-wider flex items-center gap-1.5 font-sans cursor-pointer" onclick="openAuxPanel('citations', this)">
         📖 Strengthen Citations
+      </button>
+      <button class="btn-sm btn-sm-gold text-xs tracking-wider flex items-center gap-1.5 font-sans cursor-pointer" onclick="openAuxPanel('pack', this)">
+        🎤 Oral Round Pack
       </button>
     </div>
   </div>
@@ -338,53 +402,34 @@ function renderIRAC(iracData) {
     </div>
   </div>
 
-  <!-- Premium Legal Document Canvas -->
-  <div class="flex-1 bg-[#fcfbfa] border border-[#dcdad5] rounded-xl shadow-xl overflow-hidden min-h-[400px] flex flex-col text-slate-800">
-    <!-- Legal Page Header -->
-    <div class="border-b border-[#ecebe7] bg-[#f9f8f4] py-3 px-6 flex justify-between items-center text-[10px] uppercase tracking-widest text-slate-500 font-sans font-medium">
-      <span>BEFORE THE SUPREME COURT OF APPRENTICE ADVOCACY</span>
-      <span>MEMORIAL SUBMISSION</span>
+  <!-- Premium Memorial Completion Card -->
+  <div class="p-8 bg-gradient-to-br from-indigo-950/20 to-navy-3 border border-indigo-500/20 rounded-xl flex flex-col items-center text-center gap-4 mt-2 shadow-xl">
+    <div class="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 text-xl font-bold">✓</div>
+    <div>
+      <h3 class="text-lg font-sans font-semibold text-white">Appellate Memorial Generated</h3>
+      <p class="text-xs text-white-muted mt-1 max-w-sm">The legal argument has been compiled into a professional Supreme Court memorial. Review the full draft, export, or print via the workspace panels.</p>
     </div>
     
-    <!-- Legal Document Content Area -->
-    <div class="p-8 md:p-12 flex-1 flex flex-col gap-6 font-serif text-[14px] leading-relaxed text-slate-800" id="legal-memorial-canvas">
-      
-      <!-- Issue -->
-      <div>
-        <h4 class="text-xs uppercase tracking-widest text-[#a88220] font-sans font-bold mb-2">I. ISSUE OF LAW</h4>
-        <div class="pl-4 border-l-2 border-[#a88220]/30 italic text-slate-700 font-serif" id="builder-irac-issue">${fmtInline(iracData.issue || '')}</div>
+    <!-- Metadata grid -->
+    <div class="grid grid-cols-2 gap-x-8 gap-y-3 p-4 bg-white/[0.02] border border-white/5 rounded-lg w-full max-w-md text-left text-xs font-sans text-white-muted mt-2">
+      <div><strong>Issue:</strong> <span class="text-white">${esc(issue)}</span></div>
+      <div><strong>Side:</strong> <span class="text-white uppercase tracking-wider">${esc(stance)}</span></div>
+      <div><strong>Authorities Used:</strong> <span class="text-white">${casesCount} case(s)</span></div>
+      <div><strong>Articles Used:</strong> <span class="text-white">${statutesCount} article(s)</span></div>
+      <div class="col-span-2 border-t border-white/5 pt-2 mt-1 flex justify-between items-center">
+        <span>Readiness Score:</span>
+        <span class="text-moot-accent font-bold text-sm">${readinessScore}%</span>
       </div>
-      
-      <hr class="border-[#e5e3de]">
-
-      <!-- Rule -->
-      <div>
-        <h4 class="text-xs uppercase tracking-widest text-[#2c3e50] font-sans font-bold mb-2">II. GOVERNING PRECEDENTS & LAW (RULE)</h4>
-        <div class="text-slate-800 whitespace-pre-wrap pl-1" id="builder-irac-rule">${fmtInline(iracData.rule || '')}</div>
-      </div>
-
-      <hr class="border-[#e5e3de]">
-
-      <!-- Application -->
-      <div>
-        <h4 class="text-xs uppercase tracking-widest text-[#2c3e50] font-sans font-bold mb-2">III. SUBMISSIONS & APPLICATION OF LAW TO FACTS</h4>
-        <div class="text-slate-800 whitespace-pre-wrap pl-1" id="builder-irac-application">${fmtInline(iracData.application || '')}</div>
-      </div>
-
-      <hr class="border-[#e5e3de]">
-
-      <!-- Conclusion -->
-      <div>
-        <h4 class="text-xs uppercase tracking-widest text-[#2c3e50] font-sans font-bold mb-2">IV. CONCLUSION & PRAYER FOR RELIEF</h4>
-        <div class="text-slate-800 whitespace-pre-wrap pl-1" id="builder-irac-conclusion">${fmtInline(iracData.conclusion || '')}</div>
-      </div>
-      
     </div>
 
-    <!-- Legal Page Footer -->
-    <div class="border-t border-[#ecebe7] bg-[#f9f8f4] py-3 px-6 flex justify-between items-center text-[10px] text-slate-500 font-sans">
-      <span>Appellate Drafting Studio · MootCoach AI</span>
-      <span>PAGE 1</span>
+    <!-- Action buttons -->
+    <div class="flex gap-3 w-full max-w-md mt-2">
+      <button class="flex-1 py-3 bg-moot-accent text-black font-semibold text-xs uppercase tracking-wider rounded-md hover:bg-gold-light transition-all cursor-pointer border-none font-sans" onclick="openMemorialViewer()">
+        ⚖️ View Memorial
+      </button>
+      <button class="flex-1 py-3 bg-white/5 border border-white/10 text-white font-semibold text-xs uppercase tracking-wider rounded-md hover:bg-white/10 transition-all cursor-pointer font-sans" onclick="exportDraftPDF('memorial-viewer-canvas')">
+        📄 Export PDF
+      </button>
     </div>
   </div>
 
@@ -449,7 +494,8 @@ export function copyBuilderArgument() {
 
 export function exportDraftPDF(containerId = "legal-memorial-canvas") {
   console.log(`[DEBUG AUDIT] Exporting ${containerId} as PDF...`);
-  const contentEl = document.getElementById(containerId);
+  const actualContainerId = document.getElementById(containerId) ? containerId : "memorial-viewer-canvas";
+  const contentEl = document.getElementById(actualContainerId);
   if (!contentEl) return;
   const printContent = contentEl.innerHTML;
   
@@ -575,15 +621,19 @@ export function openAuxPanel(type, triggerElement) {
   } else if (type === 'citations') {
     title.textContent = 'Citation Strengthener';
     content.innerHTML = storedCitations;
+  } else if (type === 'pack') {
+    title.textContent = 'Oral Round Prep Pack';
+    renderOralRoundPack(content);
   }
 
   // Open the panel
   overlay.classList.remove('hidden');
+  panel.classList.remove('hidden');
+  
   // force reflow
   overlay.offsetHeight;
-  overlay.classList.add('opacity-100');
-  panel.classList.remove('translate-x-full');
-  panel.classList.add('translate-x-0');
+  overlay.classList.add('active');
+  panel.classList.add('active');
 
   // Trapping focus & Keyboard accessibility
   document.addEventListener('keydown', handlePanelKeyDown);
@@ -603,24 +653,142 @@ export function closeAuxPanel() {
 
   if (!overlay || !panel) return;
 
-  overlay.classList.remove('opacity-100');
-  panel.classList.remove('translate-x-0');
-  panel.classList.add('translate-x-full');
+  overlay.classList.remove('active');
+  panel.classList.remove('active');
 
   document.removeEventListener('keydown', handlePanelKeyDown);
 
-  // Hide overlay after transition
+  // Hide overlay after transition completes
   setTimeout(() => {
-    if (!panel.classList.contains('translate-x-0')) {
+    if (!panel.classList.contains('active')) {
       overlay.classList.add('hidden');
+      panel.classList.add('hidden');
     }
-  }, 300);
+  }, 380);
 
   // Restore focus
   if (activeTriggerElement && typeof activeTriggerElement.focus === 'function') {
     activeTriggerElement.focus();
   }
   activeTriggerElement = null;
+}
+
+export function openMemorialViewer() {
+  if (!storedMemorialHTML) {
+    showToast("Generate a submission first to unlock the memorial.", "info");
+    return;
+  }
+
+  const overlay = document.getElementById('aux-panel-overlay');
+  const panel = document.getElementById('memorial-panel');
+  const content = document.getElementById('memorial-panel-content');
+
+  if (!overlay || !panel || !content) return;
+
+  content.innerHTML = storedMemorialHTML;
+
+  // Open the panel
+  overlay.classList.remove('hidden');
+  panel.classList.remove('hidden');
+  
+  // force reflow
+  overlay.offsetHeight;
+  
+  overlay.classList.add('active');
+  panel.classList.add('active');
+
+  // Trapping focus & Keyboard accessibility
+  document.addEventListener('keydown', handlePanelKeyDown);
+}
+
+export function closeMemorialViewer() {
+  const overlay = document.getElementById('aux-panel-overlay');
+  const panel = document.getElementById('memorial-panel');
+
+  if (!overlay || !panel) return;
+
+  overlay.classList.remove('active');
+  panel.classList.remove('active');
+
+  document.removeEventListener('keydown', handlePanelKeyDown);
+
+  // Hide overlay after transition completes
+  setTimeout(() => {
+    if (!panel.classList.contains('active')) {
+      overlay.classList.add('hidden');
+      panel.classList.add('hidden');
+    }
+  }, 380);
+}
+
+export function copyMemorial() {
+  const content = document.getElementById('memorial-viewer-canvas');
+  if (!content) return;
+
+  const textToCopy = content.innerText;
+  navigator.clipboard.writeText(textToCopy).then(() => {
+    const btn = document.getElementById('btn-memorial-copy');
+    if (btn) {
+      btn.textContent = '✓ Copied';
+      setTimeout(() => {
+        btn.textContent = '📋 Copy Memorial';
+      }, 2000);
+    }
+    showToast("Memorial copied to clipboard!", "ok");
+  }).catch(err => {
+    showToast("Failed to copy: " + err.message, "err");
+  });
+}
+
+export function renderOralRoundPack(container) {
+  if (!container) return;
+
+  activePackTab = activePackTab || 'speech';
+
+  // Construct tab bar and contents
+  const tabs = [
+    { id: 'speech', label: '🎙️ Speech' },
+    { id: 'qa', label: '⚖️ Q&A' },
+    { id: 'rebuttal', label: '🛡️ Rebuttals' },
+    { id: 'precedents', label: '📖 Precedents' },
+    { id: 'traps', label: '🔥 Traps' }
+  ];
+
+  const tabHeadersHTML = tabs.map(t => {
+    const isActive = t.id === activePackTab;
+    const borderCls = isActive ? 'border-b-2 border-[#c9a84c] text-[#c9a84c]' : 'border-b border-white/5 text-[#f5f3ef]/45 hover:text-white';
+    return `<button class="px-3 py-2 text-[10px] font-sans font-semibold uppercase tracking-wider bg-transparent border-0 cursor-pointer transition-all ${borderCls}" onclick="switchPackTab('${t.id}')">${t.label}</button>`;
+  }).join('');
+
+  let tabContentHTML = '';
+  if (activePackTab === 'speech') {
+    tabContentHTML = storedOralNotes;
+  } else if (activePackTab === 'qa') {
+    tabContentHTML = getBenchQuestionsPackHTML();
+  } else if (activePackTab === 'rebuttal') {
+    tabContentHTML = storedRebuttals;
+  } else if (activePackTab === 'precedents') {
+    tabContentHTML = getPrecedentsPackHTML();
+  } else if (activePackTab === 'traps') {
+    tabContentHTML = getJudicialTrapsPackHTML();
+  }
+
+  container.innerHTML = `
+    <div class="flex flex-col gap-4">
+      <div class="flex border-b border-white/10 overflow-x-auto scrollbar-none mb-2">
+        ${tabHeadersHTML}
+      </div>
+      <div class="space-y-4">
+        ${tabContentHTML}
+      </div>
+    </div>
+  `;
+
+  // Expose switchPackTab to window
+  window.switchPackTab = (tabId) => {
+    activePackTab = tabId;
+    renderOralRoundPack(container);
+  };
 }
 
 function handlePanelKeyDown(e) {
@@ -673,45 +841,333 @@ function copyPanelContent() {
   });
 }
 
-function getOralNotesContent() {
-  return `=== SUGGESTED ORAL ROUND OUTLINE ===
+function getUpgradedOralNotes(iracData, stance, issue) {
+  const isPetitioner = stance.toLowerCase().includes('petitioner') || stance.toLowerCase().includes('appellant');
+  const borderCls = isPetitioner ? 'border-indigo-500/30' : 'border-rose-500/30';
 
-1. FORMAL OPENING (0:00 - 1:30):
-   "May it please this Court. My name is Counsel for the Petitioner. We raise one core constitutional issue today..."
+  const openingSpeech = isPetitioner 
+    ? `"May it please this Honorable Court. My name is Counsel representing the Petitioner in this matter. We stand before this Court to challenge the validity of the impugned state actions concerning <strong>${esc(iracData.issue || issue)}</strong>. We submit two primary submissions: First, that the governing rules and statutory bindings fail the tests of reasonableness and equality under Part III of the Constitution. Second, that the factual application to the Petitioner demonstrates a disproportionate and arbitrary exercise of state power. We pray accordingly."`
+    : `"May it please this Honorable Court. My name is Counsel representing the Respondent in this matter. We stand before this Court to oppose the petition in its entirety. The Respondent submits two key contentions: First, that the impugned action/statute enjoys the presumption of constitutionality and falls strictly within the legislative competence of the state. Second, that the restriction imposed is reasonable, proportional, and tailored to meet a legitimate state interest. We pray that this Honorable Court dismiss the petition."`;
 
-2. STATEMENT OF THE ISSUE (1:30 - 3:00):
-   Direct the Bench's attention to the conflict between the impugned provision and fundamental rights under Article 14/19/21.
+  return `
+    <div class="flex flex-col gap-5">
+      <div class="p-4 bg-white/5 border border-white/10 rounded-xl">
+        <h4 class="text-xs uppercase tracking-wider text-moot-accent font-semibold mb-2 flex items-center gap-1.5 font-sans">
+          <span>🎙️</span> 1. Bench Opening (Ready to Speak)
+        </h4>
+        <p class="text-xs text-white-muted italic font-serif leading-relaxed bg-black/20 p-3 rounded-lg border-l-2 ${borderCls}">
+          ${openingSpeech}
+        </p>
+      </div>
 
-3. ARGUMENT SUBMISSION (3:00 - 12:00):
-   • Premise I: Focus heavily on the rule of law syllogism.
-   • Premise II: Apply the test of proportionality to demonstrate the overbreadth of the state restriction.
+      <div class="p-4 bg-white/5 border border-white/10 rounded-xl">
+        <h4 class="text-xs uppercase tracking-wider text-moot-accent font-semibold mb-3 flex items-center gap-1.5 font-sans">
+          <span>⚖️</span> 2. Core Submissions (Oral Flow)
+        </h4>
+        <div class="space-y-3 text-xs leading-relaxed text-gray-300 font-sans">
+          <div class="p-3 bg-white/[0.02] border border-white/5 rounded-lg">
+            <strong class="text-white block mb-1">Contention I: The Legal Foundation (Rule)</strong>
+            <span>${fmtInline(iracData.rule || '')}</span>
+          </div>
+          <div class="p-3 bg-white/[0.02] border border-white/5 rounded-lg">
+            <strong class="text-white block mb-1">Contention II: Application to Facts</strong>
+            <span>${fmtInline(iracData.application || '')}</span>
+          </div>
+        </div>
+      </div>
 
-4. CONCLUSION & PRAYER (12:00 - 15:00):
-   Request that this Court strike down the provision and grant appropriate consequential relief.`;
+      <div class="p-4 bg-white/5 border border-white/10 rounded-xl">
+        <h4 class="text-xs uppercase tracking-wider text-moot-accent font-semibold mb-3 flex items-center gap-1.5 font-sans">
+          <span>❓</span> 3. Likely Bench Questions & Answers
+        </h4>
+        <div class="space-y-4 text-xs font-sans">
+          ${getLikelyBenchQuestionsHTML(isPetitioner)}
+        </div>
+      </div>
+
+      <div class="p-4 bg-white/5 border border-white/10 rounded-xl">
+        <h4 class="text-xs uppercase tracking-wider text-moot-accent font-semibold mb-3 flex items-center gap-1.5 font-sans">
+          <span>📖</span> 4. Key Precedent Ratios (Memorizer)
+        </h4>
+        <div class="space-y-3">
+          ${getMemorizeAuthoritiesHTML()}
+        </div>
+      </div>
+
+      <div class="p-4 bg-white/5 border border-white/10 rounded-xl">
+        <h4 class="text-xs uppercase tracking-wider text-moot-accent font-semibold mb-3 flex items-center gap-1.5 font-sans">
+          <span>🔥</span> 5. Judicial Traps & 30-Second Rescue
+        </h4>
+        <div class="space-y-3 text-xs leading-relaxed text-gray-300 font-sans">
+          <div class="p-3 bg-red-950/10 border border-red-900/20 rounded-lg">
+            <strong class="text-red-400 block mb-1">⚠️ Potential Trap Alert</strong>
+            <span>Judges may query the direct presence of a constitutional breach versus a simple statutory claim. Always steer the bench back to Part III rights: "With respect, My Lords, the statutory breach here is the vehicle through which a fundamental violation of Article 14/21 is manifested."</span>
+          </div>
+          <div class="p-3 bg-indigo-950/10 border border-indigo-900/20 rounded-lg">
+            <strong class="text-indigo-400 block mb-1">⏱️ 30-Second Emergency Rebuttal</strong>
+            <span>"In the remaining thirty seconds, Counsel directs this Court's attention to the core question: Can the State run roughshod over procedural fairness under the guise of policy discretion? Maneka Gandhi dictates that any procedure must be fair, just, and reasonable. The current case fails this entirely."</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
 }
 
-function getRebuttalNotesContent() {
-  return `=== DRAFT REBUTTAL ARGUMENTS ===
+function getLikelyBenchQuestionsHTML(isPetitioner) {
+  const qaPairs = isPetitioner ? [
+    {
+      q: "Counsel, isn't the regulation of this domain purely within the policy discretion of the Executive?",
+      a: "Most Respectfully, My Lords, while policy discretion lies with the Executive, its exercise is bounded by constitutional limits. Once an action exceeds those limits or is manifestly arbitrary, this Court is fully empowered—indeed required—to intervene under Article 14, as established in Royappa."
+    },
+    {
+      q: "Why should we bypass the statutory alternative remedies available to your client?",
+      a: "It is well-settled by this Court in Whirlpool Corporation v. Registrar of Trade Marks that the existence of an alternative remedy is a rule of discretion and not a bar to jurisdiction, particularly where there is a violation of fundamental rights or principles of natural justice."
+    },
+    {
+      q: "Where is the specific, documented prejudice caused to the Petitioner?",
+      a: "The prejudice is immediate and absolute. The state action directly impairs the Petitioner's livelihood and personal liberty without notice or hearing, which is a per se violation of Article 19(1)(g) and Article 21, causing irreparable harm."
+    },
+    {
+      q: "Aren't you asking this Court to act as a court of appeal over administrative policy decisions?",
+      a: "Not at all, My Lords. Counsel does not ask this Court to substitute its wisdom for that of the executive, but to review the legality, procedural propriety, and proportionality of the decision-making process under the Wednesbury principle."
+    },
+    {
+      q: "Is there any direct precedent holding this precise rule unconstitutional?",
+      a: "While there may not be a factual mirror-image case, the core legal principle is firmly governed by the Constitutional Bench holding in Puttaswamy, which established that any state encroachment on individual rights must pass the strict four-pronged test of proportionality."
+    }
+  ] : [
+    {
+      q: "Counsel, how do you justify the apparent lack of notice or hearing before this action was taken?",
+      a: "My Lords, the urgency of the situation and the protection of public interest necessitated immediate action. The statute implicitly permits post-decisional hearings, which completely satisfies the requirements of natural justice under these exceptional circumstances."
+    },
+    {
+      q: "Does this action not violate the basic principles of proportionality laid down in Puttaswamy?",
+      a: "No, My Lords. The restriction passes the proportionality test: it has a legitimate goal (public welfare), a rational nexus (preventing harm), is necessary as no less restrictive means exist, and the public benefit far outweighs any private inconvenience."
+    },
+    {
+      q: "Is the presumption of constitutionality sufficient to save a provision that is prima facie arbitrary?",
+      a: "The provision is not arbitrary. It is a carefully crafted legislative response to a complex socioeconomic issue. The legislature has broad latitude, and the burden remains strictly on the Petitioner to prove unconstitutionality beyond reasonable doubt."
+    },
+    {
+      q: "How can the State argue that this doesn't encroach upon the Petitioner's Article 19(1)(g) rights?",
+      a: "Article 19(1)(g) is not absolute. Under Article 19(6), the State is competent to impose reasonable restrictions in the interest of the general public. The restrictions here are fully reasonable and public-interest oriented."
+    },
+    {
+      q: "If this Court strikes down this provision, what is the State's fallback plan?",
+      a: "We submit that the provision is constitutional. Striking it down would create a regulatory vacuum, endangering public safety. If the Court finds any ambiguity, we pray that it read down the provision rather than strike it down."
+    }
+  ];
 
-1. REBUTTING STANDING CHALLENGES:
-   "The opposition asserts a lack of locus standi. However, under the doctrine of representative standing established in S.P. Gupta v. Union of India, public interest litigation is maintainable when fundamental rights of marginalized classes are systematically abridged."
-
-2. REBUTTING THE PRESUMPTION OF CONSTITUTIONALITY:
-   "While the State claims a presumption of constitutionality, that presumption is rebutted once a prima facie violation of a fundamental right is established. The burden then shifts to the State to justify the restriction under Article 19(2)-(6)."
-
-3. REBUTTING LEGISLATIVE COMPETENCE ARGS:
-   "The competence of the legislature cannot shield a statute from judicial review if its application violates Part III rights. Procedural correctness does not cure substantive unconstitutionality."`;
+  return qaPairs.map((pair, idx) => `
+    <div class="p-3 bg-white/[0.02] border border-white/5 rounded-lg font-sans">
+      <strong class="text-[#c9a84c] block mb-1">Q${idx + 1}: ${esc(pair.q)}</strong>
+      <span class="text-gray-300 italic font-serif leading-relaxed block mt-1">"${esc(pair.a)}"</span>
+    </div>
+  `).join('');
 }
 
-function getCitationStrengthenerContent() {
-  return `=== SUGGESTED PRECEDENT ENHANCEMENTS ===
+function getMemorizeAuthoritiesHTML() {
+  const cases = [
+    {
+      name: "K.S. Puttaswamy v. Union of India (2017)",
+      ratio: "Right to privacy is protected as an intrinsic part of the right to life and personal liberty under Article 21, subject to a three-fold test of legality, necessity, and proportionality.",
+      app: "Apply to show that state surveillance or data collection measures fail the proportionality test and are therefore ultra vires."
+    },
+    {
+      name: "Maneka Gandhi v. Union of India (1978)",
+      ratio: "Article 21 procedural requirements must be 'fair, just, and reasonable' and not arbitrary, fanciful, or oppressive. Natural justice is a key component.",
+      app: "Use to challenge state actions that bypass notice or hearing requirements as procedurally flawed."
+    },
+    {
+      name: "E.P. Royappa v. State of Tamil Nadu (1974)",
+      ratio: "Equality is a dynamic concept. Arbitrariness is the antithesis of Article 14, and administrative action must be based on reason.",
+      app: "Deploy to strike down unguided administrative discretion or highly unequal state actions."
+    }
+  ];
 
-• TO STRENGTHEN RULE OF LAW CLAIMS:
-  Cite 'E.P. Royappa v. State of Tamil Nadu' (1974) to argue against arbitrariness as the antithesis of Article 14.
+  return cases.map(c => `
+    <div class="p-3 bg-white/[0.02] border border-white/5 rounded-lg text-xs font-sans">
+      <strong class="text-white block mb-1">⚖️ ${esc(c.name)}</strong>
+      <div class="text-white-muted mt-1"><span class="text-[#c9a84c] font-semibold uppercase text-[9px] tracking-wider font-sans">Ratio Decidendi:</span> ${esc(c.ratio)}</div>
+      <div class="text-white-muted mt-1"><span class="text-[#4caf82] font-semibold uppercase text-[9px] tracking-wider font-sans">Advocacy Application:</span> ${esc(c.app)}</div>
+    </div>
+  `).join('');
+}
 
-• TO STRENGTHEN PROPORTIONALITY CLAIMS:
-  Cite 'Modern Dental College v. State of M.P.' (2016) or 'K.S. Puttaswamy v. Union of India' (2017) to ground the four-pronged test of proportionality.
+function getUpgradedRebuttals(iracData, stance) {
+  const isPetitioner = stance.toLowerCase().includes('petitioner') || stance.toLowerCase().includes('appellant');
+  const oppStance = isPetitioner ? 'Respondent' : 'Petitioner';
 
-• TO STRENGTHEN DUAL-CLASSIFICATION CLAIMS:
-  Cite 'State of West Bengal v. Anwar Ali Sarkar' (1952) to reinforce the requirements of intelligible differentia and rational nexus.`;
+  return `
+    <div class="flex flex-col gap-5 font-sans">
+      <div class="p-4 bg-white/5 border border-white/10 rounded-xl font-sans">
+        <h4 class="text-xs uppercase tracking-wider text-red-400 font-semibold mb-3 flex items-center gap-1.5 font-sans">
+          <span>⚔️</span> Strongest Opposition Arguments
+        </h4>
+        <ul class="space-y-2 text-xs text-gray-300 leading-relaxed list-disc pl-4 font-sans">
+          <li><strong>Discretionary Privilege:</strong> The State claims administrative policies enjoy a wide latitude of immunity from judicial overreach.</li>
+          <li><strong>Factual Distinctions:</strong> ${oppStance} will cite alternative precedents arguing the immediate grievance is a minor, regulatory matter rather than a constitutional crisis.</li>
+          <li><strong>Alternative Forum:</strong> Opposing counsel will emphasize the failure to exhaust local, statutory appeal mechanisms.</li>
+        </ul>
+      </div>
+
+      <div class="p-4 bg-white/5 border border-white/10 rounded-xl font-sans">
+        <h4 class="text-xs uppercase tracking-wider text-emerald-400 font-semibold mb-3 flex items-center gap-1.5 font-sans">
+          <span>🛡️</span> Response Strategy & Demolition
+        </h4>
+        <div class="space-y-3 text-xs leading-relaxed text-gray-300 font-sans">
+          <p><strong>1. Neutralize Discretionary Claims:</strong> Submit that administrative discretion is never absolute. Cite <em>Royappa</em> and <em>Ramana Dayaram Shetty</em> to establish that state actions must conform to reason and fair play.</p>
+          <p><strong>2. Counter Factual Distinctions:</strong> Argue that rights violations cannot be trivialized by categorization. Any infringement of Part III, however minor in scope, is a constitutional injury.</p>
+          <p><strong>3. Dismiss Forum Objections:</strong> Emphasize that alternate remedies do not oust writ jurisdiction when fundamental rights are violated, natural justice is breached, or proceedings are without jurisdiction.</p>
+        </div>
+      </div>
+
+      <div class="p-4 bg-white/5 border border-white/10 rounded-xl font-sans">
+        <h4 class="text-xs uppercase tracking-wider text-[#c9a84c] font-semibold mb-3 flex items-center gap-1.5 font-sans">
+          <span>🎯</span> Bench Follow-Up Questions
+        </h4>
+        <div class="space-y-3 text-xs text-gray-300 font-sans">
+          <div class="p-3 bg-white/[0.02] border border-white/5 rounded-lg font-sans">
+            <strong class="text-white block mb-1">Follow-up 1: "Even if we agree with Counsel on the right, does it not fall within reasonable restrictions?"</strong>
+            <span class="italic block mt-1 font-serif">Answer: "Most Respectfully, My Lords, it does not. Under Article 19(6) or Article 19(2), restrictions must be reasonable and proportional. A restriction that lacks guidance and operates arbitrarily fails the test of reasonableness per se."</span>
+          </div>
+          <div class="p-3 bg-white/[0.02] border border-white/5 rounded-lg font-sans">
+            <strong class="text-white block mb-1">Follow-up 2: "Aren't you inviting this Court to rewrite administrative regulations?"</strong>
+            <span class="italic block mt-1 font-serif">Answer: "No, My Lords. We only ask this Court to set aside the unconstitutional provisions, leaving it to the State to enact a new, procedurally fair framework that respects Part III rights."</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="p-4 bg-white/5 border border-white/10 rounded-xl font-sans">
+        <h4 class="text-xs uppercase tracking-wider text-indigo-400 font-semibold mb-2 flex items-center gap-1.5 font-sans">
+          <span>⚠️</span> Fallback Position (Plan B)
+        </h4>
+        <p class="text-xs text-gray-300 leading-relaxed bg-black/20 p-3 rounded-lg border-l-2 border-indigo-500/30 font-serif italic">
+          "If this Court is not inclined to strike down the impugned provision, Counsel requests that the Court read down the provision to exclude its application to cases where notice and prior hearings are practicable, thereby preserving its constitutionality while vindicating the Petitioner's rights."
+        </p>
+      </div>
+
+      <div class="p-4 bg-white/5 border border-white/10 rounded-xl bg-red-950/10 border-red-900/30 font-sans">
+        <h4 class="text-xs uppercase tracking-wider text-red-400 font-semibold mb-2 flex items-center gap-1.5 font-sans">
+          <span>🚨</span> Emergency Rescue Arguments
+        </h4>
+        <p class="text-xs text-gray-300 leading-relaxed font-serif italic">
+          "My Lords, the violation here is not merely technical, but goes to the root of Part III rights. If this court does not intervene, the petitioner faces irreparable injury for which damages are no remedy. The state cannot bypass the rule of law under the banner of convenience."
+        </p>
+      </div>
+    </div>
+  `;
+}
+
+function getUpgradedCitations(notes) {
+  const caseRegex = /\b([A-Z][A-Za-z0-9'\s]{2,})\s+(?:v\.?|v\/s|vs\.?)\s+([A-Z][A-Za-z0-9'\s]{2,})|Union of [A-Z][a-zA-Z\s]+/gi;
+  const caseMatches = notes.match(caseRegex) || [];
+  const casesCount = caseMatches.length;
+
+  const statuteRegex = /\b(?:Article|Art\.?|Section|Sec\.?)\s+\d+(?:[A-Za-z0-9\-\(\)]*)?/gi;
+  const statuteMatches = notes.match(statuteRegex) || [];
+  const statutesCount = statuteMatches.length;
+
+  const currentStrength = Math.min(95, 40 + (casesCount * 12) + (statutesCount * 8));
+  const potentialStrength = Math.min(98, currentStrength + 20);
+
+  const strengthColor = currentStrength >= 75 ? 'text-[#4caf82]' : currentStrength >= 50 ? 'text-[#c9a84c]' : 'text-red-400';
+  const progressColor = currentStrength >= 75 ? 'bg-[#4caf82]' : currentStrength >= 50 ? 'bg-[#c9a84c]' : 'bg-red-500';
+
+  return `
+    <div class="flex flex-col gap-5 font-sans">
+      <div class="p-4 bg-white/5 border border-white/10 rounded-xl flex flex-col gap-3 font-sans">
+        <div class="flex justify-between items-center font-sans">
+          <span class="text-xs uppercase tracking-wider text-white-2 font-semibold">Citation Strength Assistant</span>
+          <span class="text-xs font-bold ${strengthColor}">Current: ${currentStrength}% | Potential: ${potentialStrength}%</span>
+        </div>
+        <div class="w-full h-2 bg-navy-5 rounded-full overflow-hidden border border-white/5 font-sans">
+          <div class="h-full ${progressColor} transition-all duration-500" style="width: ${currentStrength}%"></div>
+        </div>
+      </div>
+
+      <div class="p-4 bg-white/5 border border-white/10 rounded-xl font-sans">
+        <h4 class="text-xs uppercase tracking-wider text-red-400 font-semibold mb-3 flex items-center gap-1.5 font-sans">
+          <span>❌</span> Missing Authorities
+        </h4>
+        <div class="space-y-2 text-xs text-gray-300 font-sans">
+          <p>• <strong>Administrative Arbitrariness:</strong> No case citing the expansion of Article 14 to procedural arbitrariness. Counsel is highly advised to reference <em>Maneka Gandhi v. Union of India</em>.</p>
+          <p>• <strong>Proportionality Test:</strong> Missing reference to the modern four-prong test of proportionality established in <em>Modern Dental College</em>.</p>
+        </div>
+      </div>
+
+      <div class="p-4 bg-white/5 border border-white/10 rounded-xl font-sans">
+        <h4 class="text-xs uppercase tracking-wider text-[#c9a84c] font-semibold mb-3 flex items-center gap-1.5 font-sans">
+          <span>🏛️</span> Constitutional Bench Authorities
+        </h4>
+        <div class="space-y-2 text-xs text-gray-300 font-sans">
+          <p>• <strong>K.S. Puttaswamy v. Union of India (2017) (9-Judge Bench):</strong> Established that privacy is a fundamental right and laid down the strict test of proportionality for any state limitation of Part III rights.</p>
+          <p>• <strong>Kesavananda Bharati v. State of Kerala (1973) (13-Judge Bench):</strong> Grounding authority for testing constitutional validity against the basic structure of the constitution.</p>
+        </div>
+      </div>
+
+      <div class="p-4 bg-white/5 border border-white/10 rounded-xl font-sans">
+        <h4 class="text-xs uppercase tracking-wider text-indigo-400 font-semibold mb-3 flex items-center gap-1.5 font-sans">
+          <span>💡</span> Strategic Citations
+        </h4>
+        <div class="space-y-2 text-xs text-gray-300 font-sans">
+          <p>• <strong>Shreya Singhal v. Union of India (2015):</strong> Excellent citation for striking down statutory provisions on grounds of overbreadth and vagueness under Article 19(1)(a).</p>
+          <p>• <strong>Whirlpool Corporation v. Registrar of Trade Marks (1998):</strong> Key citation to bypass statutory alternative remedies when fundamental rights are violated.</p>
+        </div>
+      </div>
+
+      <div class="p-4 bg-white/5 border border-white/10 rounded-xl bg-amber-950/10 border-amber-900/30 font-sans">
+        <h4 class="text-xs uppercase tracking-wider text-[#c9a84c] font-semibold mb-3 flex items-center gap-1.5 font-sans">
+          <span>⚠️</span> Weakly Supported Claims
+        </h4>
+        <div class="space-y-2 text-xs text-gray-300 font-sans">
+          <p>• The claim that the state regulation lacks 'legitimate purpose' is unsupported. To strengthen, cite <em>State of Madras v. V.G. Row</em> on criteria for testing restrictions.</p>
+          <div class="mt-3 text-[10px] text-[#c9a84c] uppercase tracking-widest font-bold font-sans">Authority Impact Score: 8.5 / 10</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function getBenchQuestionsPackHTML() {
+  const stanceRadio = document.querySelector('input[name="stance"]:checked');
+  const stance = stanceRadio ? stanceRadio.value : 'Petitioner';
+  const isPetitioner = stance.toLowerCase().includes('petitioner') || stance.toLowerCase().includes('appellant');
+  
+  return `
+    <div class="space-y-4 font-sans">
+      <h4 class="text-sm font-semibold text-indigo-400 uppercase tracking-wider mb-1 font-sans">⚖️ Bench Q&A Preparation</h4>
+      <p class="text-xs text-white-muted mb-3">Practice these high-probability questions expected from a competitive moot bench.</p>
+      ${getLikelyBenchQuestionsHTML(isPetitioner)}
+    </div>
+  `;
+}
+
+function getPrecedentsPackHTML() {
+  return `
+    <div class="space-y-4 font-sans">
+      <h4 class="text-sm font-semibold text-[#c9a84c] uppercase tracking-wider mb-1 font-sans">📖 Key Precedents to Memorize</h4>
+      <p class="text-xs text-white-muted mb-3 font-sans">Ensure you have these case citations, ratio, and exact application facts committed to memory.</p>
+      ${getMemorizeAuthoritiesHTML()}
+    </div>
+  `;
+}
+
+function getJudicialTrapsPackHTML() {
+  return `
+    <div class="space-y-4 font-sans">
+      <h4 class="text-sm font-semibold text-red-400 uppercase tracking-wider mb-1 font-sans">🔥 Judicial Traps & Escape Routes</h4>
+      <p class="text-xs text-white-muted mb-3 font-sans">Be prepared for these typical lines of questioning designed to trigger logical fallacies.</p>
+      <div class="p-3 bg-red-950/10 border border-red-900/20 rounded-lg text-xs leading-relaxed text-gray-300 font-sans">
+        <strong class="text-red-400 block mb-1">Trap 1: The 'Policy Exception' Trap</strong>
+        <span>Judges will ask: "If we rule in your favor, won't we open a floodgate of litigation against executive policy decisions?"</span>
+        <span class="block mt-2 italic text-gray-400 font-serif">Rescue Answer: "With respect, My Lords, this ruling will not affect legitimate policy discretion. It merely reinforces that policy must remain within Part III boundaries. Public trust is enhanced when policy is constitutional."</span>
+      </div>
+      <div class="p-3 bg-red-950/10 border border-red-900/20 rounded-lg text-xs leading-relaxed text-gray-300 mt-3 font-sans">
+        <strong class="text-red-400 block mb-1 font-sans">Trap 2: The 'Literal Statutory Wording' Trap</strong>
+        <span>Judges will argue: "The statute reads 'may' or 'has discretion'—why are you arguing that it imposes a mandatory duty of notice?"</span>
+        <span class="block mt-2 italic text-gray-400 font-serif">Rescue Answer: "My Lords, when a statutory power affects fundamental rights of citizens, the word 'may' is construed as 'shall' to preserve its validity, as held in the landmark case of Delhi Administration v. I.K. Nangia."</span>
+      </div>
+    </div>
+  `;
 }

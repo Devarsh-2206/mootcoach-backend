@@ -71,8 +71,44 @@ function triggerTurnComplete() {
   }
 }
 
+export async function logAudioDevices() {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+    console.log("[AUDIO DEVICES] Enumeration not supported.");
+    return;
+  }
+  try {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const inputs = devices.filter(d => d.kind === 'audioinput');
+    const outputs = devices.filter(d => d.kind === 'audiooutput');
+    console.log("[AUDIO DEVICES] Active Audio Input Devices:");
+    inputs.forEach(d => {
+      console.log(` - Label: "${d.label || 'Default'}", ID: "${d.deviceId}"`);
+    });
+    console.log("[AUDIO DEVICES] Active Audio Output Devices:");
+    outputs.forEach(d => {
+      console.log(` - Label: "${d.label || 'Default'}", ID: "${d.deviceId}"`);
+    });
+  } catch (err) {
+    console.error("[AUDIO DEVICES] Failed to enumerate devices:", err);
+  }
+}
+
+if (typeof window !== 'undefined' && navigator.mediaDevices) {
+  navigator.mediaDevices.addEventListener('devicechange', () => {
+    console.log("[AUDIO DEVICES] Audio device configuration changed.");
+    logAudioDevices();
+  });
+}
+
 export function scheduleVoicePlayback(float32Array) {
   if (!voiceAudioContext) return;
+
+  if (voiceAudioContext.state === 'suspended') {
+    console.log("[DEBUG AUDIT] AudioContext suspended during playback. Attempting to resume...");
+    voiceAudioContext.resume().catch(err => {
+      console.warn("Failed to resume AudioContext during playback:", err);
+    });
+  }
 
   const sampleRate = 24000;
   const buffer = voiceAudioContext.createBuffer(1, float32Array.length, sampleRate);
@@ -90,6 +126,7 @@ export function scheduleVoicePlayback(float32Array) {
   const currentTime = voiceAudioContext.currentTime;
   let startTime = Math.max(currentTime, voiceNextPlayTime);
   
+  console.log('[TTS_STREAM] Starting playback chunk of duration:', buffer.duration);
   source.start(startTime);
   voiceNextPlayTime = startTime + buffer.duration;
   
@@ -97,6 +134,7 @@ export function scheduleVoicePlayback(float32Array) {
   latestPlaybackSource = source;
 
   source.onended = () => {
+    console.log('[TTS_STREAM] Finished playback chunk');
     const idx = voicePlaybackSources.indexOf(source);
     if (idx > -1) {
       voicePlaybackSources.splice(idx, 1);
@@ -105,6 +143,7 @@ export function scheduleVoicePlayback(float32Array) {
       latestPlaybackSource = null;
       console.log("[DEBUG AUDIT] Latest scheduled audio source onended fired. Remaining sources in queue:", voicePlaybackSources.length);
       if (isTurnCompleteReceived) {
+        console.log('[TTS_STREAM] Finished entire playback turn');
         triggerTurnComplete();
       }
     }
@@ -126,11 +165,20 @@ export async function startOralRound(callbacks) {
   isAudioBuffering = true;
 
   try {
+    await logAudioDevices();
+
     const wsUrl = getWsUrl();
     console.log(`Connecting to voice WebSocket: ${wsUrl}`);
     voiceWebSocket = new WebSocket(wsUrl);
     
     voiceAudioContext = new (window.AudioContext || window.webkitAudioContext)();
+    if (voiceAudioContext.state === 'suspended') {
+      console.log("[DEBUG AUDIT] AudioContext is suspended. Resuming...");
+      await voiceAudioContext.resume().catch(err => {
+        console.warn("Failed to resume AudioContext on start:", err);
+      });
+      console.log("[DEBUG AUDIT] AudioContext state after resume:", voiceAudioContext.state);
+    }
     
     // Set up playback Analyser
     playbackAnalyser = voiceAudioContext.createAnalyser();
@@ -241,7 +289,12 @@ export async function startOralRound(callbacks) {
     };
 
     voiceSourceNode.connect(voiceWorkletNode);
-    voiceWorkletNode.connect(voiceAudioContext.destination);
+    
+    // Connect worklet to zero-gain dummy silenceNode to prevent acoustic feedback loop muting while keeping worklet alive in browser
+    const silenceNode = voiceAudioContext.createGain();
+    silenceNode.gain.value = 0;
+    voiceWorkletNode.connect(silenceNode);
+    silenceNode.connect(voiceAudioContext.destination);
 
     voiceWebSocket.onopen = () => {
       console.log("🎙️ Voice WebSocket opened.");
@@ -286,6 +339,7 @@ export async function startOralRound(callbacks) {
           audioChunksBuffer = [];
           
           if (voicePlaybackSources.length === 0) {
+            console.log('[TTS_STREAM] Finished entire playback turn (no queued sources)');
             triggerTurnComplete();
           }
         } else if (msg.type === 'error') {
