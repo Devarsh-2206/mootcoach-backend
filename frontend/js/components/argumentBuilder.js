@@ -16,7 +16,13 @@ export let storedRebuttals = '';
 export let storedCitations = '';
 export let storedMemorialHTML = '';
 export let activePackTab = 'speech';
+export let selectedSide = 'Petitioner';
 let activeTriggerElement = null;
+
+export function getCurrentSelectedSide() {
+  const stanceRadio = document.querySelector('input[name="stance"]:checked');
+  return stanceRadio ? stanceRadio.value : null;
+}
 
 export function initArgumentBuilder() {
   const form = document.getElementById('builder-form');
@@ -93,6 +99,14 @@ export function initArgumentBuilder() {
       exportDraftPDF('memorial-viewer-canvas');
     });
   }
+
+  // Bind stance radio change event listener to track selectedSide
+  const stanceRadios = document.querySelectorAll('input[name="stance"]');
+  stanceRadios.forEach(radio => {
+    radio.addEventListener('change', () => {
+      selectedSide = radio.value;
+    });
+  });
 }
 
 function updateLiveIntelligence(text) {
@@ -199,8 +213,21 @@ function renderIRAC(iracData) {
   const outputState = document.getElementById('builder-output-state');
   if (!outputState) return;
 
+  const currentStance = getCurrentSelectedSide() || selectedSide || 'The Advocate';
+  const currentIssue = document.getElementById('builder-issue-select')?.value || 'General Issue';
   const notes = document.getElementById('builder-notes-input')?.value || '';
-  
+
+  try {
+    renderMemorial(iracData);
+    renderOralNotes(iracData, currentStance, currentIssue);
+    renderRebuttals(iracData, currentStance);
+    renderCitations(notes);
+  } catch (e) {
+    console.error('[RENDER ERROR]', e);
+    renderFallbackState(e);
+    return;
+  }
+
   // Scans for cases (v., vs, Union of)
   const caseRegex = /\b([A-Z][A-Za-z0-9'\s]{2,})\s+(?:v\.?|v\/s|vs\.?)\s+([A-Z][A-Za-z0-9'\s]{2,})|Union of [A-Z][a-zA-Z\s]+/gi;
   const caseMatches = notes.match(caseRegex) || [];
@@ -245,63 +272,6 @@ function renderIRAC(iracData) {
     vulnerabilityText = "Factual application is strong, but the Bench may test the outer boundaries of the rule.";
     rebuttalText = "If asked about extreme application scenarios, distinguish them by pointing out that the current petition is confined to the immediate facts of the case.";
   }
-
-  // Extract and store formatted HTML for the side panel suggestions
-  storedOralNotes = getUpgradedOralNotes(iracData, stance, issue);
-  storedRebuttals = getUpgradedRebuttals(iracData, stance);
-  storedCitations = getUpgradedCitations(notes);
-
-  // Store memorial HTML separately
-  storedMemorialHTML = `
-  <div class="flex-1 bg-[#fcfbfa] border border-[#dcdad5] rounded-xl shadow-xl overflow-hidden min-h-[400px] flex flex-col text-slate-800">
-    <!-- Legal Page Header -->
-    <div class="border-b border-[#ecebe7] bg-[#f9f8f4] py-3 px-6 flex justify-between items-center text-[10px] uppercase tracking-widest text-slate-500 font-sans font-medium">
-      <span>BEFORE THE SUPREME COURT OF APPRENTICE ADVOCACY</span>
-      <span>MEMORIAL SUBMISSION</span>
-    </div>
-    
-    <!-- Legal Document Content Area -->
-    <div class="p-8 md:p-12 flex-1 flex flex-col gap-6 font-serif text-[14px] leading-relaxed text-slate-800" id="memorial-viewer-canvas">
-      
-      <!-- Issue -->
-      <div>
-        <h4 class="text-xs uppercase tracking-widest text-[#a88220] font-sans font-bold mb-2">I. ISSUE OF LAW</h4>
-        <div class="pl-4 border-l-2 border-[#a88220]/30 italic text-slate-700 font-serif">${fmtInline(iracData.issue || '')}</div>
-      </div>
-      
-      <hr class="border-[#e5e3de]">
-
-      <!-- Rule -->
-      <div>
-        <h4 class="text-xs uppercase tracking-widest text-[#2c3e50] font-sans font-bold mb-2">II. GOVERNING PRECEDENTS & LAW (RULE)</h4>
-        <div class="text-slate-800 whitespace-pre-wrap pl-1">${fmtInline(iracData.rule || '')}</div>
-      </div>
-
-      <hr class="border-[#e5e3de]">
-
-      <!-- Application -->
-      <div>
-        <h4 class="text-xs uppercase tracking-widest text-[#2c3e50] font-sans font-bold mb-2">III. SUBMISSIONS & APPLICATION OF LAW TO FACTS</h4>
-        <div class="text-slate-800 whitespace-pre-wrap pl-1">${fmtInline(iracData.application || '')}</div>
-      </div>
-
-      <hr class="border-[#e5e3de]">
-
-      <!-- Conclusion -->
-      <div>
-        <h4 class="text-xs uppercase tracking-widest text-[#2c3e50] font-sans font-bold mb-2">IV. CONCLUSION & PRAYER FOR RELIEF</h4>
-        <div class="text-slate-800 whitespace-pre-wrap pl-1">${fmtInline(iracData.conclusion || '')}</div>
-      </div>
-      
-    </div>
-
-    <!-- Legal Page Footer -->
-    <div class="border-t border-[#ecebe7] bg-[#f9f8f4] py-3 px-6 flex justify-between items-center text-[10px] text-slate-500 font-sans">
-      <span>Appellate Drafting Studio · MootCoach AI</span>
-      <span>PAGE 1</span>
-    </div>
-  </div>
-  `;
 
   outputState.innerHTML = `
 <div class="flex flex-col gap-5 w-full h-full">
@@ -403,27 +373,27 @@ function renderIRAC(iracData) {
   </div>
 
   <!-- Premium Memorial Completion Card -->
-  <div class="p-8 bg-gradient-to-br from-indigo-950/20 to-navy-3 border border-indigo-500/20 rounded-xl flex flex-col items-center text-center gap-4 mt-2 shadow-xl">
+  <div class="p-8 bg-gradient-to-br from-indigo-950/20 to-navy-3 border border-indigo-500/20 rounded-xl flex flex-col items-center text-center gap-4 mt-2 shadow-xl animate-fade-in">
     <div class="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 text-xl font-bold">✓</div>
     <div>
       <h3 class="text-lg font-sans font-semibold text-white">Appellate Memorial Generated</h3>
-      <p class="text-xs text-white-muted mt-1 max-w-sm">The legal argument has been compiled into a professional Supreme Court memorial. Review the full draft, export, or print via the workspace panels.</p>
+      <p class="text-xs text-white-muted mt-1 max-w-sm font-sans">The legal argument has been compiled into a professional Supreme Court memorial. Review the full draft, export, or print via the workspace panels.</p>
     </div>
     
     <!-- Metadata grid -->
     <div class="grid grid-cols-2 gap-x-8 gap-y-3 p-4 bg-white/[0.02] border border-white/5 rounded-lg w-full max-w-md text-left text-xs font-sans text-white-muted mt-2">
-      <div><strong>Issue:</strong> <span class="text-white">${esc(issue)}</span></div>
-      <div><strong>Side:</strong> <span class="text-white uppercase tracking-wider">${esc(stance)}</span></div>
-      <div><strong>Authorities Used:</strong> <span class="text-white">${casesCount} case(s)</span></div>
-      <div><strong>Articles Used:</strong> <span class="text-white">${statutesCount} article(s)</span></div>
-      <div class="col-span-2 border-t border-white/5 pt-2 mt-1 flex justify-between items-center">
+      <div><strong>Issue:</strong> <span class="text-white font-sans">${esc(currentIssue)}</span></div>
+      <div><strong>Side:</strong> <span class="text-white uppercase tracking-wider font-sans">${esc(currentStance)}</span></div>
+      <div><strong>Authorities Used:</strong> <span class="text-white font-sans">${casesCount} case(s)</span></div>
+      <div><strong>Articles Used:</strong> <span class="text-white font-sans">${statutesCount} article(s)</span></div>
+      <div class="col-span-2 border-t border-white/5 pt-2 mt-1 flex justify-between items-center font-sans">
         <span>Readiness Score:</span>
-        <span class="text-moot-accent font-bold text-sm">${readinessScore}%</span>
+        <span class="text-moot-accent font-bold text-sm font-sans">${readinessScore}%</span>
       </div>
     </div>
 
     <!-- Action buttons -->
-    <div class="flex gap-3 w-full max-w-md mt-2">
+    <div class="flex gap-3 w-full max-w-md mt-2 font-sans">
       <button class="flex-1 py-3 bg-moot-accent text-black font-semibold text-xs uppercase tracking-wider rounded-md hover:bg-gold-light transition-all cursor-pointer border-none font-sans" onclick="openMemorialViewer()">
         ⚖️ View Memorial
       </button>
@@ -434,6 +404,89 @@ function renderIRAC(iracData) {
   </div>
 
 </div>
+  `;
+}
+
+function renderMemorial(iracData) {
+  storedMemorialHTML = `
+  <div class="flex-1 bg-[#fcfbfa] border border-[#dcdad5] rounded-xl shadow-xl overflow-hidden min-h-[400px] flex flex-col text-slate-800">
+    <!-- Legal Page Header -->
+    <div class="border-b border-[#ecebe7] bg-[#f9f8f4] py-3 px-6 flex justify-between items-center text-[10px] uppercase tracking-widest text-slate-500 font-sans font-medium">
+      <span>BEFORE THE SUPREME COURT OF APPRENTICE ADVOCACY</span>
+      <span>MEMORIAL SUBMISSION</span>
+    </div>
+    
+    <!-- Legal Document Content Area -->
+    <div class="p-8 md:p-12 flex-1 flex flex-col gap-6 font-serif text-[14px] leading-relaxed text-slate-800" id="memorial-viewer-canvas">
+      
+      <!-- Issue -->
+      <div>
+        <h4 class="text-xs uppercase tracking-widest text-[#a88220] font-sans font-bold mb-2">I. ISSUE OF LAW</h4>
+        <div class="pl-4 border-l-2 border-[#a88220]/30 italic text-slate-700 font-serif">${fmtInline(iracData.issue || '')}</div>
+      </div>
+      
+      <hr class="border-[#e5e3de]">
+
+      <!-- Rule -->
+      <div>
+        <h4 class="text-xs uppercase tracking-widest text-[#2c3e50] font-sans font-bold mb-2">II. GOVERNING PRECEDENTS & LAW (RULE)</h4>
+        <div class="text-slate-800 whitespace-pre-wrap pl-1">${fmtInline(iracData.rule || '')}</div>
+      </div>
+
+      <hr class="border-[#e5e3de]">
+
+      <!-- Application -->
+      <div>
+        <h4 class="text-xs uppercase tracking-widest text-[#2c3e50] font-sans font-bold mb-2">III. SUBMISSIONS & APPLICATION OF LAW TO FACTS</h4>
+        <div class="text-slate-800 whitespace-pre-wrap pl-1">${fmtInline(iracData.application || '')}</div>
+      </div>
+
+      <hr class="border-[#e5e3de]">
+
+      <!-- Conclusion -->
+      <div>
+        <h4 class="text-xs uppercase tracking-widest text-[#2c3e50] font-sans font-bold mb-2">IV. CONCLUSION & PRAYER FOR RELIEF</h4>
+        <div class="text-slate-800 whitespace-pre-wrap pl-1">${fmtInline(iracData.conclusion || '')}</div>
+      </div>
+      
+    </div>
+
+    <!-- Legal Page Footer -->
+    <div class="border-t border-[#ecebe7] bg-[#f9f8f4] py-3 px-6 flex justify-between items-center text-[10px] text-slate-500 font-sans">
+      <span>Appellate Drafting Studio · MootCoach AI</span>
+      <span>PAGE 1</span>
+    </div>
+  </div>
+  `;
+}
+
+function renderOralNotes(iracData, currentStance, currentIssue) {
+  storedOralNotes = getUpgradedOralNotes(iracData, currentStance, currentIssue);
+}
+
+function renderRebuttals(iracData, currentStance) {
+  storedRebuttals = getUpgradedRebuttals(iracData, currentStance);
+}
+
+function renderCitations(notes) {
+  storedCitations = getUpgradedCitations(notes);
+}
+
+function renderFallbackState(error) {
+  const outputState = document.getElementById('builder-output-state');
+  if (!outputState) return;
+
+  const errorMsg = error ? (error.message || String(error)) : 'Unknown render error';
+
+  outputState.innerHTML = `
+    <div class="p-8 bg-red-950/10 border border-red-900/20 rounded-xl flex flex-col items-center text-center gap-4 mt-2 shadow-xl font-sans">
+      <div class="w-12 h-12 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center text-red-400 text-xl font-bold">✕</div>
+      <div>
+        <h3 class="text-lg font-sans font-semibold text-white">Workspace Rendering Error</h3>
+        <p class="text-xs text-white-muted mt-1 max-w-sm">An error occurred while compiling the moot round prep workspace. The generated payload remains preserved in memory.</p>
+        <p class="text-[10px] text-red-400 mt-2 font-mono">${esc(errorMsg)}</p>
+      </div>
+    </div>
   `;
 }
 
