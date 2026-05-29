@@ -9,6 +9,8 @@ let voiceSessionActive = false;
 let voiceSessionStartTime = null;
 let voiceNextPlayTime = 0;
 let voicePlaybackSources = [];
+let micAnalyser = null;
+let playbackAnalyser = null;
 
 function getWsUrl() {
   return BASE_URL.replace(/^http/, 'ws') + '/ws/voice';
@@ -64,7 +66,12 @@ export function scheduleVoicePlayback(float32Array) {
 
   const source = voiceAudioContext.createBufferSource();
   source.buffer = buffer;
-  source.connect(voiceAudioContext.destination);
+  
+  if (playbackAnalyser) {
+    source.connect(playbackAnalyser);
+  } else {
+    source.connect(voiceAudioContext.destination);
+  }
 
   const currentTime = voiceAudioContext.currentTime;
   let startTime = Math.max(currentTime, voiceNextPlayTime);
@@ -98,6 +105,11 @@ export async function startOralRound(callbacks) {
     
     voiceAudioContext = new (window.AudioContext || window.webkitAudioContext)();
     
+    // Set up playback Analyser
+    playbackAnalyser = voiceAudioContext.createAnalyser();
+    playbackAnalyser.fftSize = 256;
+    playbackAnalyser.connect(voiceAudioContext.destination);
+    
     voiceMicrophoneStream = await navigator.mediaDevices.getUserMedia({
       audio: {
         echoCancellation: true,
@@ -105,6 +117,8 @@ export async function startOralRound(callbacks) {
         autoGainControl: true
       }
     });
+
+    onStatusChange('ready', 'Bench Ready');
 
     try {
       await voiceAudioContext.audioWorklet.addModule('/pcm-processor.js');
@@ -115,6 +129,76 @@ export async function startOralRound(callbacks) {
 
     voiceSourceNode = voiceAudioContext.createMediaStreamSource(voiceMicrophoneStream);
     voiceWorkletNode = new AudioWorkletNode(voiceAudioContext, 'pcm-processor');
+
+    // Set up mic Analyser
+    micAnalyser = voiceAudioContext.createAnalyser();
+    micAnalyser.fftSize = 256;
+    voiceSourceNode.connect(micAnalyser);
+
+    // Dynamic visualization animation loops
+    const micBufferLength = micAnalyser.frequencyBinCount;
+    const micDataArray = new Uint8Array(micBufferLength);
+    const playBufferLength = playbackAnalyser.frequencyBinCount;
+    const playDataArray = new Uint8Array(playBufferLength);
+
+    const updateAudioLevels = () => {
+      if (!voiceSessionActive) return;
+
+      // 1. Analyze Mic Volume
+      micAnalyser.getByteFrequencyData(micDataArray);
+      let sumMic = 0;
+      for (let i = 0; i < micBufferLength; i++) {
+        sumMic += micDataArray[i];
+      }
+      const averageMic = sumMic / micBufferLength;
+      const percentMic = Math.min(100, Math.round((averageMic / 128) * 100));
+      
+      const micLevelEl = document.getElementById('cr-mic-level');
+      if (micLevelEl) {
+        micLevelEl.style.width = `${percentMic}%`;
+      }
+
+      // 2. Animate Waveform Bars based on status
+      const waveBars = document.querySelectorAll('#cr-waveform-container .cr-wave-bar');
+      if (waveBars.length > 0) {
+        if (window.voiceStatus === 'speaking') {
+          // Judge Speaking -> Playback Analyser
+          playbackAnalyser.getByteFrequencyData(playDataArray);
+          waveBars.forEach((bar, index) => {
+            const val = playDataArray[index % playBufferLength] || 0;
+            const height = Math.max(4, Math.round((val / 255) * 24));
+            bar.style.height = `${height}px`;
+            bar.style.backgroundColor = '#e05252'; // Red for Judge
+          });
+        } else if (window.voiceStatus === 'listening') {
+          // Counsel/Advocate Speaking -> Mic Analyser
+          waveBars.forEach((bar, index) => {
+            const val = micDataArray[index % micBufferLength] || 0;
+            const height = Math.max(4, Math.round((val / 255) * 24));
+            bar.style.height = `${height}px`;
+            bar.style.backgroundColor = '#60a5fa'; // Blue for Counsel
+          });
+        } else if (window.voiceStatus === 'processing') {
+          // Processing -> Purple pulsing wave
+          const time = Date.now() * 0.005;
+          waveBars.forEach((bar, index) => {
+            const height = Math.max(4, Math.round(14 + Math.sin(time + index * 0.8) * 10));
+            bar.style.height = `${height}px`;
+            bar.style.backgroundColor = '#a78bfa'; // Purple for Processing
+          });
+        } else {
+          // Idle/Disconnected -> Small static bars
+          waveBars.forEach((bar) => {
+            bar.style.height = '4px';
+            bar.style.backgroundColor = 'rgba(245, 243, 239, 0.3)';
+          });
+        }
+      }
+
+      requestAnimationFrame(updateAudioLevels);
+    };
+
+    requestAnimationFrame(updateAudioLevels);
 
     voiceWorkletNode.port.onmessage = (event) => {
       if (voiceWebSocket && voiceWebSocket.readyState === WebSocket.OPEN) {
@@ -213,6 +297,9 @@ export function stopOralRound() {
   }
 
   stopVoicePlayback();
+  
+  micAnalyser = null;
+  playbackAnalyser = null;
   
   return durationSec;
 }

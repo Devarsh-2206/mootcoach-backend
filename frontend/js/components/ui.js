@@ -168,10 +168,10 @@ export async function triggerBackendCheck() {
   const online = await checkBackendHealth();
   if (online) {
     statusEl.className = 'backend-status online';
-    labelEl.textContent = 'Server online';
+    labelEl.textContent = '🟢 Server Online';
   } else {
     statusEl.className = 'backend-status offline';
-    labelEl.textContent = 'Server offline';
+    labelEl.textContent = '🔴 Server Offline';
   }
 }
 

@@ -333,81 +333,111 @@ export function handleBenchKeydown(e) {
 }
 
 /* ─── VOICE SIMULATOR (AUDIO WORKLET + WEBSOCKET) FUNCTIONS ─── */
-function updateVoiceUI(status, text) {
-  const badge = document.getElementById('bench-voice-status');
-  const dot = document.getElementById('bench-voice-dot');
-  const label = document.getElementById('bench-voice-text');
-  
-  // Courtroom UI elements
-  const crBadge = document.getElementById('cr-status-badge');
-  const crAvatarJudge = document.getElementById('cr-avatar-judge');
-  const crAvatarUser = document.getElementById('cr-avatar-user');
-  const crVisualizer = document.getElementById('cr-visualizer-bar');
+export let currentJudgeBubble = null;
+export let currentJudgeSpeech = '';
 
-  if (!badge || !dot || !label) return;
-  
-  badge.style.display = 'flex';
-  label.textContent = text;
-  
-  window.voiceStatus = status;
+const JUDGE_NAMES = [
+  "Justice Rao",
+  "Justice Malhotra",
+  "Justice Bhat",
+  "Justice Nagarathna",
+  "Justice Roy",
+  "Justice Gavai",
+  "Justice Khanna",
+  "Justice Banerjee",
+  "Justice Kaul",
+  "Justice Sundresh"
+];
 
-  // Reset animations
-  if (crAvatarJudge) crAvatarJudge.className = 'cr-avatar';
-  if (crAvatarUser) crAvatarUser.className = 'cr-avatar';
-  if (crVisualizer) crVisualizer.className = 'cr-visualizer-bar';
+function getJudgeName() {
+  const mootName = document.getElementById('ws-moot-name')?.value?.trim();
+  if (!mootName) {
+    const fileName = document.getElementById('wsib-file')?.textContent?.trim();
+    if (fileName && fileName !== 'No file uploaded') {
+      return getDeterministicJudge(fileName);
+    }
+    return "Presiding Judge";
+  }
+  return getDeterministicJudge(mootName);
+}
 
-  if (crBadge) {
-    crBadge.className = 'cr-status-badge';
-    crBadge.innerHTML = `<span class="badge-dot"></span>${text}`;
+function getDeterministicJudge(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const index = Math.abs(hash) % JUDGE_NAMES.length;
+  return `Justice ${JUDGE_NAMES[index].replace("Justice ", "")}`;
+}
+
+export function updateBenchState(state) {
+  window.voiceStatus = state;
+
+  const statusEl = document.getElementById('cr-session-status');
+  const footerDot = document.getElementById('cr-indicator-dot');
+  const footerLabel = document.getElementById('cr-indicator-label');
+  const waveform = document.getElementById('cr-waveform-container');
+
+  if (state === 'speaking') {
+    currentJudgeBubble = null;
+    currentJudgeSpeech = '';
   }
 
-  if (status === 'connecting') {
-    badge.className = 'backend-status checking';
-    dot.className = 'bs-dot';
-    label.style.color = 'var(--gold)';
-    if (crBadge) crBadge.classList.add('connecting');
-  } else if (status === 'listening') {
-    badge.className = 'backend-status online';
-    dot.className = 'bs-dot';
-    label.style.color = 'var(--success)';
-    if (crBadge) {
-      crBadge.classList.add('listening');
-      crBadge.innerHTML = `<span class="badge-dot"></span>Court is Listening`;
-    }
-    if (crAvatarUser) crAvatarUser.classList.add('listening-user');
-  } else if (status === 'speaking') {
-    badge.className = 'backend-status checking';
-    dot.className = 'bs-dot';
-    label.style.color = '#fbbf24';
-    if (crBadge) {
-      crBadge.classList.add('speaking-judge');
-      crBadge.innerHTML = `<span class="badge-dot"></span>Judge Speaking`;
-    }
-    if (crAvatarJudge) crAvatarJudge.classList.add('speaking-judge');
-    if (crVisualizer) crVisualizer.classList.add('active', 'judge');
-  } else if (status === 'user_speaking') {
-    badge.className = 'backend-status online';
-    dot.className = 'bs-dot';
-    label.style.color = '#60a5fa';
-    if (crBadge) {
-      crBadge.classList.add('speaking-user');
-      crBadge.innerHTML = `<span class="badge-dot"></span>Advocate Speaking`;
-    }
-    if (crAvatarUser) crAvatarUser.classList.add('speaking-user');
-    if (crVisualizer) crVisualizer.classList.add('active', 'user');
-  } else if (status === 'processing') {
-    badge.className = 'backend-status checking';
-    dot.className = 'bs-dot';
-    label.style.color = '#a78bfa';
-    if (crBadge) crBadge.classList.add('processing');
-  } else if (status === 'error') {
-    badge.className = 'backend-status offline';
-    dot.className = 'bs-dot';
-    label.style.color = 'var(--error)';
-    if (crBadge) crBadge.classList.add('error');
-  } else {
-    badge.style.display = 'none';
+  let text = '';
+  let dotColor = 'bg-[#c9a84c]'; // Gold
+
+  switch (state) {
+    case 'connecting':
+      text = 'Connecting to Bench...';
+      dotColor = 'bg-[#c9a84c]';
+      break;
+    case 'mic_ready':
+      text = 'Waiting for Microphone Permission...';
+      dotColor = 'bg-[#fbbf24]';
+      break;
+    case 'ready':
+      text = 'Bench Ready';
+      dotColor = 'bg-[#4caf82]';
+      break;
+    case 'listening':
+      text = 'Listening to Advocate...';
+      dotColor = 'bg-[#4caf82]';
+      break;
+    case 'processing':
+      text = 'Processing Argument...';
+      dotColor = 'bg-[#a78bfa]';
+      break;
+    case 'speaking':
+      text = 'Judge Speaking';
+      dotColor = 'bg-[#e05252]';
+      break;
+    case 'ended':
+      text = 'Session Ended';
+      dotColor = 'bg-[#e05252]';
+      break;
+    default:
+      text = state;
   }
+
+  // Update Bench Header Judge Info & Bench Name on state change
+  const judgeNameEl = document.getElementById('cr-judge-name');
+  const benchNameEl = document.getElementById('cr-bench-name');
+  if (judgeNameEl) {
+    const judgeName = getJudgeName();
+    judgeNameEl.textContent = `⚖️ ${judgeName}`;
+  }
+  if (benchNameEl) {
+    const difficultyLabel = (benchDifficultyMode || 'moderate').toUpperCase();
+    benchNameEl.textContent = difficultyLabel === 'HARD' ? 'Constitutional Bench' : (difficultyLabel === 'EASY' ? 'District Court Bench' : 'Division Bench');
+  }
+
+  if (statusEl) statusEl.textContent = text;
+  if (footerLabel) footerLabel.textContent = text;
+  if (footerDot) {
+    footerDot.className = `w-2.5 h-2.5 rounded-full ${dotColor} animate-pulse`;
+  }
+
+  console.log(`[DEBUG AUDIT] updateBenchState: ${state} -> ${text}`);
 }
 
 export async function startOralRound() {
@@ -417,6 +447,7 @@ export async function startOralRound() {
   }
 
   console.log("🎙️ Initiating oral round...");
+  console.log("[DEBUG AUDIT] Starting oral round...");
   benchConversation = [];
   voiceSessionActive = true;
   voiceSessionStartTime = Date.now();
@@ -441,8 +472,8 @@ export async function startOralRound() {
   }
 
   // Clear courtroom feed and show courtroom view
-  const feed = document.getElementById('cr-transcript-feed');
-  if (feed) feed.innerHTML = '';
+  const panel = document.getElementById('bench-transcript-panel');
+  if (panel) panel.innerHTML = '';
   if (courtroom) courtroom.classList.add('active');
 
   // Load Moot details into headers
@@ -452,8 +483,9 @@ export async function startOralRound() {
   if (sessionTitleEl) sessionTitleEl.textContent = mootName;
   if (sessionMetaEl) sessionMetaEl.textContent = `VOICE BENCH SIMULATION · ${benchDifficultyMode.toUpperCase()} BENCH`;
 
-  updateVoiceUI('connecting', 'Connecting...');
-  appendCourtroomTranscript('system', 'Starting Oral Round. Please grant microphone permissions.');
+  updateBenchState('connecting');
+  updateBenchState('mic_ready');
+  appendTranscript('system', 'Starting Oral Round. Please grant microphone permissions.');
 
   // Start timers and local speech-to-text
   startVoiceTimer();
@@ -462,17 +494,37 @@ export async function startOralRound() {
   try {
     await engineStartOralRound({
       onStatusChange: (status, text) => {
-        updateVoiceUI(status, text);
+        console.log("[DEBUG AUDIT] Engine status changed:", status, text);
+        if (status === 'connecting') {
+          updateBenchState('connecting');
+        } else if (status === 'ready') {
+          updateBenchState('ready');
+        } else if (status === 'listening') {
+          updateBenchState('listening');
+        } else if (status === 'speaking') {
+          updateBenchState('speaking');
+        } else if (status === 'user_speaking') {
+          updateBenchState('listening');
+        } else if (status === 'processing') {
+          updateBenchState('processing');
+        } else if (status === 'error') {
+          updateBenchState('ended');
+          appendTranscript('system', `Judge Error: ${text}`);
+        } else if (status === 'disconnected') {
+          updateBenchState('ended');
+        }
       },
       onText: (text) => {
-        appendBenchMessage('judge', text);
-        appendCourtroomTranscript('judge', text);
+        console.log("[DEBUG AUDIT] AI response chunk received:", text);
+        appendTranscript('judge', text, true);
+        console.log("[DEBUG AUDIT] Judge transcript appended chunk:", text);
       },
       onError: (message) => {
-        appendBenchMessage('system', `Judge Error: ${message}`);
-        appendCourtroomTranscript('system', `Judge Error: ${message}`);
+        console.log("[DEBUG AUDIT] AI response error received:", message);
+        appendTranscript('system', `Judge Error: ${message}`);
       },
       onClose: () => {
+        console.log("[DEBUG AUDIT] Engine connection closed.");
         if (voiceSessionActive) {
           stopOralRound();
         }
@@ -480,7 +532,7 @@ export async function startOralRound() {
     });
   } catch (err) {
     console.error("Failed to start oral round:", err);
-    appendCourtroomTranscript('system', `Failed to start: ${err.message}`);
+    appendTranscript('system', `Failed to start: ${err.message}`);
     stopOralRound();
   }
 }
@@ -506,7 +558,7 @@ export function stopOralRound() {
   stopSpeechRecognition();
 
   const durationSec = engineStopOralRound();
-  updateVoiceUI('disconnected', 'Round Ended');
+  updateBenchState('ended');
 
   if (currentUser && voiceSessionStartTime) {
     const duration = Math.floor((Date.now() - voiceSessionStartTime) / 1000);
@@ -527,44 +579,86 @@ export function stopOralRound() {
 }
 
 /* ─── VIRTUAL COURTROOM HELPERS ─── */
-export function appendCourtroomTranscript(role, text) {
-  const feed = document.getElementById('cr-transcript-feed');
-  if (!feed) return;
+export function appendTranscript(role, text, isChunk = false) {
+  const panel = document.getElementById('bench-transcript-panel');
+  if (!panel) return;
 
   const interim = document.getElementById('cr-interim-bubble');
   if (interim) interim.remove();
 
-  const div = document.createElement('div');
-  div.className = `cr-transcript-msg ${role}`;
+  if (role === 'judge') {
+    if (isChunk && currentJudgeBubble) {
+      currentJudgeSpeech += text;
+      const textEl = currentJudgeBubble.querySelector('.cr-msg-text');
+      if (textEl) {
+        textEl.innerHTML = fmtInline(currentJudgeSpeech);
+      }
+      panel.scrollTop = panel.scrollHeight;
+      return;
+    }
 
-  if (role === 'system') {
-    div.innerHTML = `<div class="cr-msg-text">${esc(text)}</div>`;
-  } else {
-    const roleLabel = role === 'judge' ? 'BENCH' : 'COUNSEL';
-    const roleCls   = role === 'judge' ? 'judge' : 'advocate';
+    currentJudgeSpeech = text;
+    const div = document.createElement('div');
+    div.className = 'flex flex-col max-w-[80%] self-start items-start animate-[secReveal_0.3s_ease_both]';
+    
+    // Get dynamic Judge Name
+    const judgeName = getJudgeName();
+    
     div.innerHTML = `
-      <div class="cr-msg-role ${roleCls}">${roleLabel}</div>
-      <div class="cr-msg-text">${fmtInline(text)}</div>
+      <div class="text-[10px] font-semibold tracking-wider text-red-400 mb-1 flex items-center gap-1">
+        <span>⚖️</span> ${judgeName}
+      </div>
+      <div class="bg-red-950/20 border border-red-900/30 rounded-r-xl rounded-bl-xl p-3 text-sm text-gray-200 leading-relaxed shadow-sm">
+        <span class="cr-msg-text">${fmtInline(text)}</span>
+      </div>
     `;
+    panel.appendChild(div);
+    currentJudgeBubble = div;
+  } else if (role === 'advocate') {
+    currentJudgeBubble = null;
+    currentJudgeSpeech = '';
+
+    const div = document.createElement('div');
+    div.className = 'flex flex-col max-w-[80%] self-end items-end animate-[secReveal_0.3s_ease_both]';
+    div.innerHTML = `
+      <div class="text-[10px] font-semibold tracking-wider text-blue-400 mb-1 flex items-center gap-1">
+        <span>🎓</span> Advocate
+      </div>
+      <div class="bg-blue-950/20 border border-blue-900/30 rounded-l-xl rounded-br-xl p-3 text-sm text-gray-200 leading-relaxed shadow-sm">
+        <span class="cr-msg-text">${fmtInline(text)}</span>
+      </div>
+    `;
+    panel.appendChild(div);
+  } else {
+    currentJudgeBubble = null;
+    currentJudgeSpeech = '';
+
+    const div = document.createElement('div');
+    div.className = 'flex flex-col max-w-[90%] self-center items-center animate-[secReveal_0.3s_ease_both]';
+    div.innerHTML = `
+      <div class="bg-gray-900/40 border border-gray-800 rounded-lg py-1.5 px-4 text-xs text-gray-400 text-center">
+        ${esc(text)}
+      </div>
+    `;
+    panel.appendChild(div);
   }
 
-  feed.appendChild(div);
-  feed.scrollTo({ top: feed.scrollHeight, behavior: 'smooth' });
+  panel.scrollTop = panel.scrollHeight;
 }
 
 export function showInterimUserSpeech(text) {
-  const feed = document.getElementById('cr-transcript-feed');
-  if (!feed) return;
+  const panel = document.getElementById('bench-transcript-panel');
+  if (!panel) return;
 
   let interim = document.getElementById('cr-interim-bubble');
   if (!interim) {
     interim = document.createElement('div');
-    interim.className = 'cr-interim-bubble';
+    interim.className = 'bg-gray-900/20 border border-dashed border-gray-800 rounded-l-xl rounded-br-xl p-3 text-sm text-gray-400 font-light italic self-end max-w-[80%]';
     interim.id = 'cr-interim-bubble';
-    feed.appendChild(interim);
+    panel.appendChild(interim);
   }
   interim.textContent = text + '...';
-  feed.scrollTo({ top: feed.scrollHeight, behavior: 'smooth' });
+  panel.scrollTop = panel.scrollHeight;
 }
 
 function startSpeechRecognition() {
@@ -585,13 +679,13 @@ function startSpeechRecognition() {
 
   recognition.onspeechstart = () => {
     if (window.voiceStatus !== 'speaking') {
-      updateVoiceUI('user_speaking', 'Advocate Speaking');
+      updateBenchState('listening');
     }
   };
 
   recognition.onspeechend = () => {
-    if (window.voiceStatus === 'user_speaking') {
-      updateVoiceUI('listening', 'Court is listening...');
+    if (window.voiceStatus === 'user_speaking' || window.voiceStatus === 'listening') {
+      updateBenchState('processing');
     }
   };
 
@@ -607,11 +701,19 @@ function startSpeechRecognition() {
       }
     }
 
+    console.log("[DEBUG AUDIT] Web Speech API onresult:", { finalTranscript, interimTranscript });
+
     if (finalTranscript) {
-      appendCourtroomTranscript('advocate', finalTranscript);
+      console.log("[DEBUG AUDIT] User speech captured (final):", finalTranscript);
+      appendTranscript('advocate', finalTranscript);
+      console.log("[DEBUG AUDIT] Advocate transcript appended:", finalTranscript);
       benchConversation.push({ role: 'advocate', content: finalTranscript });
+      
       const interim = document.getElementById('cr-interim-bubble');
       if (interim) interim.remove();
+      
+      // Counsel finished speaking -> transition status to processing
+      updateBenchState('processing');
     } else if (interimTranscript) {
       showInterimUserSpeech(interimTranscript);
     }
