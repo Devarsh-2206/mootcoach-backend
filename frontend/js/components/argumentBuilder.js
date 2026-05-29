@@ -292,17 +292,14 @@ function renderIRAC(iracData) {
       <button class="btn-sm btn-sm-ghost text-xs tracking-wider flex items-center gap-1.5 font-sans cursor-pointer" onclick="exportDraftPDF('memorial-viewer-canvas')">
         📄 Export PDF
       </button>
-      <button class="btn-sm btn-sm-ghost text-xs tracking-wider flex items-center gap-1.5 font-sans cursor-pointer" onclick="openAuxPanel('oral', this)">
-        🎙️ Oral Notes
-      </button>
       <button class="btn-sm btn-sm-ghost text-xs tracking-wider flex items-center gap-1.5 font-sans cursor-pointer" onclick="openAuxPanel('rebuttal', this)">
         🛡️ Rebuttal
       </button>
       <button class="btn-sm btn-sm-ghost text-xs tracking-wider flex items-center gap-1.5 font-sans cursor-pointer" onclick="openAuxPanel('citations', this)">
         📖 Strengthen Citations
       </button>
-      <button class="btn-sm btn-sm-gold text-xs tracking-wider flex items-center gap-1.5 font-sans cursor-pointer" onclick="openAuxPanel('pack', this)">
-        🎤 Oral Round Pack
+      <button class="btn-sm btn-sm-ghost text-xs tracking-wider flex items-center gap-1.5 font-sans cursor-pointer" onclick="openAuxPanel('pack', this)">
+        🎙️ Oral Advocacy Suite
       </button>
     </div>
   </div>
@@ -675,8 +672,8 @@ export function openAuxPanel(type, triggerElement) {
     title.textContent = 'Citation Strengthener';
     content.innerHTML = storedCitations;
   } else if (type === 'pack') {
-    title.textContent = 'Oral Round Prep Pack';
-    renderOralRoundPack(content);
+    title.textContent = 'Oral Advocacy Suite';
+    renderOralAdvocacySuite(content);
   }
 
   // Open the panel
@@ -731,6 +728,11 @@ export function openMemorialViewer() {
     showToast("Generate a submission first to unlock the memorial.", "info");
     return;
   }
+
+  // TODO [Architectural Scaffolding]:
+  // In the future, this should open in a dedicated standalone modal with enhanced canvas,
+  // zooming capabilities, and native-grade double-page layouts.
+  // Currently utilizing the fallback side-overlay view.
 
   const overlay = document.getElementById('aux-panel-overlay');
   const panel = document.getElementById('memorial-panel');
@@ -793,45 +795,484 @@ export function copyMemorial() {
   });
 }
 
-export function renderOralRoundPack(container) {
+export function renderOralAdvocacySuite(container) {
   if (!container) return;
 
   activePackTab = activePackTab || 'speech';
+  if (activePackTab === 'qa' || activePackTab === 'traps') {
+    activePackTab = 'qa';
+  }
 
   // Construct tab bar and contents
   const tabs = [
     { id: 'speech', label: '🎙️ Speech' },
-    { id: 'qa', label: '⚖️ Q&A' },
-    { id: 'rebuttal', label: '🛡️ Rebuttals' },
-    { id: 'precedents', label: '📖 Precedents' },
-    { id: 'traps', label: '🔥 Traps' }
+    { id: 'submissions', label: '⚖️ Submissions' },
+    { id: 'qa', label: '❓ Q&A & Traps' },
+    { id: 'rebuttals', label: '🛡️ Rebuttals' },
+    { id: 'precedents', label: '📖 Precedents' }
   ];
 
   const tabHeadersHTML = tabs.map(t => {
     const isActive = t.id === activePackTab;
-    const borderCls = isActive ? 'border-b-2 border-[#c9a84c] text-[#c9a84c]' : 'border-b border-white/5 text-[#f5f3ef]/45 hover:text-white';
+    const borderCls = isActive ? 'border-b-2 border-moot-accent text-moot-accent' : 'border-b border-white/5 text-[#f5f3ef]/45 hover:text-white';
     return `<button class="px-3 py-2 text-[10px] font-sans font-semibold uppercase tracking-wider bg-transparent border-0 cursor-pointer transition-all ${borderCls}" onclick="switchPackTab('${t.id}')">${t.label}</button>`;
   }).join('');
 
+  // Access current state
+  const currentStance = getCurrentSelectedSide() || selectedSide || 'Petitioner';
+  const isPetitioner = currentStance.toLowerCase().includes('petitioner') || currentStance.toLowerCase().includes('appellant');
+  const iracData = lastBuiltArgument || {};
+  const currentIssue = document.getElementById('builder-issue-select')?.value || 'General Issue';
+
+  // Section 1 & 7: Opening Speeches and Closing Prayers
+  const openingLine = isPetitioner 
+    ? `May it please this Honorable Court. My name is Counsel representing the Petitioner. We stand before this Court to challenge the validity of the impugned action concerning the key issue of law, namely ${esc(iracData.issue || currentIssue)}.`
+    : `May it please this Honorable Court. My name is Counsel representing the Respondent. We stand before this Court to oppose the petition in its entirety and defend the constitutionality of the impugned action.`;
+
+  const opening30s = isPetitioner
+    ? "My Lords, the violation here is not merely technical, but goes to the root of Part III rights. If this court does not intervene, the petitioner faces irreparable injury for which damages are no remedy. The state cannot bypass the rule of law under the banner of convenience."
+    : "My Lords, the State's action was necessitated by public welfare. It enjoys the presumption of constitutionality and fits strictly within the legislative competence. The restriction is reasonable, proportional, and leaves alternative remedies open.";
+
+  const opening60s = isPetitioner
+    ? "My Lords, the petition raises a vital question of constitutional fair play. First, the impugned regulation bypasses natural justice. Second, it violates the proportionality test by imposing an absolute bar where narrower means were practicable. Under Maneka Gandhi, any procedure must be fair, just, and reasonable. We pray that this Court strikes down the provision."
+    : "My Lords, the Respondent submits that the petition is both procedurally barred and substantively meritless. The petitioner failed to exhaust the statutory appeal mechanism. Furthermore, the restriction is reasonable under Article 19(6) to protect public safety. A regulatory vacuum would cause public harm. We pray that the petition be dismissed.";
+
+  const closing15s = isPetitioner
+    ? "In conclusion, My Lords, because the impugned regulation violates the tests of proportionality and natural justice, we pray that this petition be allowed. We thank this Court."
+    : "In conclusion, My Lords, because the regulation is a reasonable and necessary restriction in public interest, we pray that the petition be dismissed. We thank this Court.";
+
+  const closing30s = isPetitioner
+    ? "My Lords, a constitutional democracy cannot permit administrative convenience to override fundamental rights. Since the regulation bypasses notice, lacks guidelines, and is disproportionate, we pray that this Court strike it down. We thank this Court."
+    : "My Lords, the state acted in good faith to protect public welfare. To strike down this rule would create a regulatory vacuum. Since the restriction is proportional and constitutional, we pray that the petition be dismissed. We thank this Court.";
+
+  const closingFull = isPetitioner
+    ? "May it please this Court. For the reasons submitted, the Petitioner prays that this Court: First, declare the impugned regulation unconstitutional and void under Articles 14, 19, and 21. Second, direct the State to reinstate the Petitioner's status. And pass any other order that this Court deems fit in the interest of justice. We thank this Court."
+    : "May it please this Court. For the reasons submitted, the Respondent prays that this Court: First, uphold the validity of the impugned regulation. Second, dismiss the petition with costs as a meritless challenge to policy discretion. And pass any other order that this Court deems fit. We thank this Court.";
+
+  // Section 3: likely bench questions
+  const qaList = isPetitioner ? [
+    {
+      q: "Counsel, isn't the regulation of this domain purely within the policy discretion of the Executive?",
+      a: "Most Respectfully, My Lords, while policy discretion lies with the Executive, its exercise is bounded by constitutional limits. Once an action exceeds those limits or is manifestly arbitrary, this Court is fully empowered—indeed required—to intervene under Article 14, as established in Royappa."
+    },
+    {
+      q: "Why should we bypass the statutory alternative remedies available to your client?",
+      a: "It is well-settled by this Court in Whirlpool Corporation v. Registrar of Trade Marks that the existence of an alternative remedy is a rule of discretion and not a bar to jurisdiction, particularly where there is a violation of fundamental rights or principles of natural justice."
+    },
+    {
+      q: "Where is the specific, documented prejudice caused to the Petitioner?",
+      a: "The prejudice is immediate and absolute. The state action directly impairs the Petitioner's livelihood and personal liberty without notice or hearing, which is a per se violation of Article 19(1)(g) and Article 21, causing irreparable harm."
+    },
+    {
+      q: "Aren't you asking this Court to act as a court of appeal over administrative policy decisions?",
+      a: "Not at all, My Lords. Counsel does not ask this Court to substitute its wisdom for that of the executive, but to review the legality, procedural propriety, and proportionality of the decision-making process under the Wednesbury principle."
+    },
+    {
+      q: "Is there any direct precedent holding this precise rule unconstitutional?",
+      a: "While there may not be a factual mirror-image case, the core legal principle is firmly governed by the Constitutional Bench holding in Puttaswamy, which established that any state encroachment on individual rights must pass the strict four-pronged test of proportionality."
+    },
+    {
+      q: "Isn't the state regulation a reasonable restriction under Article 19(6) in public interest?",
+      a: "My Lords, a restriction cannot be 'reasonable' if it lacks procedural safeguards. The absence of notice or any appeal mechanism makes the restriction disproportionate and excessive."
+    },
+    {
+      q: "What if striking down this provision causes regulatory chaos?",
+      a: "My Lords, constitutional rights cannot be sacrificed for administrative convenience. The state remains free to draft a new, constitutionally compliant rule that incorporates natural justice."
+    },
+    {
+      q: "Can the state not claim a public safety emergency to justify immediate action?",
+      a: "Even in emergencies, the state must adopt the least restrictive means. Here, no threat was shown to justify bypassing a post-decisional hearing."
+    },
+    {
+      q: "Does your client have a clean record of compliance under the prior rules?",
+      a: "Yes, My Lords, the Petitioner has operated in full compliance. The sudden enforcement actions were taken without any prior citation or warning."
+    },
+    {
+      q: "If we find the provision valid, what alternative relief do you seek?",
+      a: "In the alternative, we pray that this Court reads down the provision to exclude its application where prior notice is practicable, or directs a post-decisional hearing within a strict timeline."
+    }
+  ] : [
+    {
+      q: "Counsel, how do you justify the apparent lack of notice or hearing before this action was taken?",
+      a: "My Lords, the urgency of the situation and the protection of public interest necessitated immediate action. The statute implicitly permits post-decisional hearings, which completely satisfies the requirements of natural justice under these exceptional circumstances."
+    },
+    {
+      q: "Does this action not violate the basic principles of proportionality laid down in Puttaswamy?",
+      a: "No, My Lords. The restriction passes the proportionality test: it has a legitimate goal (public welfare), a rational nexus (preventing harm), is necessary as no less restrictive means exist, and the public benefit far outweighs any private inconvenience."
+    },
+    {
+      q: "Is the presumption of constitutionality sufficient to save a provision that is prima facie arbitrary?",
+      a: "The provision is not arbitrary. It is a carefully crafted legislative response to a complex socioeconomic issue. The legislature has broad latitude, and the burden remains strictly on the Petitioner to prove unconstitutionality beyond reasonable doubt."
+    },
+    {
+      q: "How can the State argue that this doesn't encroach upon the Petitioner's Article 19(1)(g) rights?",
+      a: "Article 19(1)(g) is not absolute. Under Article 19(6), the State is competent to impose reasonable restrictions in the interest of the general public. The restrictions here are fully reasonable and public-interest oriented."
+    },
+    {
+      q: "If this Court strikes down this provision, what is the State's fallback plan?",
+      a: "We submit that the provision is constitutional. Striking it down would create a regulatory vacuum, endangering public safety. If the Court finds any ambiguity, we pray that it read down the provision rather than strike it down."
+    },
+    {
+      q: "How does a post-decisional hearing cure the initial lack of natural justice?",
+      a: "My Lords, as held in Charan Lal Sahu, in cases of administrative urgency, a post-decisional hearing cures any prior procedural defect, providing a full opportunity to present their case."
+    },
+    {
+      q: "Isn't the Wednesbury unreasonableness standard satisfied here by the sheer lack of guidelines?",
+      a: "No, My Lords. The guidelines are found in the statutory purpose and context. The executive has applied this power in a targeted manner to address specific harms."
+    },
+    {
+      q: "Why should we not follow the precedent of Maneka Gandhi and strike this down?",
+      a: "Maneka Gandhi held that procedure must be fair. A post-decisional hearing framework in a public welfare context is fair, just, and reasonable, fitting the Maneka Gandhi standard."
+    },
+    {
+      q: "Can public interest completely override fundamental rights?",
+      a: "No, My Lords. Fundamental rights are not overridden; they are balanced. Article 19(6) explicitly allows this balance in the interest of the general public."
+    },
+    {
+      q: "If we find in favor of the Petitioner, will the state provide compensation?",
+      a: "My Lords, the state acted in good faith for public safety. No malice is alleged. Therefore, public interest precludes any liability for damages."
+    }
+  ];
+
+  // Section 5: Rebuttal War Room
+  const rebuttalsList = isPetitioner ? [
+    {
+      opponent: "The state regulation is a policy decision and is not reviewable by the Court.",
+      rebuttal: "Policy discretion is bounded by the Constitution. Under Royappa, arbitrary policy is ultra vires Article 14."
+    },
+    {
+      opponent: "The petitioner failed to exhaust the alternative remedy of administrative appeal.",
+      rebuttal: "Alternate remedies do not bar writ jurisdiction when fundamental rights are violated, as held in Whirlpool."
+    },
+    {
+      opponent: "No hearing is required because the state is acting in an emergency public safety role.",
+      rebuttal: "Emergency claims do not suspend Article 14 or 21. Natural justice (at least post-decisional) must be provided."
+    }
+  ] : [
+    {
+      opponent: "The state regulation violates Article 14 because it was issued without prior notice.",
+      rebuttal: "Urgency and public welfare justify post-decisional hearing, satisfying natural justice."
+    },
+    {
+      opponent: "The regulation is disproportionate and violates Article 19(1)(g).",
+      rebuttal: "Under Article 19(6), the state is competent to impose reasonable restrictions for public safety."
+    },
+    {
+      opponent: "The guidelines are unguided and therefore arbitrary.",
+      rebuttal: "Guidelines are implicitly defined by the statutory framework and target public welfare objectives."
+    }
+  ];
+
+  // Section 6: Authorities Snapshot
+  const precedentsList = [
+    {
+      name: "K.S. Puttaswamy v. Union of India (2017)",
+      bench: "9-Judge Bench",
+      ratio: "Right to privacy and personal liberty are fundamental under Article 21, and state limitation of these rights must satisfy the three-fold test of legality, necessity, and proportionality.",
+      why: "Serves as the foundation to challenge the proportionality of the state restrictions under Article 21.",
+      usage: "My Lords, the constitutional proportionality test laid down in Puttaswamy requires the state to choose the least restrictive measure, which it has failed to do here."
+    },
+    {
+      name: "Maneka Gandhi v. Union of India (1978)",
+      bench: "7-Judge Bench",
+      ratio: "Any procedure affecting Article 21 rights must be 'fair, just, and reasonable' and cannot be arbitrary, fanciful, or oppressive. Natural justice is a mandatory requirement.",
+      why: "Key precedent to argue that bypassing prior notice and hearing constitutes absolute procedural invalidity.",
+      usage: "Under the authority of Maneka Gandhi, any administrative procedure that lacks notice and hearing violates natural justice per se."
+    },
+    {
+      name: "E.P. Royappa v. State of Tamil Nadu (1974)",
+      bench: "5-Judge Bench",
+      ratio: "Equality is a dynamic concept. Manifest arbitrariness in state action is the absolute antithesis of the rule of law under Article 14.",
+      why: "Provides the legal basis to strike down executive policy decisions that are taken without guidelines or reasons.",
+      usage: "Royappa establishes that state action lacking reasoned guidelines is manifestly arbitrary and violates Article 14."
+    }
+  ];
+
   let tabContentHTML = '';
   if (activePackTab === 'speech') {
-    tabContentHTML = storedOralNotes;
+    tabContentHTML = `
+      <div class="flex flex-col gap-4 font-sans">
+        <!-- Card 1: Bench Opening -->
+        <div class="p-5 bg-white/5 border border-white/10 rounded-xl backdrop-blur-md flex flex-col gap-4">
+          <div class="flex items-center gap-2 border-b border-white/5 pb-2">
+            <span class="text-lg">🎙️</span>
+            <h4 class="text-xs uppercase tracking-wider text-moot-accent font-bold">1. Bench Opening (Ready to Speak)</h4>
+          </div>
+          
+          <div class="space-y-3">
+            <div class="p-3 bg-black/20 rounded-lg border-l-2 border-indigo-500/30">
+              <span class="text-[9px] uppercase tracking-widest text-indigo-400 block font-semibold mb-1">Exact Opening Line</span>
+              <p class="text-xs text-white/90 italic font-serif leading-relaxed">"${esc(openingLine)}"</p>
+            </div>
+            <div class="p-3 bg-black/20 rounded-lg border-l-2 border-indigo-500/30">
+              <span class="text-[9px] uppercase tracking-widest text-indigo-400 block font-semibold mb-1">30-Second Opening</span>
+              <p class="text-xs text-white/90 italic font-serif leading-relaxed">"${esc(opening30s)}"</p>
+            </div>
+            <div class="p-3 bg-black/20 rounded-lg border-l-2 border-indigo-500/30">
+              <span class="text-[9px] uppercase tracking-widest text-indigo-400 block font-semibold mb-1">60-Second Opening</span>
+              <p class="text-xs text-white/90 italic font-serif leading-relaxed">"${esc(opening60s)}"</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 2: Closing Prayer -->
+        <div class="p-5 bg-white/5 border border-white/10 rounded-xl backdrop-blur-md flex flex-col gap-4">
+          <div class="flex items-center gap-2 border-b border-white/5 pb-2">
+            <span class="text-lg">🎯</span>
+            <h4 class="text-xs uppercase tracking-wider text-moot-accent font-bold">2. Closing Prayer (Relief sought)</h4>
+          </div>
+          
+          <div class="space-y-3">
+            <div class="p-3 bg-black/20 rounded-lg border-l-2 border-amber-500/30">
+              <span class="text-[9px] uppercase tracking-widest text-amber-400 block font-semibold mb-1">15-Second Closing</span>
+              <p class="text-xs text-white/90 italic font-serif leading-relaxed">"${esc(closing15s)}"</p>
+            </div>
+            <div class="p-3 bg-black/20 rounded-lg border-l-2 border-amber-500/30">
+              <span class="text-[9px] uppercase tracking-widest text-amber-400 block font-semibold mb-1">30-Second Closing</span>
+              <p class="text-xs text-white/90 italic font-serif leading-relaxed">"${esc(closing30s)}"</p>
+            </div>
+            <div class="p-3 bg-black/20 rounded-lg border-l-2 border-amber-500/30">
+              <span class="text-[9px] uppercase tracking-widest text-amber-400 block font-semibold mb-1">Full Court Room Prayer</span>
+              <p class="text-xs text-white/90 italic font-serif leading-relaxed">"${esc(closingFull)}"</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  } else if (activePackTab === 'submissions') {
+    tabContentHTML = `
+      <div class="flex flex-col gap-5 font-sans">
+        <!-- Submission 1 Card -->
+        <div class="p-5 bg-white/5 border border-white/10 rounded-xl backdrop-blur-md flex flex-col gap-3">
+          <div class="flex justify-between items-center border-b border-white/5 pb-2 mb-1">
+            <div class="flex items-center gap-2">
+              <span class="text-lg">⚖️</span>
+              <h4 class="text-xs uppercase tracking-wider text-moot-accent font-bold">Submission I: Substantive Legality</h4>
+            </div>
+            <span class="px-2 py-0.5 text-[8px] font-sans font-bold bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 rounded uppercase tracking-wider">Primary Ground</span>
+          </div>
+          
+          <div class="space-y-2 text-xs text-white/80">
+            <div>
+              <span class="font-sans font-bold text-gray-400 block text-[10px] uppercase tracking-wider">Issue</span>
+              <p class="mt-0.5 text-white/95">${esc(iracData.issue || currentIssue)}</p>
+            </div>
+            <div class="pt-2">
+              <span class="font-sans font-bold text-gray-400 block text-[10px] uppercase tracking-wider">Governing Precedent / Authority</span>
+              <p class="mt-0.5 text-white/95 italic font-serif">${isPetitioner ? 'K.S. Puttaswamy v. Union of India (2017)' : 'E.P. Royappa v. State of Tamil Nadu (1974) (State Defense)'}</p>
+            </div>
+            <div class="pt-2">
+              <span class="font-sans font-bold text-gray-400 block text-[10px] uppercase tracking-wider">Constitutional Rule</span>
+              <p class="mt-0.5 text-white/95">${esc(iracData.rule || 'Equal protection under Article 14 requires state actions to be free from manifest arbitrariness.')}</p>
+            </div>
+            <div class="pt-2">
+              <span class="font-sans font-bold text-gray-400 block text-[10px] uppercase tracking-wider">Application to Facts</span>
+              <p class="mt-0.5 text-white/95">${esc(iracData.application || 'The state action was taken without notice or guidelines, violating Article 14.')}</p>
+            </div>
+            <div class="pt-2">
+              <span class="font-sans font-bold text-gray-400 block text-[10px] uppercase tracking-wider">Relief Prayed</span>
+              <p class="mt-0.5 text-white/95">${esc(iracData.conclusion || 'Strike down the arbitrary regulatory rule.')}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Submission 2 Card -->
+        <div class="p-5 bg-white/5 border border-white/10 rounded-xl backdrop-blur-md flex flex-col gap-3">
+          <div class="flex justify-between items-center border-b border-white/5 pb-2 mb-1">
+            <div class="flex items-center gap-2">
+              <span class="text-lg">🛡️</span>
+              <h4 class="text-xs uppercase tracking-wider text-moot-accent font-bold">Submission II: Procedural Fairness</h4>
+            </div>
+            <span class="px-2 py-0.5 text-[8px] font-sans font-bold bg-amber-500/10 text-amber-300 border border-amber-500/20 rounded uppercase tracking-wider">Natural Justice</span>
+          </div>
+          
+          <div class="space-y-2 text-xs text-white/80">
+            <div>
+              <span class="font-sans font-bold text-gray-400 block text-[10px] uppercase tracking-wider">Issue</span>
+              <p class="mt-0.5 text-white/95">Whether the procedure adopted by the State violates Article 21 and the principles of natural justice.</p>
+            </div>
+            <div class="pt-2">
+              <span class="font-sans font-bold text-gray-400 block text-[10px] uppercase tracking-wider">Governing Precedent / Authority</span>
+              <p class="mt-0.5 text-white/95 italic font-serif">Maneka Gandhi v. Union of India (1978)</p>
+            </div>
+            <div class="pt-2">
+              <span class="font-sans font-bold text-gray-400 block text-[10px] uppercase tracking-wider">Constitutional Rule</span>
+              <p class="mt-0.5 text-white/95">Any procedure affecting fundamental rights under Article 21 must be fair, just, and reasonable, incorporating prior notice and hearing.</p>
+            </div>
+            <div class="pt-2">
+              <span class="font-sans font-bold text-gray-400 block text-[10px] uppercase tracking-wider">Application to Facts</span>
+              <p class="mt-0.5 text-white/95">${isPetitioner ? 'The State completely bypassed both pre-decisional and post-decisional hearings, causing absolute procedural failure.' : 'Urgent regulatory conditions required immediate public interest measures, which are cured by post-decisional hearings.'}</p>
+            </div>
+            <div class="pt-2">
+              <span class="font-sans font-bold text-gray-400 block text-[10px] uppercase tracking-wider">Relief Prayed</span>
+              <p class="mt-0.5 text-white/95">${isPetitioner ? 'Read down the unilateral power to require prior hearings, or set aside the order.' : 'Uphold the validity of the procedure, directing a post-decisional hearing if deemed necessary.'}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
   } else if (activePackTab === 'qa') {
-    tabContentHTML = getBenchQuestionsPackHTML();
-  } else if (activePackTab === 'rebuttal') {
-    tabContentHTML = storedRebuttals;
+    tabContentHTML = `
+      <div class="flex flex-col gap-5 font-sans">
+        
+        <!-- Section 1: Collapsible Questions -->
+        <div class="flex flex-col gap-3">
+          <div class="flex items-center gap-2 border-b border-white/5 pb-2">
+            <span class="text-lg">❓</span>
+            <h4 class="text-xs uppercase tracking-wider text-moot-accent font-bold">1. Top 10 likely judicial questions</h4>
+          </div>
+          
+          <div class="space-y-2 font-sans">
+            ${qaList.map((qa, idx) => `
+              <details class="group bg-white/5 border border-white/10 rounded-lg transition-all duration-300 overflow-hidden">
+                <summary class="flex justify-between items-center p-3 cursor-pointer select-none text-xs font-semibold text-white/90 hover:bg-white/[0.03] font-sans">
+                  <span>Q${idx + 1}: ${esc(qa.q)}</span>
+                  <span class="text-xs transition-transform duration-300 group-open:rotate-180 text-moot-accent font-sans">▼</span>
+                </summary>
+                <div class="p-3 bg-black/25 text-xs text-gray-300 leading-relaxed font-serif italic border-t border-white/5">
+                  "${esc(qa.a)}"
+                </div>
+              </details>
+            `).join('')}
+          </div>
+        </div>
+
+        <!-- Section 2: Judicial Traps Warning Cards -->
+        <div class="flex flex-col gap-3 mt-2">
+          <div class="flex items-center gap-2 border-b border-white/5 pb-2">
+            <span class="text-lg">🔥</span>
+            <h4 class="text-xs uppercase tracking-wider text-red-400 font-bold">2. Judicial Traps & Escape Routes</h4>
+          </div>
+
+          <div class="space-y-3">
+            <!-- Trap 1 -->
+            <div class="p-4 bg-red-950/10 border border-red-900/30 rounded-xl flex flex-col gap-2">
+              <div class="flex justify-between items-center">
+                <strong class="text-xs text-red-400 uppercase tracking-wider font-sans">Trap 1: The 'Policy Exception' Trap</strong>
+                <span class="px-2 py-0.5 text-[8px] font-bold bg-red-500/20 text-red-300 border border-red-500/30 rounded uppercase tracking-wider font-sans">Danger Level: High</span>
+              </div>
+              <p class="text-xs text-gray-300 leading-relaxed font-sans">
+                <strong class="text-white">Why it is dangerous:</strong> Judges will try to make you agree that policy decisions are completely immune from judicial review, locking you out of your core argument.
+              </p>
+              <div class="p-2.5 bg-black/35 rounded border-l-2 border-red-500 text-xs italic text-gray-300 font-serif mt-1">
+                "With respect, My Lords, this ruling will not affect legitimate policy discretion. It merely reinforces that policy must remain within Part III boundaries. Public trust is enhanced when policy is constitutional."
+              </div>
+            </div>
+
+            <!-- Trap 2 -->
+            <div class="p-4 bg-red-950/10 border border-red-900/30 rounded-xl flex flex-col gap-2">
+              <div class="flex justify-between items-center">
+                <strong class="text-xs text-red-400 uppercase tracking-wider font-sans">Trap 2: The 'Literal Statutory Wording' Trap</strong>
+                <span class="px-2 py-0.5 text-[8px] font-bold bg-red-500/20 text-red-300 border border-red-500/30 rounded uppercase tracking-wider font-sans">Danger Level: Critical</span>
+              </div>
+              <p class="text-xs text-gray-300 leading-relaxed font-sans">
+                <strong class="text-white">Why it is dangerous:</strong> If you agree that statutory wording has absolute supremacy regardless of constitutional rights, you lose your Article 21/14 ground.
+              </p>
+              <div class="p-2.5 bg-black/35 rounded border-l-2 border-red-500 text-xs italic text-gray-300 font-serif mt-1">
+                "My Lords, when a statutory power affects fundamental rights of citizens, the word 'may' is construed as 'shall' to preserve its validity, as held in the landmark case of Delhi Administration v. I.K. Nangia."
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  } else if (activePackTab === 'rebuttals') {
+    tabContentHTML = `
+      <div class="flex flex-col gap-5 font-sans">
+        <div class="flex items-center gap-2 border-b border-white/5 pb-2">
+          <span class="text-lg">🛡️</span>
+          <h4 class="text-xs uppercase tracking-wider text-moot-accent font-bold">Rebuttal War Room</h4>
+        </div>
+
+        <div class="space-y-4">
+          ${rebuttalsList.map((item, idx) => `
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 p-4 bg-white/5 border border-white/10 rounded-xl">
+              <!-- Opponent Argument Card -->
+              <div class="flex flex-col gap-2 border-r border-white/5 pr-3 font-sans">
+                <div class="flex items-center gap-1.5 text-[9px] uppercase tracking-widest text-red-400 font-bold font-sans">
+                  <span>❌</span> Opponent Argument ${idx + 1}
+                </div>
+                <p class="text-xs text-gray-300 leading-relaxed font-serif italic font-sans">
+                  "${esc(item.opponent)}"
+                </p>
+              </div>
+              
+              <!-- Your Rebuttal Card -->
+              <div class="flex flex-col gap-2 pl-2">
+                <div class="flex items-center gap-1.5 text-[9px] uppercase tracking-widest text-emerald-400 font-bold font-sans">
+                  <span>✔</span> Demolition Rebuttal Strategy
+                </div>
+                <p class="text-xs text-white/95 leading-relaxed font-sans">
+                  ${esc(item.rebuttal)}
+                </p>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
   } else if (activePackTab === 'precedents') {
-    tabContentHTML = getPrecedentsPackHTML();
-  } else if (activePackTab === 'traps') {
-    tabContentHTML = getJudicialTrapsPackHTML();
+    tabContentHTML = `
+      <div class="flex flex-col gap-5 font-sans">
+        <div class="flex items-center gap-2 border-b border-white/5 pb-2">
+          <span class="text-lg">📖</span>
+          <h4 class="text-xs uppercase tracking-wider text-moot-accent font-bold font-sans">Authorities Snapshot</h4>
+        </div>
+
+        <div class="flex flex-col gap-3 font-sans">
+          <p class="text-xs text-white-muted mb-2 font-sans">Click any precedent chip to expand its Ratio Decidendi, strategic alignment, and courtroom usage.</p>
+          
+          <div class="flex flex-wrap gap-2 mb-3">
+            ${precedentsList.map((p, idx) => `
+              <button 
+                id="precedent-chip-${idx}" 
+                class="px-3 py-1.5 rounded-full text-xs font-medium border border-white/10 hover:border-moot-accent hover:text-white bg-white/5 text-gray-300 transition-all cursor-pointer font-sans"
+                onclick="togglePrecedentCard(${idx})"
+              >
+                ⚖️ ${esc(p.name)}
+              </button>
+            `).join('')}
+          </div>
+
+          <div class="space-y-3">
+            ${precedentsList.map((p, idx) => `
+              <div 
+                id="precedent-card-${idx}" 
+                class="precedent-card-detail hidden p-4 bg-white/5 border border-white/10 rounded-xl transition-all duration-300"
+              >
+                <div class="flex justify-between items-center border-b border-white/5 pb-2 mb-2 font-sans">
+                  <strong class="text-xs text-white font-sans">${esc(p.name)}</strong>
+                  <span class="text-[9px] font-semibold text-moot-accent uppercase tracking-widest font-sans">${esc(p.bench)}</span>
+                </div>
+                
+                <div class="space-y-2 text-xs leading-relaxed font-sans">
+                  <div>
+                    <span class="text-[9px] uppercase tracking-widest text-gray-400 block font-semibold">Ratio Decidendi</span>
+                    <p class="text-gray-300 mt-0.5">${esc(p.ratio)}</p>
+                  </div>
+                  <div class="pt-1">
+                    <span class="text-[9px] uppercase tracking-widest text-[#4caf82] block font-semibold">Strategic Value</span>
+                    <p class="text-gray-300 mt-0.5">${esc(p.why)}</p>
+                  </div>
+                  <div class="pt-1">
+                    <span class="text-[9px] uppercase tracking-widest text-[#c9a84c] block font-semibold">Courtroom Usage (One-Liner)</span>
+                    <p class="text-white italic font-serif mt-0.5">"${esc(p.usage)}"</p>
+                  </div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      </div>
+    `;
   }
 
   container.innerHTML = `
-    <div class="flex flex-col gap-4">
-      <div class="flex border-b border-white/10 overflow-x-auto scrollbar-none mb-2">
+    <div class="flex flex-col gap-4 font-sans">
+      <div class="flex border-b border-white/10 overflow-x-auto scrollbar-none mb-2 font-sans">
         ${tabHeadersHTML}
       </div>
-      <div class="space-y-4">
+      <div class="space-y-4 font-sans">
         ${tabContentHTML}
       </div>
     </div>
@@ -840,7 +1281,37 @@ export function renderOralRoundPack(container) {
   // Expose switchPackTab to window
   window.switchPackTab = (tabId) => {
     activePackTab = tabId;
-    renderOralRoundPack(container);
+    renderOralAdvocacySuite(container);
+  };
+
+  // Expose togglePrecedentCard to window
+  window.togglePrecedentCard = (idx) => {
+    const cards = document.querySelectorAll('.precedent-card-detail');
+    const chips = document.querySelectorAll('[id^="precedent-chip-"]');
+    
+    cards.forEach((card, i) => {
+      if (i === idx) {
+        card.classList.toggle('hidden');
+      } else {
+        card.classList.add('hidden');
+      }
+    });
+
+    chips.forEach((chip, i) => {
+      if (i === idx) {
+        const isHidden = document.getElementById(`precedent-card-${idx}`).classList.contains('hidden');
+        if (isHidden) {
+          chip.classList.remove('bg-indigo-500/20', 'border-indigo-500', 'text-white');
+          chip.classList.add('bg-white/5', 'border-white/10', 'text-gray-300');
+        } else {
+          chip.classList.add('bg-indigo-500/20', 'border-indigo-500', 'text-white');
+          chip.classList.remove('bg-white/5', 'border-white/10', 'text-gray-300');
+        }
+      } else {
+        chip.classList.remove('bg-indigo-500/20', 'border-indigo-500', 'text-white');
+        chip.classList.add('bg-white/5', 'border-white/10', 'text-gray-300');
+      }
+    });
   };
 }
 
