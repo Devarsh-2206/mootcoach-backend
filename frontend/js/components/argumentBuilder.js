@@ -443,7 +443,11 @@ export function copyBuilderArgument() {
     }
     showToast("IRAC argument copied to clipboard!", "ok");
   }).catch(err => {
-    showToast(export function exportDraftPDF(containerId = "legal-memorial-canvas") {
+    showToast("Failed to copy argument: " + err.message, "err");
+  });
+}
+
+export function exportDraftPDF(containerId = "legal-memorial-canvas") {
   console.log(`[DEBUG AUDIT] Exporting ${containerId} as PDF...`);
   const contentEl = document.getElementById(containerId);
   if (!contentEl) return;
