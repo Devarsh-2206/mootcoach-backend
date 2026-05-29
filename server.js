@@ -393,10 +393,15 @@ app.post("/simulate-bench", express.json(), async (req, res) => {
 
 /* ─── /api/build-argument ─── */
 app.post("/api/build-argument", aiLimiter, express.json(), async (req, res) => {
-  const { stance, issue, notes } = req.body;
+  const { stance, issue, notes, propositionContext } = req.body;
 
   if (!stance || !issue || !notes || notes.trim().length < 5) {
     return res.status(400).json({ success: false, error: "Please provide stance, issue, and notes." });
+  }
+
+  // Grounding validation check
+  if (!propositionContext || propositionContext.trim().length < 20 || propositionContext.toLowerCase().includes("not set") || propositionContext.toLowerCase().includes("no file uploaded")) {
+    return res.status(400).json({ success: false, error: "Insufficient factual material detected" });
   }
 
   try {
@@ -404,11 +409,32 @@ app.post("/api/build-argument", aiLimiter, express.json(), async (req, res) => {
       messages: [
         {
           role: "system",
-          content: "You are an elite appellate litigator. Transform the user's raw notes into a strict IRAC format (Issue, Rule, Application, Conclusion) based on the provided stance and issue. Output strictly as a JSON object with keys: 'issue', 'rule', 'application', 'conclusion'."
+          content: `You are an elite appellate litigator. Transform the user's raw notes into a strict IRAC format (Issue, Rule, Application, Conclusion) based on the provided stance, issue, and proposition facts.
+Output strictly as a JSON object with keys: 'issue', 'rule', 'application', 'conclusion'.
+
+You MUST adhere to the following constraints:
+1. Every legal issue must be explicitly separated into **ISSUE**, **RULE**, **APPLICATION**, and **CONCLUSION** sections in your response. Ensure these bold headers appear in the text where appropriate.
+2. Case laws cannot just be listed; they must include the legal principle and its direct application to the proposition facts.
+3. Constitutional articles must explain Scope, Protection, and Limitation.
+4. Every generated submission must explicitly reference facts from the uploaded proposition.
+5. Before generating arguments, internally extract and structure:
+   - Parties
+   - Facts
+   - Issues
+   - Relief sought
+6. Every APPLICATION section must cite specific proposition facts.
+7. Never generate generic constitutional arguments that could apply to any moot problem.`
         },
         {
           role: "user",
-          content: `STANCE: ${stance}\nISSUE: ${issue}\nRAW NOTES: ${notes.trim()}\n\nGenerate the IRAC argument.`
+          content: `PROPOSITION FACTS / CONTEXT:
+${propositionContext.trim()}
+
+STANCE: ${stance}
+ISSUE: ${issue}
+RAW NOTES: ${notes.trim()}
+
+Generate the IRAC argument strictly based on the proposition facts.`
         }
       ],
       temperature: 0.3,

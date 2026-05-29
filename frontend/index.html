@@ -1624,6 +1624,17 @@ p  { color:var(--white-2); }
 .animate-fade-in {
   animation: fadeIn 0.3s ease forwards;
 }
+@keyframes cycleLoadingText {
+  0%, 24% { content: "Analyzing Authorities..."; }
+  25%, 49% { content: "Mapping Constitutional Issues..."; }
+  50%, 74% { content: "Constructing IRAC Framework..."; }
+  75%, 100% { content: "Generating Submission..."; }
+}
+.animate-cycle-text::after {
+  content: "Analyzing Authorities...";
+  animation: cycleLoadingText 8s infinite steps(1);
+  display: inline-block;
+}
 </style>
 </head>
 <body>
@@ -2066,6 +2077,17 @@ p  { color:var(--white-2); }
             <div id="cr-session-status" class="text-xs text-moot-muted mt-2">Connecting to Bench...</div>
           </div>
 
+          <!-- Speech Recognition Diagnostics Panel (Development Mode Only) -->
+          <div id="mic-diagnostics-panel" class="hidden mx-4 my-2 p-3 bg-slate-900/80 border border-slate-700/50 rounded-lg text-xs font-mono space-y-1">
+            <div class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold mb-1">🎙️ Voice Diagnostics (Dev Mode)</div>
+            <div>Browser: <span id="diag-browser" class="text-white">-</span></div>
+            <div>SpeechRecognition Available: <span id="diag-available" class="text-white">-</span></div>
+            <div>Microphone Permission: <span id="diag-permission" class="text-white">-</span></div>
+            <div>Recognition Active: <span id="diag-active" class="text-white">-</span></div>
+            <div>Last Event: <span id="diag-timestamp" class="text-white">-</span></div>
+            <div id="diag-error-msg" class="text-red-400 font-semibold hidden">Speech Recognition not supported in this browser</div>
+          </div>
+
           <!-- Transcript Container -->
           <div id="bench-transcript-panel" class="flex-1 overflow-y-auto p-4 flex flex-col gap-4"></div>
 
@@ -2140,10 +2162,10 @@ p  { color:var(--white-2); }
       </div>
       <!-- ARGUMENT BUILDER PANEL -->
       <div class="ws-panel" id="wsp-builder" style="overflow-y:auto;">
-        <div class="builder-container grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10" style="padding:40px 32px; min-height:100%; max-width:1400px; margin:0 auto; width:100%; box-sizing:border-box;">
+        <div class="builder-container flex flex-col md:flex-row gap-6 md:gap-10" style="padding:40px 32px; min-height:100%; max-width:1400px; margin:0 auto; width:100%; box-sizing:border-box;">
           
           <!-- LEFT COLUMN: DRAFTING STUDIO FLOW -->
-          <div class="builder-input-col col-span-1 lg:col-span-5 flex flex-col space-y-6">
+          <div class="builder-input-col w-full md:w-[40%] flex flex-col space-y-6">
             <div class="ws-up-eyebrow flex items-center gap-1.5 text-xs text-moot-accent font-semibold tracking-widest uppercase">
               <span class="w-1.5 h-1.5 rounded-full bg-moot-accent"></span>
               Appellate Drafting Studio
@@ -2217,7 +2239,7 @@ p  { color:var(--white-2); }
           </div>
           
           <!-- RIGHT COLUMN: AI COUNSEL WORKSPACE -->
-          <div id="ai-counsel-workspace" class="builder-output-col col-span-1 lg:col-span-7 flex flex-col min-height-[400px] relative overflow-hidden">
+          <div id="ai-counsel-workspace" class="builder-output-col w-full md:w-[60%] flex flex-col min-h-[400px] relative">
             
             <!-- Live Intelligence Panel (Step 2) -->
             <div id="live-intelligence-panel" class="mb-4 p-4 rounded-xl border border-white/10 bg-white/5 backdrop-blur-md flex flex-col gap-3 transition-all duration-300 hover:border-white/15">
@@ -2284,6 +2306,10 @@ p  { color:var(--white-2); }
                 <div class="flex items-center gap-2 mb-8 bg-indigo-500/10 border border-indigo-500/20 px-3 py-1.5 rounded-full animate-pulse">
                   <span class="w-2 h-2 rounded-full bg-indigo-400"></span>
                   <span class="text-xs uppercase tracking-wider text-indigo-300 font-sans font-medium">AI Counsel Active</span>
+                </div>
+                <!-- Cycling loading status text -->
+                <div class="text-sm font-sans text-indigo-300 font-medium tracking-wide mb-6">
+                  <span class="animate-cycle-text"></span>
                 </div>
                 <!-- Skeleton lines -->
                 <div class="w-full space-y-6 text-left">

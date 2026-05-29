@@ -14,6 +14,8 @@ let playbackAnalyser = null;
 let latestPlaybackSource = null;
 let isTurnCompleteReceived = false;
 let onPlaybackCompleteCallback = null;
+let audioChunksBuffer = [];
+let isAudioBuffering = true;
 
 function getWsUrl() {
   return BASE_URL.replace(/^http/, 'ws') + '/ws/voice';
@@ -120,6 +122,8 @@ export async function startOralRound(callbacks) {
   latestPlaybackSource = null;
   isTurnCompleteReceived = false;
   onPlaybackCompleteCallback = onPlaybackComplete;
+  audioChunksBuffer = [];
+  isAudioBuffering = true;
 
   try {
     const wsUrl = getWsUrl();
@@ -230,6 +234,9 @@ export async function startOralRound(callbacks) {
           type: "audio",
           data: base64Audio
         }));
+        // Reset buffering since Advocate is speaking, and next response should buffer
+        isAudioBuffering = true;
+        audioChunksBuffer = [];
       }
     };
 
@@ -250,13 +257,19 @@ export async function startOralRound(callbacks) {
         } else if (msg.type === 'audio') {
           onStatusChange('speaking', 'Judge Speaking...');
           const float32Data = base64ToFloat32Array(msg.data);
-          scheduleVoicePlayback(float32Data);
+          if (isAudioBuffering) {
+            audioChunksBuffer.push(float32Data);
+          } else {
+            scheduleVoicePlayback(float32Data);
+          }
           if (onAudio) onAudio(float32Data);
         } else if (msg.type === 'text') {
           if (onText) onText(msg.text);
         } else if (msg.type === 'interrupted') {
           console.log("⚡ Judge interrupted. Stop audio playback.");
           stopVoicePlayback();
+          isAudioBuffering = true;
+          audioChunksBuffer = [];
           onStatusChange('listening', 'Listening...');
           if (onInterrupted) onInterrupted();
         } else if (msg.type === 'turnComplete') {
@@ -265,6 +278,13 @@ export async function startOralRound(callbacks) {
           if (onTurnComplete) {
             onTurnComplete();
           }
+          // Now play all buffered audio chunks since transcript has been rendered
+          isAudioBuffering = false;
+          audioChunksBuffer.forEach(chunk => {
+            scheduleVoicePlayback(chunk);
+          });
+          audioChunksBuffer = [];
+          
           if (voicePlaybackSources.length === 0) {
             triggerTurnComplete();
           }

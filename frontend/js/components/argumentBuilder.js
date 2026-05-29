@@ -1,5 +1,6 @@
 import { buildArgument } from '../services/api.js';
 import { 
+  currentPropositionContext,
   lastAnalysis, 
   showToast, 
   fmtInline, 
@@ -113,7 +114,7 @@ async function generateArgument() {
   if (loadingState) loadingState.classList.remove('hidden');
 
   try {
-    const data = await buildArgument(stance, issue, notes);
+    const data = await buildArgument(stance, issue, notes, currentPropositionContext);
     
     if (data.success && data.response) {
       lastBuiltArgument = data.response;
@@ -298,6 +299,48 @@ function renderIRAC(iracData) {
     <div id="enhancement-content" class="text-xs text-gray-300 leading-relaxed whitespace-pre-wrap font-sans"></div>
   </div>
 
+  <!-- Auxiliary Outputs Accordions (Oral Notes, Rebuttal, Citation Strengthener) -->
+  <div class="flex flex-col gap-3">
+    <details class="group bg-white/5 border border-white/10 rounded-xl overflow-hidden transition-all duration-300 [&_summary::-webkit-details-marker]:hidden">
+      <summary class="flex items-center justify-between p-4 cursor-pointer select-none hover:bg-white/[0.02] list-none">
+        <div class="flex items-center gap-2">
+          <span class="text-indigo-400">🎙️</span>
+          <span class="text-xs font-semibold uppercase tracking-wider text-white-2 font-sans">Oral Advocacy Notes</span>
+        </div>
+        <span class="text-xs text-white-muted group-open:rotate-180 transition-transform duration-200">▼</span>
+      </summary>
+      <div class="p-4 border-t border-white/10 text-xs text-gray-300 leading-relaxed whitespace-pre-wrap font-sans bg-navy-5/30">
+        ${getOralNotesContent()}
+      </div>
+    </details>
+
+    <details class="group bg-white/5 border border-white/10 rounded-xl overflow-hidden transition-all duration-300 [&_summary::-webkit-details-marker]:hidden">
+      <summary class="flex items-center justify-between p-4 cursor-pointer select-none hover:bg-white/[0.02] list-none">
+        <div class="flex items-center gap-2">
+          <span class="text-red-400">🛡️</span>
+          <span class="text-xs font-semibold uppercase tracking-wider text-white-2 font-sans">Rebuttal Notes</span>
+        </div>
+        <span class="text-xs text-white-muted group-open:rotate-180 transition-transform duration-200">▼</span>
+      </summary>
+      <div class="p-4 border-t border-white/10 text-xs text-gray-300 leading-relaxed whitespace-pre-wrap font-sans bg-navy-5/30">
+        ${getRebuttalNotesContent()}
+      </div>
+    </details>
+
+    <details class="group bg-white/5 border border-white/10 rounded-xl overflow-hidden transition-all duration-300 [&_summary::-webkit-details-marker]:hidden">
+      <summary class="flex items-center justify-between p-4 cursor-pointer select-none hover:bg-white/[0.02] list-none">
+        <div class="flex items-center gap-2">
+          <span class="text-amber-400">📖</span>
+          <span class="text-xs font-semibold uppercase tracking-wider text-white-2 font-sans">Citation Strengthener</span>
+        </div>
+        <span class="text-xs text-white-muted group-open:rotate-180 transition-transform duration-200">▼</span>
+      </summary>
+      <div class="p-4 border-t border-white/10 text-xs text-gray-300 leading-relaxed whitespace-pre-wrap font-sans bg-navy-5/30">
+        ${getCitationStrengthenerContent()}
+      </div>
+    </details>
+  </div>
+
   <!-- Premium Legal Document Canvas -->
   <div class="flex-1 bg-[#fcfbfa] border border-[#dcdad5] rounded-xl shadow-xl overflow-hidden min-h-[400px] flex flex-col text-slate-800">
     <!-- Legal Page Header -->
@@ -307,7 +350,7 @@ function renderIRAC(iracData) {
     </div>
     
     <!-- Legal Document Content Area -->
-    <div class="p-8 md:p-12 overflow-y-auto max-h-[600px] flex-1 flex flex-col gap-6 font-serif text-[14px] leading-relaxed text-slate-800" id="legal-memorial-canvas">
+    <div class="p-8 md:p-12 flex-1 flex flex-col gap-6 font-serif text-[14px] leading-relaxed text-slate-800" id="legal-memorial-canvas">
       
       <!-- Issue -->
       <div>
@@ -417,19 +460,31 @@ function exportDraftPDF() {
         <title>Appellate Memorial - MootCoach AI</title>
         <link href="https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,300;0,400;0,700;1,400&display=swap" rel="stylesheet">
         <style>
+          @page {
+            size: letter;
+            margin: 1in;
+          }
           body {
             font-family: 'Merriweather', Georgia, serif;
             line-height: 1.8;
             color: #1a1a1a;
-            padding: 2.5cm;
-            background: #ffffff;
-            font-size: 14px;
+            margin: 0;
+            padding: 0;
+            font-size: 12pt;
+            word-wrap: break-word;
+          }
+          p, li, blockquote, hr, div {
+            page-break-inside: avoid;
+          }
+          h1, h2, h3, h4, h5, h6 {
+            page-break-inside: avoid;
+            page-break-after: avoid;
           }
           h4 {
             font-family: Arial, sans-serif;
-            font-size: 11px;
+            font-size: 11pt;
             letter-spacing: 0.12em;
-            color: #555;
+            color: #333;
             margin-top: 24px;
             margin-bottom: 8px;
             border-bottom: 1px solid #ddd;
@@ -444,24 +499,26 @@ function exportDraftPDF() {
           .header {
             text-align: center;
             font-family: Arial, sans-serif;
-            font-size: 9px;
+            font-size: 8pt;
             color: #888;
             letter-spacing: 0.15em;
             border-bottom: 2px double #ddd;
             padding-bottom: 10px;
             margin-bottom: 30px;
             text-transform: uppercase;
+            page-break-inside: avoid;
           }
           .footer {
             text-align: center;
             font-family: Arial, sans-serif;
-            font-size: 9px;
+            font-size: 8pt;
             color: #888;
             letter-spacing: 0.1em;
             margin-top: 40px;
             border-top: 1px solid #eee;
             padding-top: 10px;
             text-transform: uppercase;
+            page-break-inside: avoid;
           }
           .pl-4 {
             padding-left: 15px;
@@ -538,4 +595,47 @@ function generateInteractiveEnhancement(type) {
 function closeEnhancementBox() {
   const box = document.getElementById('interactive-enhancement-box');
   if (box) box.classList.add('hidden');
+}
+
+function getOralNotesContent() {
+  return `=== SUGGESTED ORAL ROUND OUTLINE ===
+
+1. FORMAL OPENING (0:00 - 1:30):
+   "May it please this Court. My name is Counsel for the Petitioner. We raise one core constitutional issue today..."
+
+2. STATEMENT OF THE ISSUE (1:30 - 3:00):
+   Direct the Bench's attention to the conflict between the impugned provision and fundamental rights under Article 14/19/21.
+
+3. ARGUMENT SUBMISSION (3:00 - 12:00):
+   • Premise I: Focus heavily on the rule of law syllogism.
+   • Premise II: Apply the test of proportionality to demonstrate the overbreadth of the state restriction.
+
+4. CONCLUSION & PRAYER (12:00 - 15:00):
+   Request that this Court strike down the provision and grant appropriate consequential relief.`;
+}
+
+function getRebuttalNotesContent() {
+  return `=== DRAFT REBUTTAL ARGUMENTS ===
+
+1. REBUTTING STANDING CHALLENGES:
+   "The opposition asserts a lack of locus standi. However, under the doctrine of representative standing established in S.P. Gupta v. Union of India, public interest litigation is maintainable when fundamental rights of marginalized classes are systematically abridged."
+
+2. REBUTTING THE PRESUMPTION OF CONSTITUTIONALITY:
+   "While the State claims a presumption of constitutionality, that presumption is rebutted once a prima facie violation of a fundamental right is established. The burden then shifts to the State to justify the restriction under Article 19(2)-(6)."
+
+3. REBUTTING LEGISLATIVE COMPETENCE ARGS:
+   "The competence of the legislature cannot shield a statute from judicial review if its application violates Part III rights. Procedural correctness does not cure substantive unconstitutionality."`;
+}
+
+function getCitationStrengthenerContent() {
+  return `=== SUGGESTED PRECEDENT ENHANCEMENTS ===
+
+• TO STRENGTHEN RULE OF LAW CLAIMS:
+  Cite 'E.P. Royappa v. State of Tamil Nadu' (1974) to argue against arbitrariness as the antithesis of Article 14.
+
+• TO STRENGTHEN PROPORTIONALITY CLAIMS:
+  Cite 'Modern Dental College v. State of M.P.' (2016) or 'K.S. Puttaswamy v. Union of India' (2017) to ground the four-pronged test of proportionality.
+
+• TO STRENGTHEN DUAL-CLASSIFICATION CLAIMS:
+  Cite 'State of West Bengal v. Anwar Ali Sarkar' (1952) to reinforce the requirements of intelligible differentia and rational nexus.`;
 }

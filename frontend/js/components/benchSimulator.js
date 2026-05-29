@@ -28,6 +28,7 @@ let recognition = null;
 let voiceTimerInterval = null;
 let voiceElapsedTime = 0;
 let localTtsSpeaking = false;
+let currentBenchState = 'idle';
 
 // Expose benchActive on window for UI checks (e.g. showWsPanel)
 window.benchActive = false;
@@ -450,19 +451,27 @@ function triggerJudgeOpeningStatement() {
     console.log("[DEBUG AUDIT] Opening statement TTS completed.");
     localTtsSpeaking = false;
     updateBenchState('listening');
-    if (recognition) {
-      try {
-        recognition.start();
-        console.log("[DEBUG AUDIT] Microphone activated after opening statement.");
-      } catch (err) {
-        console.warn("Failed to start recognition:", err);
-      }
-    }
+    safeStartRecognition();
   });
 }
 
 export function updateBenchState(state) {
   window.voiceStatus = state;
+  currentBenchState = state;
+  updateDiagTimestamp(`State: ${state}`);
+
+  // Enforce strict turn taking: stop mic recognition if we enter non-listening states
+  if (state === 'speaking' || state === 'processing' || state === 'connecting' || state === 'ended' || state === 'permission_denied') {
+    if (recognition) {
+      try {
+        recognition.stop();
+        console.log(`[VOICE] Stopped recognition because state is ${state}`);
+        updateDiagActive(false);
+      } catch (err) {
+        // already stopped or not active
+      }
+    }
+  }
 
   const statusEl = document.getElementById('cr-session-status');
   const footerDot = document.getElementById('cr-indicator-dot');
@@ -582,6 +591,7 @@ export async function startOralRound() {
   // Start timers and local speech-to-text
   startVoiceTimer();
   startSpeechRecognition();
+  initDiagnostics();
 
   try {
     await engineStartOralRound({
@@ -594,14 +604,7 @@ export async function startOralRound() {
         } else if (status === 'listening') {
           if (!localTtsSpeaking) {
             updateBenchState('listening');
-            if (recognition) {
-              try {
-                recognition.start();
-                console.log("[DEBUG AUDIT] Microphone activated from engine listening status.");
-              } catch (e) {
-                // Ignore if already started
-              }
-            }
+            safeStartRecognition();
           } else {
             console.log("[DEBUG AUDIT] Ignored engine status 'listening' because local TTS is speaking.");
           }
@@ -665,14 +668,7 @@ export async function startOralRound() {
       onPlaybackComplete: () => {
         console.log("[DEBUG AUDIT] Gemini Live playback completed. Activating mic...");
         updateBenchState('listening');
-        if (recognition) {
-          try {
-            recognition.start();
-            console.log("[DEBUG AUDIT] Microphone activated after Gemini response.");
-          } catch (err) {
-            console.warn("Failed to start recognition:", err);
-          }
-        }
+        safeStartRecognition();
       }
     });
   } catch (err) {
@@ -811,35 +807,171 @@ export function showInterimUserSpeech(text) {
   panel.scrollTop = panel.scrollHeight;
 }
 
+/* ─── speech recognition diagnostics and safe start ─── */
+function initDiagnostics() {
+  const panel = document.getElementById('mic-diagnostics-panel');
+  if (!panel) return;
+
+  const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  if (isDev) {
+    panel.classList.remove('hidden');
+  }
+
+  // Browser detection
+  const userAgent = navigator.userAgent;
+  let browser = 'Unknown';
+  if (userAgent.includes('Chrome')) browser = 'Chrome';
+  else if (userAgent.includes('Firefox')) browser = 'Firefox';
+  else if (userAgent.includes('Safari')) browser = 'Safari';
+  else if (userAgent.includes('Edge')) browser = 'Edge';
+  document.getElementById('diag-browser').textContent = browser;
+
+  // Availability
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const available = typeof SpeechRecognition !== 'undefined';
+  const availableEl = document.getElementById('diag-available');
+  if (availableEl) {
+    availableEl.textContent = available ? 'YES' : 'NO';
+    availableEl.className = available ? 'text-green-400 font-semibold' : 'text-red-400 font-semibold';
+  }
+
+  if (!available) {
+    const errorMsg = document.getElementById('diag-error-msg');
+    if (errorMsg) {
+      errorMsg.textContent = "Speech Recognition not supported in this browser";
+      errorMsg.classList.remove('hidden');
+    }
+    showToast("Speech Recognition not supported in this browser", "err");
+  }
+
+  // Permission status check if supported
+  if (navigator.permissions && navigator.permissions.query) {
+    navigator.permissions.query({ name: 'microphone' }).then(permissionStatus => {
+      updateDiagPermission(permissionStatus.state);
+      permissionStatus.onchange = () => {
+        updateDiagPermission(permissionStatus.state);
+      };
+    }).catch(err => {
+      console.warn("Failed to query mic permission status:", err);
+    });
+  }
+}
+
+function updateDiagPermission(state) {
+  const el = document.getElementById('diag-permission');
+  if (!el) return;
+  let text = 'DENIED';
+  let cls = 'text-red-400 font-semibold';
+  if (state === 'granted') {
+    text = 'GRANTED';
+    cls = 'text-green-400 font-semibold';
+  } else if (state === 'prompt') {
+    text = 'PROMPT REQUIRED';
+    cls = 'text-amber-400 font-semibold';
+  }
+  el.textContent = text;
+  el.className = cls;
+}
+
+function updateDiagActive(active) {
+  const el = document.getElementById('diag-active');
+  if (el) {
+    el.textContent = active ? 'YES' : 'NO';
+    el.className = active ? 'text-green-400 font-semibold' : 'text-red-400 font-semibold';
+  }
+}
+
+function updateDiagTimestamp(eventName) {
+  const el = document.getElementById('diag-timestamp');
+  if (el) {
+    const now = new Date();
+    const timeStr = now.toTimeString().split(' ')[0] + '.' + now.getMilliseconds().toString().padStart(3, '0');
+    el.textContent = `[${timeStr}] ${eventName}`;
+  }
+}
+
+function safeStartRecognition() {
+  if (!recognition) return;
+  
+  if (currentBenchState !== 'listening') {
+    console.log(`[VOICE] Aborted recognition.start() because currentBenchState is '${currentBenchState}' (not 'listening')`);
+    return;
+  }
+  
+  try {
+    recognition.start();
+    updateDiagActive(true);
+    console.log("[VOICE] Recognition started");
+  } catch (err) {
+    if (err.name === 'NotAllowedError' || err.message === 'NotAllowedError') {
+      console.error("[VOICE] Recognition error: Permission denied");
+      updateBenchState('permission_denied');
+      const statusEl = document.getElementById('cr-session-status');
+      if (statusEl) statusEl.textContent = '🔴 Permission Required';
+      const footerLabel = document.getElementById('cr-indicator-label');
+      if (footerLabel) footerLabel.textContent = '🔴 Permission Required';
+      updateDiagPermission('denied');
+      stopSpeechRecognition();
+    } else {
+      console.warn("Speech recognition start warning:", err);
+    }
+  }
+}
+
 function startSpeechRecognition() {
   if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
     console.log("Speech recognition not supported in this browser.");
+    const availableEl = document.getElementById('diag-available');
+    if (availableEl) {
+      availableEl.textContent = 'NO';
+      availableEl.className = 'text-red-400 font-semibold';
+    }
+    const errorMsg = document.getElementById('diag-error-msg');
+    if (errorMsg) {
+      errorMsg.textContent = "Speech Recognition not supported in this browser";
+      errorMsg.classList.remove('hidden');
+    }
+    showToast("Speech Recognition not supported in this browser", "err");
     return;
   }
   
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   recognition = new SpeechRecognition();
+  console.log("[VOICE] Recognition initialized");
+  updateDiagTimestamp('Recognition initialized');
+  
   recognition.continuous = true;
   recognition.interimResults = true;
   recognition.lang = 'en-US';
 
   recognition.onstart = () => {
     console.log("🎙️ Local Speech Recognition active.");
+    console.log("[VOICE] Recognition started");
+    updateDiagActive(true);
+    updateDiagTimestamp('Recognition started');
   };
 
   recognition.onspeechstart = () => {
-    if (window.voiceStatus !== 'speaking') {
+    console.log("speech start");
+    updateDiagTimestamp('speech start');
+    if (currentBenchState !== 'speaking' && currentBenchState !== 'processing') {
       updateBenchState('listening');
     }
   };
 
   recognition.onspeechend = () => {
-    if (window.voiceStatus === 'user_speaking' || window.voiceStatus === 'listening') {
+    console.log("speech end");
+    updateDiagTimestamp('speech end');
+    if (currentBenchState === 'listening') {
       updateBenchState('processing');
     }
   };
 
   recognition.onresult = (event) => {
+    console.log("speech result");
+    console.log("[VOICE] Recognition result");
+    updateDiagTimestamp('speech result');
+    
     let interimTranscript = '';
     let finalTranscript = '';
 
@@ -870,19 +1002,36 @@ function startSpeechRecognition() {
   };
 
   recognition.onerror = (e) => {
+    console.log("speech error", e.error);
+    console.error("[VOICE] Recognition error:", e.error);
+    updateDiagTimestamp(`speech error: ${e.error}`);
+    
+    if (e.error === 'not-allowed') {
+      updateDiagPermission('denied');
+      updateBenchState('permission_denied');
+      const statusEl = document.getElementById('cr-session-status');
+      if (statusEl) statusEl.textContent = '🔴 Permission Required';
+      const footerLabel = document.getElementById('cr-indicator-label');
+      if (footerLabel) footerLabel.textContent = '🔴 Permission Required';
+      stopSpeechRecognition();
+      return;
+    }
     if (e.error === 'no-speech') {
       console.warn('No speech detected');
       return;
     }
-    console.error("Local Speech Recognition error:", e.error);
   };
 
   recognition.onend = () => {
-    if (voiceSessionActive && window.voiceStatus === 'listening') {
+    console.log("[VOICE] Recognition ended");
+    updateDiagActive(false);
+    updateDiagTimestamp('Recognition ended');
+    
+    if (voiceSessionActive && currentBenchState === 'listening') {
       setTimeout(() => {
         try {
-          if (voiceSessionActive && window.voiceStatus === 'listening') {
-            recognition.start();
+          if (voiceSessionActive && currentBenchState === 'listening') {
+            safeStartRecognition();
             console.log("[DEBUG AUDIT] Mic restarted in onend.");
           }
         } catch (err) {
