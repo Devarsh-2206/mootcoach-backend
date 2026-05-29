@@ -262,6 +262,9 @@ export async function startOralRound(callbacks) {
         } else if (msg.type === 'turnComplete') {
           console.log("[DEBUG AUDIT] turnComplete received from server.");
           isTurnCompleteReceived = true;
+          if (onTurnComplete) {
+            onTurnComplete();
+          }
           if (voicePlaybackSources.length === 0) {
             triggerTurnComplete();
           }

@@ -537,6 +537,7 @@ export async function startOralRound() {
     return;
   }
 
+  let fullJudgeResponse = '';
   console.log("🎙️ Initiating oral round...");
   console.log("[DEBUG AUDIT] Starting oral round...");
   benchConversation = [];
@@ -627,8 +628,29 @@ export async function startOralRound() {
       },
       onText: (text) => {
         console.log("[DEBUG AUDIT] AI response chunk received:", text);
-        appendTranscript('judge', text, true);
-        console.log("[DEBUG AUDIT] Judge transcript appended chunk:", text);
+        fullJudgeResponse += text;
+      },
+      onTurnComplete: () => {
+        const cleanResponse = fullJudgeResponse.trim();
+        if (cleanResponse) {
+          console.log('[JUDGE TRANSCRIPT] Response received:', cleanResponse);
+          appendTranscript('judge', cleanResponse);
+          console.log('[JUDGE TRANSCRIPT] Appended to transcript');
+          console.log('[JUDGE TRANSCRIPT] Container found:', !!document.getElementById('bench-transcript-panel'));
+          console.log('[JUDGE TRANSCRIPT] Judge bubble inserted');
+        }
+        fullJudgeResponse = '';
+      },
+      onInterrupted: () => {
+        const cleanResponse = fullJudgeResponse.trim();
+        if (cleanResponse) {
+          console.log('[JUDGE TRANSCRIPT] Response received (interrupted):', cleanResponse);
+          appendTranscript('judge', cleanResponse + "...");
+          console.log('[JUDGE TRANSCRIPT] Appended to transcript (interrupted)');
+          console.log('[JUDGE TRANSCRIPT] Container found:', !!document.getElementById('bench-transcript-panel'));
+          console.log('[JUDGE TRANSCRIPT] Judge bubble inserted');
+        }
+        fullJudgeResponse = '';
       },
       onError: (message) => {
         console.log("[DEBUG AUDIT] AI response error received:", message);
