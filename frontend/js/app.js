@@ -7,7 +7,8 @@ import {
   signOut,
   signInWithPopup,
   GoogleAuthProvider,
-  sendPasswordResetEmail
+  sendPasswordResetEmail,
+  updateProfile
 } from './services/firebase.js';
 import { BASE_URL } from './config.js';
 import { 
@@ -178,9 +179,7 @@ async function handleOverlaySignup() {
     const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
     const user = userCredential.user;
     
-    if (typeof user.updateProfile === 'function') {
-      await user.updateProfile({ displayName: fname });
-    }
+    await updateProfile(user, { displayName: fname });
     
     // Save to Firestore under the new secure path moot.coach
     await db.collection('artifacts').doc('moot.coach').collection('users').doc(user.uid).set({
@@ -251,7 +250,7 @@ async function handleSignup() {
   try {
     const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
     const user = userCredential.user;
-    await user.updateProfile({ displayName: fname });
+    await updateProfile(user, { displayName: fname });
     await db.collection('artifacts').doc('moot.coach').collection('users').doc(user.uid).set({
       firstName: fname, lastName: lname, university: school, email: email,
       createdAt: window.firebase.firestore.FieldValue.serverTimestamp()
@@ -296,8 +295,7 @@ async function handleForgotPassword() {
     return;
   }
   try {
-    // Keep using legacy auth for other features if necessary, or update to modular later. Compat auth still works.
-    await auth.sendPasswordResetEmail(email);
+    await sendPasswordResetEmail(auth, email);
     showToast("Password reset link sent to your email!", "ok");
     showHint('h-li-email', false);
     markErr('li-email', false);
