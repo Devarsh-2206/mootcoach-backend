@@ -17,6 +17,8 @@ export let storedCitations = '';
 export let storedMemorialHTML = '';
 export let activePackTab = 'speech';
 export let selectedSide = 'Petitioner';
+export let citationsStrengthened = false;
+export let rebuttalViewed = false;
 let activeTriggerElement = null;
 
 export function getCurrentSelectedSide() {
@@ -238,9 +240,39 @@ function renderIRAC(iracData) {
   const statuteMatches = notes.match(statuteRegex) || [];
   const statutesCount = statuteMatches.length;
 
-  // Visual scores (deterministic based on text lengths)
-  const strengthScore = Math.min(96, Math.max(68, 75 + Math.round((iracData.rule || '').length / 100)));
-  const readinessScore = Math.min(98, Math.max(70, 80 + Math.round((iracData.conclusion || '').length / 25)));
+  // Calculate detailed honest scores
+  const combinedText = (notes + " " + JSON.stringify(iracData)).toLowerCase();
+  const reporterMatches = combinedText.match(/\b\d+\s+(?:scc|scr|u\.s\.|f\.[0-9]d|air|d\.l\.r\.|s\.ct\.)\s+\d+/gi) || [];
+  const allCasesMatches = combinedText.match(/\b[a-zA-Z0-9.\s]{3,150}?\s+(?:v\.?|vs\.?|v\/s)\s+?[a-zA-Z0-9.\s]{3,150}/gi) || [];
+  const constMatches = combinedText.match(/\b(?:constitution|constitutional|article|art\.?|section|sec\.?|amendment|fundamental right|part iii)\b/gi) || [];
+  const logicMatches = combinedText.match(/\b(?:consequently|therefore|pursuant to|held that|because|since|established|precedent|ratio decidendi|obiter dicta|proportionality|locus standi)\b/gi) || [];
+
+  const authScore = Math.min(40, Math.max(5, (reporterMatches.length * 10) + (allCasesMatches.length * 5)));
+  const constScore = Math.min(25, Math.max(5, (constMatches.length * 3)));
+  const benchScore = Math.min(20, Math.max(5, (logicMatches.length * 3)));
+  const hasAllIRAC = iracData.issue && iracData.rule && iracData.application && iracData.conclusion;
+  const isDetailed = (iracData.rule || '').length > 200 && (iracData.application || '').length > 200;
+  const structScore = Math.min(15, Math.max(3, (hasAllIRAC ? 12 : 6) + (isDetailed ? 3 : 0)));
+
+  const synthesisScore = authScore + constScore + benchScore + structScore;
+
+  // Initial Notes Score
+  const notesText = notes.toLowerCase();
+  const nReporters = notesText.match(/\b\d+\s+(?:scc|scr|u\.s\.|f\.[0-9]d|air|d\.l\.r\.|s\.ct\.)\s+\d+/gi) || [];
+  const nCases = notesText.match(/\b[a-zA-Z0-9.\s]{3,150}?\s+(?:v\.?|vs\.?|v\/s)\s+?[a-zA-Z0-9.\s]{3,150}/gi) || [];
+  const nConst = notesText.match(/\b(?:constitution|constitutional|article|art\.?|section|sec\.?|amendment|fundamental right|part iii)\b/gi) || [];
+  const nLogic = notesText.match(/\b(?:consequently|therefore|pursuant to|held that|because|since|established|precedent|ratio decidendi|obiter dicta|proportionality|locus standi)\b/gi) || [];
+  
+  const notesAuth = Math.min(40, Math.max(5, (nReporters.length * 10) + (nCases.length * 5)));
+  const notesConst = Math.min(25, Math.max(5, (nConst.length * 3)));
+  const notesBench = Math.min(20, Math.max(5, (nLogic.length * 3)));
+  const notesStruct = Math.min(15, Math.max(3, Math.round(notesText.length / 50)));
+  const initialNotesScore = Math.min(85, notesAuth + notesConst + notesBench + notesStruct);
+
+  const finalReadinessScore = Math.min(100, synthesisScore + (citationsStrengthened ? 8 : 0) + (rebuttalViewed ? 7 : 0));
+
+  const strengthScore = Math.round(authScore * 2.5); // scale 40 to 100
+  const readinessScore = finalReadinessScore;
   const persuasivenessScore = Math.min(95, Math.max(65, 78 + Math.round((iracData.application || '').length / 150)));
 
   // Generate dynamic strengths and weaknesses
@@ -272,6 +304,19 @@ function renderIRAC(iracData) {
     vulnerabilityText = "Factual application is strong, but the Bench may test the outer boundaries of the rule.";
     rebuttalText = "If asked about extreme application scenarios, distinguish them by pointing out that the current petition is confined to the immediate facts of the case.";
   }
+
+  // Quality Indicators
+  const authLabel = casesCount === 0 ? "Weak" : (casesCount <= 2 ? "Moderate" : "Strong");
+  const authClass = casesCount === 0 ? "text-red-400" : (casesCount <= 2 ? "text-amber-400" : "text-emerald-400");
+  
+  const riskLabel = casesCount === 0 ? "High" : (casesCount <= 2 ? "Medium" : "Low");
+  const riskClass = casesCount === 0 ? "text-red-400" : (casesCount <= 2 ? "text-amber-400" : "text-emerald-400");
+
+  const coverageLabel = (statutesCount === 0 && casesCount === 0) ? "Poor" : ((statutesCount <= 2 || casesCount <= 2) ? "Fair" : "Excellent");
+  const coverageClass = (statutesCount === 0 && casesCount === 0) ? "text-red-400" : ((statutesCount <= 2 || casesCount <= 2) ? "text-amber-400" : "text-emerald-400");
+
+  const confidenceLabel = finalReadinessScore < 50 ? "Low" : (finalReadinessScore < 75 ? "Medium" : "High");
+  const confidenceClass = finalReadinessScore < 50 ? "text-red-400" : (finalReadinessScore < 75 ? "text-amber-400" : "text-emerald-400");
 
   outputState.innerHTML = `
 <div class="flex flex-col gap-5 w-full h-full">
@@ -305,7 +350,7 @@ function renderIRAC(iracData) {
   </div>
 
   <!-- Draft Metrics Card -->
-  <div class="grid grid-cols-2 md:grid-cols-5 gap-3 p-4 bg-white/5 border border-white/10 rounded-xl">
+  <div class="grid grid-cols-2 md:grid-cols-5 gap-3 p-4 bg-white/5 border border-white/10 rounded-xl font-sans">
     <div class="flex flex-col">
       <span class="text-[9px] text-white-muted uppercase tracking-widest font-sans">Authorities Used</span>
       <span class="text-lg font-semibold text-white mt-1 flex items-center gap-1 font-sans">📖 <span id="metric-authorities">${casesCount}</span></span>
@@ -337,7 +382,7 @@ function renderIRAC(iracData) {
         <span class="text-xs font-bold text-moot-accent font-sans"><span id="strength-score-val">${strengthScore}</span>%</span>
       </div>
       <!-- CSS Progress Bar -->
-      <div class="w-full h-2 bg-navy-5 rounded-full overflow-hidden border border-white/5">
+      <div class="w-full h-2 bg-navy-5 rounded-full overflow-hidden border border-white/5 font-sans">
         <div id="strength-progress-bar" class="h-full bg-gradient-to-r from-amber-500 to-moot-accent transition-all duration-500" style="width: ${strengthScore}%"></div>
       </div>
       <!-- Strengths & Weaknesses list -->
@@ -354,7 +399,7 @@ function renderIRAC(iracData) {
     </div>
 
     <!-- Bench Vulnerabilities Panel -->
-    <div class="p-4 bg-white/5 border border-white/10 rounded-xl flex flex-col gap-3">
+    <div class="p-4 bg-white/5 border border-white/10 rounded-xl flex flex-col gap-3 font-sans">
       <div class="flex justify-between items-center">
         <span class="text-xs uppercase tracking-wider text-white-2 font-semibold font-sans">Bench Vulnerabilities</span>
         <span id="vulnerability-risk-badge" class="px-2 py-0.5 text-[9px] font-semibold tracking-wider rounded uppercase font-sans ${riskBadgeCls}">${riskLevel}</span>
@@ -369,14 +414,101 @@ function renderIRAC(iracData) {
     </div>
   </div>
 
+  <!-- Row of Progression and Transparency Panels -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <!-- Readiness Transparency Audit -->
+    <div class="p-4 bg-white/5 border border-white/10 rounded-xl flex flex-col gap-3">
+      <div class="flex justify-between items-center">
+        <span class="text-xs uppercase tracking-wider text-white-2 font-semibold font-sans">⚖️ Readiness Transparency Audit</span>
+        <span class="text-[10px] font-bold text-moot-accent uppercase tracking-widest font-sans">Honest Breakdown</span>
+      </div>
+      <div class="grid grid-cols-2 gap-2 text-xs">
+        <div class="p-2.5 bg-black/20 rounded border border-white/5 flex flex-col">
+          <span class="text-[8px] text-white-muted uppercase tracking-widest font-sans">Authority Strength</span>
+          <span class="text-xs font-semibold text-white mt-1 font-mono">${authScore} / 40</span>
+        </div>
+        <div class="p-2.5 bg-black/20 rounded border border-white/5 flex flex-col">
+          <span class="text-[8px] text-white-muted uppercase tracking-widest font-sans">Constitutional Depth</span>
+          <span class="text-xs font-semibold text-white mt-1 font-mono">${constScore} / 25</span>
+        </div>
+        <div class="p-2.5 bg-black/20 rounded border border-white/5 flex flex-col">
+          <span class="text-[8px] text-white-muted uppercase tracking-widest font-sans">Bench Resistance</span>
+          <span class="text-xs font-semibold text-white mt-1 font-mono">${benchScore} / 20</span>
+        </div>
+        <div class="p-2.5 bg-black/20 rounded border border-white/5 flex flex-col">
+          <span class="text-[8px] text-white-muted uppercase tracking-widest font-sans">Draft Structure</span>
+          <span class="text-xs font-semibold text-white mt-1 font-mono">${structScore} / 15</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Advocacy Progression Tracker -->
+    <div class="p-4 bg-white/5 border border-white/10 rounded-xl flex flex-col gap-3 font-sans">
+      <div class="flex justify-between items-center">
+        <span class="text-xs uppercase tracking-wider text-white-2 font-semibold font-sans">📈 Advocacy Progression Tracker</span>
+        <span class="text-xs font-bold text-moot-accent font-sans">${finalReadinessScore}%</span>
+      </div>
+      <div class="flex flex-col gap-2 pl-1 mt-1 font-sans">
+        <div class="flex items-center gap-2">
+          <span class="w-4 h-4 rounded-full flex items-center justify-center text-[9px] bg-white/10 text-white font-mono">1</span>
+          <div class="flex-1 flex justify-between items-center text-xs font-sans">
+            <span class="text-white-muted">Initial Notes Quality</span>
+            <span class="text-red-400 font-mono font-medium">${initialNotesScore}%</span>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="w-4 h-4 rounded-full flex items-center justify-center text-[9px] bg-emerald-500/20 text-emerald-400 font-mono">2</span>
+          <div class="flex-1 flex justify-between items-center text-xs font-sans">
+            <span class="text-white font-semibold">Appellate Memorial Synthesis</span>
+            <span class="text-emerald-400 font-mono font-medium">${synthesisScore}% (+${synthesisScore - initialNotesScore}%)</span>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="w-4 h-4 rounded-full flex items-center justify-center text-[9px] ${citationsStrengthened ? 'bg-emerald-500/20 text-emerald-400' : 'bg-white/5 text-white-muted'} font-mono">3</span>
+          <div class="flex-1 flex justify-between items-center text-xs font-sans">
+            <span class="text-white-muted">Citation Strengthening</span>
+            <span class="${citationsStrengthened ? 'text-emerald-400' : 'text-white-muted'} font-mono font-semibold">${citationsStrengthened ? 'Completed (+8%)' : 'Pending (+8% Potential)'}</span>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="w-4 h-4 rounded-full flex items-center justify-center text-[9px] ${rebuttalViewed ? 'bg-emerald-500/20 text-emerald-400' : 'bg-white/5 text-white-muted'} font-mono">4</span>
+          <div class="flex-1 flex justify-between items-center text-xs font-sans">
+            <span class="text-white-muted">Rebuttal Strategy Review</span>
+            <span class="${rebuttalViewed ? 'text-emerald-400' : 'text-white-muted'} font-mono font-semibold">${rebuttalViewed ? 'Completed (+7%)' : 'Pending (+7% Potential)'}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Premium Memorial Completion Card -->
-  <div class="p-8 bg-gradient-to-br from-indigo-950/20 to-navy-3 border border-indigo-500/20 rounded-xl flex flex-col items-center text-center gap-4 mt-2 shadow-xl animate-fade-in">
+  <div class="p-8 bg-gradient-to-br from-indigo-950/20 to-navy-3 border border-indigo-500/20 rounded-xl flex flex-col items-center text-center gap-4 mt-2 shadow-xl animate-fade-in font-sans">
     <div class="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 text-xl font-bold">✓</div>
     <div>
       <h3 class="text-lg font-sans font-semibold text-white">Appellate Memorial Generated</h3>
       <p class="text-xs text-white-muted mt-1 max-w-sm font-sans">The legal argument has been compiled into a professional Supreme Court memorial. Review the full draft, export, or print via the workspace panels.</p>
     </div>
     
+    <!-- Quality Indicators Grid -->
+    <div class="grid grid-cols-2 gap-3 w-full max-w-md mt-2 font-sans">
+      <div class="p-3 bg-white/[0.02] border border-white/5 rounded-lg flex flex-col items-center">
+        <span class="text-[8px] text-white-muted uppercase tracking-widest font-sans font-semibold">Authority Support</span>
+        <span class="text-xs font-semibold ${authClass} mt-1 font-sans">${authLabel}</span>
+      </div>
+      <div class="p-3 bg-white/[0.02] border border-white/5 rounded-lg flex flex-col items-center">
+        <span class="text-[8px] text-white-muted uppercase tracking-widest font-sans font-semibold">Bench Risk</span>
+        <span class="text-xs font-semibold ${riskClass} mt-1 font-sans">${riskLabel}</span>
+      </div>
+      <div class="p-3 bg-white/[0.02] border border-white/5 rounded-lg flex flex-col items-center">
+        <span class="text-[8px] text-white-muted uppercase tracking-widest font-sans font-semibold">Citation Coverage</span>
+        <span class="text-xs font-semibold ${coverageClass} mt-1 font-sans">${coverageLabel}</span>
+      </div>
+      <div class="p-3 bg-white/[0.02] border border-white/5 rounded-lg flex flex-col items-center">
+        <span class="text-[8px] text-white-muted uppercase tracking-widest font-sans font-semibold">Submission Confidence</span>
+        <span class="text-xs font-semibold ${confidenceClass} mt-1 font-sans">${confidenceLabel}</span>
+      </div>
+    </div>
+
     <!-- Metadata grid -->
     <div class="grid grid-cols-2 gap-x-8 gap-y-3 p-4 bg-white/[0.02] border border-white/5 rounded-lg w-full max-w-md text-left text-xs font-sans text-white-muted mt-2">
       <div><strong>Issue:</strong> <span class="text-white font-sans">${esc(currentIssue)}</span></div>
@@ -569,10 +701,34 @@ export function copyBuilderArgument() {
 
 export function exportDraftPDF(containerId = "legal-memorial-canvas") {
   console.log(`[DEBUG AUDIT] Exporting ${containerId} as PDF...`);
-  const actualContainerId = document.getElementById(containerId) ? containerId : "memorial-viewer-canvas";
-  const contentEl = document.getElementById(actualContainerId);
-  if (!contentEl) return;
-  const printContent = contentEl.innerHTML;
+  let contentEl = document.getElementById(containerId);
+  let printContent = "";
+  
+  if (contentEl) {
+    printContent = contentEl.innerHTML;
+  } else if (containerId === "memorial-viewer-canvas" && storedMemorialHTML) {
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = storedMemorialHTML;
+    const canvas = tempDiv.querySelector('#memorial-viewer-canvas');
+    printContent = canvas ? canvas.innerHTML : storedMemorialHTML;
+  } else if (containerId === "aux-panel-content") {
+    if (storedOralNotes || storedRebuttals || storedCitations) {
+      printContent = storedOralNotes || storedRebuttals || storedCitations;
+    }
+  } else {
+    const fallbackEl = document.getElementById("memorial-viewer-canvas");
+    if (fallbackEl) {
+      printContent = fallbackEl.innerHTML;
+    } else if (storedMemorialHTML) {
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = storedMemorialHTML;
+      const canvas = tempDiv.querySelector('#memorial-viewer-canvas');
+      printContent = canvas ? canvas.innerHTML : storedMemorialHTML;
+    } else {
+      showToast("No content found to export.", "err");
+      return;
+    }
+  }
   
   const isAux = containerId === "aux-panel-content";
   const headerText = isAux ? "APPELLATE DRAFTING STUDIO · AUXILIARY GUIDELINES" : "BEFORE THE SUPREME COURT OF APPRENTICE ADVOCACY · MEMORIAL SUBMISSION";
@@ -692,10 +848,14 @@ export function openAuxPanel(type, triggerElement) {
     content.innerHTML = storedOralNotes;
   } else if (type === 'rebuttal') {
     title.textContent = 'Rebuttal Strategy';
+    rebuttalViewed = true;
     content.innerHTML = storedRebuttals;
+    setTimeout(() => { renderIRAC(lastBuiltArgument); }, 50);
   } else if (type === 'citations') {
     title.textContent = 'Citation Strengthener';
+    citationsStrengthened = true;
     content.innerHTML = storedCitations;
+    setTimeout(() => { renderIRAC(lastBuiltArgument); }, 50);
   } else if (type === 'pack') {
     title.textContent = 'Oral Advocacy Suite';
     renderOralAdvocacySuite(content);
@@ -993,6 +1153,11 @@ export function renderOralAdvocacySuite(container) {
     {
       name: "K.S. Puttaswamy v. Union of India (2017)",
       bench: "9-Judge Bench",
+      benchStrength: "9-Judge Constitutional Bench",
+      constitutionalImportance: "★★★★★ (Critical Article 21 Privacy Foundation)",
+      courtroomUsage: "My Lords, the constitutional proportionality test laid down in Puttaswamy requires the state to choose the least restrictive measure, which it has failed to do here.",
+      strategicValue: "Serves as the foundation to challenge the proportionality of the state restrictions under Article 21.",
+      authorityWeight: "★★★★★ (Highest Binding Authority)",
       ratio: "Right to privacy and personal liberty are fundamental under Article 21, and state limitation of these rights must satisfy the three-fold test of legality, necessity, and proportionality.",
       why: "Serves as the foundation to challenge the proportionality of the state restrictions under Article 21.",
       usage: "My Lords, the constitutional proportionality test laid down in Puttaswamy requires the state to choose the least restrictive measure, which it has failed to do here."
@@ -1000,6 +1165,11 @@ export function renderOralAdvocacySuite(container) {
     {
       name: "Maneka Gandhi v. Union of India (1978)",
       bench: "7-Judge Bench",
+      benchStrength: "7-Judge Constitutional Bench",
+      constitutionalImportance: "★★★★★ (Due Process & Natural Justice Landmark)",
+      courtroomUsage: "Under the authority of Maneka Gandhi, any administrative procedure that lacks notice and hearing violates natural justice per se.",
+      strategicValue: "Key precedent to argue that bypassing prior notice and hearing constitutes absolute procedural invalidity.",
+      authorityWeight: "★★★★★ (Highest Binding Authority)",
       ratio: "Any procedure affecting Article 21 rights must be 'fair, just, and reasonable' and cannot be arbitrary, fanciful, or oppressive. Natural justice is a mandatory requirement.",
       why: "Key precedent to argue that bypassing prior notice and hearing constitutes absolute procedural invalidity.",
       usage: "Under the authority of Maneka Gandhi, any administrative procedure that lacks notice and hearing violates natural justice per se."
@@ -1007,6 +1177,11 @@ export function renderOralAdvocacySuite(container) {
     {
       name: "E.P. Royappa v. State of Tamil Nadu (1974)",
       bench: "5-Judge Bench",
+      benchStrength: "5-Judge Constitutional Bench",
+      constitutionalImportance: "★★★★☆ (Article 14 Anti-Arbitrariness Standard)",
+      courtroomUsage: "Royappa establishes that state action lacking reasoned guidelines is manifestly arbitrary and violates Article 14.",
+      strategicValue: "Provides the legal basis to strike down executive policy decisions that are taken without guidelines or reasons.",
+      authorityWeight: "★★★★☆ (Binding Constitutional Bench)",
       ratio: "Equality is a dynamic concept. Manifest arbitrariness in state action is the absolute antithesis of the rule of law under Article 14.",
       why: "Provides the legal basis to strike down executive policy decisions that are taken without guidelines or reasons.",
       usage: "Royappa establishes that state action lacking reasoned guidelines is manifestly arbitrary and violates Article 14."
@@ -1268,6 +1443,22 @@ export function renderOralAdvocacySuite(container) {
                 <div class="flex justify-between items-center border-b border-white/5 pb-2 mb-2 font-sans">
                   <strong class="text-xs text-white font-sans">${esc(p.name)}</strong>
                   <span class="text-[9px] font-semibold text-moot-accent uppercase tracking-widest font-sans">${esc(p.bench)}</span>
+                </div>
+
+                <!-- Authority Details Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 p-3 bg-black/30 border border-white/5 rounded-lg mb-3 text-xs font-sans">
+                  <div>
+                    <span class="text-white-muted uppercase tracking-wider text-[8px] block font-semibold">Bench Strength</span>
+                    <span class="text-white font-medium font-sans">${esc(p.benchStrength || p.bench)}</span>
+                  </div>
+                  <div>
+                    <span class="text-white-muted uppercase tracking-wider text-[8px] block font-semibold">Authority Weight</span>
+                    <span class="text-moot-accent font-medium font-sans">${esc(p.authorityWeight || '★★★★★')}</span>
+                  </div>
+                  <div class="md:col-span-2">
+                    <span class="text-white-muted uppercase tracking-wider text-[8px] block font-semibold">Constitutional Importance</span>
+                    <span class="text-white font-medium font-sans">${esc(p.constitutionalImportance || 'Critical Landmark')}</span>
+                  </div>
                 </div>
                 
                 <div class="space-y-2 text-xs leading-relaxed font-sans">

@@ -190,6 +190,9 @@ async function handleOverlaySignup() {
       createdAt: window.firebase.firestore.FieldValue.serverTimestamp()
     });
     
+    // Trigger onboarding welcome email
+    await triggerWelcomeEmail(email, fname);
+    
     // Success will be handled by auth state observer
     setLoading('auth-overlay-submit', false, 'Create Account');
   } catch (err) {
@@ -255,6 +258,7 @@ async function handleSignup() {
       firstName: fname, lastName: lname, university: school, email: email,
       createdAt: window.firebase.firestore.FieldValue.serverTimestamp()
     });
+    await triggerWelcomeEmail(email, fname);
     showAuthSuccess();
   } catch (err) {
     setLoading('btn-su', false, 'Create Account');
@@ -602,4 +606,59 @@ window.stopOralRound = stopOralRound;
 window.copyBuilderArgument = copyBuilderArgument;
 window.populateIssuesFromAnalysis = populateIssuesFromAnalysis;
 
-
+async function triggerWelcomeEmail(email, fname) {
+  try {
+    const cleanFname = String(fname || 'Advocate').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    await db.collection('mail').add({
+      to: email,
+      message: {
+        subject: 'Welcome to MootCoach — Your Premium Legal Advocacy Partner',
+        html: `
+<div style="font-family: 'Merriweather', Georgia, serif; line-height: 1.8; color: #1a1a1a; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ecebe7; background-color: #fcfbfa;">
+  <div style="text-align: center; border-bottom: 2px double #ddd; padding-bottom: 15px; margin-bottom: 25px;">
+    <h1 style="font-family: Arial, sans-serif; font-size: 22px; letter-spacing: 0.1em; text-transform: uppercase; margin: 0; color: #a88220;">MootCoach AI</h1>
+    <span style="font-family: Arial, sans-serif; font-size: 9px; color: #888; letter-spacing: 0.15em; text-transform: uppercase;">Appellate Advocacy Suite</span>
+  </div>
+  
+  <p>Dear ${cleanFname},</p>
+  
+  <p>Welcome to <strong>MootCoach AI</strong>, the premium legal-tech simulator designed to elevate your appellate advocacy and courtroom performance.</p>
+  
+  <h3 style="font-family: Arial, sans-serif; font-size: 14px; text-transform: uppercase; color: #a88220; border-bottom: 1px solid #ddd; padding-bottom: 5px; margin-top: 25px;">Platform Overview & Getting Started</h3>
+  
+  <ol style="padding-left: 20px; font-size: 13px;">
+    <li style="margin-bottom: 12px;">
+      <strong>Create Your First Moot Case:</strong> Navigate to the Dashboard, upload your moot proposition (PDF or text), and let the AI extract the core legal issues, constitutional provisions, and relevant landmark precedents.
+    </li>
+    <li style="margin-bottom: 12px;">
+      <strong>Appellate Memorial Synthesis:</strong> Select your stance (Petitioner or Respondent) and target a specific issue to generate a structured, professional Appellate Memorial adhering to high-grade IRAC standards.
+    </li>
+    <li style="margin-bottom: 12px;">
+      <strong>Oral Advocacy Suite:</strong> Prepare your speech, review court openings, and memorize key precedent ratios tailored to your stance.
+    </li>
+    <li style="margin-bottom: 12px;">
+      <strong>Rebuttal Strategy & Citation Strengthening:</strong> Audit bench vulnerabilities, formulate preemptive rebuttals, and enhance your citation strength with the Citation Strengthener.
+    </li>
+    <li style="margin-bottom: 12px;">
+      <strong>Bench Simulation:</strong> Face a realistic, hostile Bench of AI Judges. Speak or type your submissions, receive aggressive questioning, and get graded on legal accuracy, responsiveness, and courtroom demeanor.
+    </li>
+  </ol>
+  
+  <h3 style="font-family: Arial, sans-serif; font-size: 14px; text-transform: uppercase; color: #a88220; border-bottom: 1px solid #ddd; padding-bottom: 5px; margin-top: 25px;">Professional Support</h3>
+  
+  <p style="font-size: 13px;">If you have questions or feedback, please reach out to us at <a href="mailto:support@mootcoach.ai" style="color: #a88220; text-decoration: none;">support@mootcoach.ai</a>.</p>
+  
+  <p style="margin-top: 35px; font-size: 13px;">Sincerely,<br><strong>The MootCoach Team</strong></p>
+  
+  <div style="text-align: center; border-top: 1px solid #eee; margin-top: 40px; padding-top: 15px; font-family: Arial, sans-serif; font-size: 9px; color: #888; text-transform: uppercase; letter-spacing: 0.1em;">
+    Appellate Drafting Studio · MootCoach AI
+  </div>
+</div>
+        `
+      }
+    });
+    console.log(`[DEBUG AUDIT] Onboarding welcome email queued in Firestore for ${email}`);
+  } catch (err) {
+    console.error("[WELCOME EMAIL ERROR]", err);
+  }
+}

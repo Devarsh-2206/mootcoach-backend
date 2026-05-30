@@ -475,11 +475,46 @@ export function getDiffLevel(content) {
 }
 
 export function fmtInline(text) {
-  return String(text)
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g,'<em>$1</em>')
-    .replace(/`(.+?)`/g,'<code style="background:rgba(255,255,255,.07);padding:1px 5px;border-radius:4px;font-size:.82em;color:var(--gold);">$1</code>');
+  if (!text) return '';
+  let t = String(text);
+
+  // Convert markdown headers to styled HTML headers instead of leaving them raw
+  t = t.replace(/^\s*#{5,6}\s*(.+)$/gm, '<h6 style="font-family:var(--font-sans, Arial); font-size:11px; font-weight:bold; letter-spacing:0.04em; color:var(--white-2); margin-top:10px; margin-bottom:4px; text-transform:uppercase;">$1</h6>');
+  t = t.replace(/^\s*####\s*(.+)$/gm, '<h5 style="font-family:var(--font-sans, Arial); font-size:12px; font-weight:bold; letter-spacing:0.06em; color:var(--white); margin-top:14px; margin-bottom:6px; text-transform:uppercase; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:2px;">$1</h5>');
+  t = t.replace(/^\s*###\s*(.+)$/gm, '<h4 style="font-family:var(--font-sans, Arial); font-size:14px; font-weight:bold; letter-spacing:0.08em; color:var(--moot-accent); margin-top:18px; margin-bottom:8px; text-transform:uppercase; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:4px;">$1</h4>');
+  t = t.replace(/^\s*##\s*(.+)$/gm, '<h3 style="font-family:var(--font-serif, Merriweather); font-size:16px; font-weight:normal; letter-spacing:0.1em; color:var(--moot-accent); margin-top:22px; margin-bottom:10px; text-transform:uppercase; border-bottom:2px double rgba(255,255,255,0.15); padding-bottom:6px;">$1</h3>');
+
+  // Escape HTML characters (excluding our newly added HTML tags, so do escaping first or be careful)
+  let escaped = t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  
+  // Re-run the heading replacements on the escaped text to ensure tags work
+  escaped = escaped.replace(/^\s*#{5,6}\s*(.+)$/gm, '<h6 style="font-family:var(--font-sans, Arial); font-size:11px; font-weight:bold; letter-spacing:0.04em; color:var(--white-2); margin-top:10px; margin-bottom:4px; text-transform:uppercase;">$1</h6>');
+  escaped = escaped.replace(/^\s*####\s*(.+)$/gm, '<h5 style="font-family:var(--font-sans, Arial); font-size:12px; font-weight:bold; letter-spacing:0.06em; color:var(--white); margin-top:14px; margin-bottom:6px; text-transform:uppercase; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:2px;">$1</h5>');
+  escaped = escaped.replace(/^\s*###\s*(.+)$/gm, '<h4 style="font-family:var(--font-sans, Arial); font-size:14px; font-weight:bold; letter-spacing:0.08em; color:var(--moot-accent); margin-top:18px; margin-bottom:8px; text-transform:uppercase; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:4px;">$1</h4>');
+  escaped = escaped.replace(/^\s*##\s*(.+)$/gm, '<h3 style="font-family:var(--font-serif, Merriweather); font-size:16px; font-weight:normal; letter-spacing:0.1em; color:var(--moot-accent); margin-top:22px; margin-bottom:10px; text-transform:uppercase; border-bottom:2px double rgba(255,255,255,0.15); padding-bottom:6px;">$1</h3>');
+
+  // Convert Bold/Italics markdown to HTML
+  escaped = escaped.replace(/\*\*([\s\S]+?)\*\*/g, '<strong>$1</strong>');
+  escaped = escaped.replace(/\*([\s\S]+?)\*/g, '<em>$1</em>');
+  escaped = escaped.replace(/`([\s\S]+?)`/g, '<code style="background:rgba(255,255,255,.07);padding:1px 5px;border-radius:4px;font-size:.82em;color:var(--gold);">$1</code>');
+
+  // Clean raw horizontal rules
+  escaped = escaped.replace(/^\s*[-*_]{3,}\s*$/gm, '<hr style="border:none; border-top:1px solid rgba(255,255,255,0.1); margin:12px 0;">');
+
+  // Clean robotic transitions and generic ChatGPT phrases
+  escaped = escaped.replace(/\bFirstly,\s+/gi, 'First, ');
+  escaped = escaped.replace(/\bSecondly,\s+/gi, 'Second, ');
+  escaped = escaped.replace(/\bThirdly,\s+/gi, 'Third, ');
+  escaped = escaped.replace(/\bLastly,\s+/gi, 'Finally, ');
+  escaped = escaped.replace(/\bIn conclusion,\s+/gi, 'Consequently, ');
+  escaped = escaped.replace(/\bIt is important to note that\s+/gi, '');
+  escaped = escaped.replace(/\bMoreover,\s+/gi, 'Furthermore, ');
+  escaped = escaped.replace(/\bFirst of all,\s+/gi, 'Initially, ');
+
+  // Clean redundant IRAC headings inside contents
+  escaped = escaped.replace(/^\s*(?:ISSUE|RULE|APPLICATION|CONCLUSION)\s*[:\-–—]*\s*$/gmi, '');
+
+  return escaped;
 }
 
 export function extractBullets(content) {
