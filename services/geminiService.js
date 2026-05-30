@@ -279,7 +279,7 @@ async function getChatCompletion({
             }
           }),
           new Promise((_, reject) =>
-            setTimeout(() => reject(new Error(`Gemini Timeout`)), 35000)
+            setTimeout(() => reject(new Error(`Gemini Timeout`)), 90000)
           )
         ]);
         

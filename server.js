@@ -208,6 +208,7 @@ const ANALYSIS_SYSTEM_PROMPT = require("./prompts/analysisSystemPrompt");
 const ORAL_EVAL_PROMPT = require("./prompts/oralEvalPrompt");
 const buildJudgePrompt = require("./prompts/benchJudgePrompt");
 const buildEvaluationPrompt = require("./prompts/benchEvaluationPrompt");
+const ARGUMENT_BUILDER_PROMPT = require("./prompts/argumentBuilderPrompt");
 
 const app = express();
 app.set('trust proxy', 1);
@@ -511,40 +512,26 @@ app.post("/api/build-argument", aiLimiter, express.json(), async (req, res) => {
       messages: [
         {
           role: "system",
-          content: `You are an elite appellate litigator. Transform the user's raw notes into a strict IRAC format (Issue, Rule, Application, Conclusion) based on the provided stance, issue, and proposition facts.
-Output strictly as a JSON object with keys: 'issue', 'rule', 'application', 'conclusion'.
-
-You MUST adhere to the following constraints:
-1. Every legal issue must be explicitly separated into **ISSUE**, **RULE**, **APPLICATION**, and **CONCLUSION** sections in your response. Ensure these bold headers appear in the text where appropriate.
-2. Case laws cannot just be listed; they must include the legal principle and its direct application to the proposition facts.
-3. Constitutional articles must explain Scope, Protection, and Limitation.
-4. Every generated submission must explicitly reference facts from the uploaded proposition.
-5. Before generating arguments, internally extract and structure:
-   - Parties
-   - Facts
-   - Issues
-   - Relief sought
-6. Every APPLICATION section must cite specific proposition facts.
-7. Never generate generic constitutional arguments that could apply to any moot problem.`
+          content: ARGUMENT_BUILDER_PROMPT
         },
         {
           role: "user",
           content: `PROPOSITION FACTS / CONTEXT:
 ${propositionContext.trim()}
 
-STANCE: ${stance}
-ISSUE: ${issue}
-RAW NOTES: ${notes.trim()}
+STANCE / SIDE: ${stance}
+ISSUE SELECTED: ${issue}
+RAW NOTES & AUTHORITIES PROVIDED: ${notes.trim()}
 
-Generate the IRAC argument strictly based on the proposition facts.`
+Generate the full side-aware appellate package strictly based on the proposition facts.`
         }
       ],
       temperature: 0.3,
-      max_tokens: 2000,
-      requestLabel: "Build Argument IRAC"
+      max_tokens: 4000,
+      requestLabel: "Build Side-Aware Argument Package"
     });
 
-    const data = extractAndParseJSON(responseCall.text, true);
+    const data = extractAndParseJSON(responseCall.text, false);
     return res.json({ success: true, response: data });
   } catch (error) {
     console.error("/api/build-argument error:", error);
