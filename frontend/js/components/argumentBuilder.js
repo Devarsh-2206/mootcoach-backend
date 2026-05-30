@@ -11,6 +11,142 @@ import {
 export let lastBuiltArgument = null;
 export let builtArgumentSide = 'Petitioner';
 
+// Unified Shared Authority Registry for all workflow modules
+export const SHARED_AUTHORITY_REGISTRY = {
+  "Issue 1": {
+    "Petitioner": [
+      {
+        name: "Whirlpool Corp. v. Registrar of Trade Marks (1998)",
+        display: "Whirlpool Corp. (Writ Jurisdiction & Alternative Remedies)",
+        ratio: "Writ petitions are maintainable under Article 226 despite alternative remedies if fundamental rights are breached, natural justice is violated, or proceedings are ultra vires.",
+        section: "Article 226 maintainability"
+      },
+      {
+        name: "L. Chandra Kumar v. Union of India (1997)",
+        display: "L. Chandra Kumar (Judicial Review Basic Structure)",
+        ratio: "Judicial review of legislative actions by high courts and the Supreme Court is an essential and integral part of the basic structure of the Constitution.",
+        section: "Article 32/226 basic structure"
+      }
+    ],
+    "Respondent": [
+      {
+        name: "E.P. Royappa v. State of Tamil Nadu (1974)",
+        display: "E.P. Royappa (Policy Discretion Non-Interference)",
+        ratio: "Writ courts must exercise self-restraint and avoid acting as a court of appeal over executive policy and administrative decisions.",
+        section: "Policy latitude"
+      },
+      {
+        name: "State of U.P. v. Mohammad Nooh (1958)",
+        display: "State of U.P. v. Mohammad Nooh (Writ Restraint Rule)",
+        ratio: "Existence of an alternative statutory remedy is a highly persuasive rule of administrative discretion against issuing writ remedies.",
+        section: "Alternative remedy bar"
+      }
+    ]
+  },
+  "Issue 2": {
+    "Petitioner": [
+      {
+        name: "E.P. Royappa v. State of Tamil Nadu (1974)",
+        display: "E.P. Royappa (Manifest Arbitrariness Standard)",
+        ratio: "Equality is a dynamic concept. State action that is arbitrary, irrational, or lacks a logical base violates Article 14.",
+        section: "Article 14 arbitrary test"
+      },
+      {
+        name: "Shayara Bano v. Union of India (2017)",
+        display: "Shayara Bano (Legislative Arbitrariness)",
+        ratio: "A legislative provision is unconstitutional under Article 14 if it is manifestly arbitrary, excessive, disproportionate, or capricious.",
+        section: "Manifest arbitrariness test"
+      }
+    ],
+    "Respondent": [
+      {
+        name: "State of Madras v. V.G. Row (1952)",
+        display: "V.G. Row (Presumption of Legislative Validity)",
+        ratio: "Statutes enjoy a strong presumption of constitutionality. Restrictions are evaluated based on the nature of the evil and public interest urgency.",
+        section: "Article 19 reasonable restrictions"
+      },
+      {
+        name: "R.K. Garg v. Union of India (1981)",
+        display: "R.K. Garg (Administrative Latitude in complex laws)",
+        ratio: "The legislature has wide latitude and flexibility in economic, social, or administrative matters; laws must not be judged by soft standards.",
+        section: "Presumption of validity"
+      }
+    ]
+  },
+  "Issue 3": {
+    "Petitioner": [
+      {
+        name: "Anuradha Bhasin v. Union of India (2020)",
+        display: "Anuradha Bhasin (Internet Shutdown & Proportionality)",
+        ratio: "Access to the internet is a fundamental right under Article 19(1)(a)/(g). Shutdown orders must satisfy strict proportionality and necessity tests.",
+        section: "Article 19 internet right"
+      },
+      {
+        name: "Shreya Singhal v. Union of India (2015)",
+        display: "Shreya Singhal (Speech Overbreadth & Vagueness)",
+        ratio: "Restrictions on Article 19(1)(a) must be narrowly tailored and cannot be vague, overbroad, or chill legitimate speech.",
+        section: "Article 19 overbreadth"
+      },
+      {
+        name: "K.S. Puttaswamy v. Union of India (2017)",
+        display: "K.S. Puttaswamy (Right to Privacy & Proportionality)",
+        ratio: "Privacy is a fundamental right under Article 21. Any state restriction on privacy must satisfy a four-fold proportionality test.",
+        section: "Article 21 privacy balancing"
+      }
+    ],
+    "Respondent": [
+      {
+        name: "Modern Dental College v. State of Madhya Pradesh (2016)",
+        display: "Modern Dental College (Proportionality Balancing Test)",
+        ratio: "Restrictions are valid under Article 19(2)-(6) if they serve a legitimate aim, are suitable, necessary, and strike a fair balance.",
+        section: "Proportionality balancing"
+      },
+      {
+        name: "PUCL v. Union of India (1997)",
+        display: "PUCL (Public Safety Communication Restrictions)",
+        ratio: "The State can temporarily restrict or intercept communications under Article 19(2) to prevent public disorder or protect public safety.",
+        section: "Article 19 public order exceptions"
+      },
+      {
+        name: "Babulal Parate v. State of Maharashtra (1961)",
+        display: "Babulal Parate (Preventive Threat Discretion)",
+        ratio: "Executive has discretion to take preventive measures when there is a reasonable apprehension of breach of public order.",
+        section: "Public order jurisprudence"
+      }
+    ]
+  },
+  "Issue 4": {
+    "Petitioner": [
+      {
+        name: "Nilabati Behera v. State of Orissa (1993)",
+        display: "Nilabati Behera (Monetary Compensation Remedy)",
+        ratio: "Writ courts can award monetary compensation under public law as a remedy for breach of fundamental rights by state action.",
+        section: "Public law compensation"
+      },
+      {
+        name: "D.K. Basu v. State of West Bengal (1997)",
+        display: "D.K. Basu (Writ Court Directives & Guidelines)",
+        ratio: "Writ courts have broad powers to issue binding guidelines and directions to executive authorities to protect fundamental rights.",
+        section: "Custodial guidelines"
+      }
+    ],
+    "Respondent": [
+      {
+        name: "State of Gujarat v. Shantilal Mangaldas (1969)",
+        display: "Shantilal Mangaldas (Writ Damages Restraint)",
+        ratio: "Public law remedies should not be used to bypass civil court procedures for assessing financial damages.",
+        section: "Damages jurisdiction"
+      },
+      {
+        name: "Common Cause v. Union of India (1999)",
+        display: "Common Cause (Exemplary Damages Restraint)",
+        ratio: "Exemplary or punitive damages against government authorities should be awarded with high restraint and only in cases of clear malice.",
+        section: "Damages threshold"
+      }
+    ]
+  }
+};
+
 // Side Panel State Management
 export let storedOralNotes = '';
 export let storedRebuttals = '';
@@ -42,6 +178,7 @@ export function initArgumentBuilder() {
   notesInput.addEventListener('input', () => {
     submitBtn.disabled = notesInput.value.trim().length < 5;
     updateLiveIntelligence(notesInput.value);
+    renderPreDraftAuthorities();
   });
 
   // Handle Form Submission
@@ -62,6 +199,8 @@ export function initArgumentBuilder() {
   window.openMemorialViewer = openMemorialViewer;
   window.closeMemorialViewer = closeMemorialViewer;
   window.copyMemorial = copyMemorial;
+  window.insertPreDraftAuthority = insertPreDraftAuthority;
+  window.renderPreDraftAuthorities = renderPreDraftAuthorities;
 
   // Bind close panel listeners
   const closeBtn = document.getElementById('aux-panel-close-btn');
@@ -122,13 +261,27 @@ export function initArgumentBuilder() {
   setButtonsState(true, "Generate a submission first to enable this action.");
   window.setBuilderButtonsState = setButtonsState;
 
-  // Bind stance radio change event listener to track selectedSide
+  // Bind stance radio change event listener to track selectedSide and re-render pre-draft chips
   const stanceRadios = document.querySelectorAll('input[name="stance"]');
   stanceRadios.forEach(radio => {
     radio.addEventListener('change', () => {
       selectedSide = radio.value;
+      renderPreDraftAuthorities();
     });
   });
+
+  // Bind issue select change event
+  const issueSelect = document.getElementById('builder-issue-select');
+  if (issueSelect) {
+    issueSelect.addEventListener('change', () => {
+      renderPreDraftAuthorities();
+    });
+  }
+
+  // Initial render of pre-draft authorities
+  setTimeout(() => {
+    renderPreDraftAuthorities();
+  }, 100);
 }
 
 function extractAuthorities(text) {
@@ -230,11 +383,31 @@ function updateLiveIntelligence(text) {
   if (metricArtEl) metricArtEl.textContent = statutesCount.toString();
   
   // Live calculation of Authority Strength
-  const authoritySupport = Math.min(20, (casesCount * 5) + (statutesCount * 4));
-  const strengthScore = Math.round(authoritySupport * 5); // scale 20 to 100
-  if (strengthScoreValEl) strengthScoreValEl.textContent = strengthScore.toString() + '%';
+  const authoritySupport = Math.min(20, (casesCount * 4) + (statutesCount * 2));
+  
+  // Quick honest estimation of the remaining 4 components
+  const lowerText = text.toLowerCase();
+  const reasoningQuality = Math.min(25, 5 + Math.round(text.length / 80));
+  const constitutionalDepth = Math.min(25, 5 + statutesCount * 3);
+  const strategicDepth = Math.min(15, 3 + (lowerText.includes("counter") ? 4 : 0) + (lowerText.includes("proportional") ? 4 : 0));
+  const structure = Math.min(15, 5 + (lowerText.includes("issue") ? 3 : 0) + (lowerText.includes("rule") ? 3 : 0) + (lowerText.includes("conclusion") ? 4 : 0));
+  
+  // Apply Moderate concept boost
+  const hasNationalSecurity = lowerText.includes("security") || lowerText.includes("national security");
+  const hasPublicOrder = lowerText.includes("public order") || lowerText.includes("order");
+  const hasOversight = lowerText.includes("oversight") || lowerText.includes("human oversight");
+  const hasSafeguards = lowerText.includes("safeguard");
+  const hasProportionality = lowerText.includes("proportion");
+  const hasModerateConcepts = hasNationalSecurity && hasPublicOrder && hasOversight && hasSafeguards && hasProportionality;
+  
+  let liveScore = authoritySupport + constitutionalDepth + reasoningQuality + strategicDepth + structure;
+  if (hasModerateConcepts) {
+    liveScore = Math.max(60, liveScore);
+  }
+
+  if (strengthScoreValEl) strengthScoreValEl.textContent = liveScore.toString() + '%';
   if (strengthProgressBarEl) {
-    strengthProgressBarEl.style.width = strengthScore + '%';
+    strengthProgressBarEl.style.width = liveScore + '%';
   }
 
   // Also update metadata grid in completion card if it exists
@@ -327,68 +500,56 @@ function renderIRAC(iracData) {
   const { cases, statutes, casesCount, statutesCount } = extractAuthorities(notes);
 
   // Extract side-aware weighted scores from AI package
-  let reasoningQuality = 15;
-  let issueCoverage = 12;
   let authoritySupport = 10;
+  let constitutionalDepth = 12;
+  let reasoningQuality = 15;
   let strategicDepth = 10;
-  let structure = 7;
-  let persuasiveness = 8;
+  let structure = 10;
   let benchResistance = 50;
 
+  const lowerNotes = notes.toLowerCase();
+  const hasNationalSecurity = lowerNotes.includes("security") || lowerNotes.includes("national security");
+  const hasPublicOrder = lowerNotes.includes("public order") || lowerNotes.includes("order");
+  const hasOversight = lowerNotes.includes("oversight") || lowerNotes.includes("human oversight");
+  const hasSafeguards = lowerNotes.includes("safeguard");
+  const hasProportionality = lowerNotes.includes("proportion");
+  const hasModerateConcepts = hasNationalSecurity && hasPublicOrder && hasOversight && hasSafeguards && hasProportionality;
+
   if (iracData.scoring) {
-    reasoningQuality = Number(iracData.scoring.reasoningQuality) || 0;
-    issueCoverage = Number(iracData.scoring.issueCoverage) || 0;
     authoritySupport = Number(iracData.scoring.authoritySupport) || 0;
+    constitutionalDepth = Number(iracData.scoring.constitutionalDepth) || 0;
+    reasoningQuality = Number(iracData.scoring.reasoningQuality) || 0;
     strategicDepth = Number(iracData.scoring.strategicDepth) || 0;
     structure = Number(iracData.scoring.structure) || 0;
-    persuasiveness = Number(iracData.scoring.persuasiveness) || 0;
     benchResistance = Number(iracData.scoring.benchResistance) || 0;
 
     // Apply moderate concept boost if notes contain national security, public order, safeguards, human oversight, proportionality
-    const lowerNotes = notes.toLowerCase();
-    const hasNationalSecurity = lowerNotes.includes("security") || lowerNotes.includes("national security");
-    const hasPublicOrder = lowerNotes.includes("public order") || lowerNotes.includes("order");
-    const hasOversight = lowerNotes.includes("oversight") || lowerNotes.includes("human oversight");
-    const hasSafeguards = lowerNotes.includes("safeguard");
-    const hasProportionality = lowerNotes.includes("proportion");
-    const hasModerateConcepts = hasNationalSecurity && hasPublicOrder && hasOversight && hasSafeguards && hasProportionality;
-
     if (hasModerateConcepts) {
-      reasoningQuality = Math.max(reasoningQuality, 18);
-      issueCoverage = Math.max(issueCoverage, 15);
-      strategicDepth = Math.max(strategicDepth, 12);
-      persuasiveness = Math.max(persuasiveness, 7);
-      structure = Math.max(structure, 8);
+      authoritySupport = Math.max(authoritySupport, 10);
+      constitutionalDepth = Math.max(constitutionalDepth, 15);
+      reasoningQuality = Math.max(reasoningQuality, 15);
+      strategicDepth = Math.max(strategicDepth, 10);
+      structure = Math.max(structure, 10);
     }
   } else {
     // Legacy fallback with honest scoring bands and key concepts support
     const hasAllIRAC = iracData.issue && iracData.rule && iracData.application && iracData.conclusion;
-    structure = hasAllIRAC ? 10 : 5;
+    structure = hasAllIRAC ? 15 : 7;
     
-    const lowerNotes = notes.toLowerCase();
     const hasPrivacy = lowerNotes.includes("puttaswamy") || lowerNotes.includes("privacy");
-    const hasNationalSecurity = lowerNotes.includes("security") || lowerNotes.includes("national security");
-    const hasPublicOrder = lowerNotes.includes("public order") || lowerNotes.includes("order");
-    const hasOversight = lowerNotes.includes("oversight") || lowerNotes.includes("human oversight");
-    const hasSafeguards = lowerNotes.includes("safeguard");
-    const hasProportionality = lowerNotes.includes("proportion");
-    
     const conceptCount = [hasPrivacy, hasNationalSecurity, hasPublicOrder, hasOversight, hasSafeguards, hasProportionality].filter(Boolean).length;
     
+    authoritySupport = Math.min(20, Math.max(2, casesCount * 4 + statutesCount * 2));
+    constitutionalDepth = Math.min(25, Math.max(5, statutesCount * 4 + conceptCount * 2.5));
     reasoningQuality = Math.min(25, Math.max(5, 5 + Math.round(notes.length / 100) + conceptCount * 2));
-    issueCoverage = Math.min(20, Math.max(5, statutesCount * 4 + (conceptCount > 0 ? 5 : 0)));
-    authoritySupport = Math.min(20, Math.max(0, casesCount * 5));
-    strategicDepth = Math.min(15, Math.max(3, conceptCount * 2.5));
-    persuasiveness = Math.min(10, Math.max(3, 4 + Math.round((iracData.application || iracData.memorial?.application || '').length / 300)));
+    strategicDepth = Math.min(15, Math.max(3, conceptCount * 2));
     
-    // Moderate note check: e.g. national security, public order, safeguards, human oversight, proportionality
-    const hasModerateConcepts = hasNationalSecurity && hasPublicOrder && hasOversight && hasSafeguards && hasProportionality;
     if (hasModerateConcepts) {
-      reasoningQuality = Math.max(reasoningQuality, 17);
-      issueCoverage = Math.max(issueCoverage, 15);
-      strategicDepth = Math.max(strategicDepth, 12);
-      persuasiveness = Math.max(persuasiveness, 7);
-      structure = Math.max(structure, 8);
+      authoritySupport = Math.max(authoritySupport, 10);
+      constitutionalDepth = Math.max(constitutionalDepth, 15);
+      reasoningQuality = Math.max(reasoningQuality, 15);
+      strategicDepth = Math.max(strategicDepth, 10);
+      structure = Math.max(structure, 10);
     }
     
     // Bench resistance evaluation
@@ -402,12 +563,12 @@ function renderIRAC(iracData) {
     benchResistance = Math.min(100, Math.max(10, resistanceComponents));
   }
 
-  const synthesisScore = reasoningQuality + issueCoverage + authoritySupport + strategicDepth + structure + persuasiveness;
+  const synthesisScore = authoritySupport + constitutionalDepth + reasoningQuality + strategicDepth + structure;
   const finalReadinessScore = Math.min(100, synthesisScore + (citationsStrengthened ? 8 : 0) + (rebuttalViewed ? 7 : 0));
 
   const strengthScore = Math.round(authoritySupport * 5); // scale 20 to 100
   const readinessScore = finalReadinessScore;
-  const persuasivenessScore = Math.round(persuasiveness * 10); // scale 10 to 100
+  const persuasivenessScore = Math.round((reasoningQuality + strategicDepth) * 2.5); // scale 40 to 100
 
   // Generate dynamic strengths and weaknesses from weakly supported claims
   let dynamicStrength = "Strict adherence to the structural IRAC syllogism ensures logical clarity.";
@@ -460,10 +621,10 @@ function renderIRAC(iracData) {
   const confidenceLabel = finalReadinessScore < 50 ? "Low" : (finalReadinessScore < 75 ? "Medium" : "High");
   const confidenceClass = finalReadinessScore < 50 ? "text-red-400" : (finalReadinessScore < 75 ? "text-amber-400" : "text-emerald-400");
 
-  const initialNotesScore = Math.round(synthesisScore * 0.7);
+  const initialNotesScore = Math.max(15, Math.min(60, (casesCount * 10) + (statutesCount * 8) + Math.round(notes.length / 15)));
 
   outputState.innerHTML = `
-<div class="flex flex-col gap-5 w-full h-full">
+<div class="flex flex-col gap-5 w-full h-full font-sans">
   
   <!-- Quick Actions & Status Toolbar -->
   <div class="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-4">
@@ -561,23 +722,23 @@ function renderIRAC(iracData) {
   <!-- Row of Progression and Transparency Panels -->
   <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
     <!-- Readiness Transparency Audit -->
-    <div class="p-4 bg-white/5 border border-white/10 rounded-xl flex flex-col gap-3">
+    <div class="p-4 bg-white/5 border border-white/10 rounded-xl flex flex-col gap-3 font-sans">
       <div class="flex justify-between items-center">
         <span class="text-xs uppercase tracking-wider text-white-2 font-semibold font-sans">⚖️ Readiness Transparency Audit</span>
         <span class="text-[10px] font-bold text-moot-accent uppercase tracking-widest font-sans">Honest Breakdown</span>
       </div>
       <div class="grid grid-cols-2 gap-2 text-xs">
         <div class="p-2.5 bg-black/20 rounded border border-white/5 flex flex-col">
-          <span class="text-[8px] text-white-muted uppercase tracking-widest font-sans">Reasoning Quality</span>
-          <span class="text-xs font-semibold text-white mt-1 font-mono">${reasoningQuality} / 25</span>
-        </div>
-        <div class="p-2.5 bg-black/20 rounded border border-white/5 flex flex-col">
-          <span class="text-[8px] text-white-muted uppercase tracking-widest font-sans">Issue Coverage</span>
-          <span class="text-xs font-semibold text-white mt-1 font-mono">${issueCoverage} / 20</span>
-        </div>
-        <div class="p-2.5 bg-black/20 rounded border border-white/5 flex flex-col">
           <span class="text-[8px] text-white-muted uppercase tracking-widest font-sans">Authority Support</span>
           <span class="text-xs font-semibold text-white mt-1 font-mono">${authoritySupport} / 20</span>
+        </div>
+        <div class="p-2.5 bg-black/20 rounded border border-white/5 flex flex-col">
+          <span class="text-[8px] text-white-muted uppercase tracking-widest font-sans">Constitutional Depth</span>
+          <span class="text-xs font-semibold text-white mt-1 font-mono">${constitutionalDepth} / 25</span>
+        </div>
+        <div class="p-2.5 bg-black/20 rounded border border-white/5 flex flex-col">
+          <span class="text-[8px] text-white-muted uppercase tracking-widest font-sans">Reasoning Quality</span>
+          <span class="text-xs font-semibold text-white mt-1 font-mono">${reasoningQuality} / 25</span>
         </div>
         <div class="p-2.5 bg-black/20 rounded border border-white/5 flex flex-col">
           <span class="text-[8px] text-white-muted uppercase tracking-widest font-sans">Strategic Depth</span>
@@ -585,11 +746,11 @@ function renderIRAC(iracData) {
         </div>
         <div class="p-2.5 bg-black/20 rounded border border-white/5 flex flex-col">
           <span class="text-[8px] text-white-muted uppercase tracking-widest font-sans">Structure</span>
-          <span class="text-xs font-semibold text-white mt-1 font-mono">${structure} / 10</span>
+          <span class="text-xs font-semibold text-white mt-1 font-mono">${structure} / 15</span>
         </div>
         <div class="p-2.5 bg-black/20 rounded border border-white/5 flex flex-col">
-          <span class="text-[8px] text-white-muted uppercase tracking-widest font-sans">Persuasiveness</span>
-          <span class="text-xs font-semibold text-white mt-1 font-mono">${persuasiveness} / 10</span>
+          <span class="text-[8px] text-white-muted uppercase tracking-widest font-sans font-semibold">Synthesis Score</span>
+          <span class="text-xs font-semibold text-moot-accent mt-1 font-mono">${synthesisScore} / 100</span>
         </div>
       </div>
     </div>
@@ -631,6 +792,9 @@ function renderIRAC(iracData) {
         </div>
       </div>
     </div>
+    
+    <!-- Appellate Improvement Pathway Card -->
+    ${getImprovementPathwayHTML(notes, casesCount, statutesCount, { authoritySupport, constitutionalDepth, reasoningQuality, strategicDepth, structure }, finalReadinessScore)}
   </div>
 
   <!-- Premium Memorial Completion Card -->
@@ -1385,6 +1549,31 @@ export function renderOralAdvocacySuite(container) {
     }
   ];
 
+  // Section 3: Judge Attack Mode (Interventions)
+  const attackList = (oral.judgeAttackMode && oral.judgeAttackMode.length > 0) ? oral.judgeAttackMode : (isPetitioner ? [
+    {
+      intervention: "Counsel, you are asking this Court to micro-manage security protocols. If we accept your argument, the government won't be able to disable communication channels during security situations. How do you respond to that?",
+      trapType: "Policy Exception",
+      advocateEscape: "My Lords, with respect, Counsel does not invite this Court to govern. We simply ask this Court to enforce the clear limits set by Anuradha Bhasin, which mandate that any shutdown must be temporary, necessary, and subject to regular oversight. Administrative convenience cannot override Part III rights."
+    },
+    {
+      intervention: "Counsel, the statute explicitly says the Director 'may authorize interception.' There is no provision for a prior hearing in the text. Are we supposed to rewrite the legislation?",
+      trapType: "Literal Statutory Wording",
+      advocateEscape: "My Lords, it is a cardinal principle of constitutional interpretation that when a statutory power infringes on fundamental liberties under Article 21, the procedural requirements of natural justice must be read into the silent statute to preserve its constitutionality, as established in Maneka Gandhi."
+    }
+  ] : [
+    {
+      intervention: "Counsel, how can the state argue that bypassing prior notice and hearing completely satisfies due process? Is natural justice optional when the government is in a hurry?",
+      trapType: "Manifest Arbitrariness",
+      advocateEscape: "My Lords, natural justice is not optional, but its application is flexible. In situations of public order threat, post-decisional hearings satisfy due process under Charan Lal Sahu. The State has provided a post-decisional review process, curing any initial procedural grievance."
+    },
+    {
+      intervention: "Counsel, the restriction in this case has shut down normal business operations for three weeks. How can this satisfy the proportionality test when the threat was localized and resolved in two days?",
+      trapType: "Proportionality Balancing",
+      advocateEscape: "My Lords, the assessment of when a threat is resolved lies in the unique domain of executive intelligence, not judicial assessment. The localized threat had a clear threat profile that justified continued restrictions to prevent flare-ups, satisfying the public order necessity standard under Article 19(6)."
+    }
+  ]);
+
   // Section 5: Rebuttal War Room
   let rebuttalsList = [];
   const oppArgs = rebuttalsObj.opponentArguments || [];
@@ -1600,11 +1789,43 @@ export function renderOralAdvocacySuite(container) {
                 <strong class="text-xs text-red-400 uppercase tracking-wider font-sans">Trap ${idx + 1}: ${esc(trap.title || 'Judicial Trap')}</strong>
                 <span class="px-2 py-0.5 text-[8px] font-bold bg-red-500/20 text-red-300 border border-red-500/30 rounded uppercase tracking-wider font-sans">Danger Level: Critical</span>
               </div>
-              <p class="text-xs text-gray-300 leading-relaxed font-sans">
+              <p class="text-xs text-gray-300 leading-relaxed font-sans font-medium">
                 <strong class="text-white">Why it is dangerous:</strong> ${esc(trap.description)}
               </p>
               <div class="p-2.5 bg-black/35 rounded border-l-2 border-red-500 text-xs italic text-gray-300 font-serif mt-1">
                 "${esc(trap.escapeResponse || trap.response)}"
+              </div>
+            </div>
+            `).join('')}
+          </div>
+        </div>
+
+        <!-- Section 3: Judge Attack Mode (Hostile Interventions) -->
+        <div class="flex flex-col gap-3 mt-2">
+          <div class="flex items-center gap-2 border-b border-white/5 pb-2">
+            <span class="text-lg">🚨</span>
+            <h4 class="text-xs uppercase tracking-wider text-red-400 font-bold font-sans">3. Judge Attack Mode (Hostile Interventions)</h4>
+          </div>
+          
+          <div class="p-3 bg-red-500/10 border border-red-500/20 rounded-xl mb-3 flex flex-col gap-1 font-sans">
+            <span class="text-[10px] font-bold text-red-400 uppercase tracking-widest font-sans">⚡ WARNING: Hostile Bench Simulation Active</span>
+            <span class="text-[9px] text-white-muted leading-tight font-sans">Prepare for immediate interruption on the following prongs during oral arguments.</span>
+          </div>
+
+          <div class="space-y-3 font-sans">
+            ${attackList.map((attack, idx) => `
+            <!-- Attack ${idx + 1} -->
+            <div class="p-4 bg-red-950/15 border border-red-900/40 rounded-xl flex flex-col gap-2 font-sans">
+              <div class="flex justify-between items-center">
+                <strong class="text-xs text-red-400 uppercase tracking-wider font-sans">Intervention ${idx + 1}: ${esc(attack.trapType || 'Hostile Interruption')}</strong>
+                <span class="px-2 py-0.5 text-[8px] font-bold bg-red-500/20 text-red-300 border border-red-500/30 rounded uppercase tracking-wider font-sans">Interruption Risk</span>
+              </div>
+              <p class="text-xs text-gray-300 leading-relaxed font-sans font-medium italic">
+                <span class="text-red-400 font-bold font-sans">Judge:</span> "${esc(attack.intervention)}"
+              </p>
+              <div class="p-2.5 bg-black/35 rounded border-l-2 border-emerald-500 text-xs italic text-gray-300 font-serif mt-1">
+                <strong class="text-emerald-400 block mb-1 font-sans not-italic text-[9px] uppercase tracking-wider">Advocate Escape Route:</strong>
+                "${esc(attack.advocateEscape || attack.escapeResponse)}"
               </div>
             </div>
             `).join('')}
@@ -1628,7 +1849,7 @@ export function renderOralAdvocacySuite(container) {
                 <div class="flex items-center gap-1.5 text-[9px] uppercase tracking-widest text-red-400 font-bold font-sans">
                   <span>❌</span> Opponent Argument ${idx + 1}
                 </div>
-                <p class="text-xs text-gray-300 leading-relaxed font-serif italic font-sans">
+                <p class="text-xs text-gray-300 leading-relaxed font-serif italic">
                   "${esc(item.opponent)}"
                 </p>
               </div>
@@ -2130,6 +2351,193 @@ function getUpgradedCitations(citationsData, notes) {
         </h4>
         <div class="space-y-2 text-xs text-gray-300 font-sans text-left">
           ${weaklyHTML || '<p class="italic text-gray-500">No weakly supported claims identified.</p>'}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ==========================================
+//   SHARED PRE-DRAFTING & TRANSITIONAL HELPERS
+// ==========================================
+
+function resolveIssueKey(selectValue) {
+  if (!selectValue) return "Issue 3";
+  const selectStr = selectValue.toLowerCase();
+  
+  if (selectStr.includes("issue 1")) return "Issue 1";
+  if (selectStr.includes("issue 2")) return "Issue 2";
+  if (selectStr.includes("issue 3")) return "Issue 3";
+  if (selectStr.includes("issue 4")) return "Issue 4";
+  
+  // Keyword fallback mappings
+  if (selectStr.includes("jurisdiction") || selectStr.includes("maintainability")) return "Issue 1";
+  if (selectStr.includes("validity") || selectStr.includes("constitutionality") || selectStr.includes("ultra vires")) return "Issue 2";
+  if (selectStr.includes("merits") || selectStr.includes("shutdown") || selectStr.includes("breach") || selectStr.includes("privacy") || selectStr.includes("speech") || selectStr.includes("rights")) return "Issue 3";
+  if (selectStr.includes("remedy") || selectStr.includes("relief") || selectStr.includes("compensation") || selectStr.includes("damages") || selectStr.includes("prayer")) return "Issue 4";
+  
+  return "Issue 3";
+}
+
+export function renderPreDraftAuthorities() {
+  const container = document.getElementById('pre-draft-chips');
+  if (!container) return;
+
+  const notesInput = document.getElementById('builder-notes-input');
+  if (!notesInput) return;
+  const notes = notesInput.value;
+
+  const stance = getCurrentSelectedSide() || selectedSide || 'Petitioner';
+  const issueSelect = document.getElementById('builder-issue-select');
+  const issueVal = issueSelect ? issueSelect.value : 'Issue 3';
+  const issueKey = resolveIssueKey(issueVal);
+
+  const authorities = (SHARED_AUTHORITY_REGISTRY[issueKey] && SHARED_AUTHORITY_REGISTRY[issueKey][stance]) || [];
+
+  if (authorities.length === 0) {
+    container.innerHTML = `<div class="text-[11px] text-white-muted italic py-1 font-sans">No key recommendations for this issue.</div>`;
+    return;
+  }
+
+  container.innerHTML = authorities.map((auth, idx) => {
+    const normalizedNotes = notes.toLowerCase();
+    const isAdded = normalizedNotes.includes(auth.name.toLowerCase()) || 
+                    (auth.name.toLowerCase().includes('whirlpool') && normalizedNotes.includes('whirlpool')) ||
+                    (auth.name.toLowerCase().includes('puttaswamy') && normalizedNotes.includes('puttaswamy')) ||
+                    (auth.name.toLowerCase().includes('royappa') && normalizedNotes.includes('royappa')) ||
+                    (auth.name.toLowerCase().includes('bhasin') && normalizedNotes.includes('bhasin')) ||
+                    (auth.name.toLowerCase().includes('shreya singhal') && normalizedNotes.includes('shreya singhal')) ||
+                    (auth.name.toLowerCase().includes('chandra kumar') && normalizedNotes.includes('chandra kumar')) ||
+                    (auth.name.toLowerCase().includes('mohammad nooh') && normalizedNotes.includes('mohammad nooh')) ||
+                    (auth.name.toLowerCase().includes('v.g. row') && normalizedNotes.includes('v.g. row')) ||
+                    (auth.name.toLowerCase().includes('r.k. garg') && normalizedNotes.includes('r.k. garg')) ||
+                    (auth.name.toLowerCase().includes('modern dental') && normalizedNotes.includes('modern dental')) ||
+                    (auth.name.toLowerCase().includes('pucl') && normalizedNotes.includes('pucl')) ||
+                    (auth.name.toLowerCase().includes('babulal parate') && normalizedNotes.includes('babulal parate')) ||
+                    (auth.name.toLowerCase().includes('nilabati') && normalizedNotes.includes('nilabati')) ||
+                    (auth.name.toLowerCase().includes('d.k. basu') && normalizedNotes.includes('d.k. basu')) ||
+                    (auth.name.toLowerCase().includes('shantilal') && normalizedNotes.includes('shantilal')) ||
+                    (auth.name.toLowerCase().includes('common cause') && normalizedNotes.includes('common cause'));
+
+    if (isAdded) {
+      return `
+        <div class="flex items-center justify-between p-2.5 bg-emerald-500/5 border border-emerald-500/20 rounded-lg gap-2">
+          <div class="flex flex-col gap-0.5">
+            <div class="text-xs font-semibold text-emerald-400 flex items-center gap-1.5 font-sans">
+              <span>✓</span> ${esc(auth.display || auth.name)}
+            </div>
+            <div class="text-[10px] text-emerald-300/70 leading-tight font-sans">${esc(auth.ratio)}</div>
+          </div>
+          <span class="px-2.5 py-1 text-[9px] font-bold text-emerald-400 uppercase tracking-widest bg-emerald-500/10 rounded shrink-0 font-sans">Added</span>
+        </div>
+      `;
+    } else {
+      return `
+        <div class="flex items-center justify-between p-2.5 bg-white/[0.03] border border-white/10 rounded-lg hover:border-moot-accent/50 transition-all gap-2">
+          <div class="flex flex-col gap-0.5">
+            <div class="text-xs font-semibold text-white flex items-center gap-1.5 font-sans">
+              <span>⚖️</span> ${esc(auth.display || auth.name)}
+            </div>
+            <div class="text-[10px] text-white-muted leading-tight font-sans">${esc(auth.ratio)}</div>
+          </div>
+          <button type="button" onclick="window.insertPreDraftAuthority('${issueKey}', '${stance}', ${idx})" class="btn-sm px-3 py-1.5 bg-moot-accent text-black font-semibold rounded text-[10px] uppercase tracking-wider hover:bg-gold-light transition-all cursor-pointer border-none shrink-0 font-sans">
+            + Insert
+          </button>
+        </div>
+      `;
+    }
+  }).join('');
+}
+
+export function insertPreDraftAuthority(issueCategory, stanceKey, idx) {
+  const notesInput = document.getElementById('builder-notes-input');
+  if (!notesInput) return;
+
+  const auth = SHARED_AUTHORITY_REGISTRY[issueCategory][stanceKey][idx];
+  if (!auth) return;
+
+  const prefix = notesInput.value.trim().length > 0 ? "\n\n" : "";
+  const insertionText = `${prefix}Supporting Precedent: ${auth.name}. Ratio: ${auth.ratio}`;
+  notesInput.value = notesInput.value + insertionText;
+
+  // Trigger input event to update live intelligence and validate the form
+  const inputEvent = new Event('input', { bubbles: true });
+  notesInput.dispatchEvent(inputEvent);
+
+  // Re-render chips to show "Added"
+  renderPreDraftAuthorities();
+  
+  showToast(`Integrated ${auth.name} into notes!`, "ok");
+}
+
+function getImprovementPathwayHTML(notes, casesCount, statutesCount, scoring, finalReadinessScore) {
+  const lowerNotes = notes.toLowerCase();
+  
+  const hasCases = casesCount > 0;
+  const hasStatutes = statutesCount > 0;
+  const hasCounter = /counterargument|anticipate|opposing|respondent submits|petitioner argues|defense|challenge/gi.test(notes);
+  const hasRelief = /prayer|relief|conclusion|declare|compensation|damages/gi.test(notes);
+  const hasDepth = notes.length >= 150;
+
+  const rawNotesScore = Math.max(15, Math.min(60, (casesCount * 10) + (statutesCount * 8) + Math.round(notes.length / 15)));
+  
+  const checklist = [
+    { label: "Landmark Case Precedents", met: hasCases, hint: "Insert relevant case law from registry below." },
+    { label: "Constitutional & Statutory Articles", met: hasStatutes, hint: "Cite explicit articles (e.g. Article 14, 19, 21)." },
+    { label: "Anticipated Counterarguments", met: hasCounter, hint: "Address the other side's core defenses or claims." },
+    { label: "Explicit Relief & Prayer", met: hasRelief, hint: "Outline the specific declarations and directions sought." },
+    { label: "Factual Narrative Depth", met: hasDepth, hint: "Expand on the specific proposition facts." }
+  ];
+
+  const metCount = checklist.filter(item => item.met).length;
+
+  return `
+    <div class="p-4 bg-white/5 border border-white/10 rounded-xl flex flex-col gap-3 font-sans md:col-span-2">
+      <div class="flex justify-between items-center border-b border-white/5 pb-2">
+        <span class="text-xs uppercase tracking-wider text-white-2 font-semibold font-sans">📈 Appellate Improvement Pathway</span>
+        <span class="text-[10px] font-bold text-moot-accent uppercase tracking-widest font-sans">Progress to Elite Status</span>
+      </div>
+
+      <!-- Progression Pathway Progress Bar -->
+      <div class="flex items-center justify-between gap-4 mt-1 font-sans">
+        <div class="flex flex-col items-center gap-1 flex-1">
+          <span class="text-[9px] uppercase text-white-muted tracking-wider">1. Initial Notes</span>
+          <div class="w-6 h-6 rounded-full bg-red-500/20 text-red-400 border border-red-500/30 flex items-center justify-center text-[10px] font-bold">${rawNotesScore}%</div>
+        </div>
+        <div class="flex-1 h-[2px] bg-white/10 relative">
+          <div class="absolute top-[-3px] left-0 w-2 h-2 rounded-full bg-indigo-500"></div>
+        </div>
+        <div class="flex flex-col items-center gap-1 flex-1">
+          <span class="text-[9px] uppercase text-white-muted tracking-wider">2. Current Draft</span>
+          <div class="w-6 h-6 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center text-[10px] font-bold">${finalReadinessScore}%</div>
+        </div>
+        <div class="flex-1 h-[2px] bg-white/10 relative">
+          <div class="absolute top-[-3px] left-0 w-2 h-2 rounded-full bg-moot-accent"></div>
+        </div>
+        <div class="flex flex-col items-center gap-1 flex-1">
+          <span class="text-[9px] uppercase text-white-muted tracking-wider">3. Target (Elite)</span>
+          <div class="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center text-[10px] font-bold">95%+</div>
+        </div>
+      </div>
+
+      <!-- Deficiency Diagnostics -->
+      <div class="flex flex-col gap-2 mt-2">
+        <span class="text-[9px] uppercase text-white-muted tracking-widest font-sans font-semibold">Deficiency Diagnostics (${metCount}/5 Passed)</span>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+          ${checklist.map(item => {
+            const badgeCls = item.met 
+              ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' 
+              : 'bg-red-500/10 text-red-400 border border-red-500/20';
+            const icon = item.met ? '✔' : '⚠';
+            return `
+              <div class="p-2.5 rounded border ${badgeCls} flex flex-col gap-0.5 font-sans">
+                <span class="text-[10px] font-semibold flex items-center gap-1 font-sans">
+                  <span>${icon}</span> ${esc(item.label)}
+                </span>
+                <span class="text-[9px] text-white-muted leading-tight mt-0.5 font-sans">${esc(item.hint)}</span>
+              </div>
+            `;
+          }).join('')}
         </div>
       </div>
     </div>

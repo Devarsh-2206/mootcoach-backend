@@ -2337,9 +2337,17 @@ p  { color:var(--white-2); }
                 <div class="ws-field flex flex-col gap-2">
                   <div class="flex items-center gap-2">
                     <span class="w-5 h-5 rounded-full bg-moot-accent/20 border border-moot-accent/30 text-moot-accent text-[10px] font-semibold flex items-center justify-center">3</span>
-                    <label for="builder-notes-input" class="tracking-wide text-xs font-semibold uppercase text-white-2">Insert Authorities & Notes</label>
-                  </div>
                   <textarea id="builder-notes-input" class="oral-textarea w-full min-h-[140px] resize-y mt-1" rows="5" placeholder="Enter raw thoughts, key citations (e.g. 'KESAVANANDA BHARATI v. STATE OF KERALA', 'Section 377'), facts, or arguments..." style="font-size:.82rem;"></textarea>
+                  
+                  <!-- Pre-drafting Authority Assistant (Primary Research Step) -->
+                  <div id="pre-draft-authority-assistant" class="mt-2 p-3 bg-white/[0.02] border border-white/5 rounded-lg flex flex-col gap-2">
+                    <div class="text-[10px] uppercase tracking-wider text-moot-accent font-semibold flex items-center gap-1.5 font-sans">
+                      <span>💡</span> Primary Authority Research Assistant
+                    </div>
+                    <div id="pre-draft-chips" class="flex flex-col gap-1.5">
+                      <!-- Populated dynamically via JS -->
+                    </div>
+                  </div>
                 </div>
                 
                 <!-- Action Button -->
