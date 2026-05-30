@@ -24,6 +24,19 @@ CRITICAL INSTRUCTIONS:
 5. **Rebuttal Perspectives**:
    - For **Petitioner**: Target likely Respondent arguments, counter-strategies, and responses to judicial defenses.
    - For **Respondent**: Target likely Petitioner attacks, constitutional challenges, and counter-defenses.
+6. **Verified Precedent Registry**: When proposing citations, missing authorities, or constitutional bench cases, you must strictly align with and prioritize the following unified registry of verified authorities based on the issue category and stance:
+   - **Writ Maintainability / Jurisdiction (Article 32/226)**:
+     * Petitioner: Whirlpool Corp. v. Registrar of Trade Marks (1998) (writ maintainability), L. Chandra Kumar v. Union of India (1997) (judicial review basic structure)
+     * Respondent: E.P. Royappa v. State of Tamil Nadu (1974) (policy discretion/restraint), State of U.P. v. Mohammad Nooh (1958) (alternative remedy bar)
+   - **Article 14 Equality / Arbitrariness**:
+     * Petitioner: E.P. Royappa v. State of Tamil Nadu (1974) (manifest arbitrariness standard), Shayara Bano v. Union of India (2017) (legislative arbitrariness)
+     * Respondent: State of Madras v. V.G. Row (1952) (reasonable restrictions/judicial deference), R.K. Garg v. Union of India (1981) (legislative latitude in complex matters)
+   - **Article 19/21 Substantive Rights (Privacy / Speech / Natural Justice / Proportionality)**:
+     * Petitioner: K.S. Puttaswamy v. Union of India (2017) (privacy foundation & proportionality test), Maneka Gandhi v. Union of India (1978) (procedural due process/natural justice), Anuradha Bhasin v. Union of India (2020) (internet shutdown/proportionality), Shreya Singhal v. Union of India (2015) (speech overbreadth/vagueness)
+     * Respondent: Modern Dental College v. State of Madhya Pradesh (2016) (proportionality balancing test), PUCL v. Union of India (1997) (public safety communication restrictions), Babulal Parate v. State of Maharashtra (1961) (preventive threat discretion), Maneka Gandhi v. Union of India (1978) (post-decisional hearing validity)
+   - **Remedies / Public Law Damages / Mandamus Guidelines**:
+     * Petitioner: Nilabati Behera v. State of Orissa (1993) (monetary compensation under public law), D.K. Basu v. State of West Bengal (1997) (writ court guidelines/directives)
+     * Respondent: State of Gujarat v. Shantilal Mangaldas (1969) (damages restraint in public law), Common Cause v. Union of India (1999) (exemplary damages restraint)
 
 MANDATORY OUTPUT FORMAT:
 You must respond with ONLY a valid JSON object. No preamble, no explanation, no markdown fences (like \`\`\`json).

@@ -92,6 +92,12 @@ export const SHARED_AUTHORITY_REGISTRY = {
         display: "K.S. Puttaswamy (Right to Privacy & Proportionality)",
         ratio: "Privacy is a fundamental right under Article 21. Any state restriction on privacy must satisfy a four-fold proportionality test.",
         section: "Article 21 privacy balancing"
+      },
+      {
+        name: "Maneka Gandhi v. Union of India (1978)",
+        display: "Maneka Gandhi (Fair Procedure & Natural Justice)",
+        ratio: "Any procedure affecting life or personal liberty under Article 21 must be fair, just, and reasonable, incorporating prior notice and hearing.",
+        section: "Article 21 procedural due process"
       }
     ],
     "Respondent": [
@@ -112,6 +118,12 @@ export const SHARED_AUTHORITY_REGISTRY = {
         display: "Babulal Parate (Preventive Threat Discretion)",
         ratio: "Executive has discretion to take preventive measures when there is a reasonable apprehension of breach of public order.",
         section: "Public order jurisprudence"
+      },
+      {
+        name: "Maneka Gandhi v. Union of India (1978)",
+        display: "Maneka Gandhi (Post-Decisional Hearing Validity)",
+        ratio: "Procedural fairness is flexible; a post-decisional hearing cures the lack of prior notice in situations of public safety or urgency.",
+        section: "Post-decisional hearing validity"
       }
     ]
   },
@@ -293,8 +305,24 @@ function extractAuthorities(text) {
   let caseMatches = text.match(caseRegex) || [];
   const statuteMatches = text.match(statuteRegex) || [];
   
-  const landmarkCases = ["puttaswamy", "maneka gandhi", "royappa", "shreya singhal", "anuradha bhasin", "pucl", "kesavananda", "whirlpool", "modern dental"];
-  landmarkCases.forEach(name => {
+  // Dynamically extract landmark names from SHARED_AUTHORITY_REGISTRY to unify scanners
+  const landmarkCases = ["puttaswamy", "maneka gandhi", "royappa", "shreya singhal", "anuradha bhasin", "pucl", "kesavananda", "whirlpool", "modern dental", "l. chandra kumar", "r.k. garg", "babulal parate", "nilabati behera", "d.k. basu", "shantilal mangaldas", "common cause"];
+  for (const issue in SHARED_AUTHORITY_REGISTRY) {
+    for (const stance in SHARED_AUTHORITY_REGISTRY[issue]) {
+      SHARED_AUTHORITY_REGISTRY[issue][stance].forEach(auth => {
+        const namePart = auth.name.split(' v. ')[0].split(' vs. ')[0].split(' v/s ')[0].trim().toLowerCase();
+        landmarkCases.push(namePart);
+        landmarkCases.push(auth.name.toLowerCase());
+        const firstWord = namePart.split(' ')[0].replace(/[^a-zA-Z]/g, '');
+        if (firstWord.length > 3) {
+          landmarkCases.push(firstWord);
+        }
+      });
+    }
+  }
+
+  const uniqueLandmarks = Array.from(new Set(landmarkCases));
+  uniqueLandmarks.forEach(name => {
     const regex = new RegExp(`\\b${name}\\b`, 'gi');
     if (regex.test(text)) {
       const alreadyMatched = caseMatches.some(m => m.toLowerCase().includes(name));
@@ -978,6 +1006,7 @@ export function populateIssuesFromAnalysis() {
           select.appendChild(opt);
         });
         console.log("Loaded issues dynamically from analysis into Argument Builder.");
+        renderPreDraftAuthorities();
         return;
       }
     }
@@ -2379,6 +2408,104 @@ function resolveIssueKey(selectValue) {
   return "Issue 3";
 }
 
+function getAuthoritiesForIssueAndStance(issueVal, stance) {
+  let matchedAuthorities = [];
+  const selectStr = (issueVal || "").toLowerCase();
+  
+  // Define matched registry keys
+  let matchedKeys = new Set();
+  
+  // 1. Maintainability / Jurisdiction
+  if (selectStr.includes("jurisdiction") || selectStr.includes("maintainability") || selectStr.includes("alternative remedy") || selectStr.includes("art. 226") || selectStr.includes("article 226") || selectStr.includes("art. 32") || selectStr.includes("article 32") || selectStr.includes("bar")) {
+    matchedKeys.add("Issue 1");
+  }
+  
+  // 2. Arbitrariness / Equality / Article 14
+  if (selectStr.includes("validity") || selectStr.includes("constitutionality") || selectStr.includes("ultra vires") || selectStr.includes("arbitrary") || selectStr.includes("arbitrariness") || selectStr.includes("article 14") || selectStr.includes("art. 14") || selectStr.includes("equality") || selectStr.includes("bias")) {
+    matchedKeys.add("Issue 2");
+  }
+  
+  // 3. Privacy / Article 21 / Speech / Article 19 / Merits / AI profiling
+  if (selectStr.includes("merits") || selectStr.includes("shutdown") || selectStr.includes("breach") || selectStr.includes("privacy") || selectStr.includes("speech") || selectStr.includes("rights") || selectStr.includes("article 19") || selectStr.includes("art. 19") || selectStr.includes("article 21") || selectStr.includes("art. 21") || selectStr.includes("liberty") || selectStr.includes("profiling") || selectStr.includes("algorithm") || selectStr.includes("security") || selectStr.includes("natural justice") || selectStr.includes("process") || selectStr.includes("procedure")) {
+    matchedKeys.add("Issue 3");
+  }
+  
+  // 4. Remedy / Relief / Damages
+  if (selectStr.includes("remedy") || selectStr.includes("relief") || selectStr.includes("compensation") || selectStr.includes("damages") || selectStr.includes("prayer") || selectStr.includes("direct")) {
+    matchedKeys.add("Issue 4");
+  }
+  
+  // Fallback to option index if no keywords matched
+  if (matchedKeys.size === 0) {
+    const issueKey = resolveIssueKey(issueVal);
+    matchedKeys.add(issueKey);
+  }
+  
+  // Collect all registry authorities from matched keys
+  const seenNames = new Set();
+  matchedKeys.forEach(key => {
+    const authList = (SHARED_AUTHORITY_REGISTRY[key] && SHARED_AUTHORITY_REGISTRY[key][stance]) || [];
+    authList.forEach(auth => {
+      if (!seenNames.has(auth.name.toLowerCase())) {
+        seenNames.add(auth.name.toLowerCase());
+        matchedAuthorities.push({ ...auth });
+      }
+    });
+  });
+  
+  // Merge dynamic precedents from lastAnalysis if available
+  try {
+    const analysisStr = window.lastAnalysis || lastAnalysis;
+    if (analysisStr) {
+      const data = JSON.parse(analysisStr);
+      const dynamicPrecedents = data.precedentsNeeded || [];
+      dynamicPrecedents.forEach(dp => {
+        const caseName = dp.caseName || dp.name || "";
+        if (!caseName) return;
+        
+        const lowerCaseName = caseName.toLowerCase();
+        let alreadyAdded = false;
+        seenNames.forEach(name => {
+          if (name.includes(lowerCaseName) || lowerCaseName.includes(name)) {
+            alreadyAdded = true;
+          }
+        });
+        if (alreadyAdded) return;
+        
+        const dpText = `${caseName} ${dp.holdingRelevant || ""} ${dp.citation || ""}`.toLowerCase();
+        let relevant = false;
+        
+        if (matchedKeys.has("Issue 3") && (dpText.includes("privacy") || dpText.includes("article 21") || dpText.includes("personal liberty") || dpText.includes("speech") || dpText.includes("article 19") || dpText.includes("hearing") || dpText.includes("natural justice") || dpText.includes("procedure"))) {
+          relevant = true;
+        }
+        if (matchedKeys.has("Issue 2") && (dpText.includes("arbitrary") || dpText.includes("article 14") || dpText.includes("equality") || dpText.includes("classification"))) {
+          relevant = true;
+        }
+        if (matchedKeys.has("Issue 1") && (dpText.includes("jurisdiction") || dpText.includes("maintainability") || dpText.includes("writ") || dpText.includes("article 226") || dpText.includes("article 32") || dpText.includes("alternative remedy"))) {
+          relevant = true;
+        }
+        if (matchedKeys.has("Issue 4") && (dpText.includes("remedy") || dpText.includes("relief") || dpText.includes("compensation") || dpText.includes("damages"))) {
+          relevant = true;
+        }
+        
+        if (relevant || matchedKeys.size === 0) {
+          seenNames.add(lowerCaseName);
+          matchedAuthorities.push({
+            name: caseName,
+            display: caseName,
+            ratio: dp.holdingRelevant || "Relevant constitutional holding for this dispute.",
+            section: dp.citation || "Citation unverified"
+          });
+        }
+      });
+    }
+  } catch (e) {
+    console.error("Error merging dynamic precedents in getAuthoritiesForIssueAndStance:", e);
+  }
+  
+  return matchedAuthorities;
+}
+
 export function renderPreDraftAuthorities() {
   const container = document.getElementById('pre-draft-chips');
   if (!container) return;
@@ -2387,19 +2514,24 @@ export function renderPreDraftAuthorities() {
   if (!notesInput) return;
   const notes = notesInput.value;
 
-  const stance = getCurrentSelectedSide() || selectedSide || 'Petitioner';
-  const issueSelect = document.getElementById('builder-issue-select');
-  const issueVal = issueSelect ? issueSelect.value : 'Issue 3';
-  const issueKey = resolveIssueKey(issueVal);
+  let stance = getCurrentSelectedSide() || selectedSide || 'Petitioner';
+  if (stance.toLowerCase().includes('petitioner') || stance.toLowerCase().includes('appellant') || stance.toLowerCase().includes('challenger')) {
+    stance = 'Petitioner';
+  } else if (stance.toLowerCase().includes('respondent') || stance.toLowerCase().includes('defense') || stance.toLowerCase().includes('opposition')) {
+    stance = 'Respondent';
+  }
 
-  const authorities = (SHARED_AUTHORITY_REGISTRY[issueKey] && SHARED_AUTHORITY_REGISTRY[issueKey][stance]) || [];
+  const issueSelect = document.getElementById('builder-issue-select');
+  const issueVal = issueSelect ? issueSelect.value : '';
+
+  const authorities = getAuthoritiesForIssueAndStance(issueVal, stance);
 
   if (authorities.length === 0) {
     container.innerHTML = `<div class="text-[11px] text-white-muted italic py-1 font-sans">No key recommendations for this issue.</div>`;
     return;
   }
 
-  container.innerHTML = authorities.map((auth, idx) => {
+  container.innerHTML = authorities.map((auth) => {
     const normalizedNotes = notes.toLowerCase();
     const isAdded = normalizedNotes.includes(auth.name.toLowerCase()) || 
                     (auth.name.toLowerCase().includes('whirlpool') && normalizedNotes.includes('whirlpool')) ||
@@ -2417,7 +2549,8 @@ export function renderPreDraftAuthorities() {
                     (auth.name.toLowerCase().includes('nilabati') && normalizedNotes.includes('nilabati')) ||
                     (auth.name.toLowerCase().includes('d.k. basu') && normalizedNotes.includes('d.k. basu')) ||
                     (auth.name.toLowerCase().includes('shantilal') && normalizedNotes.includes('shantilal')) ||
-                    (auth.name.toLowerCase().includes('common cause') && normalizedNotes.includes('common cause'));
+                    (auth.name.toLowerCase().includes('common cause') && normalizedNotes.includes('common cause')) ||
+                    (auth.name.toLowerCase().includes('maneka') && normalizedNotes.includes('maneka'));
 
     if (isAdded) {
       return `
@@ -2440,7 +2573,7 @@ export function renderPreDraftAuthorities() {
             </div>
             <div class="text-[10px] text-white-muted leading-tight font-sans">${esc(auth.ratio)}</div>
           </div>
-          <button type="button" onclick="window.insertPreDraftAuthority('${issueKey}', '${stance}', ${idx})" class="btn-sm px-3 py-1.5 bg-moot-accent text-black font-semibold rounded text-[10px] uppercase tracking-wider hover:bg-gold-light transition-all cursor-pointer border-none shrink-0 font-sans">
+          <button type="button" onclick="window.insertPreDraftAuthority('${auth.name.replace(/'/g, "\\'")}', '${stance}')" class="btn-sm px-3 py-1.5 bg-moot-accent text-black font-semibold rounded text-[10px] uppercase tracking-wider hover:bg-gold-light transition-all cursor-pointer border-none shrink-0 font-sans">
             + Insert
           </button>
         </div>
@@ -2449,12 +2582,54 @@ export function renderPreDraftAuthorities() {
   }).join('');
 }
 
-export function insertPreDraftAuthority(issueCategory, stanceKey, idx) {
+export function insertPreDraftAuthority(caseName, stanceKey) {
   const notesInput = document.getElementById('builder-notes-input');
   if (!notesInput) return;
 
-  const auth = SHARED_AUTHORITY_REGISTRY[issueCategory][stanceKey][idx];
-  if (!auth) return;
+  let stance = stanceKey;
+  if (stance.toLowerCase().includes('petitioner') || stance.toLowerCase().includes('appellant') || stance.toLowerCase().includes('challenger')) {
+    stance = 'Petitioner';
+  } else if (stance.toLowerCase().includes('respondent') || stance.toLowerCase().includes('defense') || stance.toLowerCase().includes('opposition')) {
+    stance = 'Respondent';
+  }
+
+  // Find the case in SHARED_AUTHORITY_REGISTRY or fallback to parsing lastAnalysis
+  let auth = null;
+  for (const issue in SHARED_AUTHORITY_REGISTRY) {
+    for (const side in SHARED_AUTHORITY_REGISTRY[issue]) {
+      const found = SHARED_AUTHORITY_REGISTRY[issue][side].find(c => c.name === caseName);
+      if (found) {
+        auth = found;
+        break;
+      }
+    }
+    if (auth) break;
+  }
+
+  // Fallback to searching lastAnalysis precedentsNeeded if not found in the static registry
+  if (!auth) {
+    try {
+      const analysisStr = window.lastAnalysis || lastAnalysis;
+      if (analysisStr) {
+        const data = JSON.parse(analysisStr);
+        const dynamicPrecedents = data.precedentsNeeded || [];
+        const foundDp = dynamicPrecedents.find(dp => (dp.caseName || dp.name) === caseName);
+        if (foundDp) {
+          auth = {
+            name: caseName,
+            ratio: foundDp.holdingRelevant || "Relevant constitutional holding for this dispute."
+          };
+        }
+      }
+    } catch (e) {
+      console.error("Error searching dynamic precedents for insertion:", e);
+    }
+  }
+
+  if (!auth) {
+    console.error("Authority not found for insertion:", caseName);
+    return;
+  }
 
   const prefix = notesInput.value.trim().length > 0 ? "\n\n" : "";
   const insertionText = `${prefix}Supporting Precedent: ${auth.name}. Ratio: ${auth.ratio}`;
