@@ -1638,31 +1638,33 @@ p  { color:var(--white-2); }
 
 .panel-transition {
   opacity: 0 !important;
-  transform: scale(0.96) !important;
-  filter: blur(8px) !important;
-  transform-origin: top right !important;
-  transition: opacity 400ms cubic-bezier(0.34, 1.56, 0.64, 1) !important,
-              transform 400ms cubic-bezier(0.34, 1.56, 0.64, 1) !important,
-              filter 400ms cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+  transform: translate(-50%, -50%) scale(0.92) !important;
+  filter: blur(12px) !important;
+  transform-origin: center !important;
+  transition: opacity 420ms cubic-bezier(0.22, 1, 0.36, 1) !important,
+              transform 420ms cubic-bezier(0.22, 1, 0.36, 1) !important,
+              filter 420ms cubic-bezier(0.22, 1, 0.36, 1) !important;
   will-change: transform, opacity, filter;
 }
 
 .panel-transition.active {
   opacity: 1 !important;
-  transform: scale(1) !important;
+  transform: translate(-50%, -50%) scale(1) !important;
   filter: blur(0) !important;
 }
 
 /* Background overlay transition */
 .overlay-transition {
   opacity: 0 !important;
-  transition: opacity 380ms cubic-bezier(0.22, 1, 0.36, 1) !important,
-              backdrop-filter 380ms cubic-bezier(0.22, 1, 0.36, 1) !important;
-  will-change: opacity;
+  backdrop-filter: blur(0px) !important;
+  transition: opacity 420ms cubic-bezier(0.22, 1, 0.36, 1) !important,
+              backdrop-filter 420ms cubic-bezier(0.22, 1, 0.36, 1) !important;
+  will-change: opacity, backdrop-filter;
 }
 
 .overlay-transition.active {
   opacity: 1 !important;
+  backdrop-filter: blur(12px) !important;
 }
 
 /* Respect prefers-reduced-motion accessibility settings */
@@ -2482,7 +2484,7 @@ p  { color:var(--white-2); }
 
 <!-- AUXILIARY SLIDE-OVER PANEL -->
 <div id="aux-panel-overlay" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 hidden overlay-transition"></div>
-<div id="aux-panel" class="fixed top-0 right-0 h-full w-full md:w-[60%] lg:w-[40%] bg-[#0f1115]/95 backdrop-blur-xl border-l border-white/10 z-50 flex flex-col shadow-2xl panel-transition hidden" role="dialog" aria-modal="true" aria-labelledby="aux-panel-title">
+<div id="aux-panel" class="fixed top-1/2 left-1/2 w-[92%] md:w-[80%] lg:w-[70%] xl:w-[60%] max-w-[850px] h-[85vh] md:h-auto md:max-h-[85vh] bg-[#0f1115]/80 border border-white/10 z-50 flex flex-col shadow-2xl shadow-black/80 rounded-2xl panel-transition hidden" role="dialog" aria-modal="true" aria-labelledby="aux-panel-title">
   <!-- Header -->
   <div class="p-5 border-b border-white/10 flex justify-between items-center bg-black/20">
     <h3 id="aux-panel-title" class="font-serif text-lg text-white font-medium">Auxiliary View</h3>
@@ -2504,7 +2506,7 @@ p  { color:var(--white-2); }
 </div>
 
 <!-- MEMORIAL SLIDE-OVER PANEL -->
-<div id="memorial-panel" class="fixed top-0 right-0 h-full w-full md:w-[60%] lg:w-[45%] bg-[#0f1115]/95 backdrop-blur-xl border-l border-white/10 z-50 flex flex-col shadow-2xl panel-transition hidden" role="dialog" aria-modal="true" aria-labelledby="memorial-panel-title">
+<div id="memorial-panel" class="fixed top-1/2 left-1/2 w-[92%] md:w-[80%] lg:w-[70%] xl:w-[60%] max-w-[850px] h-[85vh] md:h-auto md:max-h-[85vh] bg-[#0f1115]/80 border border-white/10 z-50 flex flex-col shadow-2xl shadow-black/80 rounded-2xl panel-transition hidden" role="dialog" aria-modal="true" aria-labelledby="memorial-panel-title">
   <!-- Header -->
   <div class="p-5 border-b border-white/10 flex justify-between items-center bg-black/20">
     <h3 id="memorial-panel-title" class="font-serif text-lg text-white font-medium">Appellate Memorial Viewer</h3>

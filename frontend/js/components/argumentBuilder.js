@@ -404,7 +404,28 @@ function renderIRAC(iracData) {
   `;
 }
 
+export function cleanSectionText(text, headerToRemove) {
+  if (!text) return '';
+  let cleaned = String(text).trim();
+  
+  // Remove bolding around the header if present, e.g. **ISSUE**, **RULE**, etc.
+  // Also match optional colons, dashes, and whitespace
+  const regex = new RegExp(`^(\\s*\\*\\*\\s*)*${headerToRemove}(\\s*\\*\\*\\s*)*\\s*[:\\-–—]*\\s*`, 'i');
+  cleaned = cleaned.replace(regex, '');
+  
+  // Also clean other general section headers if they appear at the start
+  const generalRegex = /^\s*(\*\*)*(issue|rule|application|conclusion|issue of law|governing precedents|submissions|prayer for relief)(\*\*)*\s*[:\-–—]*\s*/i;
+  cleaned = cleaned.replace(generalRegex, '');
+  
+  return cleaned.trim();
+}
+
 function renderMemorial(iracData) {
+  const cleanIssue = cleanSectionText(iracData.issue || '', 'issue');
+  const cleanRule = cleanSectionText(iracData.rule || '', 'rule');
+  const cleanApp = cleanSectionText(iracData.application || '', 'application');
+  const cleanConclusion = cleanSectionText(iracData.conclusion || '', 'conclusion');
+
   storedMemorialHTML = `
   <div class="flex-1 bg-[#fcfbfa] border border-[#dcdad5] rounded-xl shadow-xl overflow-hidden min-h-[400px] flex flex-col text-slate-800">
     <!-- Legal Page Header -->
@@ -418,32 +439,36 @@ function renderMemorial(iracData) {
       
       <!-- Issue -->
       <div>
-        <h4 class="text-xs uppercase tracking-widest text-[#a88220] font-sans font-bold mb-2">I. ISSUE OF LAW</h4>
-        <div class="pl-4 border-l-2 border-[#a88220]/30 italic text-slate-700 font-serif">${fmtInline(iracData.issue || '')}</div>
+        <h4 class="text-xs uppercase tracking-widest text-[#a88220] font-sans font-bold mb-2">ISSUE</h4>
+        <div class="h-[1px] bg-[#dcdad5] w-full mb-4"></div>
+        <div class="pl-4 border-l-2 border-[#a88220]/30 italic text-slate-700 font-serif">${fmtInline(cleanIssue)}</div>
       </div>
       
       <hr class="border-[#e5e3de]">
 
       <!-- Rule -->
       <div>
-        <h4 class="text-xs uppercase tracking-widest text-[#2c3e50] font-sans font-bold mb-2">II. GOVERNING PRECEDENTS & LAW (RULE)</h4>
-        <div class="text-slate-800 whitespace-pre-wrap pl-1">${fmtInline(iracData.rule || '')}</div>
+        <h4 class="text-xs uppercase tracking-widest text-[#2c3e50] font-sans font-bold mb-2">RULE</h4>
+        <div class="h-[1px] bg-[#dcdad5] w-full mb-4"></div>
+        <div class="text-slate-800 whitespace-pre-wrap pl-1">${fmtInline(cleanRule)}</div>
       </div>
 
       <hr class="border-[#e5e3de]">
 
       <!-- Application -->
       <div>
-        <h4 class="text-xs uppercase tracking-widest text-[#2c3e50] font-sans font-bold mb-2">III. SUBMISSIONS & APPLICATION OF LAW TO FACTS</h4>
-        <div class="text-slate-800 whitespace-pre-wrap pl-1">${fmtInline(iracData.application || '')}</div>
+        <h4 class="text-xs uppercase tracking-widest text-[#2c3e50] font-sans font-bold mb-2">APPLICATION</h4>
+        <div class="h-[1px] bg-[#dcdad5] w-full mb-4"></div>
+        <div class="text-slate-800 whitespace-pre-wrap pl-1">${fmtInline(cleanApp)}</div>
       </div>
 
       <hr class="border-[#e5e3de]">
 
       <!-- Conclusion -->
       <div>
-        <h4 class="text-xs uppercase tracking-widest text-[#2c3e50] font-sans font-bold mb-2">IV. CONCLUSION & PRAYER FOR RELIEF</h4>
-        <div class="text-slate-800 whitespace-pre-wrap pl-1">${fmtInline(iracData.conclusion || '')}</div>
+        <h4 class="text-xs uppercase tracking-widest text-[#2c3e50] font-sans font-bold mb-2">CONCLUSION</h4>
+        <div class="h-[1px] bg-[#dcdad5] w-full mb-4"></div>
+        <div class="text-slate-800 whitespace-pre-wrap pl-1">${fmtInline(cleanConclusion)}</div>
       </div>
       
     </div>
@@ -1055,7 +1080,7 @@ export function renderOralAdvocacySuite(container) {
           <div class="space-y-2 text-xs text-white/80">
             <div>
               <span class="font-sans font-bold text-gray-400 block text-[10px] uppercase tracking-wider">Issue</span>
-              <p class="mt-0.5 text-white/95">${esc(iracData.issue || currentIssue)}</p>
+              <p class="mt-0.5 text-white/95">${esc(cleanSectionText(iracData.issue || currentIssue, 'issue'))}</p>
             </div>
             <div class="pt-2">
               <span class="font-sans font-bold text-gray-400 block text-[10px] uppercase tracking-wider">Governing Precedent / Authority</span>
@@ -1063,15 +1088,15 @@ export function renderOralAdvocacySuite(container) {
             </div>
             <div class="pt-2">
               <span class="font-sans font-bold text-gray-400 block text-[10px] uppercase tracking-wider">Constitutional Rule</span>
-              <p class="mt-0.5 text-white/95">${esc(iracData.rule || 'Equal protection under Article 14 requires state actions to be free from manifest arbitrariness.')}</p>
+              <p class="mt-0.5 text-white/95">${esc(cleanSectionText(iracData.rule || 'Equal protection under Article 14 requires state actions to be free from manifest arbitrariness.', 'rule'))}</p>
             </div>
             <div class="pt-2">
               <span class="font-sans font-bold text-gray-400 block text-[10px] uppercase tracking-wider">Application to Facts</span>
-              <p class="mt-0.5 text-white/95">${esc(iracData.application || 'The state action was taken without notice or guidelines, violating Article 14.')}</p>
+              <p class="mt-0.5 text-white/95">${esc(cleanSectionText(iracData.application || 'The state action was taken without notice or guidelines, violating Article 14.', 'application'))}</p>
             </div>
             <div class="pt-2">
               <span class="font-sans font-bold text-gray-400 block text-[10px] uppercase tracking-wider">Relief Prayed</span>
-              <p class="mt-0.5 text-white/95">${esc(iracData.conclusion || 'Strike down the arbitrary regulatory rule.')}</p>
+              <p class="mt-0.5 text-white/95">${esc(cleanSectionText(iracData.conclusion || 'Strike down the arbitrary regulatory rule.', 'conclusion'))}</p>
             </div>
           </div>
         </div>
@@ -1318,11 +1343,14 @@ export function renderOralAdvocacySuite(container) {
 function handlePanelKeyDown(e) {
   if (e.key === 'Escape') {
     closeAuxPanel();
+    closeMemorialViewer();
     return;
   }
 
   if (e.key === 'Tab') {
-    const panel = document.getElementById('aux-panel');
+    const auxPanel = document.getElementById('aux-panel');
+    const memPanel = document.getElementById('memorial-panel');
+    const panel = (auxPanel && auxPanel.classList.contains('active')) ? auxPanel : memPanel;
     if (!panel) return;
 
     const focusableSelector = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
