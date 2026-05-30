@@ -426,12 +426,6 @@ onAuthChanged(async (user) => {
 
 // Setup DOM Event Listeners
 document.addEventListener('DOMContentLoaded', () => {
-  const dz = document.getElementById('ws-dropzone');
-  if (dz) {
-    dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
-    dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
-    dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('drag-over'); if(e.dataTransfer.files[0]) handleFileSelect(e.dataTransfer.files[0]); });
-  }
 
   const tabLogin = document.getElementById('tab-login');
   if (tabLogin) {
@@ -481,8 +475,17 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  initArgumentBuilder();
-  initDashboard();
+  try {
+    initArgumentBuilder();
+  } catch (err) {
+    console.error("Failed to initialize Argument Builder:", err);
+  }
+
+  try {
+    initDashboard();
+  } catch (err) {
+    console.error("Failed to initialize Dashboard:", err);
+  }
 
   // Sidebar navigation click listeners
   const navItems = [

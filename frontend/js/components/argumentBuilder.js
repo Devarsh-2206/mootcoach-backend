@@ -851,6 +851,11 @@ export function copyBuilderArgument() {
   });
 }
 
+export function exportDraftPDF() {
+  console.log("[CENTRALIZED EXPORT] Invoking legacy exportDraftPDF wrapper.");
+  exportAsPDF('memorial');
+}
+
 export function exportAsPDF(type) {
   console.log(`[CENTRALIZED EXPORT] Exporting type: ${type}`);
   

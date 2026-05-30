@@ -19,23 +19,41 @@ export function initDashboard() {
   const removeBtn = document.getElementById('fp-remove');
 
   if (dz) {
+    dz.addEventListener('dragenter', e => {
+      e.preventDefault();
+      console.log("[UPLOAD_DEBUG] Drag detected (dragenter)");
+      dz.classList.add('drag-over');
+    });
     dz.addEventListener('dragover', e => { 
       e.preventDefault(); 
-      dz.classList.add('drag-over'); 
+      if (!dz.classList.contains('drag-over')) {
+        console.log("[UPLOAD_DEBUG] Drag detected (dragover)");
+        dz.classList.add('drag-over'); 
+      }
     });
-    dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+    dz.addEventListener('dragleave', e => {
+      e.preventDefault();
+      console.log("[UPLOAD_DEBUG] Drag left (dragleave)");
+      dz.classList.remove('drag-over');
+    });
     dz.addEventListener('drop', e => { 
       e.preventDefault(); 
+      console.log("[UPLOAD_DEBUG] Drop detected");
       dz.classList.remove('drag-over'); 
       if (e.dataTransfer.files[0]) {
         handleFileSelect(e.dataTransfer.files[0]);
+      } else {
+        console.warn("[UPLOAD_DEBUG] Drop occurred but no file was found in dataTransfer.");
       }
     });
   }
 
   const uploadInput = document.getElementById('proposition-upload');
   if (uploadInput) {
-    uploadInput.addEventListener('change', handleFileSelect);
+    uploadInput.addEventListener('change', e => {
+      console.log("[UPLOAD_DEBUG] File input change event fired");
+      handleFileSelect(e);
+    });
   }
 
   const analyzeBtn = document.getElementById('analyze-submit-btn');
@@ -55,13 +73,18 @@ export function initDashboard() {
 
 export function handleFileSelect(fileOrEvent) {
   const file = (fileOrEvent instanceof Event) ? fileOrEvent.target.files[0] : fileOrEvent;
-  if (!file) return;
+  if (!file) {
+    console.warn("[UPLOAD_DEBUG] handleFileSelect called but no file was provided.");
+    return;
+  }
   if (file.type !== 'application/pdf') { 
+    console.warn(`[UPLOAD_DEBUG] Invalid file type selected: ${file.type}. Rejects.`);
     showToast('Only PDF files are accepted.', 'err'); 
     return; 
   }
   selectedFile = file;
   const mb = (file.size / 1048576).toFixed(2);
+  console.log(`[UPLOAD_DEBUG] File selected: ${file.name} (${mb} MB)`);
   
   const fpName = document.getElementById('fp-name');
   const fpSize = document.getElementById('fp-size');
@@ -148,7 +171,10 @@ function sleep(ms) {
 }
 
 export async function runAnalysis() {
-  if (!selectedFile) return;
+  if (!selectedFile) {
+    console.warn("[UPLOAD_DEBUG] runAnalysis triggered but selectedFile is null.");
+    return;
+  }
 
   const analyzeBtn = document.getElementById('analyze-submit-btn');
   const loadingOverlay = document.getElementById('loading-overlay');
@@ -160,10 +186,15 @@ export async function runAnalysis() {
   const formData = new FormData();
   formData.append('file', selectedFile);
 
+  console.log(`[UPLOAD_DEBUG] Upload started for file: ${selectedFile.name}`);
+
   try {
     const data = await analyzeProposition(formData);
+    console.log("[UPLOAD_DEBUG] Upload completed.");
+    console.log("[UPLOAD_DEBUG] Parsing started.");
 
     if (data.isRejection) {
+      console.log(`[UPLOAD_DEBUG] Parsing completed with rejection: ${data.error}`);
       stopSteps();
       await sleep(400);
       hideLoading();
@@ -173,6 +204,7 @@ export async function runAnalysis() {
 
     let newMootId = null;
     if (data.isStructured && data.response && typeof data.response === 'object') {
+      console.log("[UPLOAD_DEBUG] Parsing completed successfully (Structured JSON response).");
       if (currentUser) {
         try {
           const mootName = document.getElementById('ws-moot-name')?.value?.trim() || 'Untitled Moot';
@@ -207,14 +239,18 @@ export async function runAnalysis() {
     const raw = data.response || data.analysis || data.result || data.text ||
                 (typeof data === 'string' ? data : JSON.stringify(data));
     const rawStr = typeof raw === 'string' ? raw : JSON.stringify(raw);
-    if (!rawStr || rawStr.length < 20) throw new Error('AI analysis returned an empty response. Please try again.');
+    if (!rawStr || rawStr.length < 20) {
+      throw new Error('AI analysis returned an empty response. Please try again.');
+    }
     
+    console.log("[UPLOAD_DEBUG] Parsing completed successfully (Raw text response).");
     stopSteps();
     await sleep(400);
     hideLoading();
     showResults(rawStr);
 
   } catch(err) {
+    console.error(`[UPLOAD_DEBUG] Parsing completed with error: ${err.message}`);
     stopSteps();
     await sleep(400);
     hideLoading();
