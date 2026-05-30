@@ -739,7 +739,7 @@ export function closeAuxPanel() {
       overlay.classList.add('hidden');
       panel.classList.add('hidden');
     }
-  }, 380);
+  }, 450);
 
   // Restore focus
   if (activeTriggerElement && typeof activeTriggerElement.focus === 'function') {
@@ -798,7 +798,7 @@ export function closeMemorialViewer() {
       overlay.classList.add('hidden');
       panel.classList.add('hidden');
     }
-  }, 380);
+  }, 450);
 }
 
 export function copyMemorial() {
