@@ -21,6 +21,7 @@ export let benchConversation = [];
 export let benchActive = false;
 export let benchSubmitting = false;
 export let benchDifficultyMode = 'moderate';
+window.benchDifficultyMode = 'moderate';
 export let voiceSessionActive = false;
 export let voiceSessionStartTime = null;
 
@@ -36,10 +37,116 @@ window.benchActive = false;
 
 export function setBenchDifficulty(mode) {
   benchDifficultyMode = mode;
+  window.benchDifficultyMode = mode;
   ['easy','moderate','hard'].forEach(d => {
     const el = document.getElementById(`bench-diff-${d}`);
     if (el) el.className = `diff-btn${d === mode ? ` active-${d}` : ''}`;
   });
+  updateBenchProfileUI(mode);
+}
+
+export function updateBenchProfileUI(mode) {
+  const titleEl = document.getElementById('lobby-bench-type-title');
+  const questionsEl = document.getElementById('lobby-expected-questions');
+  const interruptionEl = document.getElementById('lobby-interruption-freq');
+  const aggressionEl = document.getElementById('lobby-aggression');
+  const focusEl = document.getElementById('lobby-focus-areas');
+  const durationEl = document.getElementById('lobby-duration');
+  const rosterEl = document.getElementById('lobby-judges-roster');
+
+  if (!rosterEl) return;
+
+  const data = {
+    easy: {
+      title: "Lenient Appellate Bench",
+      questions: "5–10",
+      interruption: "Low",
+      aggression: "Low",
+      focus: "Basic Jurisdiction · Core Statutory Definitions · Standard Grounds of Appeal",
+      duration: "10 mins",
+      judges: [
+        {
+          name: "Justice Sen",
+          ideology: "The Mentor",
+          behavior: "Encouraging, focuses on basic maintainability. Wants to see clean framing and understanding of fundamental legal principles."
+        },
+        {
+          name: "Justice Patil",
+          ideology: "Procedural Formalist",
+          behavior: "Patient but expects standard court procedures to be followed. Focuses on the factual timeline and record of the lower courts."
+        }
+      ]
+    },
+    moderate: {
+      title: "Moderate Constitutional Bench",
+      questions: "15–20",
+      interruption: "Medium",
+      aggression: "High",
+      focus: "Privacy · Proportionality · Due Process · Algorithmic Accountability",
+      duration: "20 mins",
+      judges: [
+        {
+          name: "Chief Justice Rao",
+          ideology: "Constitutional Purist",
+          behavior: "Focuses on the letter of the constitution and proportionality. Probes how reading down a clause matches state interest."
+        },
+        {
+          name: "Justice Menon",
+          ideology: "Procedural Hawk",
+          behavior: "Zero tolerance for missed deadlines or incorrect appeal procedures. Queries locus standi and legislative intent."
+        },
+        {
+          name: "Justice Iyer",
+          ideology: "Rights-Oriented",
+          behavior: "Focuses on equity, fairness, and human rights. Interested in public interest impact and natural justice."
+        }
+      ]
+    },
+    hard: {
+      title: "Hostile Full Constitutional Bench",
+      questions: "25–30",
+      interruption: "High",
+      aggression: "Extreme",
+      focus: "Manifest Arbitrariness · Standard of Review · Separation of Powers · Deep Precedential Inconsistencies",
+      duration: "35 mins",
+      judges: [
+        {
+          name: "Chief Justice Rao",
+          ideology: "Constitutional Purist",
+          behavior: "Focuses on separation of powers and judicial restraint. Hostile to arguments suggesting policy decisions should be second-guessed."
+        },
+        {
+          name: "Justice Menon",
+          ideology: "Procedural Hawk",
+          behavior: "Intense, Socratic questioning. Probes jurisdictional boundaries and constitutional maintainability gates."
+        },
+        {
+          name: "Justice Iyer",
+          ideology: "Rights-Oriented",
+          behavior: "Extremely analytical about systemic impacts. Probes proportionate measures and checks whether a lesser-restrictive alternative exists."
+        }
+      ]
+    }
+  };
+
+  const bench = data[mode] || data.moderate;
+
+  if (titleEl) titleEl.textContent = bench.title;
+  if (questionsEl) questionsEl.textContent = bench.questions;
+  if (interruptionEl) interruptionEl.textContent = bench.interruption;
+  if (aggressionEl) aggressionEl.textContent = bench.aggression;
+  if (focusEl) focusEl.textContent = bench.focus;
+  if (durationEl) durationEl.textContent = bench.duration;
+
+  rosterEl.innerHTML = bench.judges.map(j => `
+    <div class="p-3 bg-white/[0.01] border border-white/5 rounded-xl flex items-start gap-3" style="background: rgba(255,255,255,0.01); border: 1px solid rgba(255,255,255,0.05); padding: 10px; border-radius: 8px; display: flex; align-items: start; gap: 12px;">
+      <div class="w-8 h-8 rounded-full bg-moot-accent/10 border border-moot-accent/30 flex items-center justify-center text-xs font-bold text-moot-accent flex-shrink-0 mt-0.5" style="width: 32px; height: 32px; border-radius: 50%; background: rgba(201,168,76,0.1); border: 1px solid rgba(201,168,76,0.3); display: flex; align-items: center; justify-content: center; color: var(--gold); flex-shrink: 0;">⚖️</div>
+      <div>
+        <h5 class="text-xs font-semibold text-white" style="font-size: 12px; font-weight: 600; color: #fff; margin: 0;">${esc(j.name)} <span class="text-[9px] uppercase tracking-wider text-white-muted font-normal ml-2" style="font-size: 9px; color: #a0aec0; text-transform: uppercase; font-weight: normal; margin-left: 8px;">${esc(j.ideology)}</span></h5>
+        <p class="text-[10px] text-white-muted mt-1 leading-relaxed" style="font-size: 10px; color: #cbd5e0; line-height: 1.4; margin: 4px 0 0 0;">${esc(j.behavior)}</p>
+      </div>
+    </div>
+  `).join('');
 }
 
 export function startBenchSession() {

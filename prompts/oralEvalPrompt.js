@@ -3,6 +3,7 @@ const oralEvalPrompt = `You are a senior appellate court judge and elite moot co
 You are evaluating a student's written oral argument submission from a moot court competition.
 
 Evaluate ONLY what is actually present. Do not assume quality not demonstrated. Judge output only.
+Scoring must be realistic and reflect strict judicial standards. Never inflate scores; average submissions should receive average scores (55-70 depending on difficulty), weak submissions must be scored low (<50), and only elite, masterclass-level submissions should receive high scores (85+). The advocate's score must be earned and fully trusted.
 
 ═══════════════════════════════
 EVALUATION DIMENSIONS (Total = 100)

@@ -1179,6 +1179,10 @@ export function goToStage(stageNum) {
     }
   } else if (currentStage === 4) {
     renderStage4OralNotes();
+  } else if (currentStage === 5) {
+    if (typeof window.setBenchDifficulty === 'function') {
+      window.setBenchDifficulty(window.benchDifficultyMode || 'moderate');
+    }
   }
 
   // Passively update URL hash for Clarity route tracking
@@ -1233,20 +1237,76 @@ export function renderStage2Issues() {
   const currentVal = selectEl ? selectEl.value : '';
 
   container.innerHTML = `
-    <div class="issue-card-container">
+    <div class="issue-card-container flex flex-col gap-4">
       ${issues.map((issue, idx) => {
         const isSelected = currentVal === issue || (!currentVal && idx === 0);
         const cardClass = isSelected ? 'issue-card selected' : 'issue-card';
+        
+        const selectStr = issue.toLowerCase();
+        let importance = "Core Issue";
+        let importanceCls = "bg-blue-500/10 text-blue-400 border border-blue-500/20";
+        let difficulty = "Medium";
+        let difficultyCls = "bg-amber-500/10 text-amber-400 border border-amber-500/20";
+        let path = "Alternate Path";
+        let pathCls = "bg-slate-500/10 text-slate-400 border border-slate-500/20";
+        let advice = "Focus on presenting fact-based arguments backed by strong precedents.";
+
+        if (selectStr.includes("jurisdiction") || selectStr.includes("maintainability") || selectStr.includes("standing") || selectStr.includes("preliminary")) {
+          importance = "Threshold Gate";
+          importanceCls = "bg-purple-500/10 text-purple-400 border border-purple-500/20";
+          difficulty = "Medium";
+          difficultyCls = "bg-amber-500/10 text-amber-400 border border-amber-500/20";
+          path = "Jurisdictional Bar";
+          pathCls = "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20";
+          advice = "Must be resolved first. Focus on statutory alternative remedies and constitutional writ jurisdiction scope.";
+        } else if (selectStr.includes("validity") || selectStr.includes("constitutionality") || selectStr.includes("ultra vires") || selectStr.includes("arbitrary") || selectStr.includes("equality")) {
+          importance = "Strategic Pinnacle";
+          importanceCls = "bg-[#c9a84c]/10 text-moot-accent border border-[#c9a84c]/20";
+          difficulty = "High";
+          difficultyCls = "bg-red-500/10 text-red-400 border border-red-500/20";
+          path = "High Risk / High Reward";
+          pathCls = "bg-orange-500/10 text-orange-400 border border-orange-500/20";
+          advice = "Hardest to argue. High presumption of constitutionality. Rely on manifest arbitrariness or rights override.";
+        } else if (selectStr.includes("merits") || selectStr.includes("breach") || selectStr.includes("privacy") || selectStr.includes("speech") || selectStr.includes("rights")) {
+          importance = "Critical Merits";
+          importanceCls = "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
+          difficulty = "Medium";
+          difficultyCls = "bg-amber-500/10 text-amber-400 border border-amber-500/20";
+          path = "Strongest Precedent Path";
+          pathCls = "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
+          advice = "Offers the strongest path. Ground claims in binding landmark precedents (like Puttaswamy or Shreya Singhal).";
+        } else if (selectStr.includes("remedy") || selectStr.includes("relief") || selectStr.includes("compensation") || selectStr.includes("damages") || selectStr.includes("prayer")) {
+          importance = "Remedial Path";
+          importanceCls = "bg-blue-500/10 text-blue-400 border border-blue-500/20";
+          difficulty = "Low";
+          difficultyCls = "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
+          path = "Alternate Path";
+          pathCls = "bg-slate-500/10 text-slate-400 border border-slate-500/20";
+          advice = "Evaluate alternative remedies. Ensure prayer for relief maps directly to substantive violations.";
+        }
+
         return `
-          <div class="${cardClass}" onclick="window.selectIssueFromCard('${issue.replace(/'/g, "\\'")}')">
-            <div class="flex items-start gap-3">
-              <span class="w-6 h-6 rounded-full bg-moot-accent/10 border border-moot-accent/20 text-moot-accent text-[11px] font-semibold flex items-center justify-center shrink-0">
-                ${idx + 1}
-              </span>
-              <div class="text-xs font-sans text-white font-medium leading-relaxed">${esc(issue)}</div>
+          <div class="${cardClass} p-4 bg-white/5 border border-white/10 rounded-xl flex flex-col gap-3 cursor-pointer" onclick="window.selectIssueFromCard('${issue.replace(/'/g, "\\'")}')">
+            <div class="flex justify-between items-start gap-4">
+              <div class="flex items-start gap-3">
+                <span class="w-6 h-6 rounded-full bg-moot-accent/10 border border-moot-accent/20 text-moot-accent text-[11px] font-semibold flex items-center justify-center shrink-0">
+                  ${idx + 1}
+                </span>
+                <div class="text-xs font-sans text-white font-medium leading-relaxed">${esc(issue)}</div>
+              </div>
+              <div class="shrink-0 flex items-center justify-center mt-1">
+                ${isSelected ? '<span class="text-moot-accent text-sm">✓</span>' : '<span class="text-white-faint text-sm">○</span>'}
+              </div>
             </div>
-            <div class="shrink-0 flex items-center justify-center">
-              ${isSelected ? '<span class="text-moot-accent text-sm">✓</span>' : '<span class="text-white-faint text-sm">○</span>'}
+            
+            <div class="flex flex-wrap gap-2">
+              <span class="text-[9px] uppercase tracking-wider px-2 py-0.5 rounded font-sans font-semibold ${importanceCls}">${importance}</span>
+              <span class="text-[9px] uppercase tracking-wider px-2 py-0.5 rounded font-sans font-semibold ${difficultyCls}">${difficulty} Difficulty</span>
+              <span class="text-[9px] uppercase tracking-wider px-2 py-0.5 rounded font-sans font-semibold ${pathCls}">${path}</span>
+            </div>
+            
+            <div class="text-[10px] text-white-muted italic leading-relaxed font-sans border-t border-white/5 pt-2">
+              💡 <strong>Strategy:</strong> ${advice}
             </div>
           </div>
         `;
@@ -1279,42 +1339,108 @@ export function renderStage4OralNotes() {
   const hasContext = !!(window.lastAnalysis || lastAnalysis);
 
   if (briefingEl) {
-    if (storedOralNotes || storedRebuttals) {
-      let combinedHTML = '';
-      
-      if (storedOralNotes) {
-        combinedHTML += storedOralNotes;
+    const modules = [
+      {
+        id: 'bench-questions',
+        title: 'Bench Questions',
+        description: 'Anticipated questions from the bench with strategic responses.',
+        readTime: '3 min',
+        icon: '❓'
+      },
+      {
+        id: 'key-authorities',
+        title: 'Key Authorities',
+        description: 'Precedents and their ratios to cite during oral arguments.',
+        readTime: '4 min',
+        icon: '📖'
+      },
+      {
+        id: 'judicial-traps',
+        title: 'Judicial Traps',
+        description: 'Vulnerable points in your argument and 30-second escape routes.',
+        readTime: '2 min',
+        icon: '⚠️'
+      },
+      {
+        id: 'rebuttal-strategy',
+        title: 'Rebuttal Strategy',
+        description: 'Counter-arguments and strategies to demolish the opposition\'s claims.',
+        readTime: '3 min',
+        icon: '⚔️'
+      },
+      {
+        id: 'emergency-rescue',
+        title: 'Emergency Rescue',
+        description: 'Last-resort constitutional principles to salvage a collapsing case.',
+        readTime: '1 min',
+        icon: '🔥'
+      },
+      {
+        id: 'closing-prayer',
+        title: 'Closing Prayer',
+        description: 'A formal demand for relief tailored to the bench structure.',
+        readTime: '1 min',
+        icon: '⏱️'
+      },
+      {
+        id: 'follow-up-questions',
+        title: 'Follow-Up Questions',
+        description: 'Secondary queries the judges may use to probe deep into your logic.',
+        readTime: '2 min',
+        icon: '🎯'
+      },
+      {
+        id: 'fallback-position',
+        title: 'Fallback Position',
+        description: 'A secondary legal ground to fall back on if the main submission is rejected.',
+        readTime: '2 min',
+        icon: '🛡️'
       }
-      
-      if (storedRebuttals) {
-        combinedHTML += `
-          <div class="p-4 bg-white/5 border border-white/10 rounded-xl mt-4">
-            <h4 class="text-xs uppercase tracking-wider text-red-400 font-semibold mb-3 flex items-center gap-1.5 font-sans border-b border-white/5 pb-2">
-              <span>⚔️</span> Rebuttal Opportunities & Demolition Strategy
-            </h4>
-            <div class="text-xs leading-relaxed text-gray-300 font-sans">
-              ${storedRebuttals}
+    ];
+
+    const currentStance = window.builtArgumentSide || document.querySelector('input[name="stance"]:checked')?.value || 'Petitioner';
+    const isPetitioner = currentStance.toLowerCase().includes('petitioner') || currentStance.toLowerCase().includes('appellant');
+
+    let modulesHTML = '';
+    const arg = window.lastBuiltArgument || lastBuiltArgument;
+    const hasData = arg && (arg.oralAdvocacy || arg.rebuttals);
+
+    if (hasData) {
+      modulesHTML = `
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          ${modules.map(mod => `
+            <div class="bg-white/[0.02] border border-white/5 rounded-xl p-4 transition-all duration-200 hover:border-white/10 hover:bg-white/[0.04] flex flex-col justify-between" style="min-height: 120px;">
+              <div class="flex items-center justify-between mb-1.5" style="display: flex; justify-content: space-between; align-items: center;">
+                <span class="text-[10px] text-white-muted font-sans font-semibold flex items-center gap-1.5" style="display: flex; align-items: center; gap: 6px;">
+                  <span style="font-size: 14px;">${mod.icon}</span> <span style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--white);">${mod.title}</span>
+                </span>
+                <span class="text-[9px] uppercase tracking-wider font-semibold text-moot-accent bg-moot-accent/5 px-2 py-0.5 rounded font-sans" style="border: 1px solid rgba(201,168,76,0.15);">${mod.readTime}</span>
+              </div>
+              <p class="text-[11px] text-white-muted leading-relaxed font-sans" style="margin: 4px 0 8px 0; color: #a0aec0;">${mod.description}</p>
+              <button onclick="window.openArsenalModule('${mod.id}')" class="btn-sm text-[10px] py-1.5 bg-white/5 border border-white/10 text-white hover:bg-white/10 rounded cursor-pointer text-center w-full transition-all duration-200" style="width: 100%; text-transform: uppercase; letter-spacing: 0.05em;">
+                Open Module
+              </button>
             </div>
-          </div>
-        `;
-      }
-      
-      briefingEl.innerHTML = combinedHTML;
+          `).join('')}
+        </div>
+      `;
     } else if (hasContext) {
-      briefingEl.innerHTML = `
+      modulesHTML = `
         <div class="text-white-muted italic p-4 bg-white/[0.01] border border-dashed border-white/10 rounded-xl font-sans text-center">
           <div class="text-lg mb-1">🎙️</div>
           No generated submissions found. Complete Stage 3 first to automatically populate your Chambers Briefing & Battle Plan.
         </div>
       `;
     } else {
-      briefingEl.innerHTML = `
+      modulesHTML = `
         <div class="text-white-muted italic p-4 bg-white/[0.01] border border-dashed border-white/10 rounded-xl font-sans text-center">
           <div class="text-lg mb-1">🎙️</div>
           Draft your submissions in Stage 3 to populate your custom Battle Plan here.
         </div>
       `;
     }
+
+    briefingEl.innerHTML = modulesHTML;
   }
 
   // Pre-fill speech input from generated draft opening speech
@@ -1331,6 +1457,155 @@ export function renderStage4OralNotes() {
     }
   }
 }
+
+export function openArsenalModule(moduleId) {
+  const modal = document.getElementById('advocacy-arsenal-modal');
+  const titleEl = document.getElementById('arsenal-modal-title');
+  const bodyEl = document.getElementById('arsenal-modal-body');
+  if (!modal || !titleEl || !bodyEl) return;
+
+  const currentStance = window.builtArgumentSide || document.querySelector('input[name="stance"]:checked')?.value || 'Petitioner';
+  const isPetitioner = currentStance.toLowerCase().includes('petitioner') || currentStance.toLowerCase().includes('appellant');
+
+  const arg = window.lastBuiltArgument || lastBuiltArgument || {};
+  const oralAdvocacy = arg.oralAdvocacy || {};
+  const rebuttals = arg.rebuttals || {};
+
+  let title = '';
+  let content = '';
+
+  switch (moduleId) {
+    case 'bench-questions':
+      title = 'Bench Questions';
+      content = `
+        <div class="space-y-3 font-sans">
+          ${(oralAdvocacy.qa || []).map((pair, idx) => `
+            <div class="p-3 bg-white/[0.02] border border-white/5 rounded-lg" style="margin-bottom: 10px;">
+              <strong class="text-[#c9a84c] block mb-1" style="color: var(--gold); font-size: 12px;">Q${idx+1}: ${esc(pair.q)}</strong>
+              <div class="text-gray-300 italic font-serif leading-relaxed mt-1" style="font-size: 11px; line-height: 1.5; color: #cbd5e0; padding-left: 8px; border-left: 2px solid rgba(255,255,255,0.1);">"${esc(pair.a)}"</div>
+            </div>
+          `).join('') || '<p class="text-white-muted italic">No bench questions generated yet.</p>'}
+        </div>
+      `;
+      break;
+    case 'key-authorities':
+      title = 'Key Authorities';
+      content = `
+        <div class="space-y-3 font-sans">
+          ${(oralAdvocacy.precedents || []).map(p => `
+            <div class="p-3 bg-white/[0.02] border border-white/5 rounded-lg text-xs" style="margin-bottom: 10px;">
+              <strong class="text-white block mb-1" style="font-size: 12px; color: #fff;">⚖️ ${esc(p.name)} (${esc(p.bench || 'Constitutional Bench')})</strong>
+              <div class="text-white-muted mt-1.5" style="font-size: 11px;"><span class="text-[#c9a84c] font-semibold uppercase text-[9px] tracking-wider" style="color: var(--gold); font-size: 9px; font-weight: bold; margin-right: 4px;">Ratio:</span> ${esc(p.ratio)}</div>
+              <div class="text-white-muted mt-1.5" style="font-size: 11px;"><span class="text-[#4caf82] font-semibold uppercase text-[9px] tracking-wider" style="color: #4caf82; font-size: 9px; font-weight: bold; margin-right: 4px;">Application:</span> ${esc(p.strategicValue || p.why)}</div>
+              <div class="text-white-muted mt-1.5" style="font-size: 11px;"><span class="text-[#c9a84c] font-semibold uppercase text-[9px] tracking-wider" style="color: var(--gold); font-size: 9px; font-weight: bold; margin-right: 4px;">Usage:</span> <span class="italic font-serif" style="color: #e2e8f0;">"${esc(p.usage)}"</span></div>
+            </div>
+          `).join('') || '<p class="text-white-muted italic">No precedents annotated yet.</p>'}
+        </div>
+      `;
+      break;
+    case 'judicial-traps':
+      title = 'Judicial Traps';
+      content = `
+        <div class="space-y-3 font-sans">
+          ${(oralAdvocacy.traps || []).map(trap => `
+            <div class="p-3 bg-red-950/10 border border-red-900/20 rounded-lg text-xs leading-relaxed text-gray-300" style="margin-bottom: 10px; border-left: 3px solid #f87171;">
+              <strong class="text-red-400 block mb-1" style="color: #f87171; font-size: 12px;">⚠️ ${esc(trap.title || 'Judicial Trap')}</strong>
+              <div class="text-gray-400 mb-1" style="font-size: 11px; margin-top: 4px;"><strong style="color: #e2e8f0;">Danger:</strong> ${esc(trap.description)}</div>
+              <div class="mt-2 italic text-gray-300 font-serif" style="font-size: 11px; color: #cbd5e0; padding-top: 4px; border-t: 1px solid rgba(255,255,255,0.05);">Escape Route: "${esc(trap.escapeResponse)}"</div>
+            </div>
+          `).join('') || '<p class="text-white-muted italic">No judicial traps identified yet.</p>'}
+        </div>
+      `;
+      break;
+    case 'rebuttal-strategy':
+      title = 'Rebuttal Strategy';
+      content = `
+        <div class="space-y-4 font-sans">
+          <div class="p-3 bg-white/[0.02] border border-white/5 rounded-lg" style="margin-bottom: 10px;">
+            <h4 class="text-[#c9a84c] font-semibold uppercase text-[10px] tracking-wider mb-2" style="color: var(--gold); font-size: 10px;">Opposition Arguments</h4>
+            <ul class="list-disc pl-4 text-gray-300 space-y-1.5" style="font-size: 11px; color: #cbd5e0;">
+              ${(rebuttals.opponentArguments || []).map(arg => `<li>${esc(arg)}</li>`).join('') || '<li class="italic text-gray-500">None identified.</li>'}
+            </ul>
+          </div>
+          <div class="p-3 bg-white/[0.02] border border-white/5 rounded-lg">
+            <h4 class="text-emerald-400 font-semibold uppercase text-[10px] tracking-wider mb-2" style="color: #34d399; font-size: 10px;">Demolition Strategy</h4>
+            <div class="text-gray-300 space-y-2" style="font-size: 11px; color: #cbd5e0;">
+              ${(rebuttals.demolitionStrategy || []).map((strat, idx) => `<p style="margin-bottom: 6px;"><strong style="color: #fff; margin-right: 4px;">${idx + 1}.</strong> ${esc(strat)}</p>`).join('') || '<p class="italic text-gray-500">No response strategy prepared.</p>'}
+            </div>
+          </div>
+        </div>
+      `;
+      break;
+    case 'emergency-rescue':
+      title = 'Emergency Rescue';
+      const rescueArg = rebuttals.emergencyRescue || (isPetitioner 
+        ? "Submit that fundamental rights are absolute bounds on executive action, and any deviation violates the basic structure of the Constitution."
+        : "Submit that administrative policies enjoy a wide latitude of immunity under public law, and judicial review is restricted to procedural impropriety.");
+      content = `
+        <div class="p-4 bg-red-950/10 border border-red-900/20 rounded-xl font-sans" style="border-left: 3px solid #ef4444;">
+          <p class="text-gray-300 leading-relaxed font-serif italic" style="font-size: 12px; color: #cbd5e0; line-height: 1.6;">
+            "${esc(rescueArg)}"
+          </p>
+        </div>
+      `;
+      break;
+    case 'closing-prayer':
+      title = 'Closing Prayer';
+      const prayerArg = oralAdvocacy.closingPrayer || (isPetitioner
+        ? "We pray that this Honorable Court allow the petition and strike down the impugned action as unconstitutional."
+        : "We pray that this Honorable Court dismiss the petition in its entirety with exemplary costs.");
+      content = `
+        <div class="p-4 bg-indigo-950/10 border border-indigo-900/20 rounded-xl font-sans" style="border-left: 3px solid #6366f1;">
+          <p class="text-gray-300 leading-relaxed font-serif italic" style="font-size: 12px; color: #cbd5e0; line-height: 1.6;">
+            "${esc(prayerArg)}"
+          </p>
+        </div>
+      `;
+      break;
+    case 'follow-up-questions':
+      title = 'Follow-Up Questions';
+      content = `
+        <div class="space-y-3 font-sans">
+          ${(rebuttals.followUpQuestions || []).map((pair, idx) => `
+            <div class="p-3 bg-white/[0.02] border border-white/5 rounded-lg" style="margin-bottom: 10px;">
+              <strong class="text-white block mb-1" style="font-size: 12px;">Follow-up ${idx + 1}: "${esc(pair.q)}"</strong>
+              <div class="italic block mt-1 font-serif text-gray-300" style="font-size: 11px; color: #cbd5e0; padding-left: 8px; border-left: 2px solid rgba(255,255,255,0.1);">Answer: "${esc(pair.a)}"</div>
+            </div>
+          `).join('') || '<p class="text-white-muted italic">No follow-up questions prepared.</p>'}
+        </div>
+      `;
+      break;
+    case 'fallback-position':
+      title = 'Fallback Position';
+      const fallbackArg = rebuttals.planB || (isPetitioner
+        ? "Request this Court to read down the provision to preserve its validity while addressing our client\'s core rights."
+        : "In the alternative, submit that if this Court finds a right was infringed, it was a proportional and necessary limitation in a democratic society.");
+      content = `
+        <div class="p-4 bg-indigo-950/10 border border-indigo-900/20 rounded-xl font-sans" style="border-left: 3px solid #6366f1;">
+          <p class="text-gray-300 leading-relaxed font-serif italic" style="font-size: 12px; color: #cbd5e0; line-height: 1.6;">
+            "${esc(fallbackArg)}"
+          </p>
+        </div>
+      `;
+      break;
+  }
+
+  titleEl.textContent = title;
+  bodyEl.innerHTML = content;
+  modal.classList.remove('hidden');
+  modal.classList.add('flex');
+}
+
+export function closeArsenalModal() {
+  const modal = document.getElementById('advocacy-arsenal-modal');
+  if (modal) {
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+  }
+}
+
+window.openArsenalModule = openArsenalModule;
+window.closeArsenalModal = closeArsenalModal;
 
 export function switchStage5Tab(tab) {
   const tabs = ['outline', 'rebuttals', 'vulnerabilities'];

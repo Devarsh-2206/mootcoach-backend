@@ -364,11 +364,20 @@ app.post("/evaluate-oral", aiLimiter, express.json(), async (req, res) => {
   }
 
   const contextBlock = propositionContext ? `PROPOSITION CONTEXT:\n${propositionContext.slice(0, 800)}\n\n` : '';
+  const validDifficulty = ['easy', 'moderate', 'hard'].includes(difficulty) ? difficulty : 'moderate';
+  
+  const difficultyRules = {
+    easy: "This is an EASY BENCH. The judges are lenient. Standard, well-structured arguments will score high (80-90). Minor gaps are excused. However, extremely short or legally incoherent submissions must still be graded low (<50).",
+    moderate: "This is a MODERATE BENCH. The judges look for clear statutory construction and application of law to facts. Scores should be strictly balanced: only exceptional arguments get 85+, solid submissions score 70-80, and weak/shallow arguments score 50-65. Incoherent/very short scripts must receive <40.",
+    hard: "This is a HARD BENCH. The judges are hostile rights-purists and procedural hawks. They look for Socratic rigor, deep constitutional reasoning, precision in case law ratios, and preemptive rebuttal coverage. Scoring is extremely strict: a score of 80+ requires master-class elite mooting. Average submissions score 55-65. Shallow, unconvincing, or brief submissions must be graded failing (<50)."
+  };
+
+  const currentSystemPrompt = `${ORAL_EVAL_PROMPT}\n\n[DIFFICULTY STANDARD]\n${difficultyRules[validDifficulty]}`;
 
   try {
     const evalCall = await getChatCompletion({
       messages: [
-        { role: "system", content: ORAL_EVAL_PROMPT },
+        { role: "system", content: currentSystemPrompt },
         { role: "user", content: `${contextBlock}ORAL SUBMISSION TO EVALUATE:\n\n${argument.trim().slice(0, 4000)}\n\nReturn ONLY a valid JSON object.` }
       ],
       temperature: 0.2,

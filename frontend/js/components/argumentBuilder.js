@@ -315,6 +315,9 @@ export function initArgumentBuilder() {
   window.renderPreDraftAuthorities = renderPreDraftAuthorities;
   window.toggleAuthority = toggleAuthority;
   window.renderStage3Workspace = renderStage3Workspace;
+  window.openAuthorityModal = openAuthorityModal;
+  window.closeAuthorityModal = closeAuthorityModal;
+  window.switchAuthModalTab = switchAuthModalTab;
 
   // Bind close panel listeners
   const closeBtn = document.getElementById('aux-panel-close-btn');
@@ -2546,40 +2549,40 @@ export function renderPreDraftAuthorities() {
   const authorities = getAuthoritiesForIssueAndStance(issueVal, stance);
 
   if (authorities.length === 0) {
-    container.innerHTML = `<div class="text-[11px] text-white-muted italic py-1 font-sans">No key recommendations for this issue.</div>`;
+    container.innerHTML = `<div class="text-[11px] text-white-muted italic py-1 font-sans text-center bg-white/[0.01] border border-dashed border-white/10 rounded-xl p-4">No key recommended weapons for this issue.</div>`;
     return;
   }
 
   container.innerHTML = authorities.map((auth) => {
     const isSelected = selectedAuthorities.some(a => a.name === auth.name);
 
-    if (isSelected) {
-      return `
-        <div onclick="window.toggleAuthority('${auth.name.replace(/'/g, "\\'")}', '${auth.ratio.replace(/'/g, "\\'")}')" class="flex items-center justify-between p-2.5 bg-emerald-500/5 border border-emerald-500/35 rounded-lg gap-2 cursor-pointer transition-all hover:bg-emerald-500/10">
-          <div class="flex flex-col gap-0.5">
-            <div class="text-xs font-semibold text-emerald-400 flex items-center gap-1.5 font-sans">
-              <span>✓</span> ${esc(auth.display || auth.name)}
-            </div>
-            <div class="text-[10px] text-emerald-300/70 leading-tight font-sans">${esc(auth.ratio)}</div>
+    return `
+      <div class="authority-arsenal-card bg-white/[0.02] border border-white/10 rounded-xl p-4 flex flex-col gap-3 transition-all hover:border-moot-accent/30 relative">
+        <div class="flex justify-between items-start gap-2">
+          <div>
+            <span class="text-[9px] uppercase tracking-wider px-2 py-0.5 rounded bg-moot-accent/10 text-moot-accent border border-moot-accent/20 font-sans font-semibold">${esc(auth.section || 'Constitutional Law')}</span>
+            <h4 class="text-xs font-semibold text-white mt-1.5 leading-snug font-sans">${esc(auth.display || auth.name)}</h4>
           </div>
-          <span class="px-2.5 py-1 text-[9px] font-bold text-emerald-400 uppercase tracking-widest bg-emerald-500/10 rounded shrink-0 font-sans">Selected</span>
-        </div>
-      `;
-    } else {
-      return `
-        <div onclick="window.toggleAuthority('${auth.name.replace(/'/g, "\\'")}', '${auth.ratio.replace(/'/g, "\\'")}')" class="flex items-center justify-between p-2.5 bg-white/[0.03] border border-white/10 rounded-lg hover:border-moot-accent/50 transition-all gap-2 cursor-pointer hover:bg-white/[0.06]">
-          <div class="flex flex-col gap-0.5">
-            <div class="text-xs font-semibold text-white flex items-center gap-1.5 font-sans">
-              <span>⚖️</span> ${esc(auth.display || auth.name)}
-            </div>
-            <div class="text-[10px] text-white-muted leading-tight font-sans">${esc(auth.ratio)}</div>
-          </div>
-          <button type="button" class="btn-sm px-3 py-1.5 bg-white/5 border border-white/10 text-white-muted font-semibold rounded text-[10px] uppercase tracking-wider hover:bg-white/10 hover:text-white transition-all shrink-0 font-sans border-none">
-            Select
+          <button type="button" onclick="window.toggleAuthority('${auth.name.replace(/'/g, "\\'")}', '${auth.ratio.replace(/'/g, "\\'")}')" class="btn-weapon-toggle text-[10px] font-bold uppercase tracking-wider py-1 px-2.5 rounded border transition-all ${
+            isSelected ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-white/5 border border-white/10 text-white-muted hover:text-white hover:bg-white/10'
+          }">
+            ${isSelected ? '✓ Arm' : '+ Weapon'}
           </button>
         </div>
-      `;
-    }
+        
+        <p class="text-[11px] text-white-muted leading-relaxed font-sans margin-0">
+          ${esc(auth.whyItMatters || auth.ratio.substring(0, 120) + '...')}
+        </p>
+        
+        <div class="flex gap-2 pt-2 border-t border-white/5">
+          <button type="button" onclick="window.openAuthorityModal('${auth.name.replace(/'/g, "\\'")}', 'ratio')" class="text-[10px] font-medium text-moot-accent hover:underline bg-transparent border-none cursor-pointer p-0 flex items-center gap-1">👁️ Ratio</button>
+          <span class="text-white/20 text-[10px]">•</span>
+          <button type="button" onclick="window.openAuthorityModal('${auth.name.replace(/'/g, "\\'")}', 'usage')" class="text-[10px] font-medium text-moot-accent hover:underline bg-transparent border-none cursor-pointer p-0 flex items-center gap-1">💡 How To Use</button>
+          <span class="text-white/20 text-[10px]">•</span>
+          <button type="button" onclick="window.openAuthorityModal('${auth.name.replace(/'/g, "\\'")}', 'courtroom')" class="text-[10px] font-medium text-moot-accent hover:underline bg-transparent border-none cursor-pointer p-0 flex items-center gap-1">🗣️ Courtroom Usage</button>
+        </div>
+      </div>
+    `;
   }).join('');
 }
 
@@ -2693,3 +2696,160 @@ function getImprovementPathwayHTML(notes, casesCount, statutesCount, scoring, fi
     </div>
   `;
 }
+
+// ─── AUTHORITY ARSENAL DETAILS & MODAL HANDLERS ───
+function getDetailedAuthorityDetails(auth) {
+  const name = auth.name;
+  const ratio = auth.ratio || "No ratio provided.";
+  const whyItMatters = auth.whyItMatters || "No strategy provided.";
+  
+  let application = `Apply this precedent to show that the State's action lacks constitutional backing or must conform to the strict standards set out in ${name}.`;
+  let courtroomUsage = `\"Counsel submits that as laid down by this Court in ${name}, the principle of law is clear: ${ratio.toLowerCase().replace(/\.$/, '')}. In the present case, the same standards must apply.\"`;
+  let relatedIssues = auth.principles ? auth.principles.join(", ") : (auth.section || "Constitutional Law");
+  let counterarguments = `Opposing Counsel may attempt to distinguish ${name} by arguing that the present situation involves emergency circumstances or administrative requirements not present in that case.`;
+  let practicalStrategy = whyItMatters;
+
+  const lowerName = name.toLowerCase();
+  if (lowerName.includes("whirlpool")) {
+    application = "Bypass of alternative statutory remedies because the case involves a direct violation of fundamental rights and an ultra vires executive action.";
+    courtroomUsage = "\"Counsel directs this Bench's attention to Whirlpool Corp. (1998). We submit that despite the existence of an alternative remedy, our petition is fully maintainable because there is a manifest violation of fundamental rights, rendering the statutory bar inapplicable.\"";
+    counterarguments = "Opposition will submit that the alternative remedy is efficacious and that Whirlpool is an exception to be applied sparingly, not as a matter of right.";
+  } else if (lowerName.includes("puttaswamy")) {
+    application = "Challenge the data harvesting/surveillance measure against the 4-prong test: Legitimate State Aim, Suitability, Necessity (least restrictive means), and Proportionality strictly sensu.";
+    courtroomUsage = "\"Counsel submits that under K.S. Puttaswamy (2017), any state intrusion into individual privacy must pass the four-pronged proportionality test. The current measure fails the necessity prong as less restrictive alternatives exist.\"";
+    counterarguments = "The State will argue that national security or public order interests outweigh the private interest, satisfying the balancing test under the fourth prong of Puttaswamy.";
+  } else if (lowerName.includes("anuradha bhasin")) {
+    application = "Challenge the internet ban or restriction as disproportionate and lacking periodic review.";
+    courtroomUsage = "\"We place reliance on Anuradha Bhasin (2020), where this Court held that internet access is protected under Article 19. Any restriction must be public, proportional, and subject to periodic review—none of which are satisfied here.\"";
+    counterarguments = "The State will submit that internet shutdowns were temporary, preventive measures based on law-and-order intelligence, making them reasonable restrictions under Article 19(2).";
+  } else if (lowerName.includes("maneka gandhi")) {
+    application = "Argue that the procedural steps followed by the executive were arbitrary and lacked natural justice (notice/hearing).";
+    courtroomUsage = "\"Counsel submits that as held in Maneka Gandhi (1978), the procedure established by law under Article 21 must be 'right, just and fair', not arbitrary or oppressive. The failure to afford a prior hearing violates this golden triangle.\"";
+    counterarguments = "The State will contend that public interest or administrative urgency justified dispensing with a prior hearing, and that a post-decisional hearing provides sufficient compliance.";
+  } else if (lowerName.includes("shayara bano")) {
+    application = "Argue that the legislative provision is manifestly arbitrary, i.e. caprice, lack of determining principle, or excessive.";
+    courtroomUsage = "\"We submit, as established in Shayara Bano (2017), that a legislative provision can be struck down under Article 14 if it is manifestly arbitrary, meaning it is capricious or lacks any determining principle.\"";
+    counterarguments = "The State will argue that the legislature has wide policy latitude and the provision is based on intelligible differentia with a rational nexus, avoiding manifest arbitrariness.";
+  } else if (lowerName.includes("royappa")) {
+    if (auth.ratio && auth.ratio.includes("restraint")) {
+      application = "Argue that the court must not sit in appeal over executive policy and must show judicial restraint.";
+      courtroomUsage = "\"Counsel relies on E.P. Royappa (1974) to submit that writ courts must exercise self-restraint. It is not the province of this Court to evaluate the wisdom or efficacy of executive policy decisions.\"";
+      counterarguments = "The Petitioner will submit that judicial restraint cannot be a shield for manifest arbitrariness or rights violations.";
+    } else {
+      application = "Establish the new doctrine of equality: equality is dynamic and arbitrariness is its antithesis.";
+      courtroomUsage = "\"Under the landmark ruling in E.P. Royappa (1974), equality is a dynamic concept which cannot be cribbed, cabined, or confined. Arbitrariness is the absolute antithesis of equality, and any arbitrary state action violates Article 14.\"";
+      counterarguments = "The State will argue that the action is backed by reasonable classification and is not unequal or discriminatory, hence passing the threshold of Article 14.";
+    }
+  } else if (lowerName.includes("modern dental college")) {
+    application = "Defend the restriction using the four-fold test to show that the State has balanced private rights with public welfare.";
+    courtroomUsage = "\"Under Modern Dental College (2016), we submit that the restrictions are proportional, serving a compelling public interest and striking a fair balance between individual liberties and social goals.\"";
+    counterarguments = "The Petitioner will argue that the State's measure is excessive and disproportionate, completely overriding the core right.";
+  } else if (lowerName.includes("d.k. basu") || lowerName.includes("dk basu")) {
+    application = "Argue that the court has power and duty to issue structured guidelines to prevent abuse of executive power.";
+    courtroomUsage = "\"We submit that under D.K. Basu (1997), this Court has the power to issue binding directives and safeguards to check arbitrary executive actions and prevent custodial abuses.\"";
+    counterarguments = "The State will submit that guidelines are already incorporated in statutory codes, and courts should not micro-manage executive functions.";
+  } else if (lowerName.includes("nilabati behera")) {
+    application = "Claim public law compensation as a direct remedy for violation of fundamental rights, bypassing sovereign immunity.";
+    courtroomUsage = "\"Under Nilabati Behera (1993), Counsel submits that monetary compensation is a recognized remedy in public law for the violation of fundamental rights, and sovereign immunity is no defense.\"";
+    counterarguments = "The State will argue that compensation in writ jurisdiction is an extraordinary remedy and the petitioner should be relegated to a civil suit to prove actual damages.";
+  }
+
+  return {
+    ratio,
+    application,
+    courtroomUsage,
+    relatedIssues,
+    counterarguments,
+    practicalStrategy
+  };
+}
+
+let currentModalAuth = null;
+let currentModalDetails = null;
+
+export function openAuthorityModal(caseName, initialTab = 'ratio') {
+  let stance = getCurrentSelectedSide() || selectedSide || 'Petitioner';
+  if (stance.toLowerCase().includes('petitioner') || stance.toLowerCase().includes('appellant')) stance = 'Petitioner';
+  else stance = 'Respondent';
+  
+  const issueSelect = document.getElementById('builder-issue-select');
+  const issueVal = issueSelect ? issueSelect.value : '';
+  const authorities = getAuthoritiesForIssueAndStance(issueVal, stance);
+  
+  const auth = authorities.find(a => a.name === caseName) || { name: caseName, ratio: "Ratio unverified" };
+  currentModalAuth = auth;
+  currentModalDetails = getDetailedAuthorityDetails(auth);
+  
+  document.getElementById('auth-modal-name').textContent = auth.name;
+  document.getElementById('auth-modal-theme').textContent = auth.section || 'Constitutional Law';
+  document.getElementById('auth-modal-priority').textContent = auth.priority ? `Priority: ${auth.priority} (${auth.badge || 'Recommended'})` : 'Landmark Precedent';
+  
+  const selectBtn = document.getElementById('auth-modal-select-btn');
+  if (selectBtn) {
+    const isSelected = selectedAuthorities.some(a => a.name === auth.name);
+    selectBtn.textContent = isSelected ? '✕ Deselect Weapon' : '⚔️ Select Weapon';
+    selectBtn.className = `btn-sm text-xs font-semibold px-4 py-1.5 rounded transition-all cursor-pointer ${
+      isSelected ? 'bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20' : 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20'
+    }`;
+    selectBtn.onclick = () => {
+      toggleAuthority(auth.name, auth.ratio);
+      const isNowSelected = selectedAuthorities.some(a => a.name === auth.name);
+      selectBtn.textContent = isNowSelected ? '✕ Deselect Weapon' : '⚔️ Select Weapon';
+      selectBtn.className = `btn-sm text-xs font-semibold px-4 py-1.5 rounded transition-all cursor-pointer ${
+        isNowSelected ? 'bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20' : 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20'
+      }`;
+    };
+  }
+  
+  const modal = document.getElementById('authority-detail-modal');
+  if (modal) modal.classList.remove('hidden');
+  
+  switchAuthModalTab(initialTab);
+}
+
+export function closeAuthorityModal() {
+  const modal = document.getElementById('authority-detail-modal');
+  if (modal) modal.classList.add('hidden');
+}
+
+export function switchAuthModalTab(tab) {
+  const tabs = ['ratio', 'usage', 'courtroom', 'issues', 'counter', 'strategy'];
+  tabs.forEach(t => {
+    const btn = document.getElementById(`auth-tab-${t}`);
+    if (btn) {
+      btn.classList.toggle('auth-modal-tab-active', t === tab);
+      btn.classList.toggle('text-moot-accent', t === tab);
+      btn.classList.toggle('text-white-muted', t !== tab);
+    }
+  });
+  
+  const contentEl = document.getElementById('auth-modal-tab-content');
+  if (contentEl && currentModalDetails) {
+    let html = '';
+    switch(tab) {
+      case 'ratio':
+        html = `<div><strong>Ratio Decidendi:</strong><p class="mt-2 text-white-2 font-serif italic leading-relaxed">"${currentModalDetails.ratio}"</p></div>`;
+        break;
+      case 'usage':
+        html = `<div><strong>Application / How to Use:</strong><p class="mt-2 text-white-muted">${currentModalDetails.application}</p></div>`;
+        break;
+      case 'courtroom':
+        html = `<div><strong>Courtroom Phrasing:</strong><p class="mt-2 text-white-2 font-serif italic bg-black/30 p-3 rounded border-l-2 border-moot-accent">"${currentModalDetails.courtroomUsage}"</p></div>`;
+        break;
+      case 'issues':
+        html = `<div><strong>Related Constitutional Principles:</strong><p class="mt-2 text-white-muted">${currentModalDetails.relatedIssues}</p></div>`;
+        break;
+      case 'counter':
+        html = `<div><strong>Potential Counterarguments:</strong><p class="mt-2 text-white-muted">${currentModalDetails.counterarguments}</p></div>`;
+        break;
+      case 'strategy':
+        html = `<div><strong>Chambers Strategy Notes:</strong><p class="mt-2 text-white-muted">${currentModalDetails.practicalStrategy}</p></div>`;
+        break;
+    }
+    contentEl.innerHTML = html;
+  }
+}
+
+export let rawOralAdvocacy = null;
+export let rawRebuttals = null;
+
