@@ -1,6 +1,7 @@
 import { BASE_URL } from '../config.js';
 import { currentUser, db, firebaseRef } from '../services/firebase.js';
 import { logSessionSecurely, checkBackendHealth } from '../services/api.js';
+import { storedOralNotes, storedRebuttals } from './argumentBuilder.js';
 
 // Shared State Variables
 export let lastAnalysis = '';
@@ -231,70 +232,36 @@ export function showAuthSuccess() {
 }
 
 export function showWsPanel(name, buttonEl) {
-  const views = ['upload', 'results', 'oral', 'bench', 'builder'];
-  
-  // Hide all panels
-  views.forEach(v => {
-    const el = document.getElementById('wsp-' + v);
-    if (el) {
-      el.classList.remove('active');
-      el.classList.add('hidden');
+  if (name === 'upload') {
+    const uploadEl = document.getElementById('wsp-upload');
+    const resultsEl = document.getElementById('wsp-results');
+    if (uploadEl) {
+      uploadEl.classList.add('active');
+      uploadEl.classList.remove('hidden');
     }
-  });
-  
-  // Deactivate all sidebar items
-  document.querySelectorAll('.ws-sb-item').forEach(btn => {
-    btn.classList.remove('active', 'bg-moot-accent/10', 'text-moot-accent');
-  });
-  
-  // Show target panel
-  const targetPanel = document.getElementById('wsp-' + name);
-  if (targetPanel) {
-    targetPanel.classList.add('active');
-    targetPanel.classList.remove('hidden');
-  }
-  
-  // Activate clicked button or matching button
-  if (buttonEl) {
-    buttonEl.classList.add('active', 'bg-moot-accent/10', 'text-moot-accent');
-  } else {
-    const btn = document.getElementById('wsb-' + name);
-    if (btn) btn.classList.add('active', 'bg-moot-accent/10', 'text-moot-accent');
-  }
-
-  // Preserve context checks
-  const hasContext = !!(currentPropositionContext || document.getElementById('wsib-file')?.textContent?.trim() !== 'No file uploaded');
-  if (name === 'oral') {
-    const notice = document.getElementById('oral-context-notice');
-    if (notice) {
-      notice.style.display = hasContext ? 'flex' : 'none';
+    if (resultsEl) {
+      resultsEl.classList.remove('active');
+      resultsEl.classList.add('hidden');
     }
-  }
-  if (name === 'bench' && !window.benchActive) {
-    const noCtx = document.getElementById('bench-no-context');
-    if (noCtx) {
-      noCtx.style.display = hasContext ? 'none' : 'block';
+    goToStage(1);
+  } else if (name === 'results') {
+    const uploadEl = document.getElementById('wsp-upload');
+    const resultsEl = document.getElementById('wsp-results');
+    if (uploadEl) {
+      uploadEl.classList.remove('active');
+      uploadEl.classList.add('hidden');
     }
-  }
-  if (name === 'builder') {
-    if (typeof window.populateIssuesFromAnalysis === 'function') {
-      window.populateIssuesFromAnalysis();
+    if (resultsEl) {
+      resultsEl.classList.add('active');
+      resultsEl.classList.remove('hidden');
     }
-  }
-
-  const sidebar = document.getElementById('ws-sidebar');
-  if (sidebar && sidebar.classList.contains('show')) {
-    toggleMobileSidebar();
-  }
-
-  // Passively update URL hash for Microsoft Clarity SPA route tracking
-  const newHash = `#workspace/${name}`;
-  if (window.location.hash !== newHash) {
-    if (window.history && window.history.replaceState) {
-      window.history.replaceState(null, null, newHash);
-    } else {
-      window.location.hash = newHash;
-    }
+    goToStage(1);
+  } else if (name === 'builder') {
+    goToStage(4);
+  } else if (name === 'oral') {
+    goToStage(5);
+  } else if (name === 'bench') {
+    goToStage(6);
   }
 }
 
@@ -1130,3 +1097,236 @@ export function copyAnalysis() {
 export function hideLoading() { document.getElementById('loading-overlay').classList.remove('show'); }
 export function sleep(ms) { return new Promise(r=>setTimeout(r,ms)); }
 export function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+export let currentStage = 1;
+
+export function goToStage(stageNum) {
+  if (stageNum < 1 || stageNum > 6) return;
+  if (!currentUser) return;
+
+  const hasContext = !!(window.lastAnalysis || lastAnalysis);
+
+  if (stageNum > 1 && !hasContext) {
+    showToast("Please upload and analyze a proposition in Stage 1 first.", "info");
+    return;
+  }
+
+  currentStage = stageNum;
+
+  // Update Stepper UI
+  for (let i = 1; i <= 6; i++) {
+    const stepEl = document.getElementById('step-' + i);
+    const connectorEl = document.getElementById('connector-' + i);
+    if (stepEl) {
+      stepEl.classList.remove('active', 'completed', 'upcoming');
+      if (i === currentStage) {
+        stepEl.classList.add('active');
+        const iconEl = stepEl.querySelector('.step-icon');
+        if (iconEl) iconEl.innerHTML = i;
+      } else if (i < currentStage) {
+        stepEl.classList.add('completed');
+        const iconEl = stepEl.querySelector('.step-icon');
+        if (iconEl) iconEl.innerHTML = '✓';
+      } else {
+        stepEl.classList.add('upcoming');
+        const iconEl = stepEl.querySelector('.step-icon');
+        if (iconEl) iconEl.innerHTML = i;
+      }
+    }
+    if (connectorEl) {
+      connectorEl.classList.toggle('completed', i < currentStage);
+    }
+  }
+
+  // Toggle active stage containers
+  for (let i = 1; i <= 6; i++) {
+    const stageEl = document.getElementById('stage-' + i + '-container');
+    if (stageEl) {
+      if (i === currentStage) {
+        stageEl.classList.add('active');
+        stageEl.style.display = 'flex';
+      } else {
+        stageEl.classList.remove('active');
+        stageEl.style.display = 'none';
+      }
+    }
+  }
+
+  // Update footer button states
+  const prevBtn = document.getElementById('wizard-prev-btn');
+  const nextBtn = document.getElementById('wizard-next-btn');
+  if (prevBtn) {
+    prevBtn.style.display = currentStage === 1 ? 'none' : 'block';
+  }
+  if (nextBtn) {
+    nextBtn.style.display = currentStage === 6 ? 'none' : 'block';
+  }
+
+  // Stage-specific renderings
+  if (currentStage === 2) {
+    renderStage2Issues();
+  } else if (currentStage === 3) {
+    if (typeof window.renderPreDraftAuthorities === 'function') {
+      window.renderPreDraftAuthorities();
+    }
+  } else if (currentStage === 5) {
+    renderStage5OralNotes();
+  }
+
+  // Passively update URL hash for Clarity route tracking
+  const newHash = `#stage/${currentStage}`;
+  if (window.location.hash !== newHash) {
+    if (window.history && window.history.replaceState) {
+      window.history.replaceState(null, null, newHash);
+    } else {
+      window.location.hash = newHash;
+    }
+  }
+}
+
+export function wizardNext() {
+  if (currentStage < 6) {
+    goToStage(currentStage + 1);
+  }
+}
+
+export function wizardPrev() {
+  if (currentStage > 1) {
+    goToStage(currentStage - 1);
+  }
+}
+
+export function renderStage2Issues() {
+  const container = document.getElementById('stage-2-extracted-issues-list');
+  if (!container) return;
+
+  let issues = [];
+  try {
+    const analysisStr = window.lastAnalysis || lastAnalysis;
+    if (analysisStr) {
+      const data = JSON.parse(analysisStr);
+      issues = data.legalIssues || [];
+    }
+  } catch (e) {
+    console.error("Error parsing analysis for Stage 2 issues:", e);
+  }
+
+  if (issues.length === 0) {
+    container.innerHTML = `
+      <div class="text-center p-6 border border-dashed border-white/10 rounded-xl bg-white/[0.01]">
+        <div class="text-2xl mb-2">◎</div>
+        <p class="text-xs text-white-muted">No legal issues extracted yet. Please upload and analyze a proposition in Stage 1 first.</p>
+      </div>
+    `;
+    return;
+  }
+
+  const selectEl = document.getElementById('builder-issue-select');
+  const currentVal = selectEl ? selectEl.value : '';
+
+  container.innerHTML = `
+    <div class="issue-card-container">
+      ${issues.map((issue, idx) => {
+        const isSelected = currentVal === issue || (!currentVal && idx === 0);
+        const cardClass = isSelected ? 'issue-card selected' : 'issue-card';
+        return `
+          <div class="${cardClass}" onclick="window.selectIssueFromCard('${issue.replace(/'/g, "\\'")}')">
+            <div class="flex items-start gap-3">
+              <span class="w-6 h-6 rounded-full bg-moot-accent/10 border border-moot-accent/20 text-moot-accent text-[11px] font-semibold flex items-center justify-center shrink-0">
+                ${idx + 1}
+              </span>
+              <div class="text-xs font-sans text-white font-medium leading-relaxed">${esc(issue)}</div>
+            </div>
+            <div class="shrink-0 flex items-center justify-center">
+              ${isSelected ? '<span class="text-moot-accent text-sm">✓</span>' : '<span class="text-white-faint text-sm">○</span>'}
+            </div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+
+  if (selectEl && !selectEl.value && issues.length > 0) {
+    selectEl.value = issues[0];
+    const changeEvent = new Event('change', { bubbles: true });
+    selectEl.dispatchEvent(changeEvent);
+  }
+}
+
+export function selectIssueFromCard(val) {
+  const selectEl = document.getElementById('builder-issue-select');
+  if (selectEl) {
+    selectEl.value = val;
+    const changeEvent = new Event('change', { bubbles: true });
+    selectEl.dispatchEvent(changeEvent);
+    showToast(`Focused on: ${val}`, "ok");
+    renderStage2Issues();
+  }
+}
+
+export function renderStage5OralNotes() {
+  const outlineEl = document.getElementById('stage5-content-outline');
+  const rebuttalsEl = document.getElementById('stage5-content-rebuttals');
+  const vulnerabilitiesEl = document.getElementById('stage5-content-vulnerabilities');
+
+  if (outlineEl) {
+    if (storedOralNotes) {
+      outlineEl.innerHTML = storedOralNotes;
+    } else {
+      outlineEl.innerHTML = `<div class="text-white-muted italic">Draft your submissions in Stage 4 to populate your custom oral outline here.</div>`;
+    }
+  }
+
+  if (rebuttalsEl) {
+    if (storedRebuttals) {
+      rebuttalsEl.innerHTML = storedRebuttals;
+    } else {
+      rebuttalsEl.innerHTML = `<div class="text-white-muted italic">Draft your submissions in Stage 4 to populate your custom rebuttals here.</div>`;
+    }
+  }
+
+  if (vulnerabilitiesEl) {
+    let vulnerabilities = [];
+    try {
+      const analysisStr = window.lastAnalysis || lastAnalysis;
+      if (analysisStr) {
+        const data = JSON.parse(analysisStr);
+        vulnerabilities = data.benchVulnerabilities || [];
+      }
+    } catch (e) {
+      console.error("Error parsing vulnerabilities for Stage 5:", e);
+    }
+
+    if (vulnerabilities.length > 0) {
+      vulnerabilitiesEl.innerHTML = `
+        <ul class="insight-list">
+          ${vulnerabilities.map(v => `
+            <li class="insight-item">
+              <div class="insight-bullet ib-red"></div>
+              <div class="insight-text">${fmtInline(v)}</div>
+            </li>
+          `).join('')}
+        </ul>
+      `;
+    } else {
+      vulnerabilitiesEl.innerHTML = `<div class="text-white-muted italic">Upload and analyze a proposition in Stage 1 to see bench vulnerabilities here.</div>`;
+    }
+  }
+}
+
+export function switchStage5Tab(tab) {
+  const tabs = ['outline', 'rebuttals', 'vulnerabilities'];
+  tabs.forEach(t => {
+    const btn = document.getElementById(`stage5-tab-${t}`);
+    const content = document.getElementById(`stage5-content-${t}`);
+    if (btn) {
+      btn.classList.toggle('bg-indigo-500/10', t === tab);
+      btn.classList.toggle('text-indigo-400', t === tab);
+      btn.classList.toggle('bg-transparent', t !== tab);
+      btn.classList.toggle('text-white-muted', t !== tab);
+    }
+    if (content) {
+      content.classList.toggle('hidden', t !== tab);
+    }
+  });
+}

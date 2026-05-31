@@ -31,7 +31,12 @@ import {
   copySectionText,
   scrollToSection,
   currentPropositionContext,
-  switchAuthTab
+  switchAuthTab,
+  goToStage,
+  wizardNext,
+  wizardPrev,
+  selectIssueFromCard,
+  switchStage5Tab
 } from './components/ui.js';
 
 import {
@@ -612,6 +617,12 @@ window.stopOralRound = stopOralRound;
 
 window.copyBuilderArgument = copyBuilderArgument;
 window.populateIssuesFromAnalysis = populateIssuesFromAnalysis;
+
+window.goToStage = goToStage;
+window.wizardNext = wizardNext;
+window.wizardPrev = wizardPrev;
+window.selectIssueFromCard = selectIssueFromCard;
+window.switchStage5Tab = switchStage5Tab;
 
 async function triggerWelcomeEmail(email, fname) {
   try {
