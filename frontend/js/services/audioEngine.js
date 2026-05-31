@@ -66,6 +66,9 @@ export function stopVoicePlayback() {
 function triggerTurnComplete() {
   console.log("[DEBUG AUDIT] triggerTurnComplete: invoking onPlaybackCompleteCallback...");
   isTurnCompleteReceived = false;
+  isAudioBuffering = true;
+  audioChunksBuffer = [];
+  voiceNextPlayTime = 0;
   if (onPlaybackCompleteCallback) {
     onPlaybackCompleteCallback();
   }
@@ -139,13 +142,10 @@ export function scheduleVoicePlayback(float32Array) {
     if (idx > -1) {
       voicePlaybackSources.splice(idx, 1);
     }
-    if (source === latestPlaybackSource) {
+    if (voicePlaybackSources.length === 0 && isTurnCompleteReceived) {
       latestPlaybackSource = null;
-      console.log("[DEBUG AUDIT] Latest scheduled audio source onended fired. Remaining sources in queue:", voicePlaybackSources.length);
-      if (isTurnCompleteReceived) {
-        console.log('[TTS_STREAM] Finished entire playback turn');
-        triggerTurnComplete();
-      }
+      console.log('[TTS_STREAM] Finished entire playback turn');
+      triggerTurnComplete();
     }
   };
 }
@@ -282,9 +282,6 @@ export async function startOralRound(callbacks) {
           type: "audio",
           data: base64Audio
         }));
-        // Reset buffering since Advocate is speaking, and next response should buffer
-        isAudioBuffering = true;
-        audioChunksBuffer = [];
       }
     };
 

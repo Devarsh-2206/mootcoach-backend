@@ -591,8 +591,7 @@ export function updateBenchState(state) {
   currentBenchState = state;
   updateDiagTimestamp(`State: ${state}`);
 
-  // Enforce strict turn taking: stop/abort mic recognition if we enter non-listening states
-  if (state === 'speaking' || state === 'processing' || state === 'connecting' || state === 'ended' || state === 'permission_denied') {
+  if (state === 'speaking' || state === 'connecting' || state === 'ended' || state === 'permission_denied') {
     if (recognition) {
       try {
         recognition.abort();
