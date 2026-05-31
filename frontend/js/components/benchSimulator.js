@@ -31,6 +31,8 @@ let voiceTimerInterval = null;
 let voiceElapsedTime = 0;
 let localTtsSpeaking = false;
 let currentBenchState = 'idle';
+let sentenceBuffer = "";
+let lastScheduledUtterance = null;
 
 // Expose benchActive on window for UI checks (e.g. showWsPanel)
 window.benchActive = false;
@@ -530,7 +532,7 @@ function getOpeningStatement() {
   return genericOpening;
 }
 
-export function playJudgeAudio(text, callback) {
+export function playJudgeAudio(text, callback, queue = false) {
   console.log("[DEBUG AUDIT] playJudgeAudio starting for text:", text);
   if (!('speechSynthesis' in window)) {
     console.warn("speechSynthesis not supported, executing callback directly.");
@@ -538,8 +540,11 @@ export function playJudgeAudio(text, callback) {
     return;
   }
 
-  // Cancel any ongoing speech
-  window.speechSynthesis.cancel();
+  // Cancel any ongoing speech if not queuing
+  if (!queue) {
+    window.speechSynthesis.cancel();
+    lastScheduledUtterance = null;
+  }
 
   const utterance = new SpeechSynthesisUtterance(text);
   
@@ -565,6 +570,7 @@ export function playJudgeAudio(text, callback) {
     if (callback) callback();
   };
 
+  lastScheduledUtterance = utterance;
   window.speechSynthesis.speak(utterance);
 }
 
@@ -780,6 +786,17 @@ export async function startOralRound() {
       onText: (text) => {
         console.log("[DEBUG AUDIT] AI response chunk received:", text);
         fullJudgeResponse += text;
+        sentenceBuffer += text;
+
+        // Check for sentence boundaries: ., ?, or !
+        if (/[.?!]/.test(text)) {
+          const cleanChunk = sentenceBuffer.trim();
+          if (cleanChunk) {
+            localTtsSpeaking = true;
+            playJudgeAudio(cleanChunk, null, true);
+          }
+          sentenceBuffer = "";
+        }
       },
       onTurnComplete: () => {
         const cleanResponse = fullJudgeResponse.trim();
@@ -790,9 +807,37 @@ export async function startOralRound() {
           console.log('[JUDGE TRANSCRIPT] Container found:', !!document.getElementById('bench-transcript-panel'));
           console.log('[JUDGE TRANSCRIPT] Judge bubble inserted');
         }
+
+        const trailing = sentenceBuffer.trim();
+        if (trailing) {
+          playJudgeAudio(trailing, () => {
+            console.log("[DEBUG AUDIT] SpeechSynthesis playback completed (trailing). Activating mic...");
+            localTtsSpeaking = false;
+            updateBenchState('listening');
+            safeStartRecognition();
+          }, true);
+        } else if (lastScheduledUtterance) {
+          const oldOnEnd = lastScheduledUtterance.onend;
+          lastScheduledUtterance.onend = () => {
+            if (oldOnEnd) oldOnEnd();
+            console.log("[DEBUG AUDIT] SpeechSynthesis playback completed (lastScheduledUtterance). Activating mic...");
+            localTtsSpeaking = false;
+            updateBenchState('listening');
+            safeStartRecognition();
+          };
+        } else {
+          localTtsSpeaking = false;
+          updateBenchState('listening');
+          safeStartRecognition();
+        }
+
         fullJudgeResponse = '';
+        sentenceBuffer = '';
       },
       onInterrupted: () => {
+        if ('speechSynthesis' in window) {
+          window.speechSynthesis.cancel();
+        }
         const cleanResponse = fullJudgeResponse.trim();
         if (cleanResponse) {
           console.log('[JUDGE TRANSCRIPT] Response received (interrupted):', cleanResponse);
@@ -802,6 +847,7 @@ export async function startOralRound() {
           console.log('[JUDGE TRANSCRIPT] Judge bubble inserted');
         }
         fullJudgeResponse = '';
+        sentenceBuffer = '';
       },
       onError: (message) => {
         console.log("[DEBUG AUDIT] AI response error received:", message);
@@ -814,9 +860,7 @@ export async function startOralRound() {
         }
       },
       onPlaybackComplete: () => {
-        console.log("[DEBUG AUDIT] Gemini Live playback completed. Activating mic...");
-        updateBenchState('listening');
-        safeStartRecognition();
+        console.log("[DEBUG AUDIT] Gemini Live playback completed. (Ignored because we use local SpeechSynthesis callback)");
       }
     });
   } catch (err) {
@@ -831,6 +875,8 @@ export function stopOralRound() {
   console.log("🎙️ Stopping oral round...");
   voiceSessionActive = false;
   localTtsSpeaking = false;
+  sentenceBuffer = '';
+  lastScheduledUtterance = null;
 
   const btnOral = document.getElementById('btn-bench-oral');
   const btnStart = document.getElementById('btn-bench-start');

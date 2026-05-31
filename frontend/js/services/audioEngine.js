@@ -237,11 +237,10 @@ export async function startOralRound(callbacks) {
       const waveBars = document.querySelectorAll('#cr-waveform-container .cr-wave-bar');
       if (waveBars.length > 0) {
         if (window.voiceStatus === 'speaking') {
-          // Judge Speaking -> Playback Analyser
-          playbackAnalyser.getByteFrequencyData(playDataArray);
+          // Judge Speaking -> Pulsing Red wave (since local SpeechSynthesis TTS is used)
+          const time = Date.now() * 0.005;
           waveBars.forEach((bar, index) => {
-            const val = playDataArray[index % playBufferLength] || 0;
-            const height = Math.max(4, Math.round((val / 255) * 24));
+            const height = Math.max(4, Math.round(14 + Math.sin(time + index * 0.8) * 10));
             bar.style.height = `${height}px`;
             bar.style.backgroundColor = '#e05252'; // Red for Judge
           });
@@ -325,11 +324,7 @@ Begin the hearing by asking a challenging opening question tailored to this issu
         } else if (msg.type === 'audio') {
           onStatusChange('speaking', 'Judge Speaking...');
           const float32Data = base64ToFloat32Array(msg.data);
-          if (isAudioBuffering) {
-            audioChunksBuffer.push(float32Data);
-          } else {
-            scheduleVoicePlayback(float32Data);
-          }
+          // Discard / skip binary audio chunks playback from WebSocket since we are doing real-time sentence-boundary TTS chunking locally
           if (onAudio) onAudio(float32Data);
         } else if (msg.type === 'text') {
           if (onText) onText(msg.text);
