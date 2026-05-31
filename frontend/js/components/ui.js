@@ -18,15 +18,21 @@ export function showToast(msg, type = 'err') {
     stack.className = 'toast-stack';
     document.body.appendChild(stack);
   }
+  // Clear any existing toasts to prevent stacking overlays
+  stack.innerHTML = '';
+
   const t = document.createElement('div');
   t.className = `toast ${type}`;
   const icon = type === 'err' ? '✕' : type === 'ok' ? '✓' : 'ℹ';
   t.innerHTML = `<div class="toast-icon">${icon}</div><div>${esc(msg)}</div>`;
   stack.appendChild(t);
+
+  const duration = (msg.includes('selected') || msg.includes('Selected') || msg.includes('Deselected')) ? 1500 : 3500;
+
   setTimeout(() => {
     t.classList.add('removing');
     setTimeout(() => t.remove(), 250);
-  }, 4000);
+  }, duration);
 }
 
 /* ─── LEGAL MODAL LOGIC ─── */
@@ -1261,46 +1267,53 @@ export function selectIssueFromCard(val) {
     selectEl.value = val;
     const changeEvent = new Event('change', { bubbles: true });
     selectEl.dispatchEvent(changeEvent);
-    showToast(`Focused on: ${val}`, "ok");
+    showToast("Issue selected ✓", "ok");
     renderStage2Issues();
   }
 }
 
 export function renderStage4OralNotes() {
-  const outlineEl = document.getElementById('stage5-content-outline');
-  const rebuttalsEl = document.getElementById('stage5-content-rebuttals');
-  const vulnerabilitiesEl = document.getElementById('stage5-content-vulnerabilities');
+  const briefingEl = document.getElementById('stage4-chamber-briefing');
   const inputEl = document.getElementById('oral-argument-input');
 
   const hasContext = !!(window.lastAnalysis || lastAnalysis);
 
-  if (outlineEl) {
-    if (storedOralNotes) {
-      outlineEl.innerHTML = storedOralNotes;
+  if (briefingEl) {
+    if (storedOralNotes || storedRebuttals) {
+      let combinedHTML = '';
+      
+      if (storedOralNotes) {
+        combinedHTML += storedOralNotes;
+      }
+      
+      if (storedRebuttals) {
+        combinedHTML += `
+          <div class="p-4 bg-white/5 border border-white/10 rounded-xl mt-4">
+            <h4 class="text-xs uppercase tracking-wider text-red-400 font-semibold mb-3 flex items-center gap-1.5 font-sans border-b border-white/5 pb-2">
+              <span>⚔️</span> Rebuttal Opportunities & Demolition Strategy
+            </h4>
+            <div class="text-xs leading-relaxed text-gray-300 font-sans">
+              ${storedRebuttals}
+            </div>
+          </div>
+        `;
+      }
+      
+      briefingEl.innerHTML = combinedHTML;
     } else if (hasContext) {
-      outlineEl.innerHTML = `
+      briefingEl.innerHTML = `
         <div class="text-white-muted italic p-4 bg-white/[0.01] border border-dashed border-white/10 rounded-xl font-sans text-center">
           <div class="text-lg mb-1">🎙️</div>
-          No generated submissions found. Complete Stage 3 first to automatically populate your opening oral outline, or paste a custom speech below.
+          No generated submissions found. Complete Stage 3 first to automatically populate your Chambers Briefing & Battle Plan.
         </div>
       `;
     } else {
-      outlineEl.innerHTML = `<div class="text-white-muted italic">Draft your submissions in Stage 3 to populate your custom oral outline here.</div>`;
-    }
-  }
-
-  if (rebuttalsEl) {
-    if (storedRebuttals) {
-      rebuttalsEl.innerHTML = storedRebuttals;
-    } else if (hasContext) {
-      rebuttalsEl.innerHTML = `
+      briefingEl.innerHTML = `
         <div class="text-white-muted italic p-4 bg-white/[0.01] border border-dashed border-white/10 rounded-xl font-sans text-center">
-          <div class="text-lg mb-1">⚔️</div>
-          No generated submissions found. Complete Stage 3 first to automatically populate your custom rebuttals.
+          <div class="text-lg mb-1">🎙️</div>
+          Draft your submissions in Stage 3 to populate your custom Battle Plan here.
         </div>
       `;
-    } else {
-      rebuttalsEl.innerHTML = `<div class="text-white-muted italic">Draft your submissions in Stage 3 to populate your custom rebuttals here.</div>`;
     }
   }
 
@@ -1315,34 +1328,6 @@ export function renderStage4OralNotes() {
     if (inputEl.value.trim()) {
       const inputEvent = new Event('input', { bubbles: true });
       inputEl.dispatchEvent(inputEvent);
-    }
-  }
-
-  if (vulnerabilitiesEl) {
-    let vulnerabilities = [];
-    try {
-      const analysisStr = window.lastAnalysis || lastAnalysis;
-      if (analysisStr) {
-        const data = JSON.parse(analysisStr);
-        vulnerabilities = data.benchVulnerabilities || [];
-      }
-    } catch (e) {
-      console.error("Error parsing vulnerabilities for Stage 4:", e);
-    }
-
-    if (vulnerabilities.length > 0) {
-      vulnerabilitiesEl.innerHTML = `
-        <ul class="insight-list">
-          ${vulnerabilities.map(v => `
-            <li class="insight-item">
-              <div class="insight-bullet ib-red"></div>
-              <div class="insight-text">${fmtInline(v)}</div>
-            </li>
-          `).join('')}
-        </ul>
-      `;
-    } else {
-      vulnerabilitiesEl.innerHTML = `<div class="text-white-muted italic">Upload and analyze a proposition in Stage 1 to see bench vulnerabilities here.</div>`;
     }
   }
 }

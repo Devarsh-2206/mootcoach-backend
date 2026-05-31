@@ -1752,15 +1752,23 @@ p  { color:var(--white-2); }
    GUIDED WORKFLOW STEPPER & STAGES
    ═══════════════════════════════════════════ */
 .ws-stepper {
-  display: flex;
+  position: sticky;
+  top: 12px;
+  z-index: 100;
+  display: inline-flex;
+  align-self: center;
   align-items: center;
-  justify-content: space-between;
-  padding: 16px 24px;
-  background: rgba(14, 18, 32, 0.45);
+  justify-content: center;
+  height: 38px;
+  padding: 0 14px;
+  background: rgba(14, 18, 32, 0.65);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  border-bottom: 1px solid var(--glass-b);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 19px;
   gap: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  margin: 12px auto;
   flex-shrink: 0;
   overflow-x: auto;
   scrollbar-width: none;
@@ -1772,13 +1780,13 @@ p  { color:var(--white-2); }
 .step-item {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
   background: none;
   border: none;
   cursor: pointer;
-  padding: 6px 12px;
-  border-radius: 8px;
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  padding: 4px 10px;
+  border-radius: 14px;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
   flex-shrink: 0;
 }
@@ -1787,57 +1795,51 @@ p  { color:var(--white-2); }
 }
 
 .step-icon {
-  width: 24px;
-  height: 24px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
+  font-size: 9px;
   font-weight: 600;
   font-family: var(--sans);
-  border: 1.5px solid;
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  border: 1.2px solid;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .step-label {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 500;
   font-family: var(--sans);
-  letter-spacing: 0.03em;
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  letter-spacing: 0.02em;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   white-space: nowrap;
 }
 
 .step-connector {
-  flex: 1;
+  width: 10px;
   height: 1px;
-  background: var(--glass-b);
-  min-width: 16px;
+  background: rgba(255, 255, 255, 0.1);
+  flex-shrink: 0;
   transition: all 0.3s ease;
 }
 
 /* Active State */
+.step-item.active {
+  background: rgba(201, 168, 76, 0.08);
+}
 .step-item.active .step-icon {
   background: var(--gold-muted);
   border-color: var(--gold);
   color: var(--gold);
-  box-shadow: 0 0 12px rgba(201, 168, 76, 0.3);
 }
 .step-item.active .step-label {
-  color: var(--white);
+  color: var(--gold);
   font-weight: 600;
 }
 .step-item.active::after {
-  content: '';
-  position: absolute;
-  bottom: -16px;
-  left: 12px;
-  right: 12px;
-  height: 2px;
-  background: var(--gold);
-  box-shadow: 0 0 8px var(--gold);
-  border-radius: 2px;
+  display: none;
 }
 
 /* Completed State */
@@ -1878,18 +1880,48 @@ p  { color:var(--white-2); }
   display: flex;
 }
 
-/* Wizard Navigation Footer */
-.ws-wizard-footer {
+/* Floating Wizard Navigation */
+.ws-floating-nav {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 16px 32px;
-  background: rgba(10, 13, 20, 0.95);
+  background: rgba(14, 18, 32, 0.7);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border-top: 1px solid var(--glass-b);
-  flex-shrink: 0;
-  z-index: 40;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  padding: 5px;
+  gap: 4px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+  z-index: 90;
+}
+.ws-floating-nav button {
+  background: transparent;
+  border: none;
+  color: var(--white-muted);
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 8px 14px;
+  border-radius: 15px;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+.ws-floating-nav button:hover {
+  color: var(--white);
+  background: rgba(255, 255, 255, 0.06);
+}
+.ws-floating-nav button.primary {
+  color: var(--navy);
+  background: var(--gold);
+  font-weight: 600;
+}
+.ws-floating-nav button.primary:hover {
+  background: var(--gold-light);
 }
 
 /* Interactive Issue Cards */
@@ -1916,10 +1948,15 @@ p  { color:var(--white-2); }
   border-color: rgba(255, 255, 255, 0.15);
   transform: translateX(4px);
 }
+@keyframes goldPulse {
+  0% { box-shadow: 0 0 0 0 rgba(201, 168, 76, 0.35); border-color: rgba(201, 168, 76, 0.6); }
+  70% { box-shadow: 0 0 0 8px rgba(201, 168, 76, 0); border-color: rgba(201, 168, 76, 0.3); }
+  100% { box-shadow: 0 0 0 0 rgba(201, 168, 76, 0); border-color: rgba(201, 168, 76, 0.4); }
+}
 .issue-card.selected {
-  background: rgba(201, 168, 76, 0.05);
-  border-color: var(--gold-border);
-  box-shadow: inset 1px 0 0 rgba(201, 168, 76, 0.1);
+  background: rgba(201, 168, 76, 0.06);
+  border-color: var(--gold);
+  animation: goldPulse 2s infinite;
 }
 
 /* Respect prefers-reduced-motion accessibility settings */
@@ -2224,22 +2261,18 @@ p  { color:var(--white-2); }
           <div class="step-icon">1</div>
           <span class="step-label">Proposition Analysis</span>
         </button>
-        <div class="step-connector" id="connector-1"></div>
         <button class="step-item upcoming" id="step-2" onclick="window.goToStage(2)">
           <div class="step-icon">2</div>
           <span class="step-label">Issue Workspace</span>
         </button>
-        <div class="step-connector" id="connector-2"></div>
         <button class="step-item upcoming" id="step-3" onclick="window.goToStage(3)">
           <div class="step-icon">3</div>
           <span class="step-label">Research & Draft Workspace</span>
         </button>
-        <div class="step-connector" id="connector-3"></div>
         <button class="step-item upcoming" id="step-4" onclick="window.goToStage(4)">
           <div class="step-icon">4</div>
           <span class="step-label">Oral Prep</span>
         </button>
-        <div class="step-connector" id="connector-4"></div>
         <button class="step-item upcoming" id="step-5" onclick="window.goToStage(5)">
           <div class="step-icon">5</div>
           <span class="step-label">Bench Simulator</span>
@@ -2372,15 +2405,15 @@ p  { color:var(--white-2); }
       <div class="ws-stage" id="stage-3-container" style="display:none; overflow-y:auto;">
         <div class="workspace-container flex flex-col lg:flex-row gap-6" style="padding:30px 24px; min-height:100%; max-width:1600px; margin:0 auto; width:100%; box-sizing:border-box;">
           
-          <!-- LEFT PANEL: Selected Issue & Context -->
-          <div class="w-full lg:w-[22%] flex flex-col space-y-4">
+          <!-- LEFT SIDEBAR: Research Sources & Input (28% width) -->
+          <div class="w-full lg:w-[28%] flex flex-col space-y-4">
             <div class="ws-up-eyebrow flex items-center gap-1.5 text-xs text-moot-accent font-semibold tracking-widest uppercase">
               <span class="w-1.5 h-1.5 rounded-full bg-moot-accent"></span>
-              Issue & Stance
+              Research & Strategy
             </div>
             
             <!-- Side Badge Card -->
-            <div class="bg-white/5 border border-white/10 rounded-xl p-5 backdrop-blur-md">
+            <div class="bg-white/5 border border-white/10 rounded-xl p-4 backdrop-blur-md">
               <div class="text-[10px] uppercase tracking-widest text-white-muted font-sans font-semibold mb-2">Selected Stance</div>
               <div id="stage3-side-badge" class="text-xs font-semibold tracking-widest text-center py-2 px-3 rounded-md border">
                 PETITIONER
@@ -2388,51 +2421,73 @@ p  { color:var(--white-2); }
             </div>
 
             <!-- Active Issue Card -->
-            <div class="bg-white/5 border border-white/10 rounded-xl p-5 backdrop-blur-md">
+            <div class="bg-white/5 border border-white/10 rounded-xl p-4 backdrop-blur-md">
               <div class="text-[10px] uppercase tracking-widest text-white-muted font-sans font-semibold mb-2">Selected Legal Issue</div>
-              <div id="stage3-selected-issue-text" class="text-xs font-sans text-white font-medium leading-relaxed">
+              <div id="stage3-selected-issue-text" class="text-xs font-sans text-white font-medium leading-relaxed font-semibold">
                 No issue selected yet.
               </div>
             </div>
 
-            <!-- Case Overview/Context Card -->
-            <div class="bg-white/5 border border-white/10 rounded-xl p-5 backdrop-blur-md flex-1">
-              <div class="text-[10px] uppercase tracking-widest text-white-muted font-sans font-semibold mb-2">Case Summary Context</div>
-              <div id="stage3-case-context" class="text-xs text-white-muted font-serif leading-relaxed max-h-[300px] overflow-y-auto pr-1">
-                Upload and analyze a proposition to see summary context here.
+            <!-- Recommended Authorities -->
+            <div class="bg-white/5 border border-white/10 rounded-xl p-4 backdrop-blur-md flex flex-col gap-3">
+              <div class="text-xs uppercase tracking-wider text-moot-accent font-semibold flex items-center gap-1.5 font-sans mb-1">
+                <span>💡</span> Recommended Authorities
               </div>
-            </div>
-          </div>
-          
-          <!-- CENTER PANEL: Drafting Canvas & Output -->
-          <div class="w-full lg:w-[48%] flex flex-col space-y-4">
-            <div class="ws-up-eyebrow flex items-center gap-1.5 text-xs text-moot-accent font-semibold tracking-widest uppercase">
-              <span class="w-1.5 h-1.5 rounded-full bg-moot-accent"></span>
-              Drafting Canvas
+              <div class="text-[10px] text-white-muted leading-relaxed font-sans">
+                Toggle supporting authorities to feed into the AI drafting engine.
+              </div>
+              <div id="pre-draft-chips" class="flex flex-col gap-2 max-h-[220px] overflow-y-auto pr-1">
+                <!-- Populated dynamically via JS -->
+              </div>
             </div>
 
             <!-- Input Notes Area -->
-            <div class="bg-white/5 border border-white/10 rounded-xl p-5 backdrop-blur-md">
-              <form id="builder-form" onsubmit="event.preventDefault();" class="flex flex-col space-y-4">
+            <div class="bg-white/5 border border-white/10 rounded-xl p-4 backdrop-blur-md">
+              <form id="builder-form" onsubmit="event.preventDefault();" class="flex flex-col space-y-3">
                 <div class="ws-field flex flex-col gap-2 mb-0">
                   <label for="builder-notes-input" class="tracking-wide text-xs font-semibold uppercase text-white-2">Enter Draft Notes & Arguments</label>
-                  <textarea id="builder-notes-input" class="oral-textarea w-full min-h-[160px] resize-y mt-1 mb-2" rows="5" placeholder="Enter raw thoughts, facts, or custom arguments. Selected authorities will be automatically included..." style="font-size:.82rem;"></textarea>
+                  <textarea id="builder-notes-input" class="oral-textarea w-full min-h-[120px] resize-y mt-1 mb-2" rows="4" placeholder="Enter raw thoughts, facts, or custom arguments. Selected authorities will be automatically included..." style="font-size:.82rem;"></textarea>
                 </div>
-                <button class="btn-analyze w-full py-3.5 text-sm tracking-widest font-medium transition-all duration-300 hover:shadow-[0_0_20px_rgba(201,168,76,0.3)]" id="btn-builder-submit" disabled>
+                <button class="btn-analyze w-full py-3 text-sm tracking-widest font-medium transition-all duration-300 hover:shadow-[0_0_20px_rgba(201,168,76,0.3)]" id="btn-builder-submit" disabled>
                   Draft Submission →
                 </button>
               </form>
             </div>
 
+            <!-- Case Overview/Context Card -->
+            <div class="bg-white/5 border border-white/10 rounded-xl p-4 backdrop-blur-md">
+              <div class="text-[10px] uppercase tracking-widest text-white-muted font-sans font-semibold mb-2">Case Summary Context</div>
+              <div id="stage3-case-context" class="text-xs text-white-muted font-serif leading-relaxed max-h-[200px] overflow-y-auto pr-1">
+                Upload and analyze a proposition to see summary context here.
+              </div>
+            </div>
+
+            <!-- Hidden elements to preserve JS compatibility -->
+            <div id="live-intelligence-panel" class="hidden">
+              <span id="intel-cases-count">0</span>
+              <span id="intel-statutes-count">0</span>
+              <div id="intel-pills-container"></div>
+              <div id="intel-empty-hint"></div>
+            </div>
+            <div id="workspace-refinements-panel" class="hidden"></div>
+          </div>
+          
+          <!-- CENTER PANEL: Appellate Memorial (72% width) -->
+          <div class="w-full lg:w-[72%] flex flex-col space-y-4">
+            <div class="ws-up-eyebrow flex items-center gap-1.5 text-xs text-moot-accent font-semibold tracking-widest uppercase">
+              <span class="w-1.5 h-1.5 rounded-full bg-moot-accent"></span>
+              Appellate Memorial
+            </div>
+
             <!-- AI Counsel Output Workspace -->
-            <div id="ai-counsel-workspace" class="flex-1 flex flex-col min-h-[400px] relative">
+            <div id="ai-counsel-workspace" class="flex-1 flex flex-col min-h-[500px] relative">
               <div class="flex-1 bg-white/5 border border-white/10 rounded-xl p-6 flex flex-col transition-all duration-300 hover:border-white/15">
                 <!-- Empty state -->
-                <div id="builder-empty-state" class="flex flex-col items-center justify-center text-center p-6 h-full min-h-[300px]">
+                <div id="builder-empty-state" class="flex flex-col items-center justify-center text-center p-6 h-full min-h-[400px]">
                   <div class="text-moot-accent text-5xl mb-4 animate-[pulse_2s_infinite]">⚖️</div>
                   <h3 class="text-lg font-serif text-white font-normal">AI Counsel Workspace</h3>
                   <p class="text-xs text-white-muted mt-2 max-w-sm mb-6">Complete the drafting steps or select recommended authorities, then click Draft Submission to generate your appellate memorial.</p>
-                  <div class="grid grid-cols-3 gap-3 w-full mt-2">
+                  <div class="grid grid-cols-3 gap-3 w-full max-w-lg mt-2">
                     <div class="p-3 bg-white/[0.02] border border-white/5 rounded-lg text-left">
                       <div class="text-xs font-semibold text-moot-accent mb-1">⚖️ IRAC</div>
                       <div class="text-[10px] text-white-muted">Strict logical organization of arguments.</div>
@@ -2442,14 +2497,14 @@ p  { color:var(--white-2); }
                       <div class="text-[10px] text-white-muted">Verification of case law.</div>
                     </div>
                     <div class="p-3 bg-white/[0.02] border border-white/5 rounded-lg text-left">
-                      <div class="text-xs font-semibold text-amber-400 mb-1">🏛️ Statutes</div>
+                      <div class="text-xs font-semibold text-amber-400 mb-1">Statutes</div>
                       <div class="text-[10px] text-white-muted">Integration of statutory provisions.</div>
                     </div>
                   </div>
                 </div>
 
                 <!-- Loading State -->
-                <div id="builder-loading-state" class="hidden flex-col items-center justify-center text-center p-6 h-full min-h-[300px] w-full">
+                <div id="builder-loading-state" class="hidden flex-col items-center justify-center text-center p-6 h-full min-h-[400px] w-full">
                   <div class="flex items-center gap-2 mb-8 bg-indigo-500/10 border border-indigo-500/20 px-3 py-1.5 rounded-full animate-pulse">
                     <span class="w-2 h-2 rounded-full bg-indigo-400"></span>
                     <span class="text-xs uppercase tracking-wider text-indigo-300 font-sans font-medium">AI Counsel Active</span>
@@ -2470,53 +2525,6 @@ p  { color:var(--white-2); }
                 <!-- Output State -->
                 <div id="builder-output-state" class="hidden flex-col gap-4 w-full h-full text-left"></div>
               </div>
-            </div>
-          </div>
-          
-          <!-- RIGHT PANEL: Research, Recommendations & Citation Strength -->
-          <div class="w-full lg:w-[30%] flex flex-col space-y-4">
-            <div class="ws-up-eyebrow flex items-center gap-1.5 text-xs text-moot-accent font-semibold tracking-widest uppercase">
-              <span class="w-1.5 h-1.5 rounded-full bg-moot-accent"></span>
-              Research & Refinement
-            </div>
-
-            <!-- Recommended Authorities -->
-            <div class="bg-white/5 border border-white/10 rounded-xl p-5 backdrop-blur-md flex flex-col gap-3">
-              <div class="text-xs uppercase tracking-wider text-moot-accent font-semibold flex items-center gap-1.5 font-sans mb-3">
-                <span>💡</span> Recommended Authorities
-              </div>
-              <div class="text-[10px] text-white-muted leading-relaxed font-sans mb-1">
-                Click a card below to toggle it as a supporting authority. Active authorities are fed into the AI drafting engine.
-              </div>
-              <div id="pre-draft-chips" class="flex flex-col gap-2 max-h-[300px] overflow-y-auto pr-1">
-                <!-- Populated dynamically via JS -->
-              </div>
-            </div>
-
-            <!-- Precedent Intelligence Scanner -->
-            <div id="live-intelligence-panel" class="p-5 bg-white/5 border border-white/10 rounded-xl backdrop-blur-md flex flex-col gap-3">
-              <div class="flex items-center justify-between">
-                <div class="flex items-center gap-2">
-                  <span class="relative flex h-2 w-2">
-                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                    <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                  </span>
-                  <span class="text-xs uppercase tracking-widest text-emerald-400 font-semibold font-sans">Precedent Intelligence Scanner</span>
-                </div>
-              </div>
-              <div class="flex justify-between text-[10px] font-sans text-white-muted border-t border-white/5 pt-2">
-                <div>Cases: <span id="intel-cases-count" class="text-white font-semibold">0</span></div>
-                <div>Statutes: <span id="intel-statutes-count" class="text-white font-semibold">0</span></div>
-              </div>
-              <div id="intel-pills-container" class="flex flex-wrap gap-1.5 empty:hidden"></div>
-              <div id="intel-empty-hint" class="text-[11px] text-white-muted italic font-sans">
-                Authorities typed in your notes will appear here as verified precedents...
-              </div>
-            </div>
-
-            <!-- Citations & Rebuttals Outputs (Appears after argument is built) -->
-            <div id="workspace-refinements-panel" class="hidden flex flex-col gap-4">
-              <!-- Rendered dynamically by argumentBuilder.js when argument is generated -->
             </div>
           </div>
           
@@ -2574,27 +2582,16 @@ p  { color:var(--white-2); }
 
           <!-- RIGHT COLUMN: Guided resources -->
           <div id="stage-5-guided-content" class="w-full md:w-[45%] flex flex-col gap-4">
-            <div class="bg-white/5 border border-white/10 rounded-xl p-5 backdrop-blur-md">
+            <div class="bg-white/5 border border-white/10 rounded-xl p-5 backdrop-blur-md flex flex-col">
               <div class="text-xs uppercase tracking-wider text-moot-accent font-semibold mb-3 flex items-center gap-1.5 font-sans">
-                <span>🎙️</span> AI-Generated Oral Guidance
+                <span>🎙️</span> Chambers Advocacy Briefing & Battle Plan
               </div>
               
-              <!-- Tab headers -->
-              <div class="flex bg-white/5 p-1 rounded-lg gap-1 mb-4 border border-white/5">
-                <button type="button" onclick="window.switchStage5Tab('outline')" id="stage5-tab-outline" class="flex-1 py-1.5 text-[11px] font-sans font-medium uppercase tracking-wider rounded border-none bg-indigo-500/10 text-indigo-400 cursor-pointer">Outline</button>
-                <button type="button" onclick="window.switchStage5Tab('rebuttals')" id="stage5-tab-rebuttals" class="flex-1 py-1.5 text-[11px] font-sans font-medium uppercase tracking-wider rounded border-none bg-transparent text-white-muted cursor-pointer">Rebuttals</button>
-                <button type="button" onclick="window.switchStage5Tab('vulnerabilities')" id="stage5-tab-vulnerabilities" class="flex-1 py-1.5 text-[11px] font-sans font-medium uppercase tracking-wider rounded border-none bg-transparent text-white-muted cursor-pointer">Vulnerabilities</button>
-              </div>
-
-              <!-- Tab contents -->
-              <div id="stage5-content-outline" class="text-xs text-white-2 space-y-3 max-h-[600px] overflow-y-auto pr-2">
-                <div class="text-white-muted italic">Draft your submissions in Stage 3 to populate your custom oral outline here.</div>
-              </div>
-              <div id="stage5-content-rebuttals" class="text-xs text-white-2 space-y-3 max-h-[600px] overflow-y-auto pr-2 hidden">
-                <div class="text-white-muted italic">Draft your submissions in Stage 3 to populate your custom rebuttals here.</div>
-              </div>
-              <div id="stage5-content-vulnerabilities" class="text-xs text-white-2 space-y-3 max-h-[600px] overflow-y-auto pr-2 hidden">
-                <div class="text-white-muted italic">Upload and analyze a proposition in Stage 1 to see bench vulnerabilities here.</div>
+              <!-- Single scrollable briefing container -->
+              <div id="stage4-chamber-briefing" class="text-xs text-white-2 space-y-4 max-h-[750px] overflow-y-auto pr-2">
+                <div class="text-white-muted italic p-4 bg-white/[0.01] border border-dashed border-white/10 rounded-xl font-sans text-center">
+                  Draft your submissions in Stage 3 to populate your Chambers Briefing & Battle Plan here.
+                </div>
               </div>
             </div>
           </div>
@@ -2605,35 +2602,33 @@ p  { color:var(--white-2); }
       <div class="ws-stage" id="stage-5-container" style="display:none; flex:1; flex-direction:column; min-height:0; overflow:hidden;">
         <!-- BENCH SIMULATION PANEL -->
         <div class="ws-panel bench-panel active" id="wsp-bench" style="display:flex; flex:1; flex-direction:column; min-height:0; overflow:hidden;">
-          <div class="bench-controls">
-            <div style="font-size:.62rem;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--white-muted);flex-shrink:0;">Difficulty</div>
-            <button class="diff-btn"                id="bench-diff-easy"     onclick="setBenchDifficulty('easy')">Easy</button>
-            <button class="diff-btn active-moderate" id="bench-diff-moderate" onclick="setBenchDifficulty('moderate')">Moderate</button>
-            <button class="diff-btn"                id="bench-diff-hard"     onclick="setBenchDifficulty('hard')">Hard</button>
-            <div style="flex:1; display:flex; align-items:center; gap:10px; padding-left:15px;">
-              <div id="bench-voice-status" class="backend-status checking" style="display:none; padding:3px 10px; font-size:.65rem; border-radius:100px;">
+          
+          <!-- GLOBAL CHAMBERS HEADER -->
+          <div class="cr-header flex items-center justify-between" id="chambers-global-header" style="flex-shrink:0;">
+            <div class="cr-header-left">
+              <div class="cr-session-title" id="cr-session-title">Judicial Chambers</div>
+              <div class="cr-session-meta" id="cr-session-meta">Chambers Lobby</div>
+            </div>
+            <div class="flex items-center gap-3">
+              <!-- voice status relocated here -->
+              <div id="bench-voice-status" class="backend-status checking" style="display:none; padding:3px 10px; font-size:.65rem; border-radius:100px; margin-right:10px;">
                 <div class="bs-dot" id="bench-voice-dot"></div>
                 <span id="bench-voice-text">Connecting...</span>
               </div>
+              <div class="cr-timer" id="cr-timer" style="display:none; font-family:monospace;">ELAPSED: 00:00</div>
+              <button class="exit-chambers-btn font-sans" id="chambers-exit-btn" onclick="clearBenchSession()" style="display:none; background:none; border:none; color:var(--white-muted); cursor:pointer; font-size:11px; text-transform:uppercase; letter-spacing:0.08em; padding:6px 12px; border-radius:4px; transition:all 0.2s;" onmouseover="this.style.color='var(--white)'" onmouseout="this.style.color='var(--white-muted)'">Exit Chambers</button>
             </div>
-            <button class="btn-sm btn-sm-gold tracking-widest font-medium" id="btn-bench-oral" onclick="startOralRound()">Start Oral Round</button>
-            <button class="btn-sm btn-sm-ghost tracking-widest font-medium" id="btn-bench-start" onclick="startBenchSession()">Start New Session</button>
-            <button class="btn-sm btn-sm-ghost tracking-widest font-medium" id="btn-bench-clear" onclick="clearBenchSession()" style="display:none;">Clear</button>
-          </div>  
+          </div>
+
+          <!-- Hidden elements container to maintain JS compatibility -->
+          <div style="display:none;" aria-hidden="true">
+            <button id="btn-bench-oral"></button>
+            <button id="btn-bench-start"></button>
+            <button id="btn-bench-clear"></button>
+          </div>
           
           <!-- COURTROOM VIEW -->
           <div class="courtroom-view" id="courtroom-view">
-            <!-- Courtroom Header -->
-            <div class="cr-header">
-              <div class="cr-header-left">
-                <div class="cr-session-title" id="cr-session-title">Supreme Court of Moot Coach</div>
-                <div class="cr-session-meta" id="cr-session-meta">VOICE BENCH SIMULATION · MODERATE</div>
-              </div>
-              <div class="cr-header-right">
-                <div class="cr-timer" id="cr-timer">ELAPSED: 00:00</div>
-              </div>
-            </div>
-            
             <!-- Bench Header -->
             <div class="cr-bench-header flex flex-col items-center justify-center p-6 border-b border-moot-border bg-[#0e1220]/60">
               <div id="cr-judge-name" class="font-serif text-xl text-white mb-1">⚖️ Presiding Judge</div>
@@ -2694,10 +2689,21 @@ p  { color:var(--white-2); }
           </div>
 
           <div class="bench-empty" id="bench-empty">
-            <div class="be-card">
+            <div class="be-card flex flex-col items-center">
               <div class="be-icon">⚖</div>
               <h3 class="be-title">Judicial Chambers</h3>
               <p class="be-sub">Practice appellate advocacy under intense questioning. Face a hostile AI Bench that probes your argument's logic, precedents, and structure.</p>
+              
+              <!-- Chamber Difficulty Selection Card -->
+              <div class="ws-field mt-2 mb-6 flex flex-col items-center gap-2 w-full max-w-[280px]">
+                <span class="text-[10px] tracking-widest uppercase text-white-muted font-sans font-semibold">Chamber Difficulty</span>
+                <div class="oral-difficulty-row flex justify-center gap-2 w-full">
+                  <button class="diff-btn text-[10px] uppercase font-sans tracking-wider py-1.5 px-3 flex-1" id="bench-diff-easy" onclick="setBenchDifficulty('easy')">Easy</button>
+                  <button class="diff-btn active-moderate text-[10px] uppercase font-sans tracking-wider py-1.5 px-3 flex-1" id="bench-diff-moderate" onclick="setBenchDifficulty('moderate')">Moderate</button>
+                  <button class="diff-btn text-[10px] uppercase font-sans tracking-wider py-1.5 px-3 flex-1" id="bench-diff-hard" onclick="setBenchDifficulty('hard')">Hard</button>
+                </div>
+              </div>
+
               <div class="be-action-group">
                 <button class="btn-primary tracking-widest font-medium" onclick="startOralRound()">
                   🎙️ Start Oral Round (Voice)
@@ -2721,16 +2727,15 @@ p  { color:var(--white-2); }
         </div>
       </div>
 
-      <!-- WIZARD FOOTER -->
-      <footer class="ws-wizard-footer">
-        <button class="btn-outline tracking-widest font-medium" id="wizard-prev-btn" onclick="window.wizardPrev()" style="display:none;">
-          ← Previous Stage
+      <!-- FLOATING WIZARD NAVIGATION -->
+      <div class="ws-floating-nav">
+        <button id="wizard-prev-btn" onclick="window.wizardPrev()" style="display:none;">
+          ← Previous
         </button>
-        <div style="flex:1;"></div>
-        <button class="btn-primary tracking-widest font-medium" id="wizard-next-btn" onclick="window.wizardNext()">
-          Next Stage →
+        <button id="wizard-next-btn" class="primary" onclick="window.wizardNext()">
+          Next →
         </button>
-      </footer>
+      </div>
     </main>
   </div><!-- /ws-body -->
 </div>

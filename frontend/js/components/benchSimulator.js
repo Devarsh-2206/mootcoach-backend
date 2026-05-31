@@ -66,6 +66,15 @@ export function startBenchSession() {
     chat.querySelectorAll('.bench-msg').forEach(m => m.remove());
   }
 
+  // Update Global Chambers Header for Text Session
+  const mootName = document.getElementById('ws-moot-name')?.value?.trim() || 'General Appellate Docket';
+  const sessionTitleEl = document.getElementById('cr-session-title');
+  const sessionMetaEl = document.getElementById('cr-session-meta');
+  const exitBtn = document.getElementById('chambers-exit-btn');
+  if (sessionTitleEl) sessionTitleEl.textContent = mootName;
+  if (sessionMetaEl) sessionMetaEl.textContent = `TEXT BENCH SIMULATION · ${benchDifficultyMode.toUpperCase()} BENCH`;
+  if (exitBtn) exitBtn.style.display = 'block';
+
   const openingMap = {
     easy:     "Good morning, Counsel. This Court is ready to hear your submissions. Please state the nature of your petition and establish your locus standi before proceeding.",
     moderate: "Counsel, you may proceed. This Bench has read the proposition. Begin with your first issue and your primary submission on it. Be precise.",
@@ -109,6 +118,18 @@ export function clearBenchSession() {
   if (btnClear) btnClear.style.display = 'none';
   if (btnStart) btnStart.textContent   = 'Start New Session';
   if (empty)    empty.style.display    = '';
+
+  // Reset Global Chambers Header
+  const sessionTitleEl = document.getElementById('cr-session-title');
+  const sessionMetaEl = document.getElementById('cr-session-meta');
+  const exitBtn = document.getElementById('chambers-exit-btn');
+  const timerEl = document.getElementById('cr-timer');
+  const voiceStatusEl = document.getElementById('bench-voice-status');
+  if (sessionTitleEl) sessionTitleEl.textContent = 'Judicial Chambers';
+  if (sessionMetaEl) sessionMetaEl.textContent = 'Chambers Lobby';
+  if (exitBtn) exitBtn.style.display = 'none';
+  if (timerEl) timerEl.style.display = 'none';
+  if (voiceStatusEl) voiceStatusEl.style.display = 'none';
 }
 
 export function appendBenchMessage(role, text, pressureLevel, targetWeakness, displayPressure) {
@@ -591,12 +612,19 @@ export async function startOralRound() {
   if (panel) panel.innerHTML = '';
   if (courtroom) courtroom.classList.add('active');
 
-  // Load Moot details into headers
+  // Load Moot details into headers and show controls
   const mootName = document.getElementById('ws-moot-name')?.value?.trim() || 'General Appellate Docket';
   const sessionTitleEl = document.getElementById('cr-session-title');
   const sessionMetaEl = document.getElementById('cr-session-meta');
+  const exitBtn = document.getElementById('chambers-exit-btn');
+  const timerEl = document.getElementById('cr-timer');
+  const voiceStatusEl = document.getElementById('bench-voice-status');
+
   if (sessionTitleEl) sessionTitleEl.textContent = mootName;
   if (sessionMetaEl) sessionMetaEl.textContent = `VOICE BENCH SIMULATION · ${benchDifficultyMode.toUpperCase()} BENCH`;
+  if (exitBtn) exitBtn.style.display = 'block';
+  if (timerEl) timerEl.style.display = 'block';
+  if (voiceStatusEl) voiceStatusEl.style.display = 'flex';
 
   updateBenchState('connecting');
   updateBenchState('mic_ready');
@@ -719,6 +747,18 @@ export function stopOralRound() {
 
   const durationSec = engineStopOralRound();
   updateBenchState('ended');
+
+  // Reset Global Chambers Header
+  const sessionTitleEl = document.getElementById('cr-session-title');
+  const sessionMetaEl = document.getElementById('cr-session-meta');
+  const exitBtn = document.getElementById('chambers-exit-btn');
+  const timerEl = document.getElementById('cr-timer');
+  const voiceStatusEl = document.getElementById('bench-voice-status');
+  if (sessionTitleEl) sessionTitleEl.textContent = 'Judicial Chambers';
+  if (sessionMetaEl) sessionMetaEl.textContent = 'Chambers Lobby';
+  if (exitBtn) exitBtn.style.display = 'none';
+  if (timerEl) timerEl.style.display = 'none';
+  if (voiceStatusEl) voiceStatusEl.style.display = 'none';
 
   if (currentUser && voiceSessionStartTime) {
     const duration = Math.floor((Date.now() - voiceSessionStartTime) / 1000);

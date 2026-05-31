@@ -763,6 +763,33 @@ function renderIRAC(iracData) {
 
   const initialNotesScore = Math.max(15, Math.min(60, (casesCount * 10) + (statutesCount * 8) + Math.round(notes.length / 15)));
 
+  const strongestArg = iracData.petitionerArguments?.[0] || iracData.respondentArguments?.[0] || iracData.memorial?.issue || "Core constitutional statutory challenge against state action.";
+  
+  let weakestPoint = dynamicWeakness;
+  let benchRisk = vulnerabilityText;
+  let recommendedFix = rebuttalText;
+
+  // Refine for Puttaswamy / Privacy if applicable
+  const lowerNotes = notes.toLowerCase();
+  if (lowerNotes.includes("puttaswamy") || lowerNotes.includes("privacy")) {
+    if (!lowerNotes.includes("proportional") && !lowerNotes.includes("proportion")) {
+      weakestPoint = "Lack of proportionality analysis under Puttaswamy.";
+      benchRisk = "Judge may challenge necessity requirement of the privacy restriction.";
+      recommendedFix = "Add argument on less restrictive alternatives and the four-prong proportionality standard.";
+    }
+  }
+
+  const caseNames = (iracData.precedentsNeeded || []).map(c => typeof c === 'string' ? c : c.caseName);
+  const precedentLeverage = caseNames.length > 0 ? `Apply ratio and holding from landmark precedent ${caseNames[0]}.` : "Ground standard in first-principles constitutional interpretation.";
+
+  const judicialConcern = iracData.benchQuestions?.[0] || "Scope of state intrusion versus individual liberties.";
+
+  const probOfChallenge = benchResistance < 50 ? "High (90%+ chance of aggressive questioning)" : (benchResistance < 75 ? "Moderate (65% chance of questioning)" : "Low (30% chance of questioning)");
+
+  const missingAuth = (iracData.missingAngles && iracData.missingAngles.length > 0) ? iracData.missingAngles[0] : "None identified in current draft scope.";
+
+  const strategicImprovement = iracData.citations?.weaklySupportedClaims?.[0]?.suggestion || "Trace proportionality prongs and buttress with additional binding precedents.";
+
   outputState.innerHTML = `
 <div class="flex flex-col gap-5 w-full h-full font-sans">
   
@@ -788,203 +815,64 @@ function renderIRAC(iracData) {
       <button class="btn-sm btn-sm-ghost text-xs tracking-wider flex items-center gap-1.5 font-sans cursor-pointer" onclick="openAuxPanel('citations', this)">
         📖 Strengthen Citations
       </button>
-      <button class="btn-sm btn-sm-ghost text-xs tracking-wider flex items-center gap-1.5 font-sans cursor-pointer" onclick="openAuxPanel('pack', this)">
-        🎙️ Oral Advocacy Suite
-      </button>
     </div>
   </div>
 
-  <!-- Draft Metrics Card -->
-  <div class="grid grid-cols-2 md:grid-cols-5 gap-3 p-4 bg-white/5 border border-white/10 rounded-xl font-sans">
-    <div class="flex flex-col">
-      <span class="text-[9px] text-white-muted uppercase tracking-widest font-sans">Authorities Used</span>
-      <span class="text-lg font-semibold text-white mt-1 flex items-center gap-1 font-sans">📖 <span id="metric-authorities">${casesCount}</span></span>
+  <!-- ACTIONABLE INTELLIGENCE WIDGET -->
+  <div class="p-5 bg-white/[0.02] border border-white/10 rounded-xl flex flex-col gap-4 font-sans relative overflow-hidden">
+    <div class="absolute top-0 left-0 w-[4px] h-full bg-[#c9a84c]"></div>
+    <div class="text-xs uppercase tracking-widest text-moot-accent font-semibold flex items-center gap-1.5 font-sans">
+      ✦ CHAMBERS INTELLIGENCE BRIEF
     </div>
-    <div class="flex flex-col">
-      <span class="text-[9px] text-white-muted uppercase tracking-widest font-sans">Articles Cited</span>
-      <span class="text-lg font-semibold text-white mt-1 flex items-center gap-1 font-sans">🏛️ <span id="metric-articles">${statutesCount}</span></span>
-    </div>
-    <div class="flex flex-col">
-      <span class="text-[9px] text-white-muted uppercase tracking-widest font-sans">Complexity</span>
-      <span class="text-sm font-semibold text-indigo-400 mt-2 font-sans">Appellate Level</span>
-    </div>
-    <div class="flex flex-col">
-      <span class="text-[9px] text-white-muted uppercase tracking-widest font-sans">Persuasiveness</span>
-      <span class="text-sm font-semibold text-emerald-400 mt-2 font-sans"><span id="metric-persuasiveness">${persuasivenessScore}</span> / 100</span>
-    </div>
-    <div class="flex flex-col col-span-2 md:col-span-1">
-      <span class="text-[9px] text-white-muted uppercase tracking-widest font-sans">Readiness Score</span>
-      <span class="text-sm font-semibold text-moot-accent mt-2 font-sans"><span id="metric-readiness">${readinessScore}</span>%</span>
-    </div>
-  </div>
-
-  <!-- Row of Intelligence Panels (Argument Strength & Bench Vulnerabilities) -->
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-    <!-- Argument Strength Engine -->
-    <div class="p-4 bg-white/5 border border-white/10 rounded-xl flex flex-col gap-3">
-      <div class="flex justify-between items-center">
-        <span class="text-xs uppercase tracking-wider text-white-2 font-semibold font-sans">Argument Strength Engine</span>
-        <span class="text-xs font-bold text-moot-accent font-sans"><span id="strength-score-val">${strengthScore}</span>%</span>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-1 border-b border-white/5 pb-4">
+      <div class="flex flex-col gap-1">
+        <span class="text-[9px] uppercase tracking-wider text-red-400 font-semibold font-sans">Weakest Point</span>
+        <div class="text-xs text-white-2 leading-relaxed font-sans" id="intel-weakest-point">${weakestPoint}</div>
       </div>
-      <!-- CSS Progress Bar -->
-      <div class="w-full h-2 bg-navy-5 rounded-full overflow-hidden border border-white/5 font-sans">
-        <div id="strength-progress-bar" class="h-full bg-gradient-to-r from-amber-500 to-moot-accent transition-all duration-500" style="width: ${strengthScore}%"></div>
+      <div class="flex flex-col gap-1">
+        <span class="text-[9px] uppercase tracking-wider text-amber-400 font-semibold font-sans">Bench Risk</span>
+        <div class="text-xs text-white-2 leading-relaxed font-sans" id="intel-bench-risk">${benchRisk}</div>
       </div>
-      <!-- Strengths & Weaknesses list -->
-      <div class="flex flex-col gap-2 mt-1">
-        <div class="flex items-start gap-2 text-xs text-white-muted font-sans">
-          <span class="text-emerald-400">✔</span>
-          <span id="strength-engine-pos">${dynamicStrength}</span>
-        </div>
-        <div class="flex items-start gap-2 text-xs text-white-muted font-sans">
-          <span class="text-amber-400">▲</span>
-          <span id="strength-engine-neg">${dynamicWeakness}</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Bench Vulnerabilities Panel -->
-    <div class="p-4 bg-white/5 border border-white/10 rounded-xl flex flex-col gap-3 font-sans">
-      <div class="flex justify-between items-center">
-        <span class="text-xs uppercase tracking-wider text-white-2 font-semibold font-sans">Bench Vulnerabilities</span>
-        <span id="vulnerability-risk-badge" class="px-2 py-0.5 text-[9px] font-semibold tracking-wider rounded uppercase font-sans ${riskBadgeCls}">${riskLevel}</span>
-      </div>
-      <div class="text-xs text-white-muted font-sans">
-        <strong>Vulnerable claim:</strong> ${vulnerabilityText}
-      </div>
-      <div class="text-[11px] bg-red-950/20 border border-red-900/30 rounded p-2 text-gray-300 font-sans">
-        <strong class="text-red-400 font-sans uppercase text-[9px] tracking-wider block mb-1">Suggested Rebuttal Strategy:</strong>
-        <span id="vulnerability-rebuttal-strategy">${rebuttalText}</span>
-      </div>
-    </div>
-  </div>
-
-  <!-- Row of Progression and Transparency Panels -->
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-    <!-- Readiness Transparency Audit -->
-    <div class="p-4 bg-white/5 border border-white/10 rounded-xl flex flex-col gap-3 font-sans">
-      <div class="flex justify-between items-center">
-        <span class="text-xs uppercase tracking-wider text-white-2 font-semibold font-sans">⚖️ Readiness Transparency Audit</span>
-        <span class="text-[10px] font-bold text-moot-accent uppercase tracking-widest font-sans">Honest Breakdown</span>
-      </div>
-      <div class="grid grid-cols-2 gap-2 text-xs">
-        <div class="p-2.5 bg-black/20 rounded border border-white/5 flex flex-col">
-          <span class="text-[8px] text-white-muted uppercase tracking-widest font-sans">Authority Support</span>
-          <span class="text-xs font-semibold text-white mt-1 font-mono">${authoritySupport} / 20</span>
-        </div>
-        <div class="p-2.5 bg-black/20 rounded border border-white/5 flex flex-col">
-          <span class="text-[8px] text-white-muted uppercase tracking-widest font-sans">Constitutional Depth</span>
-          <span class="text-xs font-semibold text-white mt-1 font-mono">${constitutionalDepth} / 25</span>
-        </div>
-        <div class="p-2.5 bg-black/20 rounded border border-white/5 flex flex-col">
-          <span class="text-[8px] text-white-muted uppercase tracking-widest font-sans">Reasoning Quality</span>
-          <span class="text-xs font-semibold text-white mt-1 font-mono">${reasoningQuality} / 25</span>
-        </div>
-        <div class="p-2.5 bg-black/20 rounded border border-white/5 flex flex-col">
-          <span class="text-[8px] text-white-muted uppercase tracking-widest font-sans">Strategic Depth</span>
-          <span class="text-xs font-semibold text-white mt-1 font-mono">${strategicDepth} / 15</span>
-        </div>
-        <div class="p-2.5 bg-black/20 rounded border border-white/5 flex flex-col">
-          <span class="text-[8px] text-white-muted uppercase tracking-widest font-sans">Structure</span>
-          <span class="text-xs font-semibold text-white mt-1 font-mono">${structure} / 15</span>
-        </div>
-        <div class="p-2.5 bg-black/20 rounded border border-white/5 flex flex-col">
-          <span class="text-[8px] text-white-muted uppercase tracking-widest font-sans font-semibold">Synthesis Score</span>
-          <span class="text-xs font-semibold text-moot-accent mt-1 font-mono">${synthesisScore} / 100</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Advocacy Progression Tracker -->
-    <div class="p-4 bg-white/5 border border-white/10 rounded-xl flex flex-col gap-3 font-sans">
-      <div class="flex justify-between items-center">
-        <span class="text-xs uppercase tracking-wider text-white-2 font-semibold font-sans">📈 Advocacy Progression Tracker</span>
-        <span class="text-xs font-bold text-moot-accent font-sans">${finalReadinessScore}%</span>
-      </div>
-      <div class="flex flex-col gap-2 pl-1 mt-1 font-sans">
-        <div class="flex items-center gap-2">
-          <span class="w-4 h-4 rounded-full flex items-center justify-center text-[9px] bg-white/10 text-white font-mono">1</span>
-          <div class="flex-1 flex justify-between items-center text-xs font-sans">
-            <span class="text-white-muted">Initial Notes Quality</span>
-            <span class="text-red-400 font-mono font-medium">${initialNotesScore}%</span>
-          </div>
-        </div>
-        <div class="flex items-center gap-2">
-          <span class="w-4 h-4 rounded-full flex items-center justify-center text-[9px] bg-emerald-500/20 text-emerald-400 font-mono">2</span>
-          <div class="flex-1 flex justify-between items-center text-xs font-sans">
-            <span class="text-white font-semibold">Appellate Memorial Synthesis</span>
-            <span class="text-emerald-400 font-mono font-medium">${synthesisScore}% (+${synthesisScore - initialNotesScore}%)</span>
-          </div>
-        </div>
-        <div class="flex items-center gap-2">
-          <span class="w-4 h-4 rounded-full flex items-center justify-center text-[9px] ${citationsStrengthened ? 'bg-emerald-500/20 text-emerald-400' : 'bg-white/5 text-white-muted'} font-mono">3</span>
-          <div class="flex-1 flex justify-between items-center text-xs font-sans">
-            <span class="text-white-muted">Citation Strengthening</span>
-            <span class="${citationsStrengthened ? 'text-emerald-400' : 'text-white-muted'} font-mono font-semibold">${citationsStrengthened ? 'Completed (+8%)' : 'Pending (+8% Potential)'}</span>
-          </div>
-        </div>
-        <div class="flex items-center gap-2">
-          <span class="w-4 h-4 rounded-full flex items-center justify-center text-[9px] ${rebuttalViewed ? 'bg-emerald-500/20 text-emerald-400' : 'bg-white/5 text-white-muted'} font-mono">4</span>
-          <div class="flex-1 flex justify-between items-center text-xs font-sans">
-            <span class="text-white-muted">Rebuttal Strategy Review</span>
-            <span class="${rebuttalViewed ? 'text-emerald-400' : 'text-white-muted'} font-mono font-semibold">${rebuttalViewed ? 'Completed (+7%)' : 'Pending (+7% Potential)'}</span>
-          </div>
-        </div>
+      <div class="flex flex-col gap-1">
+        <span class="text-[9px] uppercase tracking-wider text-emerald-400 font-semibold font-sans">Recommended Fix</span>
+        <div class="text-xs text-white-2 leading-relaxed font-sans" id="intel-recommended-fix">${recommendedFix}</div>
       </div>
     </div>
     
-    <!-- Appellate Improvement Pathway Card -->
-    ${getImprovementPathwayHTML(notes, casesCount, statutesCount, { authoritySupport, constitutionalDepth, reasoningQuality, strategicDepth, structure }, finalReadinessScore)}
+    <!-- ADVOCACY STRATEGY MATRIX -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 text-xs pt-1">
+      <div class="flex flex-col">
+        <span class="text-[8px] text-white-muted uppercase tracking-widest font-sans font-semibold">Strongest Argument</span>
+        <span class="text-white mt-0.5 leading-relaxed font-sans">${strongestArg}</span>
+      </div>
+      <div class="flex flex-col">
+        <span class="text-[8px] text-white-muted uppercase tracking-widest font-sans font-semibold">Precedent Leverage</span>
+        <span class="text-white mt-0.5 leading-relaxed font-sans">${precedentLeverage}</span>
+      </div>
+      <div class="flex flex-col">
+        <span class="text-[8px] text-white-muted uppercase tracking-widest font-sans font-semibold">Judicial Concern</span>
+        <span class="text-white mt-0.5 leading-relaxed font-sans">${judicialConcern}</span>
+      </div>
+      <div class="flex flex-col">
+        <span class="text-[8px] text-white-muted uppercase tracking-widest font-sans font-semibold">Missing Authorities</span>
+        <span class="text-white mt-0.5 leading-relaxed font-sans">${missingAuth}</span>
+      </div>
+      <div class="flex flex-col">
+        <span class="text-[8px] text-white-muted uppercase tracking-widest font-sans font-semibold">Strategic Improvement</span>
+        <span class="text-white mt-0.5 leading-relaxed font-sans">${strategicImprovement}</span>
+      </div>
+      <div class="flex flex-col">
+        <span class="text-[8px] text-white-muted uppercase tracking-widest font-sans font-semibold">Probability of Challenge</span>
+        <span class="text-amber-400 mt-0.5 font-sans font-semibold">${probOfChallenge}</span>
+      </div>
+    </div>
   </div>
 
-  <!-- Premium Memorial Completion Card -->
-  <div class="p-8 bg-gradient-to-br from-indigo-950/20 to-navy-3 border border-indigo-500/20 rounded-xl flex flex-col items-center text-center gap-4 mt-2 shadow-xl animate-fade-in font-sans">
-    <div class="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 text-xl font-bold">✓</div>
-    <div>
-      <h3 class="text-lg font-sans font-semibold text-white">Appellate Memorial Generated</h3>
-      <p class="text-xs text-white-muted mt-1 max-w-sm font-sans">The legal argument has been compiled into a professional Supreme Court memorial. Review the full draft, export, or print via the workspace panels.</p>
-    </div>
-    
-    <!-- Quality Indicators Grid -->
-    <div class="grid grid-cols-2 gap-3 w-full max-w-md mt-2 font-sans">
-      <div class="p-3 bg-white/[0.02] border border-white/5 rounded-lg flex flex-col items-center">
-        <span class="text-[8px] text-white-muted uppercase tracking-widest font-sans font-semibold">Authority Support</span>
-        <span class="text-xs font-semibold ${authClass} mt-1 font-sans">${authLabel}</span>
-      </div>
-      <div class="p-3 bg-white/[0.02] border border-white/5 rounded-lg flex flex-col items-center">
-        <span class="text-[8px] text-white-muted uppercase tracking-widest font-sans font-semibold">Bench Risk</span>
-        <span class="text-xs font-semibold ${riskClass} mt-1 font-sans">${riskLabelText}</span>
-      </div>
-      <div class="p-3 bg-white/[0.02] border border-white/5 rounded-lg flex flex-col items-center">
-        <span class="text-[8px] text-white-muted uppercase tracking-widest font-sans font-semibold">Citation Coverage</span>
-        <span class="text-xs font-semibold ${coverageClass} mt-1 font-sans">${coverageLabel}</span>
-      </div>
-      <div class="p-3 bg-white/[0.02] border border-white/5 rounded-lg flex flex-col items-center">
-        <span class="text-[8px] text-white-muted uppercase tracking-widest font-sans font-semibold">Submission Confidence</span>
-        <span class="text-xs font-semibold ${confidenceClass} mt-1 font-sans">${confidenceLabel}</span>
-      </div>
-    </div>
-
-    <!-- Metadata grid -->
-    <div class="grid grid-cols-2 gap-x-8 gap-y-3 p-4 bg-white/[0.02] border border-white/5 rounded-lg w-full max-w-md text-left text-xs font-sans text-white-muted mt-2">
-      <div><strong>Issue:</strong> <span class="text-white font-sans">${esc(currentIssue)}</span></div>
-      <div><strong>Side:</strong> <span class="text-white uppercase tracking-wider font-sans">${esc(currentStance)}</span></div>
-      <div><strong>Authorities Used:</strong> <span id="meta-authorities-count" class="text-white font-sans">${casesCount} case(s)</span></div>
-      <div><strong>Articles Used:</strong> <span id="meta-articles-count" class="text-white font-sans">${statutesCount} article(s)</span></div>
-      <div class="col-span-2 border-t border-white/5 pt-2 mt-1 flex justify-between items-center font-sans">
-        <span>Readiness Score:</span>
-        <span class="text-moot-accent font-bold text-sm font-sans">${readinessScore}%</span>
-      </div>
-    </div>
-
-    <!-- Action buttons -->
-    <div class="flex gap-3 w-full max-w-md mt-2 font-sans">
-      <button class="flex-1 py-3 bg-moot-accent text-black font-semibold text-xs uppercase tracking-wider rounded-md hover:bg-gold-light transition-all cursor-pointer border-none font-sans" onclick="openMemorialViewer()">
-        ⚖️ View Memorial
-      </button>
-      <button class="flex-1 py-3 bg-white/5 border border-white/10 text-white font-semibold text-xs uppercase tracking-wider rounded-md hover:bg-white/10 transition-all cursor-pointer font-sans" onclick="exportAsPDF('memorial')">
-        📄 Export PDF
-      </button>
+  <!-- HERO: APPELLATE MEMORIAL DIRECT RENDERING -->
+  <div class="flex-1 flex flex-col mt-2">
+    <div class="text-xs uppercase tracking-wider text-white-muted font-sans font-semibold mb-3">Appellate Memorial Draft</div>
+    <div id="memorial-container-target" class="w-full">
+      ${storedMemorialHTML}
     </div>
   </div>
 
