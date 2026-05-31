@@ -14,6 +14,7 @@ import {
   stopOralRound as engineStopOralRound 
 } from '../services/audioEngine.js';
 import { logSessionSecurely } from '../services/api.js';
+import { getCurrentSelectedSide, selectedAuthorities } from './argumentBuilder.js';
 
 // Simulator State
 export let benchConversation = [];
@@ -278,12 +279,17 @@ export async function submitToBench() {
   }
 
   try {
+    const selectedIssue = document.getElementById('builder-issue-select')?.value || '';
+    const selectedStance = (typeof getCurrentSelectedSide === 'function') ? getCurrentSelectedSide() : 'Petitioner';
+    const selectedAuthsText = (selectedAuthorities || []).map(a => `${a.name}: ${a.ratio}`).join(', ');
+    const contextPrefix = `[Advocate Side: ${selectedStance.toUpperCase()}] [Target Issue: ${selectedIssue}] [Selected Authorities: ${selectedAuthsText}]\n\n`;
+
     const res = await fetch(`${BASE_URL}/simulate-bench`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         conversationHistory: benchConversation.slice(-10),
-        propositionSummary: currentPropositionContext || '',
+        propositionSummary: contextPrefix + (currentPropositionContext || ''),
         difficulty: benchDifficultyMode,
         studentStatement: statement
       })
@@ -374,33 +380,25 @@ function getDeterministicJudge(str) {
 }
 
 function getOpeningStatement() {
-  const genericOpening = "Counsel, please summarize the principal constitutional issue before this Bench.";
-  
-  if (!lastAnalysis) {
-    console.log("[DEBUG AUDIT] No lastAnalysis found, using generic opening statement.");
-    return genericOpening;
-  }
+  const issueSelect = document.getElementById('builder-issue-select');
+  const selectedIssue = issueSelect ? issueSelect.value : '';
+  const stance = (typeof getCurrentSelectedSide === 'function') ? getCurrentSelectedSide() : 'Petitioner';
+  const displayStance = stance ? (stance.charAt(0).toUpperCase() + stance.slice(1).toLowerCase()) : 'Petitioner';
 
-  try {
-    const analysis = JSON.parse(lastAnalysis);
-    if (analysis && analysis.legalIssues && analysis.legalIssues.length > 0) {
-      const issue = analysis.legalIssues[0];
-      let cleanedIssue = issue.replace(/^(issue\s*\d+\s*:?\s*|whether\s+)/i, '').trim();
-      cleanedIssue = cleanedIssue.charAt(0).toUpperCase() + cleanedIssue.slice(1);
-      
-      if (!cleanedIssue.endsWith('?') && !cleanedIssue.endsWith('.')) {
-        cleanedIssue += '?';
-      }
-      
-      const dynamicOpening = `Counsel, the Bench would like you to address: ${cleanedIssue}`;
-      console.log("[DEBUG AUDIT] Generated dynamic proposition-aware opening statement:", dynamicOpening);
-      return dynamicOpening;
+  if (selectedIssue) {
+    let cleanedIssue = selectedIssue.replace(/^(issue\s*\d+\s*:?\s*|whether\s+)/i, '').trim();
+    cleanedIssue = cleanedIssue.charAt(0).toUpperCase() + cleanedIssue.slice(1);
+    
+    if (!cleanedIssue.endsWith('?') && !cleanedIssue.endsWith('.')) {
+      cleanedIssue += '?';
     }
-  } catch (err) {
-    console.warn("Failed to parse lastAnalysis for opening statement:", err);
+    
+    const dynamicOpening = `Counsel for the ${displayStance}, the Bench is prepared to hear your submissions on this issue: ${cleanedIssue}`;
+    console.log("[DEBUG AUDIT] Generated dynamic selected issue/stance opening statement:", dynamicOpening);
+    return dynamicOpening;
   }
 
-  console.log("[DEBUG AUDIT] Parsing failed or no issues found, using generic opening statement.");
+  const genericOpening = `Counsel for the ${displayStance}, please summarize the principal constitutional issue before this Bench.`;
   return genericOpening;
 }
 

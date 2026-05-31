@@ -298,6 +298,24 @@ export async function startOralRound(callbacks) {
 
     voiceWebSocket.onopen = () => {
       console.log("🎙️ Voice WebSocket opened.");
+      
+      const selectedIssue = document.getElementById('builder-issue-select')?.value || '';
+      const selectedStance = (typeof window.getCurrentSelectedSide === 'function') ? window.getCurrentSelectedSide() : 'Petitioner';
+      const selectedAuths = window.selectedAuthorities || [];
+      const selectedAuthsText = selectedAuths.map(a => `${a.name}: ${a.ratio}`).join(', ');
+      
+      const primingPrompt = `[Appellate Advocacy Hearing Starting] 
+Advocate Stance: ${selectedStance.toUpperCase()}
+Target Legal Issue: ${selectedIssue}
+Selected Authorities: ${selectedAuthsText}
+Case Context Summary: ${currentPropositionContext || 'General dispute'}
+
+Begin the hearing by asking a challenging opening question tailored to this issue and stance. Keep it short and intimidating.`;
+
+      voiceWebSocket.send(JSON.stringify({
+        type: "text",
+        text: primingPrompt
+      }));
     };
 
     voiceWebSocket.onmessage = (event) => {

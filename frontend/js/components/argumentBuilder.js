@@ -8,6 +8,7 @@ import {
 } from './ui.js';
 
 // Argument Builder State
+export let selectedAuthorities = [];
 export let lastBuiltArgument = null;
 export let builtArgumentSide = 'Petitioner';
 
@@ -288,7 +289,7 @@ export function initArgumentBuilder() {
 
   // Validate notes input and trigger real-time scanning
   notesInput.addEventListener('input', () => {
-    submitBtn.disabled = notesInput.value.trim().length < 5;
+    validateDraftForm();
     updateLiveIntelligence(notesInput.value);
     renderPreDraftAuthorities();
   });
@@ -311,8 +312,9 @@ export function initArgumentBuilder() {
   window.openMemorialViewer = openMemorialViewer;
   window.closeMemorialViewer = closeMemorialViewer;
   window.copyMemorial = copyMemorial;
-  window.insertPreDraftAuthority = insertPreDraftAuthority;
   window.renderPreDraftAuthorities = renderPreDraftAuthorities;
+  window.toggleAuthority = toggleAuthority;
+  window.renderStage3Workspace = renderStage3Workspace;
 
   // Bind close panel listeners
   const closeBtn = document.getElementById('aux-panel-close-btn');
@@ -378,6 +380,8 @@ export function initArgumentBuilder() {
   stanceRadios.forEach(radio => {
     radio.addEventListener('change', () => {
       selectedSide = radio.value;
+      selectedAuthorities.length = 0; // Reset selected authorities when stance changes
+      validateDraftForm();
       renderPreDraftAuthorities();
     });
   });
@@ -386,6 +390,8 @@ export function initArgumentBuilder() {
   const issueSelect = document.getElementById('builder-issue-select');
   if (issueSelect) {
     issueSelect.addEventListener('change', () => {
+      selectedAuthorities.length = 0; // Reset selected authorities when issue changes
+      validateDraftForm();
       renderPreDraftAuthorities();
     });
   }
@@ -557,7 +563,13 @@ async function generateArgument() {
   if (!notesInput || !submitBtn || !select) return;
 
   const notes = notesInput.value.trim();
-  if (notes.length < 5) return;
+  let notesToSend = notes;
+  if (selectedAuthorities.length > 0) {
+    const authText = selectedAuthorities.map(a => `Supporting Precedent: ${a.name}. Ratio: ${a.ratio}`).join('\n');
+    notesToSend = notesToSend ? `${notesToSend}\n\n${authText}` : authText;
+  }
+
+  if (notesToSend.trim().length < 5) return;
 
   const stanceRadio = document.querySelector('input[name="stance"]:checked');
   const stance = stanceRadio ? stanceRadio.value : 'Petitioner';
@@ -572,7 +584,7 @@ async function generateArgument() {
   if (loadingState) loadingState.classList.remove('hidden');
 
   try {
-    const data = await buildArgument(stance, issue, notes, currentPropositionContext);
+    const data = await buildArgument(stance, issue, notesToSend, currentPropositionContext);
     
     if (data.success && data.response) {
       lastBuiltArgument = data.response;
@@ -2606,13 +2618,33 @@ function getAuthoritiesForIssueAndStance(issueVal, stance) {
   return matchedAuthorities;
 }
 
+export function validateDraftForm() {
+  const notesInput = document.getElementById('builder-notes-input');
+  const submitBtn = document.getElementById('btn-builder-submit');
+  if (!notesInput || !submitBtn) return;
+  
+  const hasValidNotes = notesInput.value.trim().length >= 5;
+  const hasAuthorities = selectedAuthorities.length > 0;
+  
+  submitBtn.disabled = !(hasValidNotes || hasAuthorities);
+}
+
+export function toggleAuthority(caseName, ratio) {
+  const index = selectedAuthorities.findIndex(a => a.name === caseName);
+  if (index >= 0) {
+    selectedAuthorities.splice(index, 1);
+    showToast(`Deselected: ${caseName}`, "info");
+  } else {
+    selectedAuthorities.push({ name: caseName, ratio: ratio });
+    showToast(`Selected: ${caseName}`, "ok");
+  }
+  validateDraftForm();
+  renderPreDraftAuthorities();
+}
+
 export function renderPreDraftAuthorities() {
   const container = document.getElementById('pre-draft-chips');
   if (!container) return;
-
-  const notesInput = document.getElementById('builder-notes-input');
-  if (!notesInput) return;
-  const notes = notesInput.value;
 
   let stance = getCurrentSelectedSide() || selectedSide || 'Petitioner';
   if (stance.toLowerCase().includes('petitioner') || stance.toLowerCase().includes('appellant') || stance.toLowerCase().includes('challenger')) {
@@ -2632,49 +2664,31 @@ export function renderPreDraftAuthorities() {
   }
 
   container.innerHTML = authorities.map((auth) => {
-    const normalizedNotes = notes.toLowerCase();
-    const isAdded = normalizedNotes.includes(auth.name.toLowerCase()) || 
-                    (auth.name.toLowerCase().includes('whirlpool') && normalizedNotes.includes('whirlpool')) ||
-                    (auth.name.toLowerCase().includes('puttaswamy') && normalizedNotes.includes('puttaswamy')) ||
-                    (auth.name.toLowerCase().includes('royappa') && normalizedNotes.includes('royappa')) ||
-                    (auth.name.toLowerCase().includes('bhasin') && normalizedNotes.includes('bhasin')) ||
-                    (auth.name.toLowerCase().includes('shreya singhal') && normalizedNotes.includes('shreya singhal')) ||
-                    (auth.name.toLowerCase().includes('chandra kumar') && normalizedNotes.includes('chandra kumar')) ||
-                    (auth.name.toLowerCase().includes('mohammad nooh') && normalizedNotes.includes('mohammad nooh')) ||
-                    (auth.name.toLowerCase().includes('v.g. row') && normalizedNotes.includes('v.g. row')) ||
-                    (auth.name.toLowerCase().includes('r.k. garg') && normalizedNotes.includes('r.k. garg')) ||
-                    (auth.name.toLowerCase().includes('modern dental') && normalizedNotes.includes('modern dental')) ||
-                    (auth.name.toLowerCase().includes('pucl') && normalizedNotes.includes('pucl')) ||
-                    (auth.name.toLowerCase().includes('babulal parate') && normalizedNotes.includes('babulal parate')) ||
-                    (auth.name.toLowerCase().includes('nilabati') && normalizedNotes.includes('nilabati')) ||
-                    (auth.name.toLowerCase().includes('d.k. basu') && normalizedNotes.includes('d.k. basu')) ||
-                    (auth.name.toLowerCase().includes('shantilal') && normalizedNotes.includes('shantilal')) ||
-                    (auth.name.toLowerCase().includes('common cause') && normalizedNotes.includes('common cause')) ||
-                    (auth.name.toLowerCase().includes('maneka') && normalizedNotes.includes('maneka'));
+    const isSelected = selectedAuthorities.some(a => a.name === auth.name);
 
-    if (isAdded) {
+    if (isSelected) {
       return `
-        <div class="flex items-center justify-between p-2.5 bg-emerald-500/5 border border-emerald-500/20 rounded-lg gap-2">
+        <div onclick="window.toggleAuthority('${auth.name.replace(/'/g, "\\'")}', '${auth.ratio.replace(/'/g, "\\'")}')" class="flex items-center justify-between p-2.5 bg-emerald-500/5 border border-emerald-500/35 rounded-lg gap-2 cursor-pointer transition-all hover:bg-emerald-500/10">
           <div class="flex flex-col gap-0.5">
             <div class="text-xs font-semibold text-emerald-400 flex items-center gap-1.5 font-sans">
               <span>✓</span> ${esc(auth.display || auth.name)}
             </div>
             <div class="text-[10px] text-emerald-300/70 leading-tight font-sans">${esc(auth.ratio)}</div>
           </div>
-          <span class="px-2.5 py-1 text-[9px] font-bold text-emerald-400 uppercase tracking-widest bg-emerald-500/10 rounded shrink-0 font-sans">Added</span>
+          <span class="px-2.5 py-1 text-[9px] font-bold text-emerald-400 uppercase tracking-widest bg-emerald-500/10 rounded shrink-0 font-sans">Selected</span>
         </div>
       `;
     } else {
       return `
-        <div class="flex items-center justify-between p-2.5 bg-white/[0.03] border border-white/10 rounded-lg hover:border-moot-accent/50 transition-all gap-2">
+        <div onclick="window.toggleAuthority('${auth.name.replace(/'/g, "\\'")}', '${auth.ratio.replace(/'/g, "\\'")}')" class="flex items-center justify-between p-2.5 bg-white/[0.03] border border-white/10 rounded-lg hover:border-moot-accent/50 transition-all gap-2 cursor-pointer hover:bg-white/[0.06]">
           <div class="flex flex-col gap-0.5">
             <div class="text-xs font-semibold text-white flex items-center gap-1.5 font-sans">
               <span>⚖️</span> ${esc(auth.display || auth.name)}
             </div>
             <div class="text-[10px] text-white-muted leading-tight font-sans">${esc(auth.ratio)}</div>
           </div>
-          <button type="button" onclick="window.insertPreDraftAuthority('${auth.name.replace(/'/g, "\\'")}', '${stance}')" class="btn-sm px-3 py-1.5 bg-moot-accent text-black font-semibold rounded text-[10px] uppercase tracking-wider hover:bg-gold-light transition-all cursor-pointer border-none shrink-0 font-sans">
-            + Insert
+          <button type="button" class="btn-sm px-3 py-1.5 bg-white/5 border border-white/10 text-white-muted font-semibold rounded text-[10px] uppercase tracking-wider hover:bg-white/10 hover:text-white transition-all shrink-0 font-sans border-none">
+            Select
           </button>
         </div>
       `;
@@ -2682,67 +2696,41 @@ export function renderPreDraftAuthorities() {
   }).join('');
 }
 
-export function insertPreDraftAuthority(caseName, stanceKey) {
+export function renderStage3Workspace() {
+  const stance = getCurrentSelectedSide() || selectedSide || 'Petitioner';
+  const sideBadge = document.getElementById('stage3-side-badge');
+  if (sideBadge) {
+    sideBadge.textContent = stance.toUpperCase();
+    if (stance.toLowerCase().includes('petitioner')) {
+      sideBadge.className = 'text-xs font-semibold tracking-widest text-center py-2 px-3 rounded-md border bg-emerald-500/10 border-emerald-500/20 text-emerald-400 font-sans';
+    } else {
+      sideBadge.className = 'text-xs font-semibold tracking-widest text-center py-2 px-3 rounded-md border bg-rose-500/10 border-rose-500/20 text-rose-400 font-sans';
+    }
+  }
+
+  const issueSelect = document.getElementById('builder-issue-select');
+  const selectedIssueText = document.getElementById('stage3-selected-issue-text');
+  if (selectedIssueText && issueSelect) {
+    selectedIssueText.textContent = issueSelect.value || 'No issue selected yet.';
+  }
+
+  const caseContext = document.getElementById('stage3-case-context');
+  if (caseContext) {
+    if (currentPropositionContext) {
+      caseContext.innerHTML = fmtInline(currentPropositionContext);
+    } else {
+      caseContext.textContent = 'Upload and analyze a proposition to see summary context here.';
+    }
+  }
+
+  validateDraftForm();
+
   const notesInput = document.getElementById('builder-notes-input');
-  if (!notesInput) return;
-
-  let stance = stanceKey;
-  if (stance.toLowerCase().includes('petitioner') || stance.toLowerCase().includes('appellant') || stance.toLowerCase().includes('challenger')) {
-    stance = 'Petitioner';
-  } else if (stance.toLowerCase().includes('respondent') || stance.toLowerCase().includes('defense') || stance.toLowerCase().includes('opposition')) {
-    stance = 'Respondent';
+  if (notesInput) {
+    updateLiveIntelligence(notesInput.value);
   }
 
-  // Find the case in SHARED_AUTHORITY_REGISTRY or fallback to parsing lastAnalysis
-  let auth = null;
-  for (const issue in SHARED_AUTHORITY_REGISTRY) {
-    for (const side in SHARED_AUTHORITY_REGISTRY[issue]) {
-      const found = SHARED_AUTHORITY_REGISTRY[issue][side].find(c => c.name === caseName);
-      if (found) {
-        auth = found;
-        break;
-      }
-    }
-    if (auth) break;
-  }
-
-  // Fallback to searching lastAnalysis precedentsNeeded if not found in the static registry
-  if (!auth) {
-    try {
-      const analysisStr = window.lastAnalysis || lastAnalysis;
-      if (analysisStr) {
-        const data = JSON.parse(analysisStr);
-        const dynamicPrecedents = data.precedentsNeeded || [];
-        const foundDp = dynamicPrecedents.find(dp => (dp.caseName || dp.name) === caseName);
-        if (foundDp) {
-          auth = {
-            name: caseName,
-            ratio: foundDp.holdingRelevant || "Relevant constitutional holding for this dispute."
-          };
-        }
-      }
-    } catch (e) {
-      console.error("Error searching dynamic precedents for insertion:", e);
-    }
-  }
-
-  if (!auth) {
-    console.error("Authority not found for insertion:", caseName);
-    return;
-  }
-
-  const prefix = notesInput.value.trim().length > 0 ? "\n\n" : "";
-  const insertionText = `${prefix}Supporting Precedent: ${auth.name}. Ratio: ${auth.ratio}`;
-  notesInput.value = notesInput.value + insertionText;
-
-  // Trigger input event to update live intelligence and validate the form
-  const inputEvent = new Event('input', { bubbles: true });
-  notesInput.dispatchEvent(inputEvent);
-
-  // Re-render chips to show "Added"
   renderPreDraftAuthorities();
-  
-  showToast(`Integrated ${auth.name} into notes!`, "ok");
 }
 
 function getImprovementPathwayHTML(notes, casesCount, statutesCount, scoring, finalReadinessScore) {

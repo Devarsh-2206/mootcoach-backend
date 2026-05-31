@@ -1,7 +1,7 @@
 import { BASE_URL } from '../config.js';
 import { currentUser, db, firebaseRef } from '../services/firebase.js';
 import { logSessionSecurely, checkBackendHealth } from '../services/api.js';
-import { storedOralNotes, storedRebuttals } from './argumentBuilder.js';
+import { storedOralNotes, storedRebuttals, lastBuiltArgument, populateIssuesFromAnalysis } from './argumentBuilder.js';
 
 // Shared State Variables
 export let lastAnalysis = '';
@@ -257,11 +257,11 @@ export function showWsPanel(name, buttonEl) {
     }
     goToStage(1);
   } else if (name === 'builder') {
-    goToStage(4);
+    goToStage(3);
   } else if (name === 'oral') {
-    goToStage(5);
+    goToStage(4);
   } else if (name === 'bench') {
-    goToStage(6);
+    goToStage(5);
   }
 }
 
@@ -736,6 +736,7 @@ export function initScrollSpy() {
 export function showResults(rawText) {
   try {
     lastAnalysis = rawText;
+    populateIssuesFromAnalysis();
 
     const sections   = parseAnalysisSections(rawText);
     const globalScore = extractScore(sections);
@@ -954,6 +955,7 @@ export function showStructuredResults(data) {
   try {
     lastAnalysis = JSON.stringify(data, null, 2);
     currentPropositionContext = data.summary || '';
+    populateIssuesFromAnalysis();
 
     const toList = arr => (arr || []).map(x => `- ${x}`).join('\n');
 
@@ -1101,7 +1103,7 @@ export function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt
 export let currentStage = 1;
 
 export function goToStage(stageNum) {
-  if (stageNum < 1 || stageNum > 6) return;
+  if (stageNum < 1 || stageNum > 5) return;
   if (!currentUser) return;
 
   const hasContext = !!(window.lastAnalysis || lastAnalysis);
@@ -1114,7 +1116,7 @@ export function goToStage(stageNum) {
   currentStage = stageNum;
 
   // Update Stepper UI
-  for (let i = 1; i <= 6; i++) {
+  for (let i = 1; i <= 5; i++) {
     const stepEl = document.getElementById('step-' + i);
     const connectorEl = document.getElementById('connector-' + i);
     if (stepEl) {
@@ -1139,7 +1141,7 @@ export function goToStage(stageNum) {
   }
 
   // Toggle active stage containers
-  for (let i = 1; i <= 6; i++) {
+  for (let i = 1; i <= 5; i++) {
     const stageEl = document.getElementById('stage-' + i + '-container');
     if (stageEl) {
       if (i === currentStage) {
@@ -1159,18 +1161,18 @@ export function goToStage(stageNum) {
     prevBtn.style.display = currentStage === 1 ? 'none' : 'block';
   }
   if (nextBtn) {
-    nextBtn.style.display = currentStage === 6 ? 'none' : 'block';
+    nextBtn.style.display = currentStage === 5 ? 'none' : 'block';
   }
 
   // Stage-specific renderings
   if (currentStage === 2) {
     renderStage2Issues();
   } else if (currentStage === 3) {
-    if (typeof window.renderPreDraftAuthorities === 'function') {
-      window.renderPreDraftAuthorities();
+    if (typeof window.renderStage3Workspace === 'function') {
+      window.renderStage3Workspace();
     }
-  } else if (currentStage === 5) {
-    renderStage5OralNotes();
+  } else if (currentStage === 4) {
+    renderStage4OralNotes();
   }
 
   // Passively update URL hash for Clarity route tracking
@@ -1185,7 +1187,7 @@ export function goToStage(stageNum) {
 }
 
 export function wizardNext() {
-  if (currentStage < 6) {
+  if (currentStage < 5) {
     goToStage(currentStage + 1);
   }
 }
@@ -1264,24 +1266,55 @@ export function selectIssueFromCard(val) {
   }
 }
 
-export function renderStage5OralNotes() {
+export function renderStage4OralNotes() {
   const outlineEl = document.getElementById('stage5-content-outline');
   const rebuttalsEl = document.getElementById('stage5-content-rebuttals');
   const vulnerabilitiesEl = document.getElementById('stage5-content-vulnerabilities');
+  const inputEl = document.getElementById('oral-argument-input');
+
+  const hasContext = !!(window.lastAnalysis || lastAnalysis);
 
   if (outlineEl) {
     if (storedOralNotes) {
       outlineEl.innerHTML = storedOralNotes;
+    } else if (hasContext) {
+      outlineEl.innerHTML = `
+        <div class="text-white-muted italic p-4 bg-white/[0.01] border border-dashed border-white/10 rounded-xl font-sans text-center">
+          <div class="text-lg mb-1">🎙️</div>
+          No generated submissions found. Complete Stage 3 first to automatically populate your opening oral outline, or paste a custom speech below.
+        </div>
+      `;
     } else {
-      outlineEl.innerHTML = `<div class="text-white-muted italic">Draft your submissions in Stage 4 to populate your custom oral outline here.</div>`;
+      outlineEl.innerHTML = `<div class="text-white-muted italic">Draft your submissions in Stage 3 to populate your custom oral outline here.</div>`;
     }
   }
 
   if (rebuttalsEl) {
     if (storedRebuttals) {
       rebuttalsEl.innerHTML = storedRebuttals;
+    } else if (hasContext) {
+      rebuttalsEl.innerHTML = `
+        <div class="text-white-muted italic p-4 bg-white/[0.01] border border-dashed border-white/10 rounded-xl font-sans text-center">
+          <div class="text-lg mb-1">⚔️</div>
+          No generated submissions found. Complete Stage 3 first to automatically populate your custom rebuttals.
+        </div>
+      `;
     } else {
-      rebuttalsEl.innerHTML = `<div class="text-white-muted italic">Draft your submissions in Stage 4 to populate your custom rebuttals here.</div>`;
+      rebuttalsEl.innerHTML = `<div class="text-white-muted italic">Draft your submissions in Stage 3 to populate your custom rebuttals here.</div>`;
+    }
+  }
+
+  // Pre-fill speech input from generated draft opening speech
+  if (inputEl && !inputEl.value.trim()) {
+    if (window.lastBuiltArgument && window.lastBuiltArgument.oralAdvocacy && window.lastBuiltArgument.oralAdvocacy.openingSpeech) {
+      inputEl.value = window.lastBuiltArgument.oralAdvocacy.openingSpeech;
+    } else if (lastBuiltArgument && lastBuiltArgument.oralAdvocacy && lastBuiltArgument.oralAdvocacy.openingSpeech) {
+      inputEl.value = lastBuiltArgument.oralAdvocacy.openingSpeech;
+    }
+    // Dispatch input event to enable the Evaluate button
+    if (inputEl.value.trim()) {
+      const inputEvent = new Event('input', { bubbles: true });
+      inputEl.dispatchEvent(inputEvent);
     }
   }
 
@@ -1294,7 +1327,7 @@ export function renderStage5OralNotes() {
         vulnerabilities = data.benchVulnerabilities || [];
       }
     } catch (e) {
-      console.error("Error parsing vulnerabilities for Stage 5:", e);
+      console.error("Error parsing vulnerabilities for Stage 4:", e);
     }
 
     if (vulnerabilities.length > 0) {

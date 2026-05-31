@@ -65,7 +65,10 @@ import {
 import {
   initArgumentBuilder,
   populateIssuesFromAnalysis,
-  copyBuilderArgument
+  copyBuilderArgument,
+  toggleAuthority,
+  renderStage3Workspace,
+  getCurrentSelectedSide
 } from './components/argumentBuilder.js';
 import { initClarity, identifyUserInClarity } from './services/clarity.js';
 
@@ -617,6 +620,9 @@ window.stopOralRound = stopOralRound;
 
 window.copyBuilderArgument = copyBuilderArgument;
 window.populateIssuesFromAnalysis = populateIssuesFromAnalysis;
+window.toggleAuthority = toggleAuthority;
+window.renderStage3Workspace = renderStage3Workspace;
+window.getCurrentSelectedSide = getCurrentSelectedSide;
 
 window.goToStage = goToStage;
 window.wizardNext = wizardNext;
