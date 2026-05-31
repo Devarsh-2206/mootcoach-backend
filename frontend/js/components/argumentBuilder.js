@@ -770,7 +770,6 @@ function renderIRAC(iracData) {
   let recommendedFix = rebuttalText;
 
   // Refine for Puttaswamy / Privacy if applicable
-  const lowerNotes = notes.toLowerCase();
   if (lowerNotes.includes("puttaswamy") || lowerNotes.includes("privacy")) {
     if (!lowerNotes.includes("proportional") && !lowerNotes.includes("proportion")) {
       weakestPoint = "Lack of proportionality analysis under Puttaswamy.";
