@@ -155,6 +155,16 @@ export function navigate(view) {
   document.body.style.overflow = (view === 'workspace') ? 'hidden' : 'auto';
   window.scrollTo(0, 0);
   if (view === 'workspace') triggerBackendCheck();
+
+  // Passively update URL hash for Microsoft Clarity SPA route tracking
+  const newHash = `#view/${view}`;
+  if (window.location.hash !== newHash) {
+    if (window.history && window.history.replaceState) {
+      window.history.replaceState(null, null, newHash);
+    } else {
+      window.location.hash = newHash;
+    }
+  }
 }
 
 export async function triggerBackendCheck() {
@@ -275,6 +285,16 @@ export function showWsPanel(name, buttonEl) {
   const sidebar = document.getElementById('ws-sidebar');
   if (sidebar && sidebar.classList.contains('show')) {
     toggleMobileSidebar();
+  }
+
+  // Passively update URL hash for Microsoft Clarity SPA route tracking
+  const newHash = `#workspace/${name}`;
+  if (window.location.hash !== newHash) {
+    if (window.history && window.history.replaceState) {
+      window.history.replaceState(null, null, newHash);
+    } else {
+      window.location.hash = newHash;
+    }
   }
 }
 

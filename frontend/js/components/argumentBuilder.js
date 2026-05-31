@@ -19,13 +19,23 @@ export const SHARED_AUTHORITY_REGISTRY = {
         name: "Whirlpool Corp. v. Registrar of Trade Marks (1998)",
         display: "Whirlpool Corp. (Writ Jurisdiction & Alternative Remedies)",
         ratio: "Writ petitions are maintainable under Article 226 despite alternative remedies if fundamental rights are breached, natural justice is violated, or proceedings are ultra vires.",
-        section: "Article 226 maintainability"
+        section: "Article 226 maintainability",
+        priority: "Tier 1",
+        badge: "Mandatory",
+        stars: "★★★★★",
+        principles: ["Writ Maintainability", "Alternative Remedies", "Natural Justice"],
+        whyItMatters: "Governing authority for bypass of statutory alternative remedies when fundamental rights are breached."
       },
       {
         name: "L. Chandra Kumar v. Union of India (1997)",
         display: "L. Chandra Kumar (Judicial Review Basic Structure)",
         ratio: "Judicial review of legislative actions by high courts and the Supreme Court is an essential and integral part of the basic structure of the Constitution.",
-        section: "Article 32/226 basic structure"
+        section: "Article 32/226 basic structure",
+        priority: "Tier 1",
+        badge: "Mandatory",
+        stars: "★★★★★",
+        principles: ["Judicial Review", "Basic Structure", "Writ Jurisdiction"],
+        whyItMatters: "Establishes that the power of judicial review under Articles 226 and 32 is part of the basic structure of the Constitution."
       }
     ],
     "Respondent": [
@@ -33,13 +43,23 @@ export const SHARED_AUTHORITY_REGISTRY = {
         name: "E.P. Royappa v. State of Tamil Nadu (1974)",
         display: "E.P. Royappa (Policy Discretion Non-Interference)",
         ratio: "Writ courts must exercise self-restraint and avoid acting as a court of appeal over executive policy and administrative decisions.",
-        section: "Policy latitude"
+        section: "Policy latitude",
+        priority: "Tier 2",
+        badge: "Strongly Recommended",
+        stars: "★★★★☆",
+        principles: ["Article 14", "Policy Discretion", "Judicial Restraint"],
+        whyItMatters: "Governs administrative discretion, arguing that courts must defer to the executive's specialized policy decisions."
       },
       {
         name: "State of U.P. v. Mohammad Nooh (1958)",
         display: "State of U.P. v. Mohammad Nooh (Writ Restraint Rule)",
         ratio: "Existence of an alternative statutory remedy is a highly persuasive rule of administrative discretion against issuing writ remedies.",
-        section: "Alternative remedy bar"
+        section: "Alternative remedy bar",
+        priority: "Tier 3",
+        badge: "Optional",
+        stars: "★★★☆☆",
+        principles: ["Alternative Remedy", "Writ Restraint", "Procedural Bar"],
+        whyItMatters: "Key authority for state argument that alternative statutory remedies must be exhausted first."
       }
     ]
   },
@@ -49,13 +69,23 @@ export const SHARED_AUTHORITY_REGISTRY = {
         name: "E.P. Royappa v. State of Tamil Nadu (1974)",
         display: "E.P. Royappa (Manifest Arbitrariness Standard)",
         ratio: "Equality is a dynamic concept. State action that is arbitrary, irrational, or lacks a logical base violates Article 14.",
-        section: "Article 14 arbitrary test"
+        section: "Article 14 arbitrary test",
+        priority: "Tier 2",
+        badge: "Strongly Recommended",
+        stars: "★★★★☆",
+        principles: ["Article 14", "Manifest Arbitrariness", "Equality"],
+        whyItMatters: "Foundational case establishing that state action violating Article 14 must not be arbitrary."
       },
       {
         name: "Shayara Bano v. Union of India (2017)",
         display: "Shayara Bano (Legislative Arbitrariness)",
         ratio: "A legislative provision is unconstitutional under Article 14 if it is manifestly arbitrary, excessive, disproportionate, or capricious.",
-        section: "Manifest arbitrariness test"
+        section: "Manifest arbitrariness test",
+        priority: "Tier 2",
+        badge: "Strongly Recommended",
+        stars: "★★★★☆",
+        principles: ["Article 14", "Legislative Arbitrariness", "Gender Equality"],
+        whyItMatters: "Extends Royappa's standard to strike down primary and secondary legislation."
       }
     ],
     "Respondent": [
@@ -63,13 +93,23 @@ export const SHARED_AUTHORITY_REGISTRY = {
         name: "State of Madras v. V.G. Row (1952)",
         display: "V.G. Row (Presumption of Legislative Validity)",
         ratio: "Statutes enjoy a strong presumption of constitutionality. Restrictions are evaluated based on the nature of the evil and public interest urgency.",
-        section: "Article 19 reasonable restrictions"
+        section: "Article 19 reasonable restrictions",
+        priority: "Tier 2",
+        badge: "Strongly Recommended",
+        stars: "★★★★☆",
+        principles: ["Article 19", "Reasonable Restrictions", "Public Interest"],
+        whyItMatters: "Governs evaluation of reasonable restrictions under Article 19, showing deference to state restrictions in public interest."
       },
       {
         name: "R.K. Garg v. Union of India (1981)",
         display: "R.K. Garg (Administrative Latitude in complex laws)",
         ratio: "The legislature has wide latitude and flexibility in economic, social, or administrative matters; laws must not be judged by soft standards.",
-        section: "Presumption of validity"
+        section: "Presumption of validity",
+        priority: "Tier 3",
+        badge: "Optional",
+        stars: "★★★☆☆",
+        principles: ["Presumption of Validity", "Economic Policy", "Administrative Latitude"],
+        whyItMatters: "Strong case for the state defending regulations in complex, socio-economic, or technical domains."
       }
     ]
   },
@@ -79,25 +119,45 @@ export const SHARED_AUTHORITY_REGISTRY = {
         name: "Anuradha Bhasin v. Union of India (2020)",
         display: "Anuradha Bhasin (Internet Shutdown & Proportionality)",
         ratio: "Access to the internet is a fundamental right under Article 19(1)(a)/(g). Shutdown orders must satisfy strict proportionality and necessity tests.",
-        section: "Article 19 internet right"
+        section: "Article 19 internet right",
+        priority: "Tier 1",
+        badge: "Mandatory",
+        stars: "★★★★★",
+        principles: ["Article 19", "Internet Access", "Proportionality", "Freedom of Speech"],
+        whyItMatters: "Applies proportionality analysis to technology shutdowns and digital censorship by the State."
       },
       {
         name: "Shreya Singhal v. Union of India (2015)",
         display: "Shreya Singhal (Speech Overbreadth & Vagueness)",
         ratio: "Restrictions on Article 19(1)(a) must be narrowly tailored and cannot be vague, overbroad, or chill legitimate speech.",
-        section: "Article 19 overbreadth"
+        section: "Article 19 overbreadth",
+        priority: "Tier 2",
+        badge: "Strongly Recommended",
+        stars: "★★★★☆",
+        principles: ["Article 19(1)(a)", "Overbreadth", "Vagueness", "Chilling Effect"],
+        whyItMatters: "Critical for challenges targeting digital censorship, algorithmic filtration, or vague statutory restrictions."
       },
       {
         name: "K.S. Puttaswamy v. Union of India (2017)",
         display: "K.S. Puttaswamy (Right to Privacy & Proportionality)",
         ratio: "Privacy is a fundamental right under Article 21. Any state restriction on privacy must satisfy a four-fold proportionality test.",
-        section: "Article 21 privacy balancing"
+        section: "Article 21 privacy balancing",
+        priority: "Tier 1",
+        badge: "Mandatory",
+        stars: "★★★★★",
+        principles: ["Article 21", "Privacy", "Informational Autonomy", "Proportionality"],
+        whyItMatters: "Primary constitutional authority for challenges involving state collection, profiling and processing of personal data."
       },
       {
         name: "Maneka Gandhi v. Union of India (1978)",
         display: "Maneka Gandhi (Fair Procedure & Natural Justice)",
         ratio: "Any procedure affecting life or personal liberty under Article 21 must be fair, just, and reasonable, incorporating prior notice and hearing.",
-        section: "Article 21 procedural due process"
+        section: "Article 21 procedural due process",
+        priority: "Tier 1",
+        badge: "Mandatory",
+        stars: "★★★★★",
+        principles: ["Article 21", "Procedural Due Process", "Natural Justice", "Post-Decisional Hearing"],
+        whyItMatters: "Establishes that any administrative action affecting Article 21 rights must be procedurally fair, just, and reasonable."
       }
     ],
     "Respondent": [
@@ -105,25 +165,45 @@ export const SHARED_AUTHORITY_REGISTRY = {
         name: "Modern Dental College v. State of Madhya Pradesh (2016)",
         display: "Modern Dental College (Proportionality Balancing Test)",
         ratio: "Restrictions are valid under Article 19(2)-(6) if they serve a legitimate aim, are suitable, necessary, and strike a fair balance.",
-        section: "Proportionality balancing"
+        section: "Proportionality balancing",
+        priority: "Tier 1",
+        badge: "Mandatory",
+        stars: "★★★★★",
+        principles: ["Proportionality Balancing", "Reasonable Restrictions", "Public Welfare"],
+        whyItMatters: "Framework for state defenses justifying restrictions on trade and privacy for public interest."
       },
       {
         name: "PUCL v. Union of India (1997)",
         display: "PUCL (Public Safety Communication Restrictions)",
         ratio: "The State can temporarily restrict or intercept communications under Article 19(2) to prevent public disorder or protect public safety.",
-        section: "Article 19 public order exceptions"
+        section: "Article 19 public order exceptions",
+        priority: "Tier 2",
+        badge: "Strongly Recommended",
+        stars: "★★★★☆",
+        principles: ["Public Safety", "Communication Interception", "Privacy Safeguards"],
+        whyItMatters: "Governs telephone tapping and communication surveillance, outlining the guidelines for security intercepts."
       },
       {
         name: "Babulal Parate v. State of Maharashtra (1961)",
         display: "Babulal Parate (Preventive Threat Discretion)",
         ratio: "Executive has discretion to take preventive measures when there is a reasonable apprehension of breach of public order.",
-        section: "Public order jurisprudence"
+        section: "Public order jurisprudence",
+        priority: "Tier 3",
+        badge: "Optional",
+        stars: "★★★☆☆",
+        principles: ["Public Order", "Preventive Measures", "Executive Discretion"],
+        whyItMatters: "Key precedent for executive power to restrict movement or speech preventatively based on public order threats."
       },
       {
         name: "Maneka Gandhi v. Union of India (1978)",
         display: "Maneka Gandhi (Post-Decisional Hearing Validity)",
         ratio: "Procedural fairness is flexible; a post-decisional hearing cures the lack of prior notice in situations of public safety or urgency.",
-        section: "Post-decisional hearing validity"
+        section: "Post-decisional hearing validity",
+        priority: "Tier 1",
+        badge: "Mandatory",
+        stars: "★★★★★",
+        principles: ["Article 21", "Procedural Due Process", "Natural Justice", "Post-Decisional Hearing"],
+        whyItMatters: "Establishes that in matters of public safety or urgency, post-decisional hearings satisfy Article 21 due process."
       }
     ]
   },
@@ -133,13 +213,23 @@ export const SHARED_AUTHORITY_REGISTRY = {
         name: "Nilabati Behera v. State of Orissa (1993)",
         display: "Nilabati Behera (Monetary Compensation Remedy)",
         ratio: "Writ courts can award monetary compensation under public law as a remedy for breach of fundamental rights by state action.",
-        section: "Public law compensation"
+        section: "Public law compensation",
+        priority: "Tier 2",
+        badge: "Strongly Recommended",
+        stars: "★★★★☆",
+        principles: ["Public Law Remedy", "Sovereign Immunity Exception", "Monetary Compensation"],
+        whyItMatters: "Establishes public law compensation as a constitutional remedy for state violations of fundamental rights."
       },
       {
         name: "D.K. Basu v. State of West Bengal (1997)",
         display: "D.K. Basu (Writ Court Directives & Guidelines)",
         ratio: "Writ courts have broad powers to issue binding guidelines and directions to executive authorities to protect fundamental rights.",
-        section: "Custodial guidelines"
+        section: "Custodial guidelines",
+        priority: "Tier 1",
+        badge: "Mandatory",
+        stars: "★★★★★",
+        principles: ["Writ Directives", "Custodial Violence", "Procedural Safeguards"],
+        whyItMatters: "Authority for writ courts issuing detailed guidelines to restrict arbitrary police and executive arrest/detention powers."
       }
     ],
     "Respondent": [
@@ -147,17 +237,27 @@ export const SHARED_AUTHORITY_REGISTRY = {
         name: "State of Gujarat v. Shantilal Mangaldas (1969)",
         display: "Shantilal Mangaldas (Writ Damages Restraint)",
         ratio: "Public law remedies should not be used to bypass civil court procedures for assessing financial damages.",
-        section: "Damages jurisdiction"
+        section: "Damages jurisdiction",
+        priority: "Tier 3",
+        badge: "Optional",
+        stars: "★★★☆☆",
+        principles: ["Damages Jurisdiction", "Civil Procedure", "Writ Restraint"],
+        whyItMatters: "Precedent used to argue that damages claims should be resolved in civil courts, not writ proceedings."
       },
       {
         name: "Common Cause v. Union of India (1999)",
         display: "Common Cause (Exemplary Damages Restraint)",
         ratio: "Exemplary or punitive damages against government authorities should be awarded with high restraint and only in cases of clear malice.",
-        section: "Damages threshold"
+        section: "Damages threshold",
+        priority: "Tier 3",
+        badge: "Optional",
+        stars: "★★★☆☆",
+        principles: ["Exemplary Damages", "Tortious Liability", "State Malice"],
+        whyItMatters: "Limits punitive damages against state officials to cases showing active, proven malice."
       }
     ]
   }
-};
+};;
 
 // Side Panel State Management
 export let storedOralNotes = '';

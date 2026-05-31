@@ -62,6 +62,7 @@ import {
   populateIssuesFromAnalysis,
   copyBuilderArgument
 } from './components/argumentBuilder.js';
+import { initClarity, identifyUserInClarity } from './services/clarity.js';
 
 // Auth Overlay State and Handlers
 let isOverlaySignUpMode = false;
@@ -365,6 +366,7 @@ onAuthChanged(async (user) => {
   if (user) {
     // Set global user first
     window.currentUser = user;
+    identifyUserInClarity(user);
 
     const initial = user.displayName ? user.displayName.charAt(0) : (user.email ? user.email.charAt(0) : 'U');
     const avatar = document.getElementById('ws-avatar');
@@ -426,6 +428,8 @@ onAuthChanged(async (user) => {
 
 // Setup DOM Event Listeners
 document.addEventListener('DOMContentLoaded', () => {
+  // Initialize Microsoft Clarity
+  initClarity();
 
   const tabLogin = document.getElementById('tab-login');
   if (tabLogin) {
