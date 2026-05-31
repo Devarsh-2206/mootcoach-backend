@@ -439,6 +439,88 @@ document.addEventListener('DOMContentLoaded', () => {
   // Initialize Microsoft Clarity
   initClarity();
 
+  // ─── LANDING & LOGIN PAGE ROUTING LISTENERS ───
+  document.getElementById('land-nav-logo')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    navigate('landing');
+  });
+  document.getElementById('nav-btn-login')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    navigate('login');
+  });
+  document.getElementById('nav-btn-get-started')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    navigate('login');
+  });
+  document.getElementById('hero-btn-start')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    navigate('login');
+  });
+  document.getElementById('beta-btn-signup')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    navigate('login');
+  });
+  document.getElementById('bottom-btn-practice')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    navigate('login');
+  });
+  document.getElementById('footer-link-terms')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    openLegalModal('terms');
+  });
+  document.getElementById('footer-link-privacy')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    openLegalModal('privacy');
+  });
+
+  // Login Page elements
+  document.getElementById('login-nav-logo')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    navigate('landing');
+  });
+  document.getElementById('login-nav-back')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    navigate('landing');
+  });
+  document.getElementById('login-forgot-pass')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    handleForgotPassword();
+  });
+  document.getElementById('btn-li')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    handleLogin();
+  });
+  document.getElementById('btn-google-login')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    handleGoogle();
+  });
+  document.getElementById('btn-google-signup')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    handleGoogle();
+  });
+  document.getElementById('btn-su')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    handleSignup();
+  });
+  document.getElementById('signup-link-terms')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    openLegalModal('terms');
+  });
+  document.getElementById('signup-link-privacy')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    openLegalModal('privacy');
+  });
+
+  // Workspace elements
+  document.getElementById('ws-logo')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    navigate('landing');
+  });
+  document.getElementById('auth-overlay-back')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    navigate('landing');
+  });
+
   const tabLogin = document.getElementById('tab-login');
   if (tabLogin) {
     tabLogin.addEventListener('click', (e) => {

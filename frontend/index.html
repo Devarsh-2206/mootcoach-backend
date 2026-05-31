@@ -1978,15 +1978,15 @@ p  { color:var(--white-2); }
 <!-- ═══ VIEW 1 — LANDING ═══ -->
 <div id="view-landing" class="view active">
   <nav class="land-nav">
-    <a class="nav-logo" onclick="navigate('landing')" style="cursor:pointer">Moot<span>Coach</span></a>
+    <a class="nav-logo" id="land-nav-logo" style="cursor:pointer">Moot<span>Coach</span></a>
     <ul class="nav-links">
       <li><a href="#how">How it Works</a></li>
       <li><a href="#features">Features</a></li>
       <li><a href="#pricing">Access</a></li>
     </ul>
     <div class="nav-right">
-      <button class="btn-ghost tracking-widest font-medium" id="nav-btn-login" onclick="navigate('login')">Login</button>
-      <button class="btn-primary btn-login-nav tracking-widest font-medium" data-default="Get Started" onclick="navigate('login')">Get Started</button>
+      <button class="btn-ghost tracking-widest font-medium" id="nav-btn-login">Login</button>
+      <button class="btn-primary btn-login-nav tracking-widest font-medium" id="nav-btn-get-started" data-default="Get Started">Get Started</button>
     </div>
   </nav>
 
@@ -1995,7 +1995,7 @@ p  { color:var(--white-2); }
     <h1 class="font-light tracking-tight text-5xl">Don't just survive the bench.<br/><em>Control the courtroom.</em></h1>
     <p class="hero-sub font-light text-lg">Upload your proposition, extract the ratio, build unassailable arguments, and face a hostile AI judge before you ever step into the moot hall.</p>
     <div class="hero-ctas">
-      <button class="btn-primary tracking-widest font-medium" onclick="navigate('login')">Start Building Your Case →</button>
+      <button class="btn-primary tracking-widest font-medium" id="hero-btn-start">Start Building Your Case →</button>
       <a href="#how" class="btn-outline tracking-widest font-medium">Examine the Process</a>
     </div>
     <div class="trust-badges">
@@ -2061,7 +2061,7 @@ p  { color:var(--white-2); }
         <li><span style="color:var(--gold);margin-right:8px;">✓</span>Unlimited Oral Scoring</li>
         <li><span style="color:var(--gold);margin-right:8px;">✓</span>Cloud Saved Workspaces</li>
       </ul>
-      <button class="btn-primary btn-login-nav tracking-widest font-medium" data-default="Create Free Account →" onclick="navigate('login')" style="padding:14px 32px;font-size:.88rem; width:100%;">Create Free Account →</button>
+      <button class="btn-primary btn-login-nav tracking-widest font-medium" id="beta-btn-signup" data-default="Create Free Account →" style="padding:14px 32px;font-size:.88rem; width:100%;">Create Free Account →</button>
     </div>
   </section>
 
@@ -2089,7 +2089,7 @@ p  { color:var(--white-2); }
     <div class="section-eyebrow" style="justify-content:center">Enter the Practice Room</div>
     <h2>Your next moot starts here.</h2>
     <p>MootCoach is in early access. Get in now, help shape the product, and prepare smarter than everyone else in the room.</p>
-    <button class="btn-primary btn-login-nav tracking-widest font-medium" data-default="Enter AI Practice Room →" onclick="navigate('login')">Enter AI Practice Room →</button>
+    <button class="btn-primary btn-login-nav tracking-widest font-medium" id="bottom-btn-practice" data-default="Enter AI Practice Room →">Enter AI Practice Room →</button>
   </section>
 
   <footer class="land-footer">
@@ -2097,8 +2097,8 @@ p  { color:var(--white-2); }
     <ul class="footer-links">
       <li><a href="#how">How it Works</a></li>
       <li><a href="#features">Features</a></li>
-      <li><a href="#" onclick="openLegalModal('terms'); return false;">Terms</a></li>
-      <li><a href="#" onclick="openLegalModal('privacy'); return false;">Privacy</a></li>
+      <li><a href="#" id="footer-link-terms">Terms</a></li>
+      <li><a href="#" id="footer-link-privacy">Privacy</a></li>
     </ul>
     <div class="footer-copy">© 2026 MootCoach. All rights reserved. Strictly confidential workspace.</div>
   </footer>
@@ -2108,8 +2108,8 @@ p  { color:var(--white-2); }
 <!-- ═══ VIEW 2 — LOGIN ═══ -->
 <div id="view-login" class="view">
   <nav class="login-nav">
-    <a class="nav-logo" onclick="navigate('landing')" style="cursor:pointer">Moot<span>Coach</span></a>
-    <button class="login-nav-back" onclick="navigate('landing')">← Back to Home</button>
+    <a class="nav-logo" id="login-nav-logo" style="cursor:pointer">Moot<span>Coach</span></a>
+    <button class="login-nav-back" id="login-nav-back">← Back to Home</button>
   </nav>
   <main class="login-main">
     <div class="auth-wrap">
@@ -2130,13 +2130,13 @@ p  { color:var(--white-2); }
             <div class="field-hint" id="h-li-email">Please enter a valid email.</div>
           </div>
           <div class="field">
-            <div class="field-meta"><a href="#" onclick="handleForgotPassword(); return false;">Forgot password?</a></div>
+            <div class="field-meta"><a href="#" id="login-forgot-pass">Forgot password?</a></div>
             <input type="password" id="li-pass" placeholder="Your password" autocomplete="current-password"/>
             <div class="field-hint" id="h-li-pass">Password is required.</div>
           </div>
-          <button class="btn-submit" id="btn-li" onclick="handleLogin()">Sign In</button>
+          <button class="btn-submit" id="btn-li">Sign In</button>
           <div class="auth-divider"><span>or</span></div>
-          <button class="btn-google" onclick="handleGoogle()">
+          <button class="btn-google" id="btn-google-login">
             <svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.2l6.8-6.8C35.9 2.2 30.3 0 24 0 14.7 0 6.7 5.4 2.6 13.3l7.9 6.1C12.4 13 17.8 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4.1 7.1-10.1 7.1-17z"/><path fill="#FBBC05" d="M10.5 28.6A14.4 14.4 0 0 1 9.5 24c0-1.6.3-3.2.8-4.6L2.4 13.3A24 24 0 0 0 0 24c0 3.9.9 7.5 2.5 10.8l8-6.2z"/><path fill="#34A853" d="M24 48c6.5 0 12-2.1 16-5.8l-7.5-5.8c-2.2 1.5-5 2.3-8.5 2.3-6.2 0-11.5-4.2-13.4-9.9l-8 6.2C6.6 42.5 14.7 48 24 48z"/></svg>
             Continue with Google
           </button>
@@ -2168,13 +2168,13 @@ p  { color:var(--white-2); }
             <input type="password" id="su-pass" placeholder="Min. 8 characters" autocomplete="new-password"/>
             <div class="field-hint" id="h-su-pass">Must be at least 8 characters.</div>
           </div>
-          <button class="btn-submit" id="btn-su" onclick="handleSignup()">Create Account</button>
+          <button class="btn-submit" id="btn-su">Create Account</button>
           <div class="auth-divider"><span>or</span></div>
-          <button class="btn-google" onclick="handleGoogle()">
+          <button class="btn-google" id="btn-google-signup">
             <svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.2l6.8-6.8C35.9 2.2 30.3 0 24 0 14.7 0 6.7 5.4 2.6 13.3l7.9 6.1C12.4 13 17.8 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4.1 7.1-10.1 7.1-17z"/><path fill="#FBBC05" d="M10.5 28.6A14.4 14.4 0 0 1 9.5 24c0-1.6.3-3.2.8-4.6L2.4 13.3A24 24 0 0 0 0 24c0 3.9.9 7.5 2.5 10.8l8-6.2z"/><path fill="#34A853" d="M24 48c6.5 0 12-2.1 16-5.8l-7.5-5.8c-2.2 1.5-5 2.3-8.5 2.3-6.2 0-11.5-4.2-13.4-9.9l-8 6.2C6.6 42.5 14.7 48 24 48z"/></svg>
             Continue with Google
           </button>
-          <p class="auth-terms">By creating an account you agree to our <a href="#" onclick="openLegalModal('terms'); return false;">Terms of Service</a> and <a href="#" onclick="openLegalModal('privacy'); return false;">Privacy Policy</a>.</p>
+          <p class="auth-terms">By creating an account you agree to our <a href="#" id="signup-link-terms">Terms of Service</a> and <a href="#" id="signup-link-privacy">Privacy Policy</a>.</p>
         </div>
         <!-- SUCCESS -->
         <div class="auth-success" id="auth-success">
@@ -2195,7 +2195,7 @@ p  { color:var(--white-2); }
 <div id="view-workspace" class="view hidden">
   <header class="ws-topbar">
     <button class="ws-mobile-menu-btn" onclick="toggleMobileSidebar()">☰</button>
-    <div class="ws-logo" onclick="navigate('landing')">Moot<span>Coach</span></div>
+    <div class="ws-logo" id="ws-logo">Moot<span>Coach</span></div>
     <div class="ws-divider"></div>
     <div class="ws-name" id="ws-topbar-name">Active Docket</div>
     <div class="ws-right">
@@ -2743,7 +2743,7 @@ p  { color:var(--white-2); }
 <!-- PREMIUM AUTH OVERLAY -->
 <div id="auth-overlay" class="opacity-0 pointer-events-none hidden">
   <div class="w-full max-w-[420px] bg-[#0f141e] border border-gray-800 border-t border-t-moot-accent/30 shadow-2xl shadow-black/80 rounded-xl p-8 relative">
-    <a href="#" id="auth-overlay-back" class="absolute top-4 left-4 text-xs text-moot-muted hover:text-white transition-colors" onclick="event.preventDefault(); window.navigate('landing');">← Back</a>
+    <a href="#" id="auth-overlay-back" class="absolute top-4 left-4 text-xs text-moot-muted hover:text-white transition-colors">← Back</a>
     <h2 class="font-serif text-3xl font-normal tracking-tight text-moot-accent mb-8 mt-2 text-center">MootCoach Chambers</h2>
     
     <!-- Sign In / Sign Up form container -->
