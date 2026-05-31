@@ -784,6 +784,7 @@ export async function startOralRound() {
         }
       },
       onText: (text) => {
+        // Low-latency sentence-boundary chunking for real-time TTS responsiveness
         console.log("[DEBUG AUDIT] AI response chunk received:", text);
         fullJudgeResponse += text;
         sentenceBuffer += text;
