@@ -238,6 +238,14 @@ Begin the hearing by asking a challenging opening question tailored to this issu
             onStatusChange('speaking', 'Judge Speaking...');
           }
           const float32Data = base64ToFloat32Array(msg.data);
+          // F1 fix: restore producer->consumer handoff for Gemini audio packets.
+          // While buffering, enqueue chunks for turnComplete flush; once flushing starts,
+          // schedule playback immediately for low-latency streaming.
+          if (isAudioBuffering) {
+            audioChunksBuffer.push(float32Data);
+          } else {
+            scheduleVoicePlayback(float32Data);
+          }
           if (onAudio) onAudio(float32Data);
         }
       } else if (msg.type === 'text') {
