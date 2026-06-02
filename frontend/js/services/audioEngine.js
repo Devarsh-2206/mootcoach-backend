@@ -1,4 +1,5 @@
 import { BASE_URL } from '../config.js';
+import { currentPropositionContext } from '../components/ui.js';
 
 let voiceWebSocket = null;
 let voiceAudioContext = null;
@@ -17,8 +18,19 @@ let onPlaybackCompleteCallback = null;
 let audioChunksBuffer = [];
 let isAudioBuffering = true;
 
+let activeCallbacks = null;
+let heartbeatInterval = null;
+let reconnectionPromise = null;
+
 function getWsUrl() {
-  return BASE_URL.replace(/^http/, 'ws') + '/ws/voice';
+  if (BASE_URL.startsWith('https://')) {
+    return BASE_URL.replace('https://', 'wss://') + '/ws/voice';
+  } else if (BASE_URL.startsWith('http://')) {
+    return BASE_URL.replace('http://', 'ws://') + '/ws/voice';
+  } else {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    return `${protocol}//${window.location.host}/ws/voice`;
+  }
 }
 
 function arrayBufferToBase64(buffer) {
@@ -52,6 +64,20 @@ export function isSessionActive() {
 
 export function getSessionStartTime() {
   return voiceSessionStartTime;
+}
+
+export function getSocketState() {
+  if (!voiceWebSocket) return 'disconnected';
+  switch (voiceWebSocket.readyState) {
+    case WebSocket.CONNECTING:
+      return 'connecting';
+    case WebSocket.OPEN:
+      return 'open';
+    case WebSocket.CLOSING:
+    case WebSocket.CLOSED:
+    default:
+      return 'disconnected';
+  }
 }
 
 export function stopVoicePlayback() {
@@ -150,6 +176,210 @@ export function scheduleVoicePlayback(float32Array) {
   };
 }
 
+function setupWebSocketHandlers(callbacks, onOpenCallback = null) {
+  const { onStatusChange, onAudio, onText, onInterrupted, onTurnComplete, onPlaybackComplete, onError, onClose } = callbacks;
+
+  voiceWebSocket.onopen = () => {
+    console.log("🎙️ Voice WebSocket opened.");
+    
+    // Toggle state and status badge in UI immediately
+    if (onStatusChange) {
+      onStatusChange('ready', 'Bench Ready');
+    }
+    const voiceStatusEl = document.getElementById('bench-voice-status');
+    const voiceTextEl = document.getElementById('bench-voice-text');
+    if (voiceStatusEl && voiceTextEl) {
+      voiceStatusEl.className = 'backend-status online';
+      voiceTextEl.textContent = 'CONNECTED';
+    }
+
+    // Start heartbeat ping every 5 seconds to prevent Render spin-down
+    if (heartbeatInterval) clearInterval(heartbeatInterval);
+    heartbeatInterval = setInterval(() => {
+      if (voiceWebSocket && voiceWebSocket.readyState === WebSocket.OPEN) {
+        console.log("💓 Heartbeat ping");
+        voiceWebSocket.send(JSON.stringify({ type: "ping" }));
+      }
+    }, 5000);
+
+    if (onOpenCallback) {
+      onOpenCallback();
+    } else {
+      const selectedIssue = document.getElementById('builder-issue-select')?.value || '';
+      const selectedStance = (typeof window.getCurrentSelectedSide === 'function') ? window.getCurrentSelectedSide() : 'Petitioner';
+      const selectedAuths = window.selectedAuthorities || [];
+      const selectedAuthsText = selectedAuths.map(a => `${a.name}: ${a.ratio}`).join(', ');
+      
+      const primingPrompt = `[Appellate Advocacy Hearing Starting] 
+Advocate Stance: ${selectedStance.toUpperCase()}
+Target Legal Issue: ${selectedIssue}
+Selected Authorities: ${selectedAuthsText}
+Case Context Summary: ${currentPropositionContext || 'General dispute'}
+
+Begin the hearing by asking a challenging opening question tailored to this issue and stance. Keep it short and intimidating.`;
+
+      voiceWebSocket.send(JSON.stringify({
+        type: "text",
+        text: primingPrompt
+      }));
+    }
+  };
+
+  voiceWebSocket.onmessage = (event) => {
+    try {
+      const msg = JSON.parse(event.data);
+      if (msg.type === 'status') {
+        if (msg.status === 'connected') {
+          onStatusChange('listening', 'Listening...');
+        }
+      } else if (msg.type === 'audio') {
+        if (voiceWebSocket && voiceWebSocket.readyState === WebSocket.OPEN) {
+          onStatusChange('speaking', 'Judge Speaking...');
+        }
+        const float32Data = base64ToFloat32Array(msg.data);
+        if (onAudio) onAudio(float32Data);
+      } else if (msg.type === 'text') {
+        if (onText) onText(msg.text);
+      } else if (msg.type === 'interrupted') {
+        console.log("⚡ Judge interrupted. Stop audio playback.");
+        stopVoicePlayback();
+        isAudioBuffering = true;
+        audioChunksBuffer = [];
+        onStatusChange('listening', 'Listening...');
+        if (onInterrupted) onInterrupted();
+      } else if (msg.type === 'turnComplete') {
+        console.log("[DEBUG AUDIT] turnComplete received from server.");
+        isTurnCompleteReceived = true;
+        if (onTurnComplete) {
+          onTurnComplete();
+        }
+        isAudioBuffering = false;
+        audioChunksBuffer.forEach(chunk => {
+          scheduleVoicePlayback(chunk);
+        });
+        audioChunksBuffer = [];
+        
+        if (voicePlaybackSources.length === 0) {
+          console.log('[TTS_STREAM] Finished entire playback turn (no queued sources)');
+          triggerTurnComplete();
+        }
+      } else if (msg.type === 'error') {
+        console.error("Voice server error:", msg.message);
+        if (onError) onError(msg.message);
+      }
+    } catch (err) {
+      console.error("Error parsing WebSocket message:", err);
+    }
+  };
+
+  voiceWebSocket.onerror = (err) => {
+    console.error("Voice WebSocket Error:", err);
+    if (onStatusChange) {
+      onStatusChange('error', 'Connection Error');
+    }
+  };
+
+  voiceWebSocket.onclose = () => {
+    console.log("🎙️ Voice WebSocket closed.");
+    if (heartbeatInterval) {
+      clearInterval(heartbeatInterval);
+      heartbeatInterval = null;
+    }
+
+    const voiceStatusEl = document.getElementById('bench-voice-status');
+    const voiceTextEl = document.getElementById('bench-voice-text');
+    if (voiceStatusEl && voiceTextEl) {
+      voiceStatusEl.className = 'backend-status offline';
+      voiceTextEl.textContent = 'DISCONNECTED';
+    }
+
+    if (voiceSessionActive) {
+      console.log("Attempting automatic reconnection in 1s...");
+      setTimeout(() => {
+        if (voiceSessionActive) {
+          reconnectWebSocket(callbacks);
+        }
+      }, 1000);
+    } else {
+      if (onClose) onClose();
+    }
+  };
+}
+
+async function reconnectWebSocket(callbacks = activeCallbacks, onOpenCallback = null) {
+  if (!voiceSessionActive || !callbacks) {
+    if (onOpenCallback) onOpenCallback();
+    return;
+  }
+  console.log("🔄 Reconnecting voice WebSocket...");
+
+  if (voiceWebSocket) {
+    try {
+      voiceWebSocket.onopen = null;
+      voiceWebSocket.onmessage = null;
+      voiceWebSocket.onerror = null;
+      voiceWebSocket.onclose = null;
+      voiceWebSocket.close();
+    } catch (e) {}
+    voiceWebSocket = null;
+  }
+
+  if (heartbeatInterval) {
+    clearInterval(heartbeatInterval);
+    heartbeatInterval = null;
+  }
+
+  const { onStatusChange } = callbacks;
+  if (onStatusChange) {
+    onStatusChange('connecting', 'Reconnecting to Bench...');
+  }
+  const voiceStatusEl = document.getElementById('bench-voice-status');
+  const voiceTextEl = document.getElementById('bench-voice-text');
+  if (voiceStatusEl && voiceTextEl) {
+    voiceStatusEl.className = 'backend-status checking';
+    voiceTextEl.textContent = 'CONNECTING...';
+  }
+
+  try {
+    const wsUrl = getWsUrl();
+    voiceWebSocket = new WebSocket(wsUrl);
+    setupWebSocketHandlers(callbacks, onOpenCallback);
+  } catch (err) {
+    console.error("Reconnection attempt failed:", err);
+    setTimeout(() => reconnectWebSocket(callbacks, onOpenCallback), 2000);
+  }
+}
+
+function reconnectWebSocketPromise(callbacks = activeCallbacks) {
+  if (reconnectionPromise) return reconnectionPromise;
+
+  reconnectionPromise = new Promise((resolve) => {
+    reconnectWebSocket(callbacks, () => {
+      reconnectionPromise = null;
+      resolve();
+    });
+  });
+
+  return reconnectionPromise;
+}
+
+export async function sendSpeechText(text) {
+  if (!voiceWebSocket || voiceWebSocket.readyState !== WebSocket.OPEN) {
+    console.log("WebSocket not open. Reconnecting before sending speech...");
+    await reconnectWebSocketPromise(activeCallbacks);
+  }
+  
+  if (voiceWebSocket && voiceWebSocket.readyState === WebSocket.OPEN) {
+    console.log("Sending speech text payload:", text);
+    voiceWebSocket.send(JSON.stringify({
+      type: "text",
+      text: text
+    }));
+  } else {
+    console.error("Failed to send speech text: Socket reconnection failed.");
+  }
+}
+
 export async function startOralRound(callbacks) {
   const { onStatusChange, onAudio, onText, onInterrupted, onTurnComplete, onPlaybackComplete, onError, onClose } = callbacks;
 
@@ -163,6 +393,7 @@ export async function startOralRound(callbacks) {
   onPlaybackCompleteCallback = onPlaybackComplete;
   audioChunksBuffer = [];
   isAudioBuffering = true;
+  activeCallbacks = callbacks;
 
   try {
     await logAudioDevices();
@@ -219,6 +450,8 @@ export async function startOralRound(callbacks) {
     const updateAudioLevels = () => {
       if (!voiceSessionActive) return;
 
+      const isOpen = voiceWebSocket && voiceWebSocket.readyState === WebSocket.OPEN;
+
       // 1. Analyze Mic Volume
       micAnalyser.getByteFrequencyData(micDataArray);
       let sumMic = 0;
@@ -230,21 +463,21 @@ export async function startOralRound(callbacks) {
       
       const micLevelEl = document.getElementById('cr-mic-level');
       if (micLevelEl) {
-        micLevelEl.style.width = `${percentMic}%`;
+        micLevelEl.style.width = isOpen ? `${percentMic}%` : `0%`;
       }
 
       // 2. Animate Waveform Bars based on status
       const waveBars = document.querySelectorAll('#cr-waveform-container .cr-wave-bar');
       if (waveBars.length > 0) {
-        if (window.voiceStatus === 'speaking') {
-          // Judge Speaking -> Pulsing Red wave (since local SpeechSynthesis TTS is used)
+        if (isOpen && window.voiceStatus === 'speaking') {
+          // Judge Speaking -> Pulsing Red wave
           const time = Date.now() * 0.005;
           waveBars.forEach((bar, index) => {
             const height = Math.max(4, Math.round(14 + Math.sin(time + index * 0.8) * 10));
             bar.style.height = `${height}px`;
             bar.style.backgroundColor = '#e05252'; // Red for Judge
           });
-        } else if (window.voiceStatus === 'listening') {
+        } else if (isOpen && window.voiceStatus === 'listening') {
           // Counsel/Advocate Speaking -> Mic Analyser
           waveBars.forEach((bar, index) => {
             const val = micDataArray[index % micBufferLength] || 0;
@@ -252,7 +485,7 @@ export async function startOralRound(callbacks) {
             bar.style.height = `${height}px`;
             bar.style.backgroundColor = '#60a5fa'; // Blue for Counsel
           });
-        } else if (window.voiceStatus === 'processing') {
+        } else if (isOpen && window.voiceStatus === 'processing') {
           // Processing -> Purple pulsing wave
           const time = Date.now() * 0.005;
           waveBars.forEach((bar, index) => {
@@ -261,7 +494,7 @@ export async function startOralRound(callbacks) {
             bar.style.backgroundColor = '#a78bfa'; // Purple for Processing
           });
         } else {
-          // Idle/Disconnected -> Small static bars
+          // Idle/Disconnected/Connecting -> Small static bars
           waveBars.forEach((bar) => {
             bar.style.height = '4px';
             bar.style.backgroundColor = 'rgba(245, 243, 239, 0.3)';
@@ -286,90 +519,12 @@ export async function startOralRound(callbacks) {
 
     voiceSourceNode.connect(voiceWorkletNode);
     
-    // Connect worklet to zero-gain dummy silenceNode to prevent acoustic feedback loop muting while keeping worklet alive in browser
     const silenceNode = voiceAudioContext.createGain();
     silenceNode.gain.value = 0;
     voiceWorkletNode.connect(silenceNode);
     silenceNode.connect(voiceAudioContext.destination);
 
-    voiceWebSocket.onopen = () => {
-      console.log("🎙️ Voice WebSocket opened.");
-      
-      const selectedIssue = document.getElementById('builder-issue-select')?.value || '';
-      const selectedStance = (typeof window.getCurrentSelectedSide === 'function') ? window.getCurrentSelectedSide() : 'Petitioner';
-      const selectedAuths = window.selectedAuthorities || [];
-      const selectedAuthsText = selectedAuths.map(a => `${a.name}: ${a.ratio}`).join(', ');
-      
-      const primingPrompt = `[Appellate Advocacy Hearing Starting] 
-Advocate Stance: ${selectedStance.toUpperCase()}
-Target Legal Issue: ${selectedIssue}
-Selected Authorities: ${selectedAuthsText}
-Case Context Summary: ${currentPropositionContext || 'General dispute'}
-
-Begin the hearing by asking a challenging opening question tailored to this issue and stance. Keep it short and intimidating.`;
-
-      voiceWebSocket.send(JSON.stringify({
-        type: "text",
-        text: primingPrompt
-      }));
-    };
-
-    voiceWebSocket.onmessage = (event) => {
-      try {
-        const msg = JSON.parse(event.data);
-        if (msg.type === 'status') {
-          if (msg.status === 'connected') {
-            onStatusChange('listening', 'Listening...');
-          }
-        } else if (msg.type === 'audio') {
-          onStatusChange('speaking', 'Judge Speaking...');
-          const float32Data = base64ToFloat32Array(msg.data);
-          // Discard / skip binary audio chunks playback from WebSocket since we are doing real-time sentence-boundary TTS chunking locally
-          if (onAudio) onAudio(float32Data);
-        } else if (msg.type === 'text') {
-          if (onText) onText(msg.text);
-        } else if (msg.type === 'interrupted') {
-          console.log("⚡ Judge interrupted. Stop audio playback.");
-          stopVoicePlayback();
-          isAudioBuffering = true;
-          audioChunksBuffer = [];
-          onStatusChange('listening', 'Listening...');
-          if (onInterrupted) onInterrupted();
-        } else if (msg.type === 'turnComplete') {
-          console.log("[DEBUG AUDIT] turnComplete received from server.");
-          isTurnCompleteReceived = true;
-          if (onTurnComplete) {
-            onTurnComplete();
-          }
-          // Now play all buffered audio chunks since transcript has been rendered
-          isAudioBuffering = false;
-          audioChunksBuffer.forEach(chunk => {
-            scheduleVoicePlayback(chunk);
-          });
-          audioChunksBuffer = [];
-          
-          if (voicePlaybackSources.length === 0) {
-            console.log('[TTS_STREAM] Finished entire playback turn (no queued sources)');
-            triggerTurnComplete();
-          }
-        } else if (msg.type === 'error') {
-          console.error("Voice server error:", msg.message);
-          if (onError) onError(msg.message);
-        }
-      } catch (err) {
-        console.error("Error parsing WebSocket message:", err);
-      }
-    };
-
-    voiceWebSocket.onerror = (err) => {
-      console.error("Voice WebSocket Error:", err);
-      onStatusChange('error', 'Connection Error');
-    };
-
-    voiceWebSocket.onclose = () => {
-      console.log("🎙️ Voice WebSocket closed.");
-      if (onClose) onClose();
-    };
+    setupWebSocketHandlers(callbacks);
 
   } catch (err) {
     console.error("Failed to start oral round:", err);
@@ -385,8 +540,19 @@ export function stopOralRound() {
 
   const durationSec = Math.floor((Date.now() - voiceSessionStartTime) / 1000);
 
+  if (heartbeatInterval) {
+    clearInterval(heartbeatInterval);
+    heartbeatInterval = null;
+  }
+
   if (voiceWebSocket) {
-    try { voiceWebSocket.close(); } catch(e){}
+    try {
+      voiceWebSocket.onopen = null;
+      voiceWebSocket.onmessage = null;
+      voiceWebSocket.onerror = null;
+      voiceWebSocket.onclose = null;
+      voiceWebSocket.close();
+    } catch (e){}
     voiceWebSocket = null;
   }
 
@@ -413,6 +579,7 @@ export function stopOralRound() {
   
   micAnalyser = null;
   playbackAnalyser = null;
+  activeCallbacks = null;
   
   return durationSec;
 }

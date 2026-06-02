@@ -11,7 +11,9 @@ import {
 } from './ui.js';
 import { 
   startOralRound as engineStartOralRound, 
-  stopOralRound as engineStopOralRound 
+  stopOralRound as engineStopOralRound,
+  getSocketState,
+  sendSpeechText
 } from '../services/audioEngine.js';
 import { logSessionSecurely } from '../services/api.js';
 import { getCurrentSelectedSide, selectedAuthorities } from './argumentBuilder.js';
@@ -673,6 +675,23 @@ export function updateBenchState(state) {
     footerDot.className = `w-2.5 h-2.5 rounded-full ${dotColor} animate-pulse`;
   }
 
+  // Update Chambers Header voice status badge and label dynamically
+  const voiceStatusEl = document.getElementById('bench-voice-status');
+  const voiceTextEl = document.getElementById('bench-voice-text');
+  if (voiceStatusEl && voiceTextEl) {
+    const socketState = getSocketState();
+    if (socketState === 'open') {
+      voiceStatusEl.className = 'backend-status online';
+      voiceTextEl.textContent = 'CONNECTED';
+    } else if (socketState === 'connecting') {
+      voiceStatusEl.className = 'backend-status checking';
+      voiceTextEl.textContent = 'CONNECTING...';
+    } else {
+      voiceStatusEl.className = 'backend-status offline';
+      voiceTextEl.textContent = 'DISCONNECTED';
+    }
+  }
+
   console.log(`[DEBUG AUDIT] updateBenchState: ${state} -> ${text}`);
 }
 
@@ -763,14 +782,18 @@ export async function startOralRound() {
             console.log("[DEBUG AUDIT] Ignored engine status 'listening' because local TTS is speaking.");
           }
         } else if (status === 'speaking') {
-          updateBenchState('speaking');
-          if (recognition) {
-            try {
-              recognition.stop();
-              console.log("[DEBUG AUDIT] Mic stopped because Judge is speaking.");
-            } catch (e) {
-              console.warn("Failed to stop recognition:", e);
+          if (getSocketState() === 'open') {
+            updateBenchState('speaking');
+            if (recognition) {
+              try {
+                recognition.stop();
+                console.log("[DEBUG AUDIT] Mic stopped because Judge is speaking.");
+              } catch (e) {
+                console.warn("Failed to stop recognition:", e);
+              }
             }
+          } else {
+            console.warn("[WARN] Socket is not open, ignoring status switch to 'speaking'.");
           }
         } else if (status === 'user_speaking') {
           updateBenchState('listening');
@@ -1205,6 +1228,12 @@ function startSpeechRecognition() {
       
       // Counsel finished speaking -> transition status to processing
       updateBenchState('processing');
+
+      // Defensive check: If socket is not open, reconnect and send finalTranscript text payload
+      if (getSocketState() !== 'open') {
+        console.warn("[WARN] Socket is not open when speech completed. Reconnecting and sending text transcript.");
+        sendSpeechText(finalTranscript);
+      }
     } else if (interimTranscript) {
       showInterimUserSpeech(interimTranscript);
     }
