@@ -841,24 +841,18 @@ export async function startOralRound() {
         const trailing = sentenceBuffer.trim();
         if (trailing) {
           playJudgeAudio(trailing, () => {
-            console.log("[DEBUG AUDIT] SpeechSynthesis playback completed (trailing). Activating mic...");
+            console.log("[DEBUG AUDIT] SpeechSynthesis playback completed (trailing). Awaiting engine playback completion...");
             localTtsSpeaking = false;
-            updateBenchState('listening');
-            safeStartRecognition();
           }, true);
         } else if (lastScheduledUtterance) {
           const oldOnEnd = lastScheduledUtterance.onend;
           lastScheduledUtterance.onend = () => {
             if (oldOnEnd) oldOnEnd();
-            console.log("[DEBUG AUDIT] SpeechSynthesis playback completed (lastScheduledUtterance). Activating mic...");
+            console.log("[DEBUG AUDIT] SpeechSynthesis playback completed (lastScheduledUtterance). Awaiting engine playback completion...");
             localTtsSpeaking = false;
-            updateBenchState('listening');
-            safeStartRecognition();
           };
         } else {
           localTtsSpeaking = false;
-          updateBenchState('listening');
-          safeStartRecognition();
         }
 
         fullJudgeResponse = '';
@@ -890,7 +884,10 @@ export async function startOralRound() {
         }
       },
       onPlaybackComplete: () => {
-        console.log("[DEBUG AUDIT] Gemini Live playback completed. (Ignored because we use local SpeechSynthesis callback)");
+        console.log("[DEBUG AUDIT] Gemini Live playback completed. Transitioning to listening and reactivating mic...");
+        localTtsSpeaking = false;
+        updateBenchState('listening');
+        safeStartRecognition();
       }
     });
   } catch (err) {
