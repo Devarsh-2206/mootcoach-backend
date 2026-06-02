@@ -60,6 +60,7 @@ const buildJudgePrompt = (difficulty, propositionSummary) => {
   6. If the advocate dodges your question: "Counsel, you have not answered my question. I asked [restate question exactly]."
   7. If the advocate makes a legal or factual error: "Counsel, that is a misstatement of the position in [area]. Proceed on the correct basis."
   8. Vary your opening words. Do not start every response identically.
+  9. CRITICAL CONVERSATIONAL FALLBACK: If the advocate's input is a simple greeting (e.g., "Hello"), extremely short, or lacks legal substance, you MUST NOT return an empty string. Immediately reply: "Counsel, state your appearances and proceed directly to your substantive submissions."
   
   Return ONLY valid JSON: { "judgeResponse": "<judicial statement/question under 80 words>", "targetWeakness": "<what weakness you are probing>", "pressureLevel": <integer 1-5> }`;
   };

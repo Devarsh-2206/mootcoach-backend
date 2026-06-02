@@ -233,13 +233,17 @@ Begin the hearing by asking a challenging opening question tailored to this issu
           onStatusChange('listening', 'Listening...');
         }
       } else if (msg.type === 'audio') {
-        if (voiceWebSocket && voiceWebSocket.readyState === WebSocket.OPEN) {
-          onStatusChange('speaking', 'Judge Speaking...');
+        if (msg.data && msg.data.trim()) {
+          if (voiceWebSocket && voiceWebSocket.readyState === WebSocket.OPEN) {
+            onStatusChange('speaking', 'Judge Speaking...');
+          }
+          const float32Data = base64ToFloat32Array(msg.data);
+          if (onAudio) onAudio(float32Data);
         }
-        const float32Data = base64ToFloat32Array(msg.data);
-        if (onAudio) onAudio(float32Data);
       } else if (msg.type === 'text') {
-        if (onText) onText(msg.text);
+        if (msg.text && msg.text.trim()) {
+          if (onText) onText(msg.text);
+        }
       } else if (msg.type === 'interrupted') {
         console.log("⚡ Judge interrupted. Stop audio playback.");
         stopVoicePlayback();

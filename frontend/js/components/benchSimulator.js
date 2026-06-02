@@ -416,6 +416,12 @@ export async function submitToBench() {
     const selectedAuthsText = (selectedAuthorities || []).map(a => `${a.name}: ${a.ratio}`).join(', ');
     const contextPrefix = `[Advocate Side: ${selectedStance.toUpperCase()}] [Target Issue: ${selectedIssue}] [Selected Authorities: ${selectedAuthsText}]\n\n`;
 
+    // Reset judge's text container to clear old judge text
+    const judgeTextContainer = document.getElementById('judge-text-container');
+    if (judgeTextContainer) {
+      judgeTextContainer.innerHTML = "";
+    }
+
     const res = await fetch(`${BASE_URL}/simulate-bench`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1228,6 +1234,12 @@ function startSpeechRecognition() {
       
       // Counsel finished speaking -> transition status to processing
       updateBenchState('processing');
+
+      // Reset judge's text container to clear old judge text
+      const judgeTextContainer = document.getElementById('judge-text-container');
+      if (judgeTextContainer) {
+        judgeTextContainer.innerHTML = "";
+      }
 
       // Defensive check: If socket is not open, reconnect and send finalTranscript text payload
       if (getSocketState() !== 'open') {
