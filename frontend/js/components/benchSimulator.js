@@ -31,10 +31,7 @@ export let voiceSessionStartTime = null;
 let recognition = null;
 let voiceTimerInterval = null;
 let voiceElapsedTime = 0;
-let localTtsSpeaking = false;
 let currentBenchState = 'idle';
-let sentenceBuffer = "";
-let lastScheduledUtterance = null;
 
 // Expose benchActive on window for UI checks (e.g. showWsPanel)
 window.benchActive = false;
@@ -517,88 +514,7 @@ function getDeterministicJudge(str) {
   return `Justice ${JUDGE_NAMES[index].replace("Justice ", "")}`;
 }
 
-function getOpeningStatement() {
-  const issueSelect = document.getElementById('builder-issue-select');
-  const selectedIssue = issueSelect ? issueSelect.value : '';
-  const stance = (typeof getCurrentSelectedSide === 'function') ? getCurrentSelectedSide() : 'Petitioner';
-  const displayStance = stance ? (stance.charAt(0).toUpperCase() + stance.slice(1).toLowerCase()) : 'Petitioner';
-
-  if (selectedIssue) {
-    let cleanedIssue = selectedIssue.replace(/^(issue\s*\d+\s*:?\s*|whether\s+)/i, '').trim();
-    cleanedIssue = cleanedIssue.charAt(0).toUpperCase() + cleanedIssue.slice(1);
-    
-    if (!cleanedIssue.endsWith('?') && !cleanedIssue.endsWith('.')) {
-      cleanedIssue += '?';
-    }
-    
-    const dynamicOpening = `Counsel for the ${displayStance}, the Bench is prepared to hear your submissions on this issue: ${cleanedIssue}`;
-    console.log("[DEBUG AUDIT] Generated dynamic selected issue/stance opening statement:", dynamicOpening);
-    return dynamicOpening;
-  }
-
-  const genericOpening = `Counsel for the ${displayStance}, please summarize the principal constitutional issue before this Bench.`;
-  return genericOpening;
-}
-
-export function playJudgeAudio(text, callback, queue = false) {
-  console.log("[DEBUG AUDIT] playJudgeAudio starting for text:", text);
-  if (!('speechSynthesis' in window)) {
-    console.warn("speechSynthesis not supported, executing callback directly.");
-    if (callback) callback();
-    return;
-  }
-
-  // Cancel any ongoing speech if not queuing
-  if (!queue) {
-    window.speechSynthesis.cancel();
-    lastScheduledUtterance = null;
-  }
-
-  const utterance = new SpeechSynthesisUtterance(text);
-  
-  const voices = window.speechSynthesis.getVoices();
-  const preferredVoice = voices.find(v => v.name.includes("Google US English") || v.name.includes("Microsoft David") || v.lang === "en-US");
-  if (preferredVoice) utterance.voice = preferredVoice;
-  
-  utterance.rate = 1.0;
-  utterance.pitch = 0.9; // Slightly lower pitch for authority
-
-  console.log('[TTS] Starting');
-  console.log('[TTS] Voice:', utterance.voice?.name);
-
-  utterance.onend = () => {
-    console.log("[DEBUG AUDIT] playJudgeAudio utterance.onend fired.");
-    console.log('[TTS] Finished');
-    if (callback) callback();
-  };
-
-  utterance.onerror = (e) => {
-    console.error("[DEBUG AUDIT] playJudgeAudio error:", e);
-    console.log('[TTS] Finished');
-    if (callback) callback();
-  };
-
-  lastScheduledUtterance = utterance;
-  window.speechSynthesis.speak(utterance);
-}
-
-function triggerJudgeOpeningStatement() {
-  console.log("[DEBUG AUDIT] Triggering Judge opening statement...");
-  updateBenchState('speaking');
-  localTtsSpeaking = true;
-  
-  const openingText = getOpeningStatement();
-  appendTranscript('judge', openingText);
-  console.log("[DEBUG AUDIT] Opening statement text appended to transcript:", openingText);
-
-  // Play opening statement via TTS
-  playJudgeAudio(openingText, () => {
-    console.log("[DEBUG AUDIT] Opening statement TTS completed.");
-    localTtsSpeaking = false;
-    updateBenchState('listening');
-    safeStartRecognition();
-  });
-}
+// Browser SpeechSynthesis opening statement removed in favor of Gemini Live native audio.
 
 export function updateBenchState(state) {
   window.voiceStatus = state;
@@ -707,16 +623,7 @@ export async function startOralRound() {
     return;
   }
 
-  // Unlock SpeechSynthesis for mobile/iOS by playing a silent utterance in the direct click handler
-  if ('speechSynthesis' in window) {
-    try {
-      const silentUtterance = new SpeechSynthesisUtterance('');
-      window.speechSynthesis.speak(silentUtterance);
-      console.log("[DEBUG AUDIT] Warmed up SpeechSynthesis for iOS/mobile");
-    } catch (e) {
-      console.warn("Failed to warm up SpeechSynthesis:", e);
-    }
-  }
+  // Browser SpeechSynthesis iOS warmup removed in favor of Gemini Live native audio.
 
   let fullJudgeResponse = '';
   console.log("🎙️ Initiating oral round...");
@@ -779,14 +686,10 @@ export async function startOralRound() {
         if (status === 'connecting') {
           updateBenchState('connecting');
         } else if (status === 'ready') {
-          triggerJudgeOpeningStatement();
+          // Opening statement is handled natively by Gemini Live via priming prompt
         } else if (status === 'listening') {
-          if (!localTtsSpeaking) {
-            updateBenchState('listening');
-            safeStartRecognition();
-          } else {
-            console.log("[DEBUG AUDIT] Ignored engine status 'listening' because local TTS is speaking.");
-          }
+          updateBenchState('listening');
+          safeStartRecognition();
         } else if (status === 'speaking') {
           if (getSocketState() === 'open') {
             updateBenchState('speaking');
@@ -816,17 +719,6 @@ export async function startOralRound() {
         // Low-latency sentence-boundary chunking for real-time TTS responsiveness
         console.log("[DEBUG AUDIT] AI response chunk received:", text);
         fullJudgeResponse += text;
-        sentenceBuffer += text;
-
-        // Check for sentence boundaries: ., ?, or !
-        if (/[.?!]/.test(text)) {
-          const cleanChunk = sentenceBuffer.trim();
-          if (cleanChunk) {
-            localTtsSpeaking = true;
-            playJudgeAudio(cleanChunk, null, true);
-          }
-          sentenceBuffer = "";
-        }
       },
       onTurnComplete: () => {
         const cleanResponse = fullJudgeResponse.trim();
@@ -838,30 +730,9 @@ export async function startOralRound() {
           console.log('[JUDGE TRANSCRIPT] Judge bubble inserted');
         }
 
-        const trailing = sentenceBuffer.trim();
-        if (trailing) {
-          playJudgeAudio(trailing, () => {
-            console.log("[DEBUG AUDIT] SpeechSynthesis playback completed (trailing). Awaiting engine playback completion...");
-            localTtsSpeaking = false;
-          }, true);
-        } else if (lastScheduledUtterance) {
-          const oldOnEnd = lastScheduledUtterance.onend;
-          lastScheduledUtterance.onend = () => {
-            if (oldOnEnd) oldOnEnd();
-            console.log("[DEBUG AUDIT] SpeechSynthesis playback completed (lastScheduledUtterance). Awaiting engine playback completion...");
-            localTtsSpeaking = false;
-          };
-        } else {
-          localTtsSpeaking = false;
-        }
-
         fullJudgeResponse = '';
-        sentenceBuffer = '';
       },
       onInterrupted: () => {
-        if ('speechSynthesis' in window) {
-          window.speechSynthesis.cancel();
-        }
         const cleanResponse = fullJudgeResponse.trim();
         if (cleanResponse) {
           console.log('[JUDGE TRANSCRIPT] Response received (interrupted):', cleanResponse);
@@ -871,7 +742,6 @@ export async function startOralRound() {
           console.log('[JUDGE TRANSCRIPT] Judge bubble inserted');
         }
         fullJudgeResponse = '';
-        sentenceBuffer = '';
       },
       onError: (message) => {
         console.log("[DEBUG AUDIT] AI response error received:", message);
@@ -885,7 +755,6 @@ export async function startOralRound() {
       },
       onPlaybackComplete: () => {
         console.log("[DEBUG AUDIT] Gemini Live playback completed. Transitioning to listening and reactivating mic...");
-        localTtsSpeaking = false;
         updateBenchState('listening');
         safeStartRecognition();
       }
