@@ -15,8 +15,6 @@ let playbackAnalyser = null;
 let latestPlaybackSource = null;
 let isTurnCompleteReceived = false;
 let onPlaybackCompleteCallback = null;
-let audioChunksBuffer = [];
-let isAudioBuffering = true;
 
 let activeCallbacks = null;
 let heartbeatInterval = null;
@@ -92,8 +90,6 @@ export function stopVoicePlayback() {
 function triggerTurnComplete() {
   console.log("[DEBUG AUDIT] triggerTurnComplete: invoking onPlaybackCompleteCallback...");
   isTurnCompleteReceived = false;
-  isAudioBuffering = true;
-  audioChunksBuffer = [];
   voiceNextPlayTime = 0;
   if (onPlaybackCompleteCallback) {
     onPlaybackCompleteCallback();
@@ -241,11 +237,7 @@ Begin the hearing by asking a challenging opening question tailored to this issu
           // F1 fix: restore producer->consumer handoff for Gemini audio packets.
           // While buffering, enqueue chunks for turnComplete flush; once flushing starts,
           // schedule playback immediately for low-latency streaming.
-          if (isAudioBuffering) {
-            audioChunksBuffer.push(float32Data);
-          } else {
-            scheduleVoicePlayback(float32Data);
-          }
+          scheduleVoicePlayback(float32Data);
           if (onAudio) onAudio(float32Data);
         }
       } else if (msg.type === 'text') {
@@ -255,8 +247,6 @@ Begin the hearing by asking a challenging opening question tailored to this issu
       } else if (msg.type === 'interrupted') {
         console.log("⚡ Judge interrupted. Stop audio playback.");
         stopVoicePlayback();
-        isAudioBuffering = true;
-        audioChunksBuffer = [];
         onStatusChange('listening', 'Listening...');
         if (onInterrupted) onInterrupted();
       } else if (msg.type === 'turnComplete') {
@@ -265,11 +255,6 @@ Begin the hearing by asking a challenging opening question tailored to this issu
         if (onTurnComplete) {
           onTurnComplete();
         }
-        isAudioBuffering = false;
-        audioChunksBuffer.forEach(chunk => {
-          scheduleVoicePlayback(chunk);
-        });
-        audioChunksBuffer = [];
         
         if (voicePlaybackSources.length === 0) {
           console.log('[TTS_STREAM] Finished entire playback turn (no queued sources)');
@@ -403,8 +388,6 @@ export async function startOralRound(callbacks) {
   latestPlaybackSource = null;
   isTurnCompleteReceived = false;
   onPlaybackCompleteCallback = onPlaybackComplete;
-  audioChunksBuffer = [];
-  isAudioBuffering = true;
   activeCallbacks = callbacks;
 
   try {
