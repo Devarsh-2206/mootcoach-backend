@@ -771,9 +771,6 @@ export function stopOralRound() {
   if (!voiceSessionActive) return;
   console.log("🎙️ Stopping oral round...");
   voiceSessionActive = false;
-  localTtsSpeaking = false;
-  sentenceBuffer = '';
-  lastScheduledUtterance = null;
 
   const btnOral = document.getElementById('btn-bench-oral');
   const btnStart = document.getElementById('btn-bench-start');
