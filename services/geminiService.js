@@ -1,4 +1,5 @@
 const { GoogleGenAI } = require("@google/genai");
+const { buildLiveJudgePrompt } = require("../prompts/benchJudgePrompt");
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
@@ -58,8 +59,8 @@ const generateAIResponse = async (prompt, retries = 2) => {
   }
 };
 
-const handleLiveVoiceConnection = async (ws) => {
-  console.log("🎙️ New voice connection requested by client.");
+const handleLiveVoiceConnection = async (ws, benchLevel = 'moderate', propositionSummary = '') => {
+  console.log(`🎙️ New voice connection requested by client. Bench: ${benchLevel}`);
 
   if (!process.env.GEMINI_API_KEY) {
     console.error("❌ GEMINI_API_KEY is not defined in environment variables.");
@@ -69,6 +70,13 @@ const handleLiveVoiceConnection = async (ws) => {
   }
 
   let session;
+  const liveSystemInstruction = buildLiveJudgePrompt(benchLevel, propositionSummary);
+  
+  console.log("=========================================");
+  console.log(`[DEBUG AUDIT] Generating Live Prompt for Bench Level: ${benchLevel}`);
+  console.log("=========================================");
+  console.log(liveSystemInstruction);
+  console.log("=========================================");
 
   try {
     session = await ai.live.connect({
@@ -78,27 +86,7 @@ const handleLiveVoiceConnection = async (ws) => {
         systemInstruction: {
           parts: [
             {
-              text: `You are a sitting Justice on a 5-Judge Constitutional Bench of the Supreme Court of India hearing a complex writ petition. You are evaluating profound questions of public law, fundamental rights (Articles 14, 19, 21), and constitutional validity.
-
-ROLE & TONE:
-- You are a Supreme Court Justice: intellectually rigorous, exacting, and procedurally strict.
-- You are heavily focused on constitutional doctrine, Indian jurisprudence, statutory interpretation, and binding precedents (e.g., Kesavananda Bharati, Puttaswamy).
-- Your tone is sharp, probing, and distinctly formal in the Indian legal tradition.
-- Address the user as "Mr. Counsel" or "Learned Counsel".
-
-BEHAVIOUR & ENGAGEMENT:
-- Challenge unsupported assertions instantly. Do not allow counsel to gloss over weak points.
-- Demand exact authorities: "Where is your authority for that proposition?" or "Which paragraph of that judgment are you relying upon?"
-- Use hypotheticals to test the limits of their argument: "Assume we disagree with you. What follows?"
-- Keep your interventions short and piercing. Ask only one question at a time.
-- Frequently interrupt if counsel is evasive.
-
-RESTRICTIONS (CRITICAL):
-- NEVER act like a trial court judge. There are no witnesses, no juries, and no evidence taking.
-- NEVER use American or British trial-court terminology.
-- NEVER say: "Step down", "You are dismissed", "Next appeal", "Court is in recess", "Overruled", or "Sustained".
-- NEVER break character. You are not judging a moot court; you are hearing a live constitutional matter.
-- Avoid long speeches or motivational language. Do not praise the counsel.`
+              text: liveSystemInstruction
             }
           ]
         },
@@ -114,34 +102,49 @@ RESTRICTIONS (CRITICAL):
           ws.send(JSON.stringify({ type: "status", status: "connected" }));
         },
         onmessage: (message) => {
-          if (message.serverContent) {
-            const { modelTurn, turnComplete, interrupted } = message.serverContent;
-
-            if (interrupted) {
-              console.log("⚡ Gemini was interrupted by user speech.");
-              ws.send(JSON.stringify({ type: "interrupted" }));
-            }
-
-            if (modelTurn && modelTurn.parts) {
-              for (const part of modelTurn.parts) {
-                if (part.inlineData) {
-                  ws.send(JSON.stringify({
-                    type: "audio",
-                    data: part.inlineData.data
-                  }));
-                }
-                if (part.text) {
-                  ws.send(JSON.stringify({
-                    type: "text",
-                    text: part.text
-                  }));
+          try {
+            if (message.serverContent) {
+              console.log("[DEBUG TRACE] Raw serverContent:", JSON.stringify(message.serverContent, null, 2));
+              const { modelTurn, turnComplete, interrupted, outputTranscription } = message.serverContent;
+  
+              if (outputTranscription?.text) {
+                console.log("[TRANSCRIPT DEBUG] outputTranscription:", outputTranscription.text);
+                ws.send(JSON.stringify({
+                  type: "text",
+                  text: outputTranscription.text
+                }));
+              }
+  
+              if (interrupted) {
+                console.log("⚡ Gemini was interrupted by user speech.");
+                ws.send(JSON.stringify({ type: "interrupted" }));
+              }
+  
+              if (modelTurn && modelTurn.parts) {
+                for (const part of modelTurn.parts) {
+                  console.log("[DEBUG TRACE] Full Gemini part object:", JSON.stringify(part, null, 2));
+                  if (part.inlineData) {
+                    ws.send(JSON.stringify({
+                      type: "audio",
+                      data: part.inlineData.data
+                    }));
+                  }
+                  if (part.text) {
+                    console.log("[DEBUG TRACE] Backend forwarding text packet:", part.text.substring(0, 50));
+                    ws.send(JSON.stringify({
+                      type: "text",
+                      text: part.text
+                    }));
+                  }
                 }
               }
+  
+              if (turnComplete) {
+                ws.send(JSON.stringify({ type: "turnComplete" }));
+              }
             }
-
-            if (turnComplete) {
-              ws.send(JSON.stringify({ type: "turnComplete" }));
-            }
+          } catch (e) {
+            console.error("Error in onmessage handler:", e.stack);
           }
         },
         onerror: (error) => {

@@ -206,7 +206,7 @@ const { handleLiveVoiceConnection, getChatCompletion } = require("./services/gem
 const LEGAL_VALIDATION_PROMPT = require("./prompts/legalValidationPrompt");
 const ANALYSIS_SYSTEM_PROMPT = require("./prompts/analysisSystemPrompt");
 const ORAL_EVAL_PROMPT = require("./prompts/oralEvalPrompt");
-const buildJudgePrompt = require("./prompts/benchJudgePrompt");
+const { buildJudgePrompt } = require("./prompts/benchJudgePrompt");
 const buildEvaluationPrompt = require("./prompts/benchEvaluationPrompt");
 const ARGUMENT_BUILDER_PROMPT = require("./prompts/argumentBuilderPrompt");
 
@@ -613,7 +613,20 @@ wss.on("connection", (ws, req) => {
   });
 
   if (req.url === "/ws/voice" || req.url.startsWith("/ws/voice")) {
-    handleLiveVoiceConnection(ws);
+    let benchLevel = 'moderate';
+    let propositionSummary = '';
+    
+    try {
+      // The req.url might look like /ws/voice?bench=hard&mootId=...
+      // Node's req.url starts with / so we can construct a placeholder URL to parse searchParams
+      const url = new URL(req.url, `ws://${req.headers.host || 'localhost'}`);
+      benchLevel = url.searchParams.get('bench') || 'moderate';
+      propositionSummary = url.searchParams.get('summary') || '';
+    } catch (e) {
+      console.error("Error parsing WebSocket URL:", e);
+    }
+
+    handleLiveVoiceConnection(ws, benchLevel, propositionSummary);
   } else {
     ws.close();
   }

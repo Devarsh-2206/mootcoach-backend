@@ -1,5 +1,6 @@
 import { BASE_URL } from '../config.js';
 import { currentPropositionContext } from '../components/ui.js';
+import { benchProfiles } from '../config/benchProfiles.js';
 
 let voiceWebSocket = null;
 let voiceAudioContext = null;
@@ -21,13 +22,17 @@ let heartbeatInterval = null;
 let reconnectionPromise = null;
 
 function getWsUrl() {
+  const mode = window.benchDifficultyMode || 'moderate';
+  const summary = currentPropositionContext || '';
+  const query = `?bench=${encodeURIComponent(mode)}&summary=${encodeURIComponent(summary.slice(0, 1000))}`;
+  
   if (BASE_URL.startsWith('https://')) {
-    return BASE_URL.replace('https://', 'wss://') + '/ws/voice';
+    return BASE_URL.replace('https://', 'wss://') + '/ws/voice' + query;
   } else if (BASE_URL.startsWith('http://')) {
-    return BASE_URL.replace('http://', 'ws://') + '/ws/voice';
+    return BASE_URL.replace('http://', 'ws://') + '/ws/voice' + query;
   } else {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    return `${protocol}//${window.location.host}/ws/voice`;
+    return `${protocol}//${window.location.host}/ws/voice${query}`;
   }
 }
 
@@ -206,13 +211,29 @@ function setupWebSocketHandlers(callbacks, onOpenCallback = null) {
       const selectedAuths = window.selectedAuthorities || [];
       const selectedAuthsText = selectedAuths.map(a => `${a.name}: ${a.ratio}`).join(', ');
       
+      const mode = window.benchDifficultyMode || 'moderate';
+      const bench = benchProfiles[mode] || benchProfiles.moderate;
+      
+      const judgesConfig = bench.judges.map(j => `- ${j.name} (${j.ideology}): ${j.behavior}`).join('\n');
+
       const primingPrompt = `[Appellate Advocacy Hearing Starting] 
 Advocate Stance: ${selectedStance.toUpperCase()}
 Target Legal Issue: ${selectedIssue}
 Selected Authorities: ${selectedAuthsText}
 Case Context Summary: ${currentPropositionContext || 'General dispute'}
 
-Begin the hearing by asking a challenging opening question tailored to this issue and stance. Keep it short and intimidating.`;
+YOU ARE ACTING AS A MULTI-JUDGE BENCH. 
+The bench comprises:
+${judgesConfig}
+
+IMPORTANT INSTRUCTIONS:
+- You must maintain these distinct judge personalities throughout the hearing.
+- WHEN A JUDGE SPEAKS, YOU MUST PREPEND THEIR DIALOGUE WITH THEIR NAME IN BRACKETS.
+- Example: "[Chief Justice Rao] Counsel, how do you explain..."
+- Example: "[Justice Menon] I disagree, the statute is clear..."
+- Do NOT act as a narrator, only speak as the judges.
+
+Begin the hearing by having one of the judges ask a challenging opening question tailored to this issue and stance. Keep it short and intimidating.`;
 
       voiceWebSocket.send(JSON.stringify({
         type: "text",
@@ -241,6 +262,7 @@ Begin the hearing by asking a challenging opening question tailored to this issu
           if (onAudio) onAudio(float32Data);
         }
       } else if (msg.type === 'text') {
+        console.log("[DEBUG TRACE] Frontend received text packet from backend:", msg.text.substring(0, 50));
         if (msg.text && msg.text.trim()) {
           if (onText) onText(msg.text);
         }

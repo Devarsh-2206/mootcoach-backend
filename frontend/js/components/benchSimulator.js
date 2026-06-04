@@ -32,6 +32,7 @@ let recognition = null;
 let voiceTimerInterval = null;
 let voiceElapsedTime = 0;
 let currentBenchState = 'idle';
+let lastInterimTranscript = '';
 
 // Expose benchActive on window for UI checks (e.g. showWsPanel)
 window.benchActive = false;
@@ -525,6 +526,12 @@ export function updateBenchState(state) {
   if (state === 'speaking' || state === 'connecting' || state === 'ended' || state === 'permission_denied') {
     if (recognition) {
       try {
+        if (lastInterimTranscript) {
+          console.log("[DEBUG AUDIT] Aborting recognition. Manual flush of last interim transcript:", lastInterimTranscript);
+          appendTranscript('advocate', lastInterimTranscript);
+          benchConversation.push({ role: 'advocate', content: lastInterimTranscript });
+          lastInterimTranscript = '';
+        }
         recognition.abort();
         console.log(`[VOICE] Aborted recognition because state is ${state}`);
         updateDiagActive(false);
@@ -1092,6 +1099,8 @@ function startSpeechRecognition() {
       appendTranscript('advocate', finalTranscript);
       console.log("[DEBUG AUDIT] Advocate transcript appended:", finalTranscript);
       benchConversation.push({ role: 'advocate', content: finalTranscript });
+      
+      lastInterimTranscript = ''; // Clear tracking on successful final
 
       const interim = document.getElementById('cr-interim-bubble');
       if (interim) interim.remove();
@@ -1111,6 +1120,7 @@ function startSpeechRecognition() {
         sendSpeechText(finalTranscript);
       }
     } else if (interimTranscript) {
+      lastInterimTranscript = interimTranscript;
       showInterimUserSpeech(interimTranscript);
     }
   };
