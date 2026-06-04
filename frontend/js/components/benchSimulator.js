@@ -1,16 +1,16 @@
 import { BASE_URL } from '../config.js';
 import { currentUser } from '../services/firebase.js';
-import { 
-  currentPropositionContext, 
-  showToast, 
-  esc, 
-  fmtInline, 
-  showWsPanel, 
+import {
+  currentPropositionContext,
+  showToast,
+  esc,
+  fmtInline,
+  showWsPanel,
   toggleSection,
   lastAnalysis
 } from './ui.js';
-import { 
-  startOralRound as engineStartOralRound, 
+import {
+  startOralRound as engineStartOralRound,
   stopOralRound as engineStopOralRound,
   getSocketState,
   sendSpeechText
@@ -39,7 +39,7 @@ window.benchActive = false;
 export function setBenchDifficulty(mode) {
   benchDifficultyMode = mode;
   window.benchDifficultyMode = mode;
-  ['easy','moderate','hard'].forEach(d => {
+  ['easy', 'moderate', 'hard'].forEach(d => {
     const el = document.getElementById(`bench-diff-${d}`);
     if (el) el.className = `diff-btn${d === mode ? ` active-${d}` : ''}`;
   });
@@ -156,18 +156,18 @@ export function startBenchSession() {
   window.benchActive = true;
   benchSubmitting = false;
 
-  const chat     = document.getElementById('bench-chat');
-  const empty    = document.getElementById('bench-empty');
+  const chat = document.getElementById('bench-chat');
+  const empty = document.getElementById('bench-empty');
   const inputRow = document.getElementById('bench-input-row');
   const btnClear = document.getElementById('btn-bench-clear');
   const btnStart = document.getElementById('btn-bench-start');
   const courtroom = document.getElementById('courtroom-view');
 
   if (courtroom) courtroom.classList.remove('active');
-  if (empty)    empty.style.display    = 'none';
+  if (empty) empty.style.display = 'none';
   if (inputRow) inputRow.style.display = 'flex';
   if (btnClear) btnClear.style.display = '';
-  if (btnStart) btnStart.textContent   = 'Restart';
+  if (btnStart) btnStart.textContent = 'Restart';
 
   if (chat) {
     chat.style.display = 'flex';
@@ -184,37 +184,38 @@ export function startBenchSession() {
   if (exitBtn) exitBtn.style.display = 'block';
 
   const openingMap = {
-    easy:     "Good morning, Counsel. This Court is ready to hear your submissions. Please state the nature of your petition and establish your locus standi before proceeding.",
+    easy: "Good morning, Counsel. This Court is ready to hear your submissions. Please state the nature of your petition and establish your locus standi before proceeding.",
     moderate: "Counsel, you may proceed. This Bench has read the proposition. Begin with your first issue and your primary submission on it. Be precise.",
-    hard:     "Counsel — before you commence your submissions on the merits, satisfy this Bench on one thing: on what precise constitutional or statutory basis does this Court have jurisdiction to entertain this petition?"
+    hard: "Counsel — before you commence your submissions on the merits, satisfy this Bench on one thing: on what precise constitutional or statutory basis does this Court have jurisdiction to entertain this petition?"
   };
 
   const opening = openingMap[benchDifficultyMode] || openingMap.moderate;
   appendBenchMessage('judge', opening, null, 'Opening the session', 1);
-  benchConversation.push({ role:'judge', content: opening });
+  benchConversation.push({ role: 'judge', content: opening });
 
   const input = document.getElementById('bench-input');
-  if (input) { 
-    input.value = ''; 
+  if (input) {
+    input.value = '';
     input.disabled = false;
     input.placeholder = "Type your response to the bench...";
-    input.focus(); 
+    input.focus();
   }
   const sendBtn = document.getElementById('btn-bench-send');
   if (sendBtn) sendBtn.disabled = true;
 }
 
 export function clearBenchSession() {
+  stopOralRound();
   benchConversation = [];
   benchActive = false;
   window.benchActive = false;
   benchSubmitting = false;
 
-  const chat     = document.getElementById('bench-chat');
+  const chat = document.getElementById('bench-chat');
   const inputRow = document.getElementById('bench-input-row');
   const btnClear = document.getElementById('btn-bench-clear');
   const btnStart = document.getElementById('btn-bench-start');
-  const empty    = document.getElementById('bench-empty');
+  const empty = document.getElementById('bench-empty');
   const courtroom = document.getElementById('courtroom-view');
 
   if (courtroom) courtroom.classList.remove('active');
@@ -224,8 +225,8 @@ export function clearBenchSession() {
   }
   if (inputRow) inputRow.style.display = 'none';
   if (btnClear) btnClear.style.display = 'none';
-  if (btnStart) btnStart.textContent   = 'Start New Session';
-  if (empty)    empty.style.display    = '';
+  if (btnStart) btnStart.textContent = 'Start New Session';
+  if (empty) empty.style.display = '';
 
   // Reset Global Chambers Header
   const sessionTitleEl = document.getElementById('cr-session-title');
@@ -251,12 +252,12 @@ export function appendBenchMessage(role, text, pressureLevel, targetWeakness, di
     div.innerHTML = `<div class="bm-role bm-role-system">System</div><div class="bm-text">${esc(text)}</div>`;
   } else {
     const roleLabel = role === 'judge' ? 'BENCH' : 'COUNSEL';
-    const roleCls   = role === 'judge' ? 'bm-role-judge' : 'bm-role-advocate';
-    
-    const pressure  = displayPressure || pressureLevel || 0;
+    const roleCls = role === 'judge' ? 'bm-role-judge' : 'bm-role-advocate';
+
+    const pressure = displayPressure || pressureLevel || 0;
 
     const pressureHTML = (pressure > 0 && role === 'judge')
-      ? `<div class="pressure-dots">${[1,2,3,4,5].map(n => `<div class="pressure-dot${n <= pressure ? ' filled':''}"></div>`).join('')}</div>`
+      ? `<div class="pressure-dots">${[1, 2, 3, 4, 5].map(n => `<div class="pressure-dot${n <= pressure ? ' filled' : ''}"></div>`).join('')}</div>`
       : '';
     const weaknessHTML = (targetWeakness && role === 'judge')
       ? `<div class="bm-weakness">↳ ${esc(targetWeakness)}</div>`
@@ -269,7 +270,7 @@ export function appendBenchMessage(role, text, pressureLevel, targetWeakness, di
   }
 
   chat.appendChild(div);
-  chat.scrollTo({ top: chat.scrollHeight, behavior:'smooth' });
+  chat.scrollTo({ top: chat.scrollHeight, behavior: 'smooth' });
 }
 
 export function appendBenchPerformanceReview(review) {
@@ -357,34 +358,34 @@ export function appendBenchPerformanceReview(review) {
   `;
 
   chat.appendChild(div);
-  chat.scrollTo({ top: chat.scrollHeight, behavior:'smooth' });
+  chat.scrollTo({ top: chat.scrollHeight, behavior: 'smooth' });
 
   // Animate the score
   setTimeout(() => {
     const scoreEl = document.getElementById('animated-bench-score');
     if (scoreEl) {
-       let startTimestamp = null;
-       const duration = 1500;
-       const step = (timestamp) => {
-         if (!startTimestamp) startTimestamp = timestamp;
-         const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-         const ease = 1 - Math.pow(1 - progress, 4);
-         const currentScore = Math.floor(ease * score);
-         scoreEl.innerHTML = `${currentScore}<span style="font-size:1rem;color:var(--white-muted);font-family:var(--sans);">/100</span>`;
-         if (progress < 1) {
-           window.requestAnimationFrame(step);
-         } else {
-           scoreEl.innerHTML = `${score}<span style="font-size:1rem;color:var(--white-muted);font-family:var(--sans);">/100</span>`; 
-         }
-       };
-       window.requestAnimationFrame(step);
+      let startTimestamp = null;
+      const duration = 1500;
+      const step = (timestamp) => {
+        if (!startTimestamp) startTimestamp = timestamp;
+        const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+        const ease = 1 - Math.pow(1 - progress, 4);
+        const currentScore = Math.floor(ease * score);
+        scoreEl.innerHTML = `${currentScore}<span style="font-size:1rem;color:var(--white-muted);font-family:var(--sans);">/100</span>`;
+        if (progress < 1) {
+          window.requestAnimationFrame(step);
+        } else {
+          scoreEl.innerHTML = `${score}<span style="font-size:1rem;color:var(--white-muted);font-family:var(--sans);">/100</span>`;
+        }
+      };
+      window.requestAnimationFrame(step);
     }
   }, 100);
 }
 
 export async function submitToBench() {
   if (benchSubmitting || !benchActive) return;
-  const input   = document.getElementById('bench-input');
+  const input = document.getElementById('bench-input');
   const sendBtn = document.getElementById('btn-bench-send');
   const statement = input?.value?.trim();
   if (!statement || statement.length < 3) return;
@@ -393,7 +394,7 @@ export async function submitToBench() {
   if (sendBtn) sendBtn.disabled = true;
 
   appendBenchMessage('advocate', statement);
-  benchConversation.push({ role:'advocate', content: statement });
+  benchConversation.push({ role: 'advocate', content: statement });
   if (input) input.value = '';
 
   const typingId = 'typing-' + Date.now();
@@ -404,7 +405,7 @@ export async function submitToBench() {
     t.id = typingId;
     t.innerHTML = `<div class="bm-role bm-role-judge">BENCH</div><div class="bm-text" style="opacity:.4;letter-spacing:.08em;">. . .</div>`;
     chat.appendChild(t);
-    chat.scrollTo({ top: chat.scrollHeight, behavior:'smooth' });
+    chat.scrollTo({ top: chat.scrollHeight, behavior: 'smooth' });
   }
 
   try {
@@ -455,7 +456,7 @@ export async function submitToBench() {
         chat.scrollTop = chat.scrollHeight;
       }
     });
-    benchConversation.push({ role:'judge', content: judgeText });
+    benchConversation.push({ role: 'judge', content: judgeText });
 
   } catch (err) {
     document.getElementById(typingId)?.remove();
@@ -464,7 +465,7 @@ export async function submitToBench() {
     benchSubmitting = false;
     if (benchActive) {
       if (sendBtn) sendBtn.disabled = false;
-      if (input)   input.focus();
+      if (input) input.focus();
     }
   }
 }
@@ -631,7 +632,7 @@ export async function startOralRound() {
   benchConversation = [];
   voiceSessionActive = true;
   voiceSessionStartTime = Date.now();
-  
+
   const chat = document.getElementById('bench-chat');
   const empty = document.getElementById('bench-empty');
   const btnOral = document.getElementById('btn-bench-oral');
@@ -639,7 +640,7 @@ export async function startOralRound() {
   const btnClear = document.getElementById('btn-bench-clear');
   const inputRow = document.getElementById('bench-input-row');
   const courtroom = document.getElementById('courtroom-view');
-  
+
   if (empty) empty.style.display = 'none';
   if (btnOral) btnOral.textContent = 'End Oral Round';
   if (btnStart) btnStart.disabled = true;
@@ -779,10 +780,10 @@ export function stopOralRound() {
   const empty = document.getElementById('bench-empty');
   const inputRow = document.getElementById('bench-input-row');
   const courtroom = document.getElementById('courtroom-view');
-  
+
   if (btnOral) btnOral.textContent = 'Start Oral Round';
   if (btnStart) btnStart.disabled = false;
-  
+
   if (courtroom) courtroom.classList.remove('active');
   if (empty) empty.style.display = '';
 
@@ -811,7 +812,7 @@ export function stopOralRound() {
   if (currentUser && voiceSessionStartTime) {
     const duration = Math.floor((Date.now() - voiceSessionStartTime) / 1000);
     const mootName = document.getElementById('ws-moot-name')?.value?.trim() || 'Untitled Moot';
-    
+
     logSessionSecurely({
       uid: currentUser.uid,
       type: 'voice_session',
@@ -848,10 +849,10 @@ export function appendTranscript(role, text, isChunk = false) {
     currentJudgeSpeech = text;
     const div = document.createElement('div');
     div.className = 'flex flex-col max-w-[80%] self-start items-start animate-[secReveal_0.3s_ease_both]';
-    
+
     // Get dynamic Judge Name
     const judgeName = getJudgeName();
-    
+
     div.innerHTML = `
       <div class="text-[10px] font-semibold tracking-wider text-red-400 mb-1 flex items-center gap-1">
         <span>⚖️</span> ${judgeName}
@@ -994,12 +995,12 @@ function updateDiagTimestamp(eventName) {
 
 function safeStartRecognition() {
   if (!recognition) return;
-  
+
   if (currentBenchState !== 'listening') {
     console.log(`[VOICE] Aborted recognition.start() because currentBenchState is '${currentBenchState}' (not 'listening')`);
     return;
   }
-  
+
   try {
     recognition.start();
     updateDiagActive(true);
@@ -1036,12 +1037,12 @@ function startSpeechRecognition() {
     showToast("Speech Recognition not supported in this browser", "err");
     return;
   }
-  
+
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   recognition = new SpeechRecognition();
   console.log("[VOICE] Recognition initialized");
   updateDiagTimestamp('Recognition initialized');
-  
+
   recognition.continuous = true;
   recognition.interimResults = true;
   recognition.lang = 'en-US';
@@ -1074,7 +1075,7 @@ function startSpeechRecognition() {
     console.log("speech result");
     console.log("[VOICE] Recognition result");
     updateDiagTimestamp('speech result');
-    
+
     let interimTranscript = '';
     let finalTranscript = '';
 
@@ -1094,10 +1095,10 @@ function startSpeechRecognition() {
       appendTranscript('advocate', finalTranscript);
       console.log("[DEBUG AUDIT] Advocate transcript appended:", finalTranscript);
       benchConversation.push({ role: 'advocate', content: finalTranscript });
-      
+
       const interim = document.getElementById('cr-interim-bubble');
       if (interim) interim.remove();
-      
+
       // Counsel finished speaking -> transition status to processing
       updateBenchState('processing');
 
@@ -1121,7 +1122,7 @@ function startSpeechRecognition() {
     console.log("speech error", e.error);
     console.error("[VOICE] Recognition error:", e.error);
     updateDiagTimestamp(`speech error: ${e.error}`);
-    
+
     if (e.error === 'not-allowed') {
       updateDiagPermission('denied');
       updateBenchState('permission_denied');
@@ -1143,7 +1144,7 @@ function startSpeechRecognition() {
     console.log('[MIC] Ended');
     updateDiagActive(false);
     updateDiagTimestamp('Recognition ended');
-    
+
     if (voiceSessionActive && currentBenchState === 'listening') {
       setTimeout(() => {
         try {
@@ -1162,7 +1163,7 @@ function startSpeechRecognition() {
 function stopSpeechRecognition() {
   if (recognition) {
     recognition.onend = null;
-    try { recognition.abort(); } catch(e){}
+    try { recognition.abort(); } catch (e) { }
     recognition = null;
   }
 }
