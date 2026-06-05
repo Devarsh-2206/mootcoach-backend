@@ -1109,7 +1109,7 @@ export function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt
 export let currentStage = 1;
 
 export function goToStage(stageNum) {
-  if (stageNum < 1 || stageNum > 5) return;
+  if (stageNum < 1 || stageNum > 4) return;
   if (!currentUser) return;
 
   const hasContext = !!(window.lastAnalysis || lastAnalysis);
@@ -1122,7 +1122,7 @@ export function goToStage(stageNum) {
   currentStage = stageNum;
 
   // Update Stepper UI
-  for (let i = 1; i <= 5; i++) {
+  for (let i = 1; i <= 4; i++) {
     const stepEl = document.getElementById('step-' + i);
     const connectorEl = document.getElementById('connector-' + i);
     if (stepEl) {
@@ -1147,7 +1147,7 @@ export function goToStage(stageNum) {
   }
 
   // Toggle active stage containers
-  for (let i = 1; i <= 5; i++) {
+  for (let i = 1; i <= 4; i++) {
     const stageEl = document.getElementById('stage-' + i + '-container');
     if (stageEl) {
       if (i === currentStage) {
@@ -1167,7 +1167,7 @@ export function goToStage(stageNum) {
     prevBtn.style.display = currentStage === 1 ? 'none' : 'block';
   }
   if (nextBtn) {
-    nextBtn.style.display = currentStage === 5 ? 'none' : 'block';
+    nextBtn.style.display = currentStage === 4 ? 'none' : 'block';
   }
 
   // Stage-specific renderings
@@ -1178,8 +1178,6 @@ export function goToStage(stageNum) {
       window.renderStage3Workspace();
     }
   } else if (currentStage === 4) {
-    renderStage4OralNotes();
-  } else if (currentStage === 5) {
     if (typeof window.setBenchDifficulty === 'function') {
       window.setBenchDifficulty(window.benchDifficultyMode || 'moderate');
     }
@@ -1197,7 +1195,7 @@ export function goToStage(stageNum) {
 }
 
 export function wizardNext() {
-  if (currentStage < 5) {
+  if (currentStage < 4) {
     goToStage(currentStage + 1);
   }
 }

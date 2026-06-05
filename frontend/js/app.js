@@ -35,8 +35,8 @@ import {
   goToStage,
   wizardNext,
   wizardPrev,
-  selectIssueFromCard,
-  switchStage5Tab
+  switchStage5Tab,
+  renderStage4OralNotes
 } from './components/ui.js';
 
 import {
@@ -711,6 +711,7 @@ window.wizardNext = wizardNext;
 window.wizardPrev = wizardPrev;
 window.selectIssueFromCard = selectIssueFromCard;
 window.switchStage5Tab = switchStage5Tab;
+window.renderStage4OralNotes = renderStage4OralNotes;
 
 async function triggerWelcomeEmail(email, fname) {
   try {

@@ -633,6 +633,10 @@ function renderIRAC(iracData) {
     renderOralNotes(iracData.oralAdvocacy, currentStance, currentIssue);
     renderRebuttals(iracData.rebuttals, currentStance);
     renderCitations(iracData.citations, notes);
+    
+    if (typeof window.renderStage4OralNotes === 'function') {
+      window.renderStage4OralNotes();
+    }
   } catch (e) {
     console.error('[RENDER ERROR]', e);
     renderFallbackState(e);
@@ -2767,7 +2771,7 @@ function getDetailedAuthorityDetails(auth) {
 let currentModalAuth = null;
 let currentModalDetails = null;
 
-export function openAuthorityModal(caseName, initialTab = 'ratio') {
+export async function openAuthorityModal(caseName, initialTab = 'ratio') {
   let stance = getCurrentSelectedSide() || selectedSide || 'Petitioner';
   if (stance.toLowerCase().includes('petitioner') || stance.toLowerCase().includes('appellant')) stance = 'Petitioner';
   else stance = 'Respondent';
@@ -2778,6 +2782,7 @@ export function openAuthorityModal(caseName, initialTab = 'ratio') {
   
   const auth = authorities.find(a => a.name === caseName) || { name: caseName, ratio: "Ratio unverified" };
   currentModalAuth = auth;
+  // Set fallback first
   currentModalDetails = getDetailedAuthorityDetails(auth);
   
   document.getElementById('auth-modal-name').textContent = auth.name;
@@ -2804,6 +2809,49 @@ export function openAuthorityModal(caseName, initialTab = 'ratio') {
   const modal = document.getElementById('authority-detail-modal');
   if (modal) modal.classList.remove('hidden');
   
+  // Render loading state initially
+  const contentEl = document.getElementById('auth-modal-tab-content');
+  if (contentEl) {
+    contentEl.innerHTML = `
+      <div class="flex flex-col items-center justify-center py-10 opacity-70">
+        <div class="w-6 h-6 border-2 border-moot-accent border-t-transparent rounded-full animate-spin mb-3"></div>
+        <div class="text-[10px] uppercase tracking-widest text-moot-accent font-semibold animate-pulse">Generating Advocacy Intelligence...</div>
+      </div>
+    `;
+  }
+  
+  // Set tab active state
+  switchAuthModalTab(initialTab, true);
+
+  // Fetch AI Intelligence asynchronously
+  try {
+    const notesInput = document.getElementById('builder-notes-input');
+    const notes = notesInput ? notesInput.value : '';
+    
+    const response = await fetch('/api/authority-intelligence', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        authorityName: auth.name,
+        propositionContext: window.currentPropositionContext || "General constitutional matter.",
+        stance: stance,
+        notes: notes
+      })
+    });
+    
+    const data = await response.json();
+    if (data.success && data.response) {
+      currentModalDetails = data.response;
+      currentModalDetails.isAiGenerated = true;
+    } else {
+      currentModalDetails = getDetailedAuthorityDetails(auth);
+    }
+  } catch (err) {
+    console.error("AI intelligence fetch failed, falling back", err);
+    currentModalDetails = getDetailedAuthorityDetails(auth);
+  }
+
+  // Re-render the active tab with actual data
   switchAuthModalTab(initialTab);
 }
 
@@ -2812,40 +2860,68 @@ export function closeAuthorityModal() {
   if (modal) modal.classList.add('hidden');
 }
 
-export function switchAuthModalTab(tab) {
-  const tabs = ['ratio', 'usage', 'courtroom', 'issues', 'counter', 'strategy'];
+export function switchAuthModalTab(tab, skipRender = false) {
+  const tabs = ['ratio', 'rationale', 'usage', 'courtroom', 'counter', 'strategy', 'bench'];
   tabs.forEach(t => {
     const btn = document.getElementById(`auth-tab-${t}`);
     if (btn) {
       btn.classList.toggle('auth-modal-tab-active', t === tab);
       btn.classList.toggle('text-moot-accent', t === tab);
       btn.classList.toggle('text-white-muted', t !== tab);
+      btn.classList.toggle('border-moot-accent', t === tab);
+      btn.classList.toggle('border-transparent', t !== tab);
     }
   });
   
+  if (skipRender) return;
+
   const contentEl = document.getElementById('auth-modal-tab-content');
   if (contentEl && currentModalDetails) {
     let html = '';
+    const isAi = currentModalDetails.isAiGenerated;
+
     switch(tab) {
       case 'ratio':
-        html = `<div><strong>Ratio Decidendi:</strong><p class="mt-2 text-white-2 font-serif italic leading-relaxed">"${currentModalDetails.ratio}"</p></div>`;
+        html = `<div><strong class="text-moot-accent tracking-wider uppercase text-[10px]">Ratio Decidendi:</strong><p class="mt-2 text-white-2 font-serif italic leading-relaxed text-sm bg-black/20 p-3 rounded-lg border-l-2 border-moot-accent/50">"${isAi ? currentModalDetails.ratioDecidendi : currentModalDetails.ratio}"</p></div>`;
+        break;
+      case 'rationale':
+        const rationaleText = isAi ? currentModalDetails.selectionRationale : currentModalDetails.relatedIssues;
+        html = `<div><strong class="text-indigo-400 tracking-wider uppercase text-[10px]">Why MootCoach Selected This:</strong><p class="mt-2 text-white-muted leading-relaxed">${rationaleText}</p></div>`;
         break;
       case 'usage':
-        html = `<div><strong>Application / How to Use:</strong><p class="mt-2 text-white-muted">${currentModalDetails.application}</p></div>`;
+        const usageText = isAi ? currentModalDetails.usageStrategy : currentModalDetails.application;
+        html = `<div><strong class="text-emerald-400 tracking-wider uppercase text-[10px]">How It Supports Your Side:</strong><p class="mt-2 text-white-muted leading-relaxed">${usageText}</p></div>`;
         break;
       case 'courtroom':
-        html = `<div><strong>Courtroom Phrasing:</strong><p class="mt-2 text-white-2 font-serif italic bg-black/30 p-3 rounded border-l-2 border-moot-accent">"${currentModalDetails.courtroomUsage}"</p></div>`;
-        break;
-      case 'issues':
-        html = `<div><strong>Related Constitutional Principles:</strong><p class="mt-2 text-white-muted">${currentModalDetails.relatedIssues}</p></div>`;
+        const courtroomText = isAi ? currentModalDetails.courtroomUsageExample : currentModalDetails.courtroomUsage;
+        html = `<div><strong class="text-moot-accent tracking-wider uppercase text-[10px]">Courtroom Usage Example:</strong><p class="mt-3 text-white-2 font-serif italic bg-black/30 p-4 rounded-xl border border-white/5 border-l-2 border-l-moot-accent shadow-inner text-sm leading-relaxed">"${courtroomText}"</p></div>`;
         break;
       case 'counter':
-        html = `<div><strong>Potential Counterarguments:</strong><p class="mt-2 text-white-muted">${currentModalDetails.counterarguments}</p></div>`;
+        const counterText = isAi ? currentModalDetails.opponentAttack : currentModalDetails.counterarguments;
+        html = `<div><strong class="text-red-400 tracking-wider uppercase text-[10px]">Likely Opponent Attack:</strong><p class="mt-2 text-white-muted leading-relaxed">${counterText}</p></div>`;
         break;
       case 'strategy':
-        html = `<div><strong>Chambers Strategy Notes:</strong><p class="mt-2 text-white-muted">${currentModalDetails.practicalStrategy}</p></div>`;
+        const strategyText = isAi ? currentModalDetails.distinguishingStrategy : currentModalDetails.practicalStrategy;
+        html = `<div><strong class="text-amber-400 tracking-wider uppercase text-[10px]">Distinguishing Strategy / Chamber Notes:</strong><p class="mt-2 text-white-muted leading-relaxed">${strategyText}</p></div>`;
         break;
+      case 'bench':
+        if (isAi && currentModalDetails.benchQuestion) {
+          html = `<div><strong class="text-red-500 tracking-wider uppercase text-[10px]">Bench Trap (Judge Question):</strong><p class="mt-3 text-red-200 font-serif italic bg-red-950/20 p-4 rounded-xl border border-red-900/30 text-sm leading-relaxed">"${currentModalDetails.benchQuestion}"</p></div>`;
+        } else {
+          html = `<div><strong class="text-white-muted tracking-wider uppercase text-[10px]">Bench Trap:</strong><p class="mt-2 text-white-muted italic leading-relaxed">No specific bench trap generated for this authority.</p></div>`;
+        }
+        break;
+      default:
+        html = `<div>Select a tab to view details.</div>`;
     }
+    
+    if (isAi && currentModalDetails.riskLevel && (currentModalDetails.riskLevel.includes('High') || currentModalDetails.riskLevel.includes('Medium'))) {
+       const badgeColor = currentModalDetails.riskLevel.includes('High') ? 'text-red-400 border-red-500/30 bg-red-500/10' : 'text-amber-400 border-amber-500/30 bg-amber-500/10';
+       html = `<div class="mb-4 inline-block text-[9px] uppercase tracking-wider font-semibold border ${badgeColor} px-2.5 py-1 rounded-full">${currentModalDetails.riskLevel}</div>` + html;
+    } else if (isAi && currentModalDetails.riskLevel) {
+       html = `<div class="mb-4 inline-block text-[9px] uppercase tracking-wider font-semibold border text-emerald-400 border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 rounded-full">${currentModalDetails.riskLevel}</div>` + html;
+    }
+
     contentEl.innerHTML = html;
   }
 }
@@ -2853,3 +2929,107 @@ export function switchAuthModalTab(tab) {
 export let rawOralAdvocacy = null;
 export let rawRebuttals = null;
 
+export async function generateBenchForecast() {
+  const container = document.getElementById('bench-forecast-results');
+  const btn = document.getElementById('btn-generate-forecast');
+  if (!container || !btn) return;
+  
+  // Use existing helper if possible, or manual logic
+  let stance = selectedAuthorities ? (selectedSide || 'Petitioner') : 'Petitioner';
+  if (typeof getCurrentSelectedSide === 'function') {
+      stance = getCurrentSelectedSide() || stance;
+  }
+  if (stance.toLowerCase().includes('petitioner') || stance.toLowerCase().includes('appellant')) stance = 'Petitioner';
+  else stance = 'Respondent';
+
+  const issueSelect = document.getElementById('builder-issue-select');
+  const issueVal = issueSelect ? issueSelect.value : '';
+
+  if (!issueVal) {
+    if (typeof showToast === 'function') showToast("Please select an issue first.", "err");
+    else alert("Please select an issue first.");
+    return;
+  }
+
+  // UI loading state
+  btn.disabled = true;
+  btn.innerHTML = `<span class="animate-pulse">Generating Forecast...</span>`;
+  container.classList.remove('hidden');
+  container.innerHTML = `
+    <div class="flex flex-col items-center justify-center py-6 opacity-70">
+      <div class="w-5 h-5 border-2 border-red-400 border-t-transparent rounded-full animate-spin mb-2"></div>
+      <div class="text-[9px] uppercase tracking-widest text-red-400 font-semibold">Forecasting Bench Attacks...</div>
+    </div>
+  `;
+
+  try {
+    const notesInput = document.getElementById('builder-notes-input');
+    const notes = notesInput ? notesInput.value : '';
+
+    const response = await fetch('/api/bench-forecast', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        propositionContext: window.currentPropositionContext || "",
+        issue: issueVal,
+        stance: stance,
+        notes: notes
+      })
+    });
+
+    const data = await response.json();
+    if (data.success && data.response) {
+      const forecast = data.response;
+      
+      let html = `
+        <div class="text-[10px] text-gray-300 italic mb-2 border-b border-white/5 pb-2 font-serif">
+          <strong class="font-sans not-italic text-white">Forecast Summary:</strong> ${forecast.forecastSummary || "The bench will heavily scrutinize your stance."}
+        </div>
+      `;
+
+      (forecast.likelyQuestions || []).forEach((q, idx) => {
+        const prob = String(q.probability || 'Medium').toLowerCase();
+        const probColor = prob.includes('high') ? 'text-red-400 border-red-500/30 bg-red-500/10' : 
+                         prob.includes('medium') ? 'text-amber-400 border-amber-500/30 bg-amber-500/10' : 
+                         'text-emerald-400 border-emerald-500/30 bg-emerald-500/10';
+
+        html += `
+          <div class="bg-black/20 border border-white/5 rounded-lg p-3 text-xs transition-all hover:border-white/10">
+            <div class="flex justify-between items-start mb-1 gap-2">
+              <strong class="text-white leading-snug">Q${idx + 1}: "${q.question}"</strong>
+              <span class="text-[8px] uppercase tracking-wider font-semibold border ${probColor} px-1.5 py-0.5 rounded whitespace-nowrap mt-0.5">${q.probability}</span>
+            </div>
+            <div class="text-white-muted text-[10px] mb-2 font-serif italic leading-relaxed">${q.rationale}</div>
+            
+            <div class="space-y-1.5 mt-2 text-[10px] border-t border-white/5 pt-2 leading-relaxed">
+              <div><strong class="text-emerald-400 uppercase tracking-wider text-[9px]">Ideal Answer:</strong> <span class="text-gray-300">${q.idealAnswer}</span></div>
+              <div><strong class="text-red-400 uppercase tracking-wider text-[9px]">Dangerous Follow-Up:</strong> <span class="text-gray-300">${q.dangerousFollowUp}</span></div>
+              <div><strong class="text-indigo-400 uppercase tracking-wider text-[9px]">Recovery Route:</strong> <span class="text-gray-300">${q.recoveryRoute}</span></div>
+            </div>
+          </div>
+        `;
+      });
+
+      if (forecast.strategicAdvice) {
+         html += `
+           <div class="mt-2 bg-indigo-500/10 border border-indigo-500/20 rounded-lg p-3 text-xs text-indigo-200">
+             <strong class="text-indigo-400 block mb-1 uppercase tracking-wider text-[9px]">Strategic Advice</strong>
+             <span class="leading-relaxed font-serif italic">${forecast.strategicAdvice}</span>
+           </div>
+         `;
+      }
+
+      container.innerHTML = html;
+    } else {
+      container.innerHTML = `<div class="text-red-400 text-xs italic">Failed to generate forecast.</div>`;
+    }
+  } catch (err) {
+    console.error("Bench Forecast Error:", err);
+    container.innerHTML = `<div class="text-red-400 text-xs italic">Error generating forecast.</div>`;
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = `Generate Forecast`;
+  }
+}
+
+window.generateBenchForecast = generateBenchForecast;

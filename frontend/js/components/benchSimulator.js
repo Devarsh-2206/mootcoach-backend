@@ -20,6 +20,7 @@ import { getCurrentSelectedSide, selectedAuthorities } from './argumentBuilder.j
 
 // Simulator State
 export let benchConversation = [];
+export let claimLedger = [];
 export let benchActive = false;
 export let benchSubmitting = false;
 export let benchDifficultyMode = 'moderate';
@@ -153,6 +154,7 @@ export function updateBenchProfileUI(mode) {
 
 export function startBenchSession() {
   benchConversation = [];
+  claimLedger = [];
   benchActive = true;
   window.benchActive = true;
   benchSubmitting = false;
@@ -208,6 +210,7 @@ export function startBenchSession() {
 export function clearBenchSession() {
   stopOralRound();
   benchConversation = [];
+  claimLedger = [];
   benchActive = false;
   window.benchActive = false;
   benchSubmitting = false;
@@ -290,98 +293,100 @@ export function appendBenchPerformanceReview(review) {
   div.style.marginTop = '20px';
   div.style.boxSizing = 'border-box';
 
-  const grade = review.grade || 'C';
-  const score = Number(review.overallScore) || 0;
-  const gradeCls = `grade-${grade}`;
+  const s_moment = review.strongestMoment || {};
+  const d_moment = review.mostDangerousMoment || {};
+  const prioritiesHTML = (review.trainingPriorities || []).map((p, i) => `
+    <div style="margin-bottom:8px; display:flex; align-items:start; gap:8px;">
+      <span style="display:inline-block; width:20px; height:20px; background:rgba(96,165,250,0.1); color:#60a5fa; border-radius:50%; text-align:center; line-height:20px; font-size:10px; font-weight:bold; flex-shrink:0;">${i + 1}</span>
+      <span style="font-size:.82rem; color:var(--white-2); line-height:1.5;">${fmtInline(p)}</span>
+    </div>
+  `).join('');
 
-  const defectsHTML = (review.substantiveDefects || []).length
-    ? (review.substantiveDefects).map(d => `
-        <div style="margin-bottom:10px;padding:12px 14px;background:rgba(224,82,82,.04);border:1px solid rgba(224,82,82,.15);border-left:3px solid #e05252;border-radius:0 8px 8px 0;">
-          <div style="font-size:.82rem;color:var(--white-2);line-height:1.6;">${fmtInline(d)}</div>
-        </div>`).join('')
-    : `<div style="font-size:.82rem;color:#4caf82;padding:8px 0;">No substantive defects recorded.</div>`;
-
-  const strengthsHTML = (review.strengthPoints || []).length
-    ? (review.strengthPoints).map(s => `
-        <div style="margin-bottom:10px;padding:12px 14px;background:rgba(76,175,130,.04);border:1px solid rgba(76,175,130,.15);border-left:3px solid #4caf82;border-radius:0 8px 8px 0;">
-          <div style="font-size:.82rem;color:var(--white-2);line-height:1.6;">${fmtInline(s)}</div>
-        </div>`).join('')
-    : `<div style="font-size:.82rem;color:var(--white-muted);padding:8px 0;">No specific strengths recorded.</div>`;
-
-  const adviceHTML = (review.strategicAdvice || []).length
-    ? (review.strategicAdvice).map(a => `
-        <div style="margin-bottom:10px;padding:12px 14px;background:rgba(96,165,250,.04);border:1px solid rgba(96,165,250,.15);border-left:3px solid #60a5fa;border-radius:0 8px 8px 0;">
-          <div style="font-size:.82rem;color:var(--white-2);line-height:1.6;">${fmtInline(a)}</div>
-        </div>`).join('')
-    : `<div style="font-size:.82rem;color:var(--white-muted);padding:8px 0;">No strategic advice recorded.</div>`;
+  const concernsHTML = (review.judicialConcerns || []).map(c => `
+    <span style="display:inline-block; padding:4px 8px; background:rgba(224,82,82,.08); border:1px solid rgba(224,82,82,.2); border-radius:4px; font-size:.75rem; color:#e05252; margin-right:6px; margin-bottom:6px;">${fmtInline(c)}</span>
+  `).join('');
 
   div.innerHTML = `
-    <div style="display:flex;align-items:center;gap:18px;margin-bottom:20px;padding:16px 20px;background:var(--navy-4);border:1px solid var(--glass-b);border-radius:12px;flex-wrap:wrap;justify-content:space-between;width:100%;box-sizing:border-box;">
-      <div style="display:flex;align-items:center;gap:18px;">
-        <div class="oral-grade-badge ${gradeCls}" style="flex-shrink:0;margin:0;width:50px;height:50px;font-size:1.6rem;line-height:48px;">${grade}</div>
-        <div>
-          <div style="font-family:var(--serif);font-size:2.2rem;font-weight:500;color:var(--white);line-height:1;" id="animated-bench-score">0<span style="font-size:1rem;color:var(--white-muted);font-family:var(--sans);">/100</span></div>
-          <div style="font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:var(--white-muted);margin-top:3px;">Bench Advocacy Score</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;border-bottom:1px solid var(--glass-b);padding-bottom:16px;">
+      <div>
+        <div style="font-family:var(--serif);font-size:1.6rem;font-weight:500;color:var(--white);line-height:1.2;">Post-Round Intelligence Report</div>
+        <div style="font-size:.65rem;letter-spacing:.12em;text-transform:uppercase;color:var(--white-muted);margin-top:6px;">Advocacy Coaching Analysis</div>
+      </div>
+      <button class="btn-sm btn-sm-ghost" onclick="startBenchSession()">Restart Session</button>
+    </div>
+
+    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin-bottom: 16px;">
+      <!-- Strongest Moment -->
+      <div style="background:var(--navy-4); border:1px solid var(--glass-b); border-radius:10px; padding:16px;">
+        <div style="font-size:.65rem; letter-spacing:.1em; text-transform:uppercase; color:#4caf82; font-weight:700; margin-bottom:10px; display:flex; align-items:center; gap:6px;">
+          <span>🏆</span> Strongest Moment
+        </div>
+        <div style="font-family:var(--serif); font-size:.9rem; color:var(--white-2); font-style:italic; line-height:1.5; margin-bottom:10px; border-left:2px solid #4caf82; padding-left:10px;">
+          "${fmtInline(s_moment.statement || 'N/A')}"
+        </div>
+        <div style="font-size:.8rem; color:var(--white-muted); line-height:1.5;">
+          <strong style="color:#a0aec0;">Why it worked:</strong> ${fmtInline(s_moment.whyItWorked || 'N/A')}
         </div>
       </div>
-      <button class="btn-sm btn-sm-ghost" onclick="startBenchSession()" style="align-self:center;">Restart Session</button>
+
+      <!-- Most Dangerous Moment -->
+      <div style="background:var(--navy-4); border:1px solid var(--glass-b); border-radius:10px; padding:16px;">
+        <div style="font-size:.65rem; letter-spacing:.1em; text-transform:uppercase; color:#e05252; font-weight:700; margin-bottom:10px; display:flex; align-items:center; gap:6px;">
+          <span>⚠️</span> Most Dangerous Moment
+        </div>
+        <div style="font-family:var(--serif); font-size:.9rem; color:var(--white-2); font-style:italic; line-height:1.5; margin-bottom:10px; border-left:2px solid #e05252; padding-left:10px;">
+          "${fmtInline(d_moment.statement || 'N/A')}"
+        </div>
+        <div style="font-size:.8rem; color:var(--white-muted); line-height:1.5; margin-bottom:8px;">
+          <strong style="color:#a0aec0;">Why it was vulnerable:</strong> ${fmtInline(d_moment.whyVulnerable || 'N/A')}
+        </div>
+        <div style="font-size:.8rem; color:#4caf82; line-height:1.5; background:rgba(76,175,130,0.05); padding:8px; border-radius:6px;">
+          <strong>Better Answer:</strong> "${fmtInline(d_moment.betterAnswer || 'N/A')}"
+        </div>
+      </div>
     </div>
 
-    ${review.finalVerdict ? `
-    <div style="margin-bottom:20px;padding:16px;background:rgba(255,255,255,.02);border:1px solid var(--glass-b);border-radius:10px;">
-      <div style="font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:var(--white-muted);margin-bottom:8px;font-weight:600;">Court's Verdict</div>
-      <div style="font-family:var(--serif);font-size:.95rem;font-style:italic;color:var(--white-2);line-height:1.7;">"${fmtInline(review.finalVerdict)}"</div>
-    </div>` : ''}
-
-    <div class="analysis-section-card" style="margin-bottom:12px;background:var(--navy-4);">
-      <div class="asc-header" id="asc-h-bench-defects" onclick="toggleSection('bench-defects')">
-        <div class="asc-header-left"><div class="asc-icon asc-icon-red">◬</div><div class="asc-title">Substantive Defects</div></div>
-        <div class="asc-header-right"><span class="asc-badge badge-red">Issues</span><span class="asc-chevron" id="asc-ch-bench-defects">▾</span></div>
+    <!-- Middle Row: Concerns & Consistency -->
+    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin-bottom: 16px;">
+      <!-- Judicial Concerns -->
+      <div style="background:var(--navy-4); border:1px solid var(--glass-b); border-radius:10px; padding:16px;">
+        <div style="font-size:.65rem; letter-spacing:.1em; text-transform:uppercase; color:#c9a84c; font-weight:700; margin-bottom:10px; display:flex; align-items:center; gap:6px;">
+          <span>🏛️</span> Judicial Concerns
+        </div>
+        <div style="margin-bottom:10px;">${concernsHTML || '<span style="color:var(--white-muted);font-size:.8rem;">None</span>'}</div>
+        
+        <div style="font-size:.65rem; letter-spacing:.1em; text-transform:uppercase; color:#9ca3af; font-weight:700; margin-top:16px; margin-bottom:8px; display:flex; align-items:center; gap:6px;">
+          <span>💡</span> Missed Opportunity
+        </div>
+        <div style="font-size:.8rem; color:var(--white-2); line-height:1.5;">
+          ${fmtInline(review.missedOpportunity || 'None identified.')}
+        </div>
       </div>
-      <div class="asc-body" id="asc-b-bench-defects" style="padding:16px 18px;">${defectsHTML}</div>
+
+      <!-- Consistency Analysis -->
+      <div style="background:var(--navy-4); border:1px solid var(--glass-b); border-radius:10px; padding:16px;">
+        <div style="font-size:.65rem; letter-spacing:.1em; text-transform:uppercase; color:#a855f7; font-weight:700; margin-bottom:10px; display:flex; align-items:center; gap:6px;">
+          <span>⚖️</span> Consistency Analysis
+        </div>
+        <div style="font-size:.8rem; color:var(--white-2); line-height:1.6;">
+          ${fmtInline(review.consistencyAnalysis || 'No major inconsistencies detected.')}
+        </div>
+      </div>
     </div>
 
-    <div class="analysis-section-card" style="margin-bottom:12px;background:var(--navy-4);">
-      <div class="asc-header" id="asc-h-bench-strengths" onclick="toggleSection('bench-strengths')">
-        <div class="asc-header-left"><div class="asc-icon asc-icon-green">▲</div><div class="asc-title">Strengths Observed</div></div>
-        <div class="asc-header-right"><span class="asc-badge badge-green">Positives</span><span class="asc-chevron" id="asc-ch-bench-strengths">▾</span></div>
+    <!-- Bottom: Training Priorities -->
+    <div style="background:var(--navy-4); border:1px solid var(--glass-b); border-radius:10px; padding:16px;">
+      <div style="font-size:.65rem; letter-spacing:.1em; text-transform:uppercase; color:#60a5fa; font-weight:700; margin-bottom:12px; display:flex; align-items:center; gap:6px;">
+        <span>🎯</span> Training Priorities Before Next Round
       </div>
-      <div class="asc-body" id="asc-b-bench-strengths" style="padding:16px 18px;">${strengthsHTML}</div>
-    </div>
-
-    <div class="analysis-section-card" style="margin-bottom:0;background:var(--navy-4);">
-      <div class="asc-header" id="asc-h-bench-advice" onclick="toggleSection('bench-advice')">
-        <div class="asc-header-left"><div class="asc-icon asc-icon-blue">↯</div><div class="asc-title">Strategic Advice</div></div>
-        <div class="asc-header-right"><span class="asc-badge badge-blue">Advice</span><span class="asc-chevron" id="asc-ch-bench-advice">▾</span></div>
+      <div>
+        ${prioritiesHTML || '<div style="font-size:.8rem;color:var(--white-muted);">Keep practicing.</div>'}
       </div>
-      <div class="asc-body" id="asc-b-bench-advice" style="padding:16px 18px;">${adviceHTML}</div>
     </div>
   `;
 
   chat.appendChild(div);
   chat.scrollTo({ top: chat.scrollHeight, behavior: 'smooth' });
-
-  // Animate the score
-  setTimeout(() => {
-    const scoreEl = document.getElementById('animated-bench-score');
-    if (scoreEl) {
-      let startTimestamp = null;
-      const duration = 1500;
-      const step = (timestamp) => {
-        if (!startTimestamp) startTimestamp = timestamp;
-        const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-        const ease = 1 - Math.pow(1 - progress, 4);
-        const currentScore = Math.floor(ease * score);
-        scoreEl.innerHTML = `${currentScore}<span style="font-size:1rem;color:var(--white-muted);font-family:var(--sans);">/100</span>`;
-        if (progress < 1) {
-          window.requestAnimationFrame(step);
-        } else {
-          scoreEl.innerHTML = `${score}<span style="font-size:1rem;color:var(--white-muted);font-family:var(--sans);">/100</span>`;
-        }
-      };
-      window.requestAnimationFrame(step);
-    }
-  }, 100);
 }
 
 export async function submitToBench() {
@@ -428,9 +433,27 @@ export async function submitToBench() {
         conversationHistory: benchConversation.slice(-10),
         propositionSummary: contextPrefix + (currentPropositionContext || ''),
         difficulty: benchDifficultyMode,
-        studentStatement: statement
+        studentStatement: statement,
+        claimLedger: claimLedger
       })
     });
+
+    // Fire-and-forget Claim Extraction to build the ledger without adding latency
+    fetch(`${BASE_URL}/simulate-bench/extract-claims`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ studentStatement: statement })
+    })
+    .then(r => r.json())
+    .then(d => {
+      if (d.success && d.claims) {
+        d.claims.forEach(c => {
+          if (c.confidence >= 0.8) claimLedger.push(c);
+        });
+        console.log("[CLAIM GRAPH] Ledger updated:", claimLedger);
+      }
+    })
+    .catch(err => console.error("[CLAIM GRAPH] Extraction failed:", err));
 
     document.getElementById(typingId)?.remove();
     const data = await res.json();

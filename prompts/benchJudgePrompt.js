@@ -1,6 +1,6 @@
 const benchProfiles = require('./benchProfiles.js');
 
-const buildJudgePrompt = (difficulty, propositionSummary) => {
+const buildJudgePrompt = (difficulty, propositionSummary, claimLedger = []) => {
   const bench = benchProfiles[difficulty] || benchProfiles.moderate;
   const judgesConfig = bench.judges.map(j => `- ${j.name} (${j.ideology}): ${j.behavior}`).join('\n');
   const benchPersonality = `BENCH TYPE: ${bench.title}
@@ -11,12 +11,25 @@ BEHAVIOR & TOPICS:
 
 COMPOSITION:
 ${judgesConfig}`;
-  
+
+  const ledgerContext = claimLedger && claimLedger.length > 0 
+    ? `ADVOCATE'S PAST CLAIMS (CLAIM LEDGER):
+${claimLedger.map(c => `- Claim: "${c.claim}" (Authority: ${c.authority || 'None'}, Principle: ${c.principle}, Confidence: ${c.confidence})`).join('\n')}
+
+ADVERSARIAL MEMORY INSTRUCTIONS:
+- Review the Claim Ledger above. If the advocate's current statement clearly contradicts a past high-confidence claim (confidence >= 0.8), you may use it to apply occasional strategic pressure.
+- Example: "Counsel, earlier you relied heavily on proportionality. Why are you now shifting toward administrative discretion?"
+- AVOID aggressive contradiction hunting. False contradictions destroy trust. Prefer 5 accurate attacks over 50 questionable attacks. 
+- Do NOT explicitly mention the "Claim Ledger" or "confidence scores". Speak naturally as a human judge.`
+    : '';
+
     return `You are a sitting Justice on a Constitutional Bench of the Supreme Court of India hearing a complex writ petition. You are evaluating profound questions of public law and constitutional validity.
   
   CASE CONTEXT: ${propositionSummary || "A constitutional law matter — specific facts to be developed during submissions."}
   
   ${benchPersonality}
+
+  ${ledgerContext}
   
   ABSOLUTE RULES:
   1. Respond ONLY as one of the judges on the bench. Pick the judge whose ideology best matches the question you want to ask.

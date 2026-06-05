@@ -2423,16 +2423,12 @@ p  { color:var(--white-2); }
         <div class="step-icon">2</div>
         <span class="step-label">Issues</span>
       </button>
-      <button class="di-step upcoming" id="step-3" onclick="window.goToStage(3)" title="Research & Draft Workspace">
+      <button class="di-step upcoming" id="step-3" onclick="window.goToStage(3)" title="Advocacy Workspace">
         <div class="step-icon">3</div>
-        <span class="step-label">Research</span>
+        <span class="step-label">Advocacy</span>
       </button>
-      <button class="di-step upcoming" id="step-4" onclick="window.goToStage(4)" title="Oral Prep">
+      <button class="di-step upcoming" id="step-4" onclick="window.goToStage(4)" title="Bench Simulator">
         <div class="step-icon">4</div>
-        <span class="step-label">Oral Prep</span>
-      </button>
-      <button class="di-step upcoming" id="step-5" onclick="window.goToStage(5)" title="Bench Simulator">
-        <div class="step-icon">5</div>
         <span class="step-label">Simulator</span>
       </button>
     </div>
@@ -2615,15 +2611,15 @@ p  { color:var(--white-2); }
         </div>
       </div>
 
-      <!-- STAGE 3: RESEARCH & DRAFT WORKSPACE -->
+      <!-- STAGE 3: ADVOCACY WORKSPACE -->
       <div class="ws-stage" id="stage-3-container" style="display:none; overflow-y:auto;">
-        <div class="workspace-container flex flex-col lg:flex-row gap-6" style="padding:30px 24px; min-height:100%; max-width:1600px; margin:0 auto; width:100%; box-sizing:border-box;">
+        <div class="workspace-container flex flex-col lg:flex-row gap-6" style="padding:30px 24px; min-height:100%; max-width:1800px; margin:0 auto; width:100%; box-sizing:border-box;">
           
-          <!-- LEFT SIDEBAR: Research Sources & Input (28% width) -->
-          <div class="w-full lg:w-[28%] flex flex-col space-y-4">
+          <!-- LEFT SIDEBAR: Strategy & Arsenal (25% width) -->
+          <div class="w-full lg:w-[25%] flex flex-col space-y-4">
             <div class="ws-up-eyebrow flex items-center gap-1.5 text-xs text-moot-accent font-semibold tracking-widest uppercase">
               <span class="w-1.5 h-1.5 rounded-full bg-moot-accent"></span>
-              Research & Strategy
+              Strategy & Arsenal
             </div>
             
             <!-- Side Badge Card -->
@@ -2645,7 +2641,7 @@ p  { color:var(--white-2); }
             <!-- Recommended Authorities -->
             <div class="bg-white/5 border border-white/10 rounded-xl p-4 backdrop-blur-md flex flex-col gap-3">
               <div class="text-xs uppercase tracking-wider text-moot-accent font-semibold flex items-center gap-1.5 font-sans mb-1">
-                <span>💡</span> Recommended Authorities
+                <span>💡</span> Authority Armory
               </div>
               <div class="text-[10px] text-white-muted leading-relaxed font-sans">
                 Toggle supporting authorities to feed into the AI drafting engine.
@@ -2655,23 +2651,26 @@ p  { color:var(--white-2); }
               </div>
             </div>
 
-            <!-- Input Notes Area -->
-            <div class="bg-white/5 border border-white/10 rounded-xl p-4 backdrop-blur-md">
-              <form id="builder-form" onsubmit="event.preventDefault();" class="flex flex-col space-y-3">
-                <div class="ws-field flex flex-col gap-2 mb-0">
-                  <label for="builder-notes-input" class="tracking-wide text-xs font-semibold uppercase text-white-2">Enter Draft Notes & Arguments</label>
-                  <textarea id="builder-notes-input" class="oral-textarea w-full min-h-[120px] resize-y mt-1 mb-2" rows="4" placeholder="Enter raw thoughts, facts, or custom arguments. Selected authorities will be automatically included..." style="font-size:.82rem;"></textarea>
-                </div>
-                <button class="btn-analyze w-full py-3 text-sm tracking-widest font-medium transition-all duration-300 hover:shadow-[0_0_20px_rgba(201,168,76,0.3)]" id="btn-builder-submit" disabled>
-                  Draft Submission →
-                </button>
-              </form>
+            <!-- Bench Attack Forecast -->
+            <div class="bg-white/5 border border-white/10 rounded-xl p-4 backdrop-blur-md flex flex-col gap-3">
+              <div class="text-xs uppercase tracking-wider text-red-400 font-semibold flex items-center gap-1.5 font-sans mb-1">
+                <span>🎯</span> Bench Attack Forecast
+              </div>
+              <div class="text-[10px] text-white-muted leading-relaxed font-sans">
+                Predict the specific hostile questions the bench will ask on this issue.
+              </div>
+              <button id="btn-generate-forecast" class="w-full py-2 bg-red-500/10 border border-red-500/30 text-red-400 text-xs tracking-widest uppercase font-semibold rounded hover:bg-red-500/20 transition-all duration-300 cursor-pointer" onclick="window.generateBenchForecast()">
+                Generate Forecast
+              </button>
+              <div id="bench-forecast-results" class="hidden flex flex-col gap-3 mt-2 text-left max-h-[300px] overflow-y-auto pr-1">
+                <!-- Injected via JS -->
+              </div>
             </div>
 
             <!-- Case Overview/Context Card -->
             <div class="bg-white/5 border border-white/10 rounded-xl p-4 backdrop-blur-md">
               <div class="text-[10px] uppercase tracking-widest text-white-muted font-sans font-semibold mb-2">Case Summary Context</div>
-              <div id="stage3-case-context" class="text-xs text-white-muted font-serif leading-relaxed max-h-[200px] overflow-y-auto pr-1">
+              <div id="stage3-case-context" class="text-xs text-white-muted font-serif leading-relaxed max-h-[150px] overflow-y-auto pr-1">
                 Upload and analyze a proposition to see summary context here.
               </div>
             </div>
@@ -2686,58 +2685,116 @@ p  { color:var(--white-2); }
             <div id="workspace-refinements-panel" class="hidden"></div>
           </div>
           
-          <!-- CENTER PANEL: Appellate Memorial (72% width) -->
-          <div class="w-full lg:w-[72%] flex flex-col space-y-4">
+          <!-- CENTER PANEL: Argument Builder (45% width) -->
+          <div class="w-full lg:w-[45%] flex flex-col space-y-4">
             <div class="ws-up-eyebrow flex items-center gap-1.5 text-xs text-moot-accent font-semibold tracking-widest uppercase">
               <span class="w-1.5 h-1.5 rounded-full bg-moot-accent"></span>
-              Appellate Memorial
+              Argument Builder
+            </div>
+
+            <!-- Input Notes Area -->
+            <div class="bg-white/5 border border-white/10 rounded-xl p-4 backdrop-blur-md mb-2">
+              <form id="builder-form" onsubmit="event.preventDefault();" class="flex flex-col space-y-3">
+                <div class="ws-field flex flex-col gap-2 mb-0">
+                  <label for="builder-notes-input" class="tracking-wide text-xs font-semibold uppercase text-white-2">Draft Notes & Custom Arguments</label>
+                  <textarea id="builder-notes-input" class="oral-textarea w-full min-h-[100px] resize-y mt-1 mb-2" rows="3" placeholder="Enter raw thoughts, facts, or custom arguments. Selected authorities will be automatically included..." style="font-size:.82rem;"></textarea>
+                </div>
+                <button class="btn-analyze w-full py-2.5 text-xs tracking-widest font-medium transition-all duration-300 hover:shadow-[0_0_20px_rgba(201,168,76,0.3)]" id="btn-builder-submit" disabled>
+                  Generate Structured Draft →
+                </button>
+              </form>
             </div>
 
             <!-- AI Counsel Output Workspace -->
-            <div id="ai-counsel-workspace" class="flex-1 flex flex-col min-h-[500px] relative">
-              <div class="flex-1 bg-white/5 border border-white/10 rounded-xl p-6 flex flex-col transition-all duration-300 hover:border-white/15">
+            <div id="ai-counsel-workspace" class="flex-1 flex flex-col min-h-[400px] relative">
+              <div class="flex-1 bg-white/5 border border-white/10 rounded-xl p-5 flex flex-col transition-all duration-300 hover:border-white/15 overflow-y-auto">
                 <!-- Empty state -->
-                <div id="builder-empty-state" class="flex flex-col items-center justify-center text-center p-6 h-full min-h-[400px]">
-                  <div class="text-moot-accent text-5xl mb-4 animate-[pulse_2s_infinite]">⚖️</div>
-                  <h3 class="text-lg font-serif text-white font-normal">AI Counsel Workspace</h3>
-                  <p class="text-xs text-white-muted mt-2 max-w-sm mb-6">Complete the drafting steps or select recommended authorities, then click Draft Submission to generate your appellate memorial.</p>
-                  <div class="grid grid-cols-3 gap-3 w-full max-w-lg mt-2">
-                    <div class="p-3 bg-white/[0.02] border border-white/5 rounded-lg text-left">
-                      <div class="text-xs font-semibold text-moot-accent mb-1">⚖️ IRAC</div>
-                      <div class="text-[10px] text-white-muted">Strict logical organization of arguments.</div>
-                    </div>
-                    <div class="p-3 bg-white/[0.02] border border-white/5 rounded-lg text-left">
-                      <div class="text-xs font-semibold text-indigo-400 mb-1 font-sans">📖 Precedents</div>
-                      <div class="text-[10px] text-white-muted">Verification of case law.</div>
-                    </div>
-                    <div class="p-3 bg-white/[0.02] border border-white/5 rounded-lg text-left">
-                      <div class="text-xs font-semibold text-amber-400 mb-1">Statutes</div>
-                      <div class="text-[10px] text-white-muted">Integration of statutory provisions.</div>
-                    </div>
-                  </div>
+                <div id="builder-empty-state" class="flex flex-col items-center justify-center text-center p-6 h-full min-h-[300px]">
+                  <div class="text-moot-accent text-4xl mb-4 animate-[pulse_2s_infinite]">⚖️</div>
+                  <h3 class="text-md font-serif text-white font-normal">AI Drafter</h3>
+                  <p class="text-[11px] text-white-muted mt-2 max-w-sm mb-4">Complete the drafting steps or select recommended authorities, then click Generate Draft.</p>
                 </div>
 
                 <!-- Loading State -->
-                <div id="builder-loading-state" class="hidden flex-col items-center justify-center text-center p-6 h-full min-h-[400px] w-full">
-                  <div class="flex items-center gap-2 mb-8 bg-indigo-500/10 border border-indigo-500/20 px-3 py-1.5 rounded-full animate-pulse">
-                    <span class="w-2 h-2 rounded-full bg-indigo-400"></span>
-                    <span class="text-xs uppercase tracking-wider text-indigo-300 font-sans font-medium">AI Counsel Active</span>
+                <div id="builder-loading-state" class="hidden flex-col items-center justify-center text-center p-6 h-full min-h-[300px] w-full">
+                  <div class="flex items-center gap-2 mb-6 bg-indigo-500/10 border border-indigo-500/20 px-3 py-1.5 rounded-full animate-pulse">
+                    <span class="w-1.5 h-1.5 rounded-full bg-indigo-400"></span>
+                    <span class="text-[10px] uppercase tracking-wider text-indigo-300 font-sans font-medium">Drafting...</span>
                   </div>
-                  <div class="text-sm font-sans text-indigo-300 font-medium tracking-wide mb-6">
+                  <div class="text-xs font-sans text-indigo-300 font-medium tracking-wide mb-6">
                     <span class="animate-cycle-text"></span>
                   </div>
-                  <div class="w-full space-y-6 text-left">
-                    <div class="h-4 bg-white/10 rounded w-1/4 mb-4"></div>
-                    <div class="space-y-3">
-                      <div class="h-3 bg-white/5 rounded w-full"></div>
-                      <div class="h-3 bg-white/5 rounded w-5/6"></div>
-                      <div class="h-3 bg-white/5 rounded w-full"></div>
+                  <div class="w-full space-y-4 text-left">
+                    <div class="h-3 bg-white/10 rounded w-1/4 mb-4"></div>
+                    <div class="space-y-2">
+                      <div class="h-2 bg-white/5 rounded w-full"></div>
+                      <div class="h-2 bg-white/5 rounded w-5/6"></div>
+                      <div class="h-2 bg-white/5 rounded w-full"></div>
                     </div>
                   </div>
                 </div>
 
                 <!-- Output State -->
-                <div id="builder-output-state" class="hidden flex-col gap-4 w-full h-full text-left"></div>
+                <div id="builder-output-state" class="hidden flex-col gap-4 w-full h-full text-left text-sm leading-relaxed"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- RIGHT COLUMN: Oral Coach (30% width) -->
+          <div class="w-full lg:w-[30%] flex flex-col space-y-4">
+            <div class="ws-up-eyebrow flex items-center gap-1.5 text-xs text-moot-accent font-semibold tracking-widest uppercase">
+              <span class="w-1.5 h-1.5 rounded-full bg-moot-accent"></span>
+              Oral Coach
+            </div>
+            
+            <div class="bg-white/5 border border-white/10 rounded-xl p-5 backdrop-blur-md flex flex-col h-full">
+              <div class="mb-4">
+                <h3 class="text-sm font-serif text-white font-medium mb-1">Evaluate Your Submission</h3>
+                <p class="text-[10px] text-white-muted leading-relaxed">
+                  Paste your oral argument below. MootCoach will stress-test it and evaluate it as a competition judge.
+                </p>
+              </div>
+
+              <div id="oral-context-notice" style="display:none;align-items:center;gap:10px;margin-bottom:1rem;padding:8px 12px;background:rgba(201,168,76,.07);border:1px solid var(--gold-border);border-radius:8px;font-size:.7rem;color:var(--white-2);">
+                <span style="color:var(--gold);">✦</span>
+                <span>Context loaded.</span>
+                <button onclick="clearOralContext()" style="background:none;border:none;color:var(--gold);cursor:pointer;font-size:.7rem;text-decoration:underline;margin-left:auto;">Clear</button>
+              </div>
+
+              <div class="ws-field flex flex-col gap-2 mb-3">
+                <label class="tracking-wide text-[10px] uppercase text-white-2 font-semibold">Evaluation Mode</label>
+                <div class="oral-difficulty-row flex gap-2">
+                  <button class="diff-btn active-easy text-[10px] py-1.5 px-2 flex-1" id="oral-diff-easy" onclick="setOralDifficulty('easy',this)">Easy Bench</button>
+                  <button class="diff-btn text-[10px] py-1.5 px-2 flex-1" id="oral-diff-moderate" onclick="setOralDifficulty('moderate',this)">Moderate</button>
+                  <button class="diff-btn text-[10px] py-1.5 px-2 flex-1" id="oral-diff-hard" onclick="setOralDifficulty('hard',this)">Hard Bench</button>
+                </div>
+              </div>
+
+              <div class="ws-field flex flex-col gap-2 flex-1">
+                <label class="tracking-wide text-[10px] uppercase text-white-2 font-semibold">Your Oral Argument</label>
+                <textarea class="oral-textarea flex-1 min-h-[150px]" id="oral-argument-input" placeholder="Paste your oral argument, opening submission, or any portion of your advocacy here..." style="font-size:0.8rem;"></textarea>
+              </div>
+
+              <button class="btn-analyze w-full py-2.5 text-xs tracking-widest font-medium transition-all mt-3 mb-2" id="btn-oral-eval" onclick="runOralEvaluation()" disabled>
+                Evaluate Argument →
+              </button>
+              
+              <div id="oral-results-area" style="display:none;margin-top:1rem;width:100%; max-h-[400px] overflow-y-auto pr-1">
+                <div class="sep" style="margin-bottom:1rem;"></div>
+                <div id="oral-results-content" class="text-xs"></div>
+              </div>
+            </div>
+
+            <!-- CHAMBER BRIEFING / ADVOCACY ARSENAL -->
+            <div class="bg-white/5 border border-white/10 rounded-xl p-5 backdrop-blur-md flex flex-col mt-4">
+              <div class="text-xs uppercase tracking-wider text-moot-accent font-semibold mb-3 flex items-center gap-1.5 font-sans">
+                <span>🎙️</span> CHAMBERS BRIEFING
+              </div>
+              
+              <div id="stage4-chamber-briefing" class="text-xs text-white-2 space-y-4 max-h-[400px] overflow-y-auto pr-2">
+                <div class="text-white-muted italic p-4 bg-white/[0.01] border border-dashed border-white/10 rounded-xl font-sans text-center">
+                  Draft your submissions in the center panel to generate your Battle Plan here.
+                </div>
               </div>
             </div>
           </div>
@@ -2745,75 +2802,8 @@ p  { color:var(--white-2); }
         </div>
       </div>
 
-      <!-- STAGE 4: ORAL PREPARATION -->
-      <div class="ws-stage" id="stage-4-container" style="display:none; overflow-y:auto;">
-        <div class="builder-container flex flex-col md:flex-row gap-6 md:gap-10" style="padding:40px 32px; min-height:100%; max-width:1400px; margin:0 auto; width:100%; box-sizing:border-box;">
-          <!-- LEFT COLUMN: Speech evaluator -->
-          <div class="w-full lg:w-[70%] flex flex-col space-y-6">
-            <div class="ws-up-eyebrow flex items-center gap-1.5 text-xs text-moot-accent font-semibold tracking-widest uppercase">
-              <span class="w-1.5 h-1.5 rounded-full bg-moot-accent"></span>
-              Oral Advocacy Suite
-            </div>
-            <div>
-              <h2 style="font-family:var(--serif); font-size:2rem; font-weight:500; line-height:1.15; margin-bottom:.6rem;">Evaluate Your <em style="color:var(--gold);font-style:italic;">Oral Submission</em></h2>
-              <p style="font-size:.84rem; color:var(--white-muted); line-height:1.6;">
-                Paste your oral argument below. MootCoach evaluates it as a competition judge — scoring legal accuracy, structure, and persuasiveness.
-              </p>
-            </div>
-            
-            <div class="bg-white/5 border border-white/10 rounded-xl p-6 backdrop-blur-md">
-              <div id="oral-context-notice" style="display:none;align-items:center;gap:10px;margin-bottom:1.2rem;padding:10px 15px;background:rgba(201,168,76,.07);border:1px solid var(--gold-border);border-radius:8px;font-size:.78rem;color:var(--white-2);">
-                <span style="color:var(--gold);">✦</span>
-                <span>Proposition context loaded from last analysis.</span>
-                <button onclick="clearOralContext()" style="background:none;border:none;color:var(--gold);cursor:pointer;font-size:.78rem;text-decoration:underline;margin-left:auto;">Clear</button>
-              </div>
-
-              <div class="ws-field">
-                <label class="tracking-wide">Evaluation Mode</label>
-                <div class="oral-difficulty-row">
-                  <button class="diff-btn active-easy" id="oral-diff-easy" onclick="setOralDifficulty('easy',this)">Easy Bench</button>
-                  <button class="diff-btn" id="oral-diff-moderate" onclick="setOralDifficulty('moderate',this)">Moderate Bench</button>
-                  <button class="diff-btn" id="oral-diff-hard" onclick="setOralDifficulty('hard',this)">Hard Bench</button>
-                </div>
-              </div>
-
-              <div class="ws-field">
-                <label class="tracking-wide">Your Oral Argument / Submission</label>
-                <textarea class="oral-textarea" id="oral-argument-input" placeholder="Paste your oral argument, opening submission, or any portion of your advocacy here. The more complete the submission, the more precise the evaluation…"></textarea>
-              </div>
-
-              <button class="btn-analyze tracking-widest font-medium" id="btn-oral-eval" onclick="runOralEvaluation()" disabled>
-                Evaluate Argument →
-              </button>
-              <p class="upload-note" style="margin-top:1rem;">Evaluated as a live competition judge · No content is stored.</p>
-
-              <div id="oral-results-area" style="display:none;margin-top:2.5rem;width:100%;">
-                <div class="sep" style="margin-bottom:2rem;"></div>
-                <div id="oral-results-content"></div>
-              </div>
-            </div>
-          </div>
-
-          <!-- RIGHT COLUMN: Guided resources -->
-          <div id="stage-5-guided-content" class="w-full lg:w-[30%] flex flex-col gap-4">
-            <div class="bg-white/5 border border-white/10 rounded-xl p-5 backdrop-blur-md flex flex-col">
-              <div class="text-xs uppercase tracking-wider text-moot-accent font-semibold mb-3 flex items-center gap-1.5 font-sans">
-                <span>🎙️</span> ADVOCACY ARSENAL
-              </div>
-              
-              <!-- Single scrollable briefing container -->
-              <div id="stage4-chamber-briefing" class="text-xs text-white-2 space-y-4 max-h-[750px] overflow-y-auto pr-2">
-                <div class="text-white-muted italic p-4 bg-white/[0.01] border border-dashed border-white/10 rounded-xl font-sans text-center">
-                  Draft your submissions in Stage 3 to populate your Chambers Briefing & Battle Plan here.
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <!-- STAGE 5: BENCH SIMULATION -->
-      <div class="ws-stage" id="stage-5-container" style="display:none; flex:1; flex-direction:column; min-height:0; overflow:hidden;">
+      <div class="ws-stage" id="stage-4-container" style="display:none; flex:1; flex-direction:column; min-height:0; overflow:hidden;">
         <!-- BENCH SIMULATION PANEL -->
         <div class="ws-panel bench-panel active" id="wsp-bench" style="display:flex; flex:1; flex-direction:column; min-height:0; overflow:hidden;">
           
@@ -3156,12 +3146,13 @@ p  { color:var(--white-2); }
     
     <!-- Tabs Nav -->
     <div class="flex border-b border-white/5 bg-black/10 px-4 scrollbar-width-none overflow-x-auto">
-      <button id="auth-tab-ratio" onclick="window.switchAuthModalTab('ratio')" class="py-2.5 px-3 text-[10px] uppercase tracking-wider font-semibold text-white-muted border-b-2 border-transparent cursor-pointer bg-transparent transition-all">Ratio</button>
-      <button id="auth-tab-usage" onclick="window.switchAuthModalTab('usage')" class="py-2.5 px-3 text-[10px] uppercase tracking-wider font-semibold text-white-muted border-b-2 border-transparent cursor-pointer bg-transparent transition-all">Application</button>
-      <button id="auth-tab-courtroom" onclick="window.switchAuthModalTab('courtroom')" class="py-2.5 px-3 text-[10px] uppercase tracking-wider font-semibold text-white-muted border-b-2 border-transparent cursor-pointer bg-transparent transition-all">Courtroom</button>
-      <button id="auth-tab-issues" onclick="window.switchAuthModalTab('issues')" class="py-2.5 px-3 text-[10px] uppercase tracking-wider font-semibold text-white-muted border-b-2 border-transparent cursor-pointer bg-transparent transition-all">Issues</button>
-      <button id="auth-tab-counter" onclick="window.switchAuthModalTab('counter')" class="py-2.5 px-3 text-[10px] uppercase tracking-wider font-semibold text-white-muted border-b-2 border-transparent cursor-pointer bg-transparent transition-all">Counter</button>
-      <button id="auth-tab-strategy" onclick="window.switchAuthModalTab('strategy')" class="py-2.5 px-3 text-[10px] uppercase tracking-wider font-semibold text-white-muted border-b-2 border-transparent cursor-pointer bg-transparent transition-all">Strategy</button>
+      <button id="auth-tab-ratio" onclick="window.switchAuthModalTab('ratio')" class="py-2.5 px-3 text-[10px] uppercase tracking-wider font-semibold text-white-muted border-b-2 border-transparent cursor-pointer bg-transparent transition-all whitespace-nowrap">Ratio</button>
+      <button id="auth-tab-rationale" onclick="window.switchAuthModalTab('rationale')" class="py-2.5 px-3 text-[10px] uppercase tracking-wider font-semibold text-white-muted border-b-2 border-transparent cursor-pointer bg-transparent transition-all whitespace-nowrap">Why Selected</button>
+      <button id="auth-tab-usage" onclick="window.switchAuthModalTab('usage')" class="py-2.5 px-3 text-[10px] uppercase tracking-wider font-semibold text-white-muted border-b-2 border-transparent cursor-pointer bg-transparent transition-all whitespace-nowrap">Application</button>
+      <button id="auth-tab-courtroom" onclick="window.switchAuthModalTab('courtroom')" class="py-2.5 px-3 text-[10px] uppercase tracking-wider font-semibold text-white-muted border-b-2 border-transparent cursor-pointer bg-transparent transition-all whitespace-nowrap">Courtroom</button>
+      <button id="auth-tab-counter" onclick="window.switchAuthModalTab('counter')" class="py-2.5 px-3 text-[10px] uppercase tracking-wider font-semibold text-white-muted border-b-2 border-transparent cursor-pointer bg-transparent transition-all whitespace-nowrap">Opponent</button>
+      <button id="auth-tab-strategy" onclick="window.switchAuthModalTab('strategy')" class="py-2.5 px-3 text-[10px] uppercase tracking-wider font-semibold text-white-muted border-b-2 border-transparent cursor-pointer bg-transparent transition-all whitespace-nowrap">Distinguish</button>
+      <button id="auth-tab-bench" onclick="window.switchAuthModalTab('bench')" class="py-2.5 px-3 text-[10px] uppercase tracking-wider font-semibold text-white-muted border-b-2 border-transparent cursor-pointer bg-transparent transition-all whitespace-nowrap">Bench Trap</button>
     </div>
     
     <!-- Content Body -->

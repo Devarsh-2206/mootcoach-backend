@@ -198,6 +198,8 @@ function parsePdfAsync(buffer) {
 
 // Routes
 const extractIssuesRoute = require("./routes/extractIssues");
+const authorityIntelligenceRoute = require("./routes/authorityIntelligence");
+const benchForecastRoute = require("./routes/benchForecast");
 
 // Services
 const { handleLiveVoiceConnection, getChatCompletion } = require("./services/geminiService");
@@ -209,6 +211,7 @@ const ORAL_EVAL_PROMPT = require("./prompts/oralEvalPrompt");
 const { buildJudgePrompt } = require("./prompts/benchJudgePrompt");
 const buildEvaluationPrompt = require("./prompts/benchEvaluationPrompt");
 const ARGUMENT_BUILDER_PROMPT = require("./prompts/argumentBuilderPrompt");
+const buildClaimExtractionPrompt = require("./prompts/claimExtractionPrompt");
 
 const app = express();
 app.set('trust proxy', 1);
@@ -217,6 +220,8 @@ app.use(express.json());
 app.use(express.static("frontend"));
 
 app.use("/extract-issues", extractIssuesRoute);
+app.use("/api/authority-intelligence", authorityIntelligenceRoute);
+app.use("/api/bench-forecast", benchForecastRoute);
 
 app.get("/health", (req, res) => {
   res.json({ status: "ok" });
@@ -408,9 +413,34 @@ app.post("/evaluate-oral", aiLimiter, express.json(), async (req, res) => {
   }
 });
 
+/* ─── /simulate-bench/extract-claims ─── */
+app.post("/simulate-bench/extract-claims", express.json(), async (req, res) => {
+  const { studentStatement } = req.body;
+  
+  if (!studentStatement || studentStatement.trim().length < 3) {
+    return res.status(400).json({ success: false, error: "Statement required." });
+  }
+
+  try {
+    const prompt = buildClaimExtractionPrompt(studentStatement);
+    const extractionCall = await getChatCompletion({
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.1,
+      max_tokens: 800,
+      requestLabel: "Claim Extraction"
+    });
+
+    const extractionData = extractAndParseJSON(extractionCall.text);
+    return res.json({ success: true, claims: extractionData.claims || [] });
+  } catch (error) {
+    console.error("/simulate-bench/extract-claims error:", error);
+    return res.status(500).json({ success: false, error: "Failed to extract claims" });
+  }
+});
+
 /* ─── /simulate-bench ─── */
 app.post("/simulate-bench", express.json(), async (req, res) => {
-  const { conversationHistory, propositionSummary, difficulty, studentStatement } = req.body;
+  const { conversationHistory, propositionSummary, difficulty, studentStatement, claimLedger } = req.body;
 
   if (!studentStatement || studentStatement.trim().length < 3) {
     return res.status(400).json({ success: false, error: "Statement required." });
@@ -431,7 +461,7 @@ app.post("/simulate-bench", express.json(), async (req, res) => {
   if (advocateTurnsCount >= MAX_TURNS) {
     // End of session: Generate Performance Review
     try {
-      const evalPrompt = buildEvaluationPrompt(validDifficulty, propositionSummary || '', conversationHistoryWithNewTurn);
+      const evalPrompt = buildEvaluationPrompt(validDifficulty, propositionSummary || '', conversationHistoryWithNewTurn, claimLedger);
       const evalCall = await getChatCompletion({
         messages: [{ role: "user", content: evalPrompt }],
         temperature: 0.2,
@@ -440,15 +470,6 @@ app.post("/simulate-bench", express.json(), async (req, res) => {
       });
 
       const reviewData = extractAndParseJSON(evalCall.text);
-      
-      // Ensure grade and score properties are normalized
-      reviewData.overallScore = Math.min(100, Math.max(0, Number(reviewData.overallScore) || 0));
-      const s = reviewData.overallScore;
-      if      (s >= 85) reviewData.grade = 'A';
-      else if (s >= 70) reviewData.grade = 'B';
-      else if (s >= 55) reviewData.grade = 'C';
-      else if (s >= 40) reviewData.grade = 'D';
-      else              reviewData.grade = 'F';
 
       return res.json({
         success: true,
@@ -468,7 +489,7 @@ app.post("/simulate-bench", express.json(), async (req, res) => {
   }
 
   // Normal turn: Generate next judge question
-  const judgeSystemPrompt = buildJudgePrompt(validDifficulty, propositionSummary || '');
+  const judgeSystemPrompt = buildJudgePrompt(validDifficulty, propositionSummary || '', claimLedger);
   const messages = [{ role: "system", content: judgeSystemPrompt }];
   const recentHistory = history.slice(-12);
   
