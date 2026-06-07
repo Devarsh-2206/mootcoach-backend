@@ -36,7 +36,8 @@ import {
   wizardNext,
   wizardPrev,
   switchStage5Tab,
-  renderStage4OralNotes
+  renderStage4OralNotes,
+  selectIssueFromCard
 } from './components/ui.js';
 
 import {

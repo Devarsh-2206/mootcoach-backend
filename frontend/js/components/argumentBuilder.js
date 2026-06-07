@@ -6,6 +6,7 @@ import {
   fmtInline, 
   esc 
 } from './ui.js';
+import { BASE_URL } from '../config.js';
 
 // Argument Builder State
 export let selectedAuthorities = [];
@@ -2828,7 +2829,7 @@ export async function openAuthorityModal(caseName, initialTab = 'ratio') {
     const notesInput = document.getElementById('builder-notes-input');
     const notes = notesInput ? notesInput.value : '';
     
-    const response = await fetch('/api/authority-intelligence', {
+    const response = await fetch(`${BASE_URL}/api/authority-intelligence`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -2966,7 +2967,7 @@ export async function generateBenchForecast() {
     const notesInput = document.getElementById('builder-notes-input');
     const notes = notesInput ? notesInput.value : '';
 
-    const response = await fetch('/api/bench-forecast', {
+    const response = await fetch(`${BASE_URL}/api/bench-forecast`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
