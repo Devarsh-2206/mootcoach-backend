@@ -258,6 +258,13 @@ export function appendBenchMessage(role, text, pressureLevel, targetWeakness, di
     const roleLabel = role === 'judge' ? (speakingJudge ? esc(speakingJudge).toUpperCase() : 'BENCH') : 'COUNSEL';
     const roleCls = role === 'judge' ? 'bm-role-judge' : 'bm-role-advocate';
 
+    if (role === 'judge') {
+      const judgeNameEl = document.getElementById('cr-judge-name');
+      if (judgeNameEl) {
+        judgeNameEl.textContent = `⚖️ ${speakingJudge ? esc(speakingJudge) : 'Presiding Judge'}`;
+      }
+    }
+
     const pressure = displayPressure || pressureLevel || 0;
 
     const pressureHTML = (pressure > 0 && role === 'judge')
