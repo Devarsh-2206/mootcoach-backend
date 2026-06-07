@@ -17,6 +17,7 @@ import {
 } from '../services/audioEngine.js';
 import { logSessionSecurely } from '../services/api.js';
 import { getCurrentSelectedSide, selectedAuthorities } from './argumentBuilder.js';
+import { benchProfiles } from '../config/benchProfiles.js';
 
 // Simulator State
 export let benchConversation = [];
@@ -512,39 +513,7 @@ export function handleBenchKeydown(e) {
 export let currentJudgeBubble = null;
 export let currentJudgeSpeech = '';
 
-const JUDGE_NAMES = [
-  "Justice Rao",
-  "Justice Malhotra",
-  "Justice Bhat",
-  "Justice Nagarathna",
-  "Justice Roy",
-  "Justice Gavai",
-  "Justice Khanna",
-  "Justice Banerjee",
-  "Justice Kaul",
-  "Justice Sundresh"
-];
 
-function getJudgeName() {
-  const mootName = document.getElementById('ws-moot-name')?.value?.trim();
-  if (!mootName) {
-    const fileName = document.getElementById('wsib-file')?.textContent?.trim();
-    if (fileName && fileName !== 'No file uploaded') {
-      return getDeterministicJudge(fileName);
-    }
-    return "Presiding Judge";
-  }
-  return getDeterministicJudge(mootName);
-}
-
-function getDeterministicJudge(str) {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = str.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  const index = Math.abs(hash) % JUDGE_NAMES.length;
-  return `Justice ${JUDGE_NAMES[index].replace("Justice ", "")}`;
-}
 
 // Browser SpeechSynthesis opening statement removed in favor of Gemini Live native audio.
 
@@ -620,9 +589,8 @@ export function updateBenchState(state) {
   // Update Bench Header Judge Info & Bench Name on state change
   const judgeNameEl = document.getElementById('cr-judge-name');
   const benchNameEl = document.getElementById('cr-bench-name');
-  if (judgeNameEl) {
-    const judgeName = getJudgeName();
-    judgeNameEl.textContent = `⚖️ ${judgeName}`;
+  if (judgeNameEl && state === 'connecting') {
+    judgeNameEl.textContent = `⚖️ Presiding Judge`;
   }
   if (benchNameEl) {
     const difficultyLabel = (benchDifficultyMode || 'moderate').toUpperCase();
@@ -880,19 +848,36 @@ export function appendTranscript(role, text, isChunk = false) {
       return;
     }
 
-    currentJudgeSpeech = text;
+    let finalJudgeName = 'The Bench';
+    let cleanText = text;
+
+    const tagMatch = text.match(/^\[(.*?)\]\s*(.*)$/i);
+    if (tagMatch) {
+      finalJudgeName = tagMatch[1].trim();
+      cleanText = tagMatch[2].trim();
+    } else {
+      const mode = benchDifficultyMode || 'moderate';
+      const profile = benchProfiles[mode] || benchProfiles.moderate;
+      if (profile && profile.judges && profile.judges.length > 0) {
+        finalJudgeName = profile.judges[0].name; 
+      }
+    }
+
+    currentJudgeSpeech = cleanText;
     const div = document.createElement('div');
     div.className = 'flex flex-col max-w-[80%] self-start items-start animate-[secReveal_0.3s_ease_both]';
 
-    // Get dynamic Judge Name
-    const judgeName = getJudgeName();
+    const crJudgeNameEl = document.getElementById('cr-judge-name');
+    if (crJudgeNameEl) {
+      crJudgeNameEl.textContent = `⚖️ ${finalJudgeName.toUpperCase()}`;
+    }
 
     div.innerHTML = `
       <div class="text-[10px] font-semibold tracking-wider text-red-400 mb-1 flex items-center gap-1">
-        <span>⚖️</span> ${judgeName}
+        <span>⚖️</span> ${finalJudgeName}
       </div>
       <div class="bg-red-950/20 border border-red-900/30 rounded-r-xl rounded-bl-xl p-3 text-sm text-gray-200 leading-relaxed shadow-sm">
-        <span class="cr-msg-text">${fmtInline(text)}</span>
+        <span class="cr-msg-text">${fmtInline(cleanText)}</span>
       </div>
     `;
     panel.appendChild(div);
