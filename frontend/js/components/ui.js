@@ -1284,7 +1284,7 @@ export function renderStage2Issues() {
         }
 
         return `
-          <div class="${cardClass} p-4 bg-white/5 border border-white/10 rounded-xl flex flex-col gap-3 cursor-pointer" onclick="window.selectIssueFromCard('${issue.replace(/'/g, "\\'")}')">
+          <div class="${cardClass} p-4 bg-white/5 border border-white/10 rounded-xl flex flex-col gap-3 cursor-pointer" onclick="window.selectIssueFromCard(${idx})">
             <div class="flex justify-between items-start gap-4">
               <div class="flex items-start gap-3">
                 <span class="w-6 h-6 rounded-full bg-moot-accent/10 border border-moot-accent/20 text-moot-accent text-[11px] font-semibold flex items-center justify-center shrink-0">
@@ -1319,10 +1319,10 @@ export function renderStage2Issues() {
   }
 }
 
-export function selectIssueFromCard(val) {
+export function selectIssueFromCard(idx) {
   const selectEl = document.getElementById('builder-issue-select');
-  if (selectEl) {
-    selectEl.value = val;
+  if (selectEl && selectEl.options[idx]) {
+    selectEl.selectedIndex = idx;
     const changeEvent = new Event('change', { bubbles: true });
     selectEl.dispatchEvent(changeEvent);
     showToast("Issue selected ✓", "ok");

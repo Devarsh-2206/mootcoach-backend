@@ -245,7 +245,7 @@ export function clearBenchSession() {
   if (voiceStatusEl) voiceStatusEl.style.display = 'none';
 }
 
-export function appendBenchMessage(role, text, pressureLevel, targetWeakness, displayPressure) {
+export function appendBenchMessage(role, text, pressureLevel, targetWeakness, displayPressure, speakingJudge) {
   const chat = document.getElementById('bench-chat');
   if (!chat) return;
 
@@ -255,7 +255,7 @@ export function appendBenchMessage(role, text, pressureLevel, targetWeakness, di
   if (role === 'system') {
     div.innerHTML = `<div class="bm-role bm-role-system">System</div><div class="bm-text">${esc(text)}</div>`;
   } else {
-    const roleLabel = role === 'judge' ? 'BENCH' : 'COUNSEL';
+    const roleLabel = role === 'judge' ? (speakingJudge ? esc(speakingJudge).toUpperCase() : 'BENCH') : 'COUNSEL';
     const roleCls = role === 'judge' ? 'bm-role-judge' : 'bm-role-advocate';
 
     const pressure = displayPressure || pressureLevel || 0;
@@ -473,7 +473,7 @@ export async function submitToBench() {
     }
 
     const judgeText = data.judgeResponse || 'Proceed, Counsel.';
-    appendBenchMessage('judge', judgeText, data.pressureLevel, data.targetWeakness);
+    appendBenchMessage('judge', judgeText, data.pressureLevel, data.targetWeakness, 0, data.speakingJudge);
     requestAnimationFrame(() => {
       const chat = document.getElementById('bench-chat');
       if (chat) {

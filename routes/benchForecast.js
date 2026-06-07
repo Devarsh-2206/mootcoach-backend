@@ -14,7 +14,12 @@ function extractAndParseJSON(rawResponse) {
   }
   
   cleaned = cleaned.slice(start, end + 1);
-  return JSON.parse(cleaned);
+  try {
+    return JSON.parse(cleaned);
+  } catch (e) {
+    const repaired = cleaned.replace(/\n/g, '\\n').replace(/\r/g, '\\r').replace(/\t/g, '\\t');
+    return JSON.parse(repaired);
+  }
 }
 
 router.post("/", async (req, res) => {

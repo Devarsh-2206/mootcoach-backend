@@ -2833,7 +2833,7 @@ export async function openAuthorityModal(caseName, initialTab = 'ratio') {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         authorityName: auth.name,
-        propositionContext: window.currentPropositionContext || "General constitutional matter.",
+        propositionContext: currentPropositionContext || "General constitutional matter.",
         stance: stance,
         notes: notes
       })
@@ -2970,7 +2970,7 @@ export async function generateBenchForecast() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        propositionContext: window.currentPropositionContext || "",
+        propositionContext: currentPropositionContext || "",
         issue: issueVal,
         stance: stance,
         notes: notes
