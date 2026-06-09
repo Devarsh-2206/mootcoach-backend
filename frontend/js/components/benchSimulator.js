@@ -1035,9 +1035,12 @@ function safeAbortRecognition() {
 }
 
 function safeStartRecognition() {
+  console.log('[RECOVERY] safeStartRecognition invoked. recognition exists:', !!recognition, 'isRecognizing:', isRecognizing);
   if (!recognition) {
     console.warn("[VOICE] Re-instantiating SpeechRecognition (was null)");
+    console.log('[RECOVERY] Rebuilding recognition object...');
     startSpeechRecognition();
+    console.log('[RECOVERY] FATAL: Returning early before calling recognition.start()');
     return;
   }
   if (isRecognizing) return;
@@ -1048,6 +1051,7 @@ function safeStartRecognition() {
   }
 
   try {
+    console.log('[RECOVERY] Invoking recognition.start()');
     recognition.start();
     updateDiagActive(true);
     console.log("[VOICE] Recognition started");

@@ -182,6 +182,11 @@ function setupWebSocketHandlers(callbacks, onOpenCallback = null) {
 
   voiceWebSocket.onopen = () => {
     console.log("🎙️ Voice WebSocket opened.");
+    console.log('[RECOVERY] WebSocket onopen fired');
+    console.log(`[RECOVERY] voiceAudioContext state is: ${voiceAudioContext ? voiceAudioContext.state : 'null'}`);
+    if (voiceAudioContext && voiceAudioContext.state === 'suspended') {
+      console.log('[RECOVERY] FATAL: AudioContext is suspended. PCM data will not stream.');
+    }
     
     // Toggle state and status badge in UI immediately
     if (onStatusChange) {
@@ -247,6 +252,7 @@ Begin the hearing by having one of the judges ask a challenging opening question
       const msg = JSON.parse(event.data);
       if (msg.type === 'status') {
         if (msg.status === 'connected') {
+          console.log('[RECOVERY] Gemini connected status received');
           onStatusChange('listening', 'Listening...');
         }
       } else if (msg.type === 'audio') {
@@ -350,6 +356,8 @@ async function reconnectWebSocket(callbacks = activeCallbacks, onOpenCallback = 
 
   const { onStatusChange } = callbacks;
   if (onStatusChange) {
+    console.log('[RECOVERY] reconnect detected');
+    console.log('[RECOVERY] reconnectWebSocket executed');
     onStatusChange('reconnecting', 'Reconnecting to Bench...');
   }
   const voiceStatusEl = document.getElementById('bench-voice-status');
