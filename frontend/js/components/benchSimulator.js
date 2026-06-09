@@ -35,6 +35,8 @@ let voiceTimerInterval = null;
 let voiceElapsedTime = 0;
 let currentBenchState = 'idle';
 let lastInterimTranscript = '';
+let isRecognizing = false;
+let recognitionRestartTimer = null;
 
 // Expose benchActive on window for UI checks (e.g. showWsPanel)
 window.benchActive = false;
@@ -531,7 +533,7 @@ export function updateBenchState(state) {
           benchConversation.push({ role: 'advocate', content: lastInterimTranscript });
           lastInterimTranscript = '';
         }
-        recognition.abort();
+        safeAbortRecognition();
         console.log(`[VOICE] Aborted recognition because state is ${state}`);
         updateDiagActive(false);
       } catch (err) {
@@ -699,14 +701,7 @@ export async function startOralRound() {
         } else if (status === 'speaking') {
           if (getSocketState() === 'open') {
             updateBenchState('speaking');
-            if (recognition) {
-              try {
-                recognition.stop();
-                console.log("[DEBUG AUDIT] Mic stopped because Judge is speaking.");
-              } catch (e) {
-                console.warn("Failed to stop recognition:", e);
-              }
-            }
+            // safeAbortRecognition() is natively called inside updateBenchState('speaking')
           } else {
             console.warn("[WARN] Socket is not open, ignoring status switch to 'speaking'.");
           }
@@ -1012,8 +1007,18 @@ function updateDiagTimestamp(eventName) {
   }
 }
 
+function safeAbortRecognition() {
+  if (recognitionRestartTimer) {
+    clearTimeout(recognitionRestartTimer);
+    recognitionRestartTimer = null;
+  }
+  if (recognition && isRecognizing) {
+    try { recognition.abort(); } catch (e) {}
+  }
+}
+
 function safeStartRecognition() {
-  if (!recognition) return;
+  if (!recognition || isRecognizing) return;
 
   if (currentBenchState !== 'listening') {
     console.log(`[VOICE] Aborted recognition.start() because currentBenchState is '${currentBenchState}' (not 'listening')`);
@@ -1067,6 +1072,7 @@ function startSpeechRecognition() {
   recognition.lang = 'en-US';
 
   recognition.onstart = () => {
+    isRecognizing = true;
     console.log("🎙️ Local Speech Recognition active.");
     console.log("[VOICE] Recognition started");
     console.log('[MIC] Started');
@@ -1141,6 +1147,9 @@ function startSpeechRecognition() {
   };
 
   recognition.onerror = (e) => {
+    if (e.error === 'aborted') {
+      return; // Ignore intentional aborts to prevent log noise
+    }
     console.log("speech error", e.error);
     console.error("[VOICE] Recognition error:", e.error);
     updateDiagTimestamp(`speech error: ${e.error}`);
@@ -1162,13 +1171,15 @@ function startSpeechRecognition() {
   };
 
   recognition.onend = () => {
+    isRecognizing = false;
     console.log("[VOICE] Recognition ended");
     console.log('[MIC] Ended');
     updateDiagActive(false);
     updateDiagTimestamp('Recognition ended');
 
     if (voiceSessionActive && currentBenchState === 'listening') {
-      setTimeout(() => {
+      if (recognitionRestartTimer) clearTimeout(recognitionRestartTimer);
+      recognitionRestartTimer = setTimeout(() => {
         try {
           if (voiceSessionActive && currentBenchState === 'listening') {
             safeStartRecognition();
@@ -1183,10 +1194,15 @@ function startSpeechRecognition() {
 }
 
 function stopSpeechRecognition() {
+  if (recognitionRestartTimer) {
+    clearTimeout(recognitionRestartTimer);
+    recognitionRestartTimer = null;
+  }
   if (recognition) {
     recognition.onend = null;
     try { recognition.abort(); } catch (e) { }
     recognition = null;
+    isRecognizing = false;
   }
 }
 
