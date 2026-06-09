@@ -696,6 +696,16 @@ export async function startOralRound() {
           const panel = document.getElementById('bench-transcript-panel');
           if (panel) panel.innerHTML = '';
           appendTranscript('system', 'Connection lost. The Bench has been reset. Please begin your submissions again.');
+          
+          // Deep clean memory buffers
+          fullJudgeResponse = '';
+          currentJudgeBubble = null;
+          currentJudgeSpeech = '';
+          benchConversation = [];
+          
+          // Force microphone re-instantiation for iOS lock recovery
+          stopSpeechRecognition();
+          
           updateBenchState('connecting');
           startVoiceTimer(); // Reset the duration timer
         } else if (status === 'connecting') {
@@ -1025,7 +1035,12 @@ function safeAbortRecognition() {
 }
 
 function safeStartRecognition() {
-  if (!recognition || isRecognizing) return;
+  if (!recognition) {
+    console.warn("[VOICE] Re-instantiating SpeechRecognition (was null)");
+    startSpeechRecognition();
+    return;
+  }
+  if (isRecognizing) return;
 
   if (currentBenchState !== 'listening') {
     console.log(`[VOICE] Aborted recognition.start() because currentBenchState is '${currentBenchState}' (not 'listening')`);
