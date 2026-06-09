@@ -691,7 +691,14 @@ export async function startOralRound() {
     await engineStartOralRound({
       onStatusChange: (status, text) => {
         console.log("[DEBUG AUDIT] Engine status changed:", status, text);
-        if (status === 'connecting') {
+        if (status === 'reconnecting') {
+          // Hard wipe of frontend state to sync with backend Gemini session reset
+          const panel = document.getElementById('bench-transcript-panel');
+          if (panel) panel.innerHTML = '';
+          appendTranscript('system', 'Connection lost. The Bench has been reset. Please begin your submissions again.');
+          updateBenchState('connecting');
+          startVoiceTimer(); // Reset the duration timer
+        } else if (status === 'connecting') {
           updateBenchState('connecting');
         } else if (status === 'ready') {
           // Opening statement is handled natively by Gemini Live via priming prompt

@@ -350,7 +350,7 @@ async function reconnectWebSocket(callbacks = activeCallbacks, onOpenCallback = 
 
   const { onStatusChange } = callbacks;
   if (onStatusChange) {
-    onStatusChange('connecting', 'Reconnecting to Bench...');
+    onStatusChange('reconnecting', 'Reconnecting to Bench...');
   }
   const voiceStatusEl = document.getElementById('bench-voice-status');
   const voiceTextEl = document.getElementById('bench-voice-text');
