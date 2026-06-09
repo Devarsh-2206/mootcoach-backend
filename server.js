@@ -5,6 +5,16 @@ if (process.env.NODE_ENV !== "production") {
 }
 
 const express = require("express");
+const app = express();
+app.set('trust proxy', 1);
+
+const PORT = process.env.PORT || 10000;
+const server = app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 MootCoach AI running on port ${PORT} (loading dependencies...)`);
+});
+
+const { WebSocketServer } = require("ws");
+const wss = new WebSocketServer({ server });
 const cors = require("cors");
 const multer = require("multer");
 const fs = require("fs");
@@ -213,8 +223,8 @@ const buildEvaluationPrompt = require("./prompts/benchEvaluationPrompt");
 const ARGUMENT_BUILDER_PROMPT = require("./prompts/argumentBuilderPrompt");
 const buildClaimExtractionPrompt = require("./prompts/claimExtractionPrompt");
 
-const app = express();
-app.set('trust proxy', 1);
+// const app = express();
+// app.set('trust proxy', 1);
 app.use(cors());
 app.use(express.json());
 app.use(express.static("frontend"));
@@ -618,14 +628,11 @@ app.post("/api/log-session", aiLimiter, express.json(), async (req, res) => {
   }
 });
 
-const PORT = process.env.PORT || 10000;
-const server = app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 MootCoach AI running on port ${PORT}`);
-});
-
-// Set up WebSocket server for real-time voice engine
-const { WebSocketServer } = require("ws");
-const wss = new WebSocketServer({ server });
+// Port binding and WSS initialization moved to the top of the file to pass Render health checks
+// const PORT = process.env.PORT || 10000;
+// const server = app.listen(PORT, '0.0.0.0', ...
+// const { WebSocketServer } = require("ws");
+// const wss = new WebSocketServer({ server });
 
 wss.on("connection", (ws, req) => {
   ws.isAlive = true;
