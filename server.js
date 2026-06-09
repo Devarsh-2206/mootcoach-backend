@@ -233,6 +233,11 @@ app.use("/extract-issues", extractIssuesRoute);
 app.use("/api/authority-intelligence", authorityIntelligenceRoute);
 app.use("/api/bench-forecast", benchForecastRoute);
 
+app.post("/api/client-log", (req, res) => {
+  console.log(`[FRONTEND METRIC] ${req.body.message}`);
+  res.sendStatus(200);
+});
+
 app.get("/health", (req, res) => {
   res.json({ status: "ok" });
 });
