@@ -1,5 +1,6 @@
 const { GoogleGenAI } = require("@google/genai");
 const { buildLiveJudgePrompt } = require("../prompts/benchJudgePrompt");
+const { createEmptyMemory, evaluateExchange } = require("./memoryEngine");
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
@@ -72,6 +73,10 @@ const handleLiveVoiceConnection = async (ws, benchLevel = 'moderate', propositio
   let session;
   const liveSystemInstruction = buildLiveJudgePrompt(benchLevel, propositionSummary);
   
+  // Initialize Judicial Memory Engine state for this session
+  let benchMemory = createEmptyMemory();
+  let currentExchange = "";
+  
   console.log("=========================================");
   console.log(`[DEBUG AUDIT] Generating Live Prompt for Bench Level: ${benchLevel}`);
   console.log("=========================================");
@@ -109,6 +114,7 @@ const handleLiveVoiceConnection = async (ws, benchLevel = 'moderate', propositio
   
               if (outputTranscription?.text) {
                 console.log("[TRANSCRIPT DEBUG] outputTranscription:", outputTranscription.text);
+                currentExchange += `Judge: ${outputTranscription.text}\n`;
                 ws.send(JSON.stringify({
                   type: "text",
                   text: outputTranscription.text
@@ -141,6 +147,22 @@ const handleLiveVoiceConnection = async (ws, benchLevel = 'moderate', propositio
   
               if (turnComplete) {
                 ws.send(JSON.stringify({ type: "turnComplete" }));
+                
+                // Trigger Shadow Evaluator asynchronous check
+                if (currentExchange.includes("Advocate:")) {
+                  const evalBuffer = currentExchange;
+                  currentExchange = ""; // Reset for next turn
+                  
+                  evaluateExchange(benchMemory, evalBuffer).then((result) => {
+                    if (result && result.whisperToken) {
+                      console.log("[MEMORY ENGINE] Injecting Whisper:", result.whisperToken);
+                      // Send the whisper directly into the active voice stream
+                      session.sendRealtimeInput({
+                        text: result.whisperToken
+                      }).catch(e => console.error("Whisper injection failed", e));
+                    }
+                  });
+                }
               }
             }
           } catch (e) {
@@ -179,6 +201,7 @@ const handleLiveVoiceConnection = async (ws, benchLevel = 'moderate', propositio
       } else {
         const data = JSON.parse(message.toString());
         if (data.type === "text") {
+          currentExchange += `Advocate: ${data.text}\n`;
           await session.sendRealtimeInput({
             text: data.text
           });

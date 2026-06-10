@@ -213,6 +213,8 @@ const benchForecastRoute = require("./routes/benchForecast");
 
 // Services
 const { handleLiveVoiceConnection, getChatCompletion } = require("./services/geminiService");
+const { createEmptyMemory, evaluateExchange } = require("./services/memoryEngine");
+const textBenchMemories = new Map();
 
 // Prompts
 const LEGAL_VALIDATION_PROMPT = require("./prompts/legalValidationPrompt");
@@ -504,6 +506,24 @@ app.post("/simulate-bench", express.json(), async (req, res) => {
   }
 
   // Normal turn: Generate next judge question
+  const sessionKey = req.ip + "_" + validDifficulty;
+  if (advocateTurnsCount === 1) textBenchMemories.set(sessionKey, createEmptyMemory());
+  if (!textBenchMemories.has(sessionKey)) textBenchMemories.set(sessionKey, createEmptyMemory());
+  const benchMemory = textBenchMemories.get(sessionKey);
+  
+  let whisperToken = null;
+  if (history.length > 0) {
+    const lastJudge = history[history.length - 1];
+    if (lastJudge.role === 'judge') {
+      const exchangeLog = `Judge: ${lastJudge.content}\nAdvocate: ${studentStatement}`;
+      const evalResult = await evaluateExchange(benchMemory, exchangeLog);
+      if (evalResult && evalResult.whisperToken) {
+        whisperToken = evalResult.whisperToken;
+        console.log("[MEMORY ENGINE] Text Mode Whisper:", whisperToken);
+      }
+    }
+  }
+
   const judgeSystemPrompt = buildJudgePrompt(validDifficulty, propositionSummary || '', claimLedger);
   const messages = [{ role: "system", content: judgeSystemPrompt }];
   const recentHistory = history.slice(-12);
@@ -511,7 +531,12 @@ app.post("/simulate-bench", express.json(), async (req, res) => {
   for (const turn of recentHistory) {
     messages.push({ role: turn.role === 'judge' ? 'assistant' : 'user', content: turn.content });
   }
-  messages.push({ role: "user", content: `${studentStatement.trim().slice(0, 1000)}\n\nReturn ONLY a valid JSON object.` });
+  
+  let finalPayload = `${studentStatement.trim().slice(0, 1000)}\n\nReturn ONLY a valid JSON object.`;
+  if (whisperToken) {
+    finalPayload = `${whisperToken}\n\n${finalPayload}`;
+  }
+  messages.push({ role: "user", content: finalPayload });
 
   try {
     const judgeCall = await getChatCompletion({
