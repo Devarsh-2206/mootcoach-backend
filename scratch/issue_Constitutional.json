@@ -1,0 +1,300 @@
+{
+  "issues":[
+      {
+         "hierarchyLevel":1,
+         "issueDefinition":{
+            "exactLegalQuestion":"Does the Supreme Court of India have jurisdiction to hear the challenge against the 'Digital Content Regulation Act, 2025'?",
+            "whyItMatters":"The jurisdiction of the Supreme Court of India is a threshold issue that must be established before proceeding to subsequent levels.",
+            "whatWinningLooksLike":"The petitioner must demonstrate that the Supreme Court of India has the authority to hear the challenge against the 'Digital Content Regulation Act, 2025'."
+         },
+         "petitionerFramework":{
+            "coreTheory":"The Supreme Court of India has the jurisdiction to hear challenges against legislative enactments that allegedly violate fundamental rights.",
+            "primaryArguments":[
+               {
+                  "argumentId":"Jurisdiction under Article 32",
+                  "legalBasis":"Article 32 of the Indian Constitution",
+                  "factualBasis":"The 'Digital Content Regulation Act, 2025' allegedly violates fundamental rights.",
+                  "strategicImportance":"Establishing jurisdiction is crucial for the petitioner's case."
+               }
+            ],
+            "auxiliaryArguments":[
+               "The Supreme Court of India has previously heard challenges against legislative enactments.",
+               "The 'Digital Content Regulation Act, 2025' has a significant impact on the fundamental rights of citizens."
+            ]
+         },
+         "respondentFramework":{
+            "coreTheory":"The Supreme Court of India does not have the jurisdiction to hear challenges against legislative enactments that are deemed to be reasonable restrictions on fundamental rights.",
+            "primaryResponses":[
+               {
+                  "responseId":"No Jurisdiction",
+                  "legalBasis":"Article 32 of the Indian Constitution does not apply in this case.",
+                  "factualBasis":"The 'Digital Content Regulation Act, 2025' is a reasonable restriction on fundamental rights.",
+                  "strategicImportance":"Disputing jurisdiction can dismiss the petitioner's case."
+               }
+            ],
+            "auxiliaryResponses":[
+               "The petitioner has not exhausted all other available remedies.",
+               "The 'Digital Content Regulation Act, 2025' is a legitimate exercise of legislative power."
+            ]
+         },
+         "rebuttalMatrix":[
+            {
+               "petitionerArgument":"Jurisdiction under Article 32",
+               "respondentAttack":"The 'Digital Content Regulation Act, 2025' is a reasonable restriction on fundamental rights.",
+               "petitionerReply":"The restriction is not reasonable, as it violates the fundamental right to privacy."
+            }
+         ],
+         "benchVulnerabilityMatrix":{
+            "mostDangerousJudicialQuestion":"Can the petitioner demonstrate that the 'Digital Content Regulation Act, 2025' is not a reasonable restriction on fundamental rights?",
+            "mostDangerousFactualWeakness":"The petitioner's failure to demonstrate a clear violation of fundamental rights.",
+            "mostDangerousLegalWeakness":"The petitioner's reliance on an incorrect interpretation of Article 32.",
+            "mostDangerousProceduralWeakness":"The petitioner's failure to exhaust all other available remedies."
+         },
+         "authorityRequirements":{
+            "landmarkAuthorityNeeded":"A decision of the Supreme Court of India that establishes the jurisdiction of the court to hear challenges against legislative enactments.",
+            "jurisdictionSpecificAuthorityNeeded":"A decision of the Supreme Court of India that applies to the specific facts of this case.",
+            "comparativeAuthorityNeeded":"A decision of a foreign court that has considered a similar issue.",
+            "policyAuthorityNeeded":"A policy statement or guideline issued by the government that relates to the 'Digital Content Regulation Act, 2025'."
+         }
+      },
+      {
+         "hierarchyLevel":2,
+         "issueDefinition":{
+            "exactLegalQuestion":"Is the petition admissible, given that it challenges a legislative enactment?",
+            "whyItMatters":"The admissibility of the petition is a threshold issue that must be determined before proceeding to the merits of the case.",
+            "whatWinningLooksLike":"The petitioner must demonstrate that the petition is admissible, despite challenging a legislative enactment."
+         },
+         "petitionerFramework":{
+            "coreTheory":"The petition is admissible, as it challenges a legislative enactment that allegedly violates fundamental rights.",
+            "primaryArguments":[
+               {
+                  "argumentId":"Admissibility under Article 32",
+                  "legalBasis":"Article 32 of the Indian Constitution",
+                  "factualBasis":"The 'Digital Content Regulation Act, 2025' allegedly violates fundamental rights.",
+                  "strategicImportance":"Establishing admissibility is crucial for the petitioner's case."
+               }
+            ],
+            "auxiliaryArguments":[
+               "The Supreme Court of India has previously heard challenges against legislative enactments.",
+               "The 'Digital Content Regulation Act, 2025' has a significant impact on the fundamental rights of citizens."
+            ]
+         },
+         "respondentFramework":{
+            "coreTheory":"The petition is not admissible, as it challenges a legislative enactment that is deemed to be a reasonable restriction on fundamental rights.",
+            "primaryResponses":[
+               {
+                  "responseId":"Inadmissibility",
+                  "legalBasis":"Article 32 of the Indian Constitution does not apply in this case.",
+                  "factualBasis":"The 'Digital Content Regulation Act, 2025' is a reasonable restriction on fundamental rights.",
+                  "strategicImportance":"Disputing admissibility can dismiss the petitioner's case."
+               }
+            ],
+            "auxiliaryResponses":[
+               "The petitioner has not exhausted all other available remedies.",
+               "The 'Digital Content Regulation Act, 2025' is a legitimate exercise of legislative power."
+            ]
+         },
+         "rebuttalMatrix":[
+            {
+               "petitionerArgument":"Admissibility under Article 32",
+               "respondentAttack":"The 'Digital Content Regulation Act, 2025' is a reasonable restriction on fundamental rights.",
+               "petitionerReply":"The restriction is not reasonable, as it violates the fundamental right to privacy."
+            }
+         ],
+         "benchVulnerabilityMatrix":{
+            "mostDangerousJudicialQuestion":"Can the petitioner demonstrate that the 'Digital Content Regulation Act, 2025' is not a reasonable restriction on fundamental rights?",
+            "mostDangerousFactualWeakness":"The petitioner's failure to demonstrate a clear violation of fundamental rights.",
+            "mostDangerousLegalWeakness":"The petitioner's reliance on an incorrect interpretation of Article 32.",
+            "mostDangerousProceduralWeakness":"The petitioner's failure to exhaust all other available remedies."
+         },
+         "authorityRequirements":{
+            "landmarkAuthorityNeeded":"A decision of the Supreme Court of India that establishes the admissibility of petitions challenging legislative enactments.",
+            "jurisdictionSpecificAuthorityNeeded":"A decision of the Supreme Court of India that applies to the specific facts of this case.",
+            "comparativeAuthorityNeeded":"A decision of a foreign court that has considered a similar issue.",
+            "policyAuthorityNeeded":"A policy statement or guideline issued by the government that relates to the 'Digital Content Regulation Act, 2025'."
+         }
+      },
+      {
+         "hierarchyLevel":3,
+         "issueDefinition":{
+            "exactLegalQuestion":"Does the 'Digital Content Regulation Act, 2025' violate the fundamental rights to privacy and free speech under the Indian Constitution?",
+            "whyItMatters":"The 'Digital Content Regulation Act, 2025' has a significant impact on the fundamental rights of citizens.",
+            "whatWinningLooksLike":"The petitioner must demonstrate that the 'Digital Content Regulation Act, 2025' violates the fundamental rights to privacy and free speech."
+         },
+         "petitionerFramework":{
+            "coreTheory":"The 'Digital Content Regulation Act, 2025' violates the fundamental rights to privacy and free speech, as it requires OTT platforms to provide end-to-end decryption keys.",
+            "primaryArguments":[
+               {
+                  "argumentId":"Violation of Right to Privacy",
+                  "legalBasis":"Article 21 of the Indian Constitution",
+                  "factualBasis":"The 'Digital Content Regulation Act, 2025' requires OTT platforms to provide end-to-end decryption keys.",
+                  "strategicImportance":"Establishing a violation of the right to privacy is crucial for the petitioner's case."
+               },
+               {
+                  "argumentId":"Violation of Right to Free Speech",
+                  "legalBasis":"Article 19(1)(a) of the Indian Constitution",
+                  "factualBasis":"The 'Digital Content Regulation Act, 2025' has a chilling effect on free speech.",
+                  "strategicImportance":"Establishing a violation of the right to free speech is crucial for the petitioner's case."
+               }
+            ],
+            "auxiliaryArguments":[
+               "The 'Digital Content Regulation Act, 2025' is manifestly arbitrary.",
+               "The 'Digital Content Regulation Act, 2025' has a disproportionate impact on the fundamental rights of citizens."
+            ]
+         },
+         "respondentFramework":{
+            "coreTheory":"The 'Digital Content Regulation Act, 2025' does not violate the fundamental rights to privacy and free speech, as it is a reasonable restriction on these rights.",
+            "primaryResponses":[
+               {
+                  "responseId":"Reasonable Restriction",
+                  "legalBasis":"Article 19(2) of the Indian Constitution",
+                  "factualBasis":"The 'Digital Content Regulation Act, 2025' is a reasonable restriction on fundamental rights.",
+                  "strategicImportance":"Establishing a reasonable restriction is crucial for the respondent's case."
+               }
+            ],
+            "auxiliaryResponses":[
+               "The 'Digital Content Regulation Act, 2025' is necessary for national security.",
+               "The 'Digital Content Regulation Act, 2025' is a legitimate exercise of legislative power."
+            ]
+         },
+         "rebuttalMatrix":[
+            {
+               "petitionerArgument":"Violation of Right to Privacy",
+               "respondentAttack":"The 'Digital Content Regulation Act, 2025' is a reasonable restriction on fundamental rights.",
+               "petitionerReply":"The restriction is not reasonable, as it violates the fundamental right to privacy."
+            },
+            {
+               "petitionerArgument":"Violation of Right to Free Speech",
+               "respondentAttack":"The 'Digital Content Regulation Act, 2025' is necessary for national security.",
+               "petitionerReply":"The restriction is not necessary, as it has a chilling effect on free speech."
+            }
+         ],
+         "benchVulnerabilityMatrix":{
+            "mostDangerousJudicialQuestion":"Can the petitioner demonstrate that the 'Digital Content Regulation Act, 2025' is not a reasonable restriction on fundamental rights?",
+            "mostDangerousFactualWeakness":"The petitioner's failure to demonstrate a clear violation of fundamental rights.",
+            "mostDangerousLegalWeakness":"The petitioner's reliance on an incorrect interpretation of Article 21 or Article 19(1)(a).",
+            "mostDangerousProceduralWeakness":"The petitioner's failure to exhaust all other available remedies."
+         },
+         "authorityRequirements":{
+            "landmarkAuthorityNeeded":"A decision of the Supreme Court of India that establishes the scope of the fundamental rights to privacy and free speech.",
+            "jurisdictionSpecificAuthorityNeeded":"A decision of the Supreme Court of India that applies to the specific facts of this case.",
+            "comparativeAuthorityNeeded":"A decision of a foreign court that has considered a similar issue.",
+            "policyAuthorityNeeded":"A policy statement or guideline issued by the government that relates to the 'Digital Content Regulation Act, 2025'."
+         }
+      },
+      {
+         "hierarchyLevel":4,
+         "issueDefinition":{
+            "exactLegalQuestion":"Is the requirement for OTT platforms to provide end-to-end decryption keys a reasonable restriction under Article 19(2) for national security?",
+            "whyItMatters":"The requirement for OTT platforms to provide end-to-end decryption keys has a significant impact on the fundamental rights of citizens.",
+            "whatWinningLooksLike":"The respondent must demonstrate that the requirement is a reasonable restriction under Article 19(2) for national security."
+         },
+         "petitionerFramework":{
+            "coreTheory":"The requirement for OTT platforms to provide end-to-end decryption keys is not a reasonable restriction under Article 19(2) for national security.",
+            "primaryArguments":[
+               {
+                  "argumentId":"Unreasonable Restriction",
+                  "legalBasis":"Article 19(2) of the Indian Constitution",
+                  "factualBasis":"The requirement for OTT platforms to provide end-to-end decryption keys is not necessary for national security.",
+                  "strategicImportance":"Establishing an unreasonable restriction is crucial for the petitioner's case."
+               }
+            ],
+            "auxiliaryArguments":[
+               "The requirement for OTT platforms to provide end-to-end decryption keys is not proportionate to the goal of national security.",
+               "The requirement for OTT platforms to provide end-to-end decryption keys has a chilling effect on free speech."
+            ]
+         },
+         "respondentFramework":{
+            "coreTheory":"The requirement for OTT platforms to provide end-to-end decryption keys is a reasonable restriction under Article 19(2) for national security.",
+            "primaryResponses":[
+               {
+                  "responseId":"Reasonable Restriction",
+                  "legalBasis":"Article 19(2) of the Indian Constitution",
+                  "factualBasis":"The requirement for OTT platforms to provide end-to-end decryption keys is necessary for national security.",
+                  "strategicImportance":"Establishing a reasonable restriction is crucial for the respondent's case."
+               }
+            ],
+            "auxiliaryResponses":[
+               "The requirement for OTT platforms to provide end-to-end decryption keys is proportionate to the goal of national security.",
+               "The requirement for OTT platforms to provide end-to-end decryption keys is a legitimate exercise of legislative power."
+            ]
+         },
+         "rebuttalMatrix":[
+            {
+               "petitionerArgument":"Unreasonable Restriction",
+               "respondentAttack":"The requirement for OTT platforms to provide end-to-end decryption keys is necessary for national security.",
+               "petitionerReply":"The restriction is not necessary, as it has a chilling effect on free speech."
+            }
+         ],
+         "benchVulnerabilityMatrix":{
+            "mostDangerousJudicialQuestion":"Can the respondent demonstrate that the requirement for OTT platforms to provide end-to-end decryption keys is a reasonable restriction under Article 19(2) for national security?",
+            "mostDangerousFactualWeakness":"The respondent's failure to demonstrate that the requirement is necessary for national security.",
+            "mostDangerousLegalWeakness":"The respondent's reliance on an incorrect interpretation of Article 19(2).",
+            "mostDangerousProceduralWeakness":"The respondent's failure to provide sufficient evidence to support the restriction."
+         },
+         "authorityRequirements":{
+            "landmarkAuthorityNeeded":"A decision of the Supreme Court of India that establishes the scope of reasonable restrictions under Article 19(2).",
+            "jurisdictionSpecificAuthorityNeeded":"A decision of the Supreme Court of India that applies to the specific facts of this case.",
+            "comparativeAuthorityNeeded":"A decision of a foreign court that has considered a similar issue.",
+            "policyAuthorityNeeded":"A policy statement or guideline issued by the government that relates to the 'Digital Content Regulation Act, 2025'."
+         }
+      },
+      {
+         "hierarchyLevel":5,
+         "issueDefinition":{
+            "exactLegalQuestion":"What relief is the petitioner entitled to if the 'Digital Content Regulation Act, 2025' is declared unconstitutional?",
+            "whyItMatters":"The relief sought by the petitioner has a significant impact on the fundamental rights of citizens.",
+            "whatWinningLooksLike":"The petitioner must demonstrate that the relief sought is necessary and proportionate to the violation of fundamental rights."
+         },
+         "petitionerFramework":{
+            "coreTheory":"The petitioner is entitled to a declaration that the 'Digital Content Regulation Act, 2025' is unconstitutional and an order quashing the Act.",
+            "primaryArguments":[
+               {
+                  "argumentId":"Relief under Article 32",
+                  "legalBasis":"Article 32 of the Indian Constitution",
+                  "factualBasis":"The 'Digital Content Regulation Act, 2025' violates fundamental rights.",
+                  "strategicImportance":"Establishing the relief sought is crucial for the petitioner's case."
+               }
+            ],
+            "auxiliaryArguments":[
+               "The relief sought is necessary to protect the fundamental rights of citizens.",
+               "The relief sought is proportionate to the violation of fundamental rights."
+            ]
+         },
+         "respondentFramework":{
+            "coreTheory":"The petitioner is not entitled to the relief sought, as the 'Digital Content Regulation Act, 2025' is a reasonable restriction on fundamental rights.",
+            "primaryResponses":[
+               {
+                  "responseId":"No Relief",
+                  "legalBasis":"Article 32 of the Indian Constitution",
+                  "factualBasis":"The 'Digital Content Regulation Act, 2025' is a reasonable restriction on fundamental rights.",
+                  "strategicImportance":"Disputing the relief sought is crucial for the respondent's case."
+               }
+            ],
+            "auxiliaryResponses":[
+               "The relief sought is not necessary to protect the fundamental rights of citizens.",
+               "The relief sought is not proportionate to the violation of fundamental rights."
+            ]
+         },
+         "rebuttalMatrix":[
+            {
+               "petitionerArgument":"Relief under Article 32",
+               "respondentAttack":"The 'Digital Content Regulation Act, 2025' is a reasonable restriction on fundamental rights.",
+               "petitionerReply":"The restriction is not reasonable, as it violates the fundamental right to privacy."
+            }
+         ],
+         "benchVulnerabilityMatrix":{
+            "mostDangerousJudicialQuestion":"Can the petitioner demonstrate that the relief sought is necessary and proportionate to the violation of fundamental rights?",
+            "mostDangerousFactualWeakness":"The petitioner's failure to demonstrate that the relief sought is necessary.",
+            "mostDangerousLegalWeakness":"The petitioner's reliance on an incorrect interpretation of Article 32.",
+            "mostDangerousProceduralWeakness":"The petitioner's failure to provide sufficient evidence to support the relief sought."
+         },
+         "authorityRequirements":{
+            "landmarkAuthorityNeeded":"A decision of the Supreme Court of India that establishes the scope of relief under Article 32.",
+            "jurisdictionSpecificAuthorityNeeded":"A decision of the Supreme Court of India that applies to the specific facts of this case.",
+            "comparativeAuthorityNeeded":"A decision of a foreign court that has considered a similar issue.",
+            "policyAuthorityNeeded":"A policy statement or guideline issued by the government that relates to the 'Digital Content Regulation Act, 2025'."
+         }
+      }
+   ]
+}

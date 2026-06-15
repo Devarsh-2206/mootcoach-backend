@@ -1,0 +1,289 @@
+{
+  "issues":[
+      {
+         "hierarchyLevel":1,
+         "issueDefinition":{
+            "exactLegalQuestion":"Does the tribunal have jurisdiction over the dispute?",
+            "whyItMatters":"Establishing jurisdiction is a threshold requirement for the tribunal to hear the case.",
+            "whatWinningLooksLike":"The tribunal confirms its jurisdiction over the dispute."
+         },
+         "petitionerFramework":{
+            "coreTheory":"The arbitration agreement and the PCA Rules provide a valid basis for the tribunal's jurisdiction.",
+            "primaryArguments":[
+               {
+                  "argumentId":"Jurisdiction_Agreement",
+                  "legalBasis":"The arbitration agreement between the parties",
+                  "factualBasis":"The parties' consent to arbitration as evidenced by their agreement",
+                  "strategicImportance":"Establishing the tribunal's jurisdiction is crucial for the petitioner's case to proceed."
+               }
+            ],
+            "auxiliaryArguments":[
+               "The PCA Rules provide a framework for the arbitration process.",
+               "The tribunal's jurisdiction is not affected by the parties' nationality or domicile."
+            ]
+         },
+         "respondentFramework":{
+            "coreTheory":"The tribunal lacks jurisdiction due to an invalid arbitration agreement or insufficient consent from the parties.",
+            "primaryResponses":[
+               {
+                  "responseId":"Invalid_Agreement",
+                  "legalBasis":"The arbitration agreement is invalid or unenforceable",
+                  "factualBasis":"The agreement was not properly executed or does not meet the requirements for a valid arbitration agreement",
+                  "strategicImportance":"Challenging the validity of the arbitration agreement can prevent the tribunal from exercising jurisdiction."
+               }
+            ],
+            "auxiliaryResponses":[
+               "The PCA Rules do not apply to this arbitration.",
+               "The tribunal's jurisdiction is limited by the parties' agreement or applicable law."
+            ]
+         },
+         "rebuttalMatrix":[
+            {
+               "petitionerArgument":"Jurisdiction_Agreement",
+               "respondentAttack":"Invalid_Agreement",
+               "petitionerReply":"The arbitration agreement is valid and enforceable, as evidenced by the parties' consent and the applicable law."
+            }
+         ],
+         "benchVulnerabilityMatrix":{
+            "mostDangerousJudicialQuestion":"What is the basis for the tribunal's jurisdiction, and how does it relate to the parties' agreement and the applicable law?",
+            "mostDangerousFactualWeakness":"The petitioner's failure to provide sufficient evidence of the parties' consent to arbitration.",
+            "mostDangerousLegalWeakness":"The petitioner's inability to demonstrate the validity and enforceability of the arbitration agreement.",
+            "mostDangerousProceduralWeakness":"The petitioner's failure to comply with the PCA Rules or applicable procedural law."
+         },
+         "authorityRequirements":{
+            "landmarkAuthorityNeeded":"A decision from a reputable international arbitration tribunal or a national court with expertise in international arbitration.",
+            "jurisdictionSpecificAuthorityNeeded":"A decision from a court or tribunal in the jurisdiction where the arbitration is seated (Vindobona).",
+            "comparativeAuthorityNeeded":"A decision from a court or tribunal in a jurisdiction with similar arbitration laws and procedures.",
+            "policyAuthorityNeeded":"A statement or guideline from a relevant international organization or arbitration institution (e.g., the PCA)."
+         }
+      },
+      {
+         "hierarchyLevel":2,
+         "issueDefinition":{
+            "exactLegalQuestion":"Is the claim admissible?",
+            "whyItMatters":"The admissibility of the claim determines whether the tribunal can hear the case on its merits.",
+            "whatWinningLooksLike":"The tribunal confirms the admissibility of the claim."
+         },
+         "petitionerFramework":{
+            "coreTheory":"The claim is admissible because it is governed by the CISG, which applies to international sales contracts.",
+            "primaryArguments":[
+               {
+                  "argumentId":"CISG_Applicability",
+                  "legalBasis":"The CISG applies to international sales contracts between parties from different countries",
+                  "factualBasis":"The contract between the parties is an international sales contract governed by the CISG",
+                  "strategicImportance":"Establishing the applicability of the CISG is crucial for the petitioner's case to proceed."
+               }
+            ],
+            "auxiliaryArguments":[
+               "The CISG provides a uniform framework for international sales contracts.",
+               "The parties' agreement does not exclude the application of the CISG."
+            ]
+         },
+         "respondentFramework":{
+            "coreTheory":"The claim is not admissible because it is not governed by the CISG or the parties' agreement excludes its application.",
+            "primaryResponses":[
+               {
+                  "responseId":"CISG_Exclusion",
+                  "legalBasis":"The parties' agreement excludes the application of the CISG",
+                  "factualBasis":"The agreement contains a clause excluding the CISG or opting for a different applicable law",
+                  "strategicImportance":"Challenging the applicability of the CISG can prevent the tribunal from hearing the case on its merits."
+               }
+            ],
+            "auxiliaryResponses":[
+               "The CISG does not apply to this specific type of contract or transaction.",
+               "The parties' agreement provides for a different applicable law or dispute resolution mechanism."
+            ]
+         },
+         "rebuttalMatrix":[
+            {
+               "petitionerArgument":"CISG_Applicability",
+               "respondentAttack":"CISG_Exclusion",
+               "petitionerReply":"The parties' agreement does not exclude the application of the CISG, and the CISG applies to international sales contracts by default."
+            }
+         ],
+         "benchVulnerabilityMatrix":{
+            "mostDangerousJudicialQuestion":"What is the basis for the admissibility of the claim, and how does it relate to the applicable law and the parties' agreement?",
+            "mostDangerousFactualWeakness":"The petitioner's failure to provide sufficient evidence of the contract's governing law.",
+            "mostDangerousLegalWeakness":"The petitioner's inability to demonstrate the applicability of the CISG to the contract.",
+            "mostDangerousProceduralWeakness":"The petitioner's failure to comply with the procedural requirements for admissibility."
+         },
+         "authorityRequirements":{
+            "landmarkAuthorityNeeded":"A decision from a reputable international arbitration tribunal or a national court with expertise in international sales law.",
+            "jurisdictionSpecificAuthorityNeeded":"A decision from a court or tribunal in the jurisdiction where the arbitration is seated (Vindobona).",
+            "comparativeAuthorityNeeded":"A decision from a court or tribunal in a jurisdiction with similar sales laws and procedures.",
+            "policyAuthorityNeeded":"A statement or guideline from a relevant international organization or arbitration institution (e.g., the PCA)."
+         }
+      },
+      {
+         "hierarchyLevel":3,
+         "issueDefinition":{
+            "exactLegalQuestion":"Did Respondent breach Article 35 CISG by delivering non-conforming UAVs?",
+            "whyItMatters":"Establishing a breach of Article 35 CISG is crucial for the petitioner's claim for damages.",
+            "whatWinningLooksLike":"The tribunal finds that the respondent breached Article 35 CISG."
+         },
+         "petitionerFramework":{
+            "coreTheory":"The respondent breached Article 35 CISG by delivering UAVs that were not fit for their intended purpose.",
+            "primaryArguments":[
+               {
+                  "argumentId":"Non_Conformity",
+                  "legalBasis":"Article 35 CISG requires the seller to deliver goods that are fit for their intended purpose",
+                  "factualBasis":"The UAVs delivered by the respondent were not fit for their intended purpose of delivering medical supplies in Equatoriana's tropical climate",
+                  "strategicImportance":"Establishing non-conformity is crucial for the petitioner's claim for damages."
+               }
+            ],
+            "auxiliaryArguments":[
+               "The respondent failed to provide adequate instructions or warnings about the UAVs' limitations.",
+               "The respondent's breach of Article 35 CISG was a direct cause of the damages suffered by the petitioner."
+            ]
+         },
+         "respondentFramework":{
+            "coreTheory":"The respondent did not breach Article 35 CISG because the UAVs were fit for their intended purpose, and the petitioner failed to provide adequate notice of non-conformity.",
+            "primaryResponses":[
+               {
+                  "responseId":"Conformity",
+                  "legalBasis":"The UAVs were fit for their intended purpose, and the respondent complied with Article 35 CISG",
+                  "factualBasis":"The UAVs were designed and manufactured to meet the petitioner's specifications, and the respondent provided adequate instructions and warnings",
+                  "strategicImportance":"Challenging the petitioner's allegations of non-conformity can limit or avoid liability."
+               }
+            ],
+            "auxiliaryResponses":[
+               "The petitioner's failure to provide timely notice of non-conformity under Article 39 CISG bars their claim for damages.",
+               "The respondent's breach of Article 35 CISG, if any, was not a direct cause of the damages suffered by the petitioner."
+            ]
+         },
+         "rebuttalMatrix":[
+            {
+               "petitionerArgument":"Non_Conformity",
+               "respondentAttack":"Conformity",
+               "petitionerReply":"The respondent's compliance with Article 35 CISG is not sufficient to establish conformity, as the UAVs were not fit for their intended purpose in Equatoriana's tropical climate."
+            }
+         ],
+         "benchVulnerabilityMatrix":{
+            "mostDangerousJudicialQuestion":"What is the basis for the respondent's alleged breach of Article 35 CISG, and how does it relate to the applicable law and the parties' agreement?",
+            "mostDangerousFactualWeakness":"The petitioner's failure to provide sufficient evidence of the UAVs' non-conformity.",
+            "mostDangerousLegalWeakness":"The petitioner's inability to demonstrate the respondent's breach of Article 35 CISG.",
+            "mostDangerousProceduralWeakness":"The petitioner's failure to comply with the procedural requirements for establishing non-conformity."
+         },
+         "authorityRequirements":{
+            "landmarkAuthorityNeeded":"A decision from a reputable international arbitration tribunal or a national court with expertise in international sales law.",
+            "jurisdictionSpecificAuthorityNeeded":"A decision from a court or tribunal in the jurisdiction where the arbitration is seated (Vindobona).",
+            "comparativeAuthorityNeeded":"A decision from a court or tribunal in a jurisdiction with similar sales laws and procedures.",
+            "policyAuthorityNeeded":"A statement or guideline from a relevant international organization or arbitration institution (e.g., the PCA)."
+         }
+      },
+      {
+         "hierarchyLevel":4,
+         "issueDefinition":{
+            "exactLegalQuestion":"Did Claimant fail to provide timely notice of non-conformity under Article 39 CISG?",
+            "whyItMatters":"The timeliness of notice is crucial for the petitioner's claim for damages, as untimely notice may bar the claim.",
+            "whatWinningLooksLike":"The tribunal finds that the claimant provided timely notice of non-conformity."
+         },
+         "petitionerFramework":{
+            "coreTheory":"The claimant provided timely notice of non-conformity, as required by Article 39 CISG.",
+            "primaryArguments":[
+               {
+                  "argumentId":"Timely_Notice",
+                  "legalBasis":"Article 39 CISG requires the buyer to provide notice of non-conformity within a reasonable time",
+                  "factualBasis":"The claimant provided notice of non-conformity within a reasonable time after discovering the defect",
+                  "strategicImportance":"Establishing timely notice is crucial for the petitioner's claim for damages."
+               }
+            ],
+            "auxiliaryArguments":[
+               "The respondent's failure to provide adequate instructions or warnings about the UAVs' limitations contributed to the delay in discovering the defect.",
+               "The claimant's notice of non-conformity was sufficient to inform the respondent of the defect and its potential consequences."
+            ]
+         },
+         "respondentFramework":{
+            "coreTheory":"The claimant failed to provide timely notice of non-conformity, as required by Article 39 CISG, which bars their claim for damages.",
+            "primaryResponses":[
+               {
+                  "responseId":"Untimely_Notice",
+                  "legalBasis":"The claimant failed to provide notice of non-conformity within a reasonable time, as required by Article 39 CISG",
+                  "factualBasis":"The claimant delayed in providing notice of non-conformity, which prejudiced the respondent's ability to investigate and respond",
+                  "strategicImportance":"Challenging the timeliness of notice can limit or avoid liability."
+               }
+            ],
+            "auxiliaryResponses":[
+               "The claimant's notice of non-conformity was insufficient to inform the respondent of the defect and its potential consequences.",
+               "The respondent's breach of Article 35 CISG, if any, was not a direct cause of the damages suffered by the claimant."
+            ]
+         },
+         "rebuttalMatrix":[
+            {
+               "petitionerArgument":"Timely_Notice",
+               "respondentAttack":"Untimely_Notice",
+               "petitionerReply":"The claimant provided notice of non-conformity within a reasonable time, considering the circumstances and the respondent's failure to provide adequate instructions or warnings."
+            }
+         ],
+         "benchVulnerabilityMatrix":{
+            "mostDangerousJudicialQuestion":"What is the basis for the claimant's alleged timely notice of non-conformity, and how does it relate to the applicable law and the parties' agreement?",
+            "mostDangerousFactualWeakness":"The petitioner's failure to provide sufficient evidence of the timing and content of the notice of non-conformity.",
+            "mostDangerousLegalWeakness":"The petitioner's inability to demonstrate the timeliness of notice under Article 39 CISG.",
+            "mostDangerousProceduralWeakness":"The petitioner's failure to comply with the procedural requirements for providing notice of non-conformity."
+         },
+         "authorityRequirements":{
+            "landmarkAuthorityNeeded":"A decision from a reputable international arbitration tribunal or a national court with expertise in international sales law.",
+            "jurisdictionSpecificAuthorityNeeded":"A decision from a court or tribunal in the jurisdiction where the arbitration is seated (Vindobona).",
+            "comparativeAuthorityNeeded":"A decision from a court or tribunal in a jurisdiction with similar sales laws and procedures.",
+            "policyAuthorityNeeded":"A statement or guideline from a relevant international organization or arbitration institution (e.g., the PCA)."
+         }
+      },
+      {
+         "hierarchyLevel":5,
+         "issueDefinition":{
+            "exactLegalQuestion":"Are the damages sought by Claimant justifiable and calculable under the CISG?",
+            "whyItMatters":"The calculation of damages is crucial for the petitioner's claim, as it determines the amount of compensation owed by the respondent.",
+            "whatWinningLooksLike":"The tribunal finds that the damages sought by the claimant are justifiable and calculable under the CISG."
+         },
+         "petitionerFramework":{
+            "coreTheory":"The damages sought by the claimant are justifiable and calculable under the CISG, as they reflect the losses suffered due to the respondent's breach of Article 35 CISG.",
+            "primaryArguments":[
+               {
+                  "argumentId":"Damages_Calculation",
+                  "legalBasis":"The CISG provides for the calculation of damages based on the losses suffered by the buyer",
+                  "factualBasis":"The claimant suffered losses due to the respondent's breach of Article 35 CISG, including the cost of replacement or repair of the UAVs",
+                  "strategicImportance":"Establishing the justifiability and calculability of damages is crucial for the petitioner's claim."
+               }
+            ],
+            "auxiliaryArguments":[
+               "The respondent's breach of Article 35 CISG was a direct cause of the damages suffered by the claimant.",
+               "The claimant's calculation of damages is reasonable and based on the applicable law and evidence."
+            ]
+         },
+         "respondentFramework":{
+            "coreTheory":"The damages sought by the claimant are not justifiable or calculable under the CISG, as they are excessive or unsupported by evidence.",
+            "primaryResponses":[
+               {
+                  "responseId":"Excessive_Damages",
+                  "legalBasis":"The CISG limits the amount of damages that can be awarded to the buyer",
+                  "factualBasis":"The claimant's calculation of damages is excessive or unsupported by evidence",
+                  "strategicImportance":"Challenging the calculation of damages can limit or avoid liability."
+               }
+            ],
+            "auxiliaryResponses":[
+               "The claimant's losses were not a direct result of the respondent's breach of Article 35 CISG.",
+               "The claimant failed to mitigate their losses or take reasonable steps to minimize damages."
+            ]
+         },
+         "rebuttalMatrix":[
+            {
+               "petitionerArgument":"Damages_Calculation",
+               "respondentAttack":"Excessive_Damages",
+               "petitionerReply":"The claimant's calculation of damages is reasonable and based on the applicable law and evidence, and the respondent's breach of Article 35 CISG was a direct cause of the damages suffered."
+            }
+         ],
+         "benchVulnerabilityMatrix":{
+            "mostDangerousJudicialQuestion":"What is the basis for the claimant's calculation of damages, and how does it relate to the applicable law and the parties' agreement?",
+            "mostDangerousFactualWeakness":"The petitioner's failure to provide sufficient evidence of the losses suffered and the calculation of damages.",
+            "mostDangerousLegalWeakness":"The petitioner's inability to demonstrate the justifiability and calculability of damages under the CISG.",
+            "mostDangerousProceduralWeakness":"The petitioner's failure to comply with the procedural requirements for calculating and claiming damages."
+         },
+         "authorityRequirements":{
+            "landmarkAuthorityNeeded":"A decision from a reputable international arbitration tribunal or a national court with expertise in international sales law.",
+            "jurisdictionSpecificAuthorityNeeded":"A decision from a court or tribunal in the jurisdiction where the arbitration is seated (Vindobona).",
+            "comparativeAuthorityNeeded":"A decision from a court or tribunal in a jurisdiction with similar sales laws and procedures.",
+            "policyAuthorityNeeded":"A statement or guideline from a relevant international organization or arbitration institution (e.g., the PCA)."
+         }
+      }
+   ]
+}

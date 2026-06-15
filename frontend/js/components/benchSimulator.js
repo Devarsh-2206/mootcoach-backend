@@ -41,6 +41,106 @@ let recognitionRestartTimer = null;
 // Expose benchActive on window for UI checks (e.g. showWsPanel)
 window.benchActive = false;
 
+// ── FORUM ADAPTATION ──
+// Reads the Stage 1 forumIntelligence (real schema: forumClassification /
+// adjudicatorModel / simulatorDirectives) and produces a normalized profile so
+// the Simulator speaks the correct language (Court+Judges vs Tribunal+Arbitrators).
+export function getForumProfile() {
+  const fi = window.forumIntelligence || {};
+  const cls = fi.forumClassification || {};
+  const adj = fi.adjudicatorModel || {};
+  const dir = fi.simulatorDirectives || {};
+  let term = dir.terminologyOverrides || {};
+  const proc = fi.proceduralFramework || {};
+
+  // Use the lightweight P0 forum detection ONLY when the rich engine didn't run.
+  // When rich forumIntelligence exists it is authoritative — never mix in detectedForum.
+  const hasRich = !!(adj.benchType || cls.broadType || term.judge || term.court);
+  const df = hasRich ? {} : (window.detectedForum || {});
+  if (!hasRich && df.terminology && !term.judge) term = df.terminology;
+
+  const benchType = adj.benchType || cls.broadType || df.adjudicatorType || df.forum || 'Constitutional Bench';
+  const blob = `${benchType} ${cls.broadType || ''} ${cls.specificBody || ''} ${df.forum || ''} ${df.jurisdiction || ''} ${df.adjudicatorType || ''} ${term.judge || ''} ${term.court || ''}`.toLowerCase();
+  const isArbitration = /arbitr|tribunal/.test(blob);
+
+  const judge = term.judge || (isArbitration ? 'Arbitrator' : 'Judge');
+  const court = term.court || (isArbitration ? 'Tribunal' : 'Court');
+  const addressing = adj.addressingStyle || (isArbitration ? 'Members of the Tribunal' : 'Your Lordships');
+
+  return {
+    benchType,
+    judge,
+    judgePlural: /s$/i.test(judge) ? judge : judge + 's',
+    court,
+    addressing,
+    specificBody: cls.specificBody || df.forum || '',
+    broadType: cls.broadType || df.forum || '',
+    standardOfReview: proc.standardOfReview || 'Preponderance',
+    burdenOfProof: proc.burdenOfProof || '',
+    questioningStyle: dir.questioningStyle || '',
+    chambersLabel: isArbitration ? 'Arbitral Chamber' : 'Judicial Chambers',
+    lobbyLabel: isArbitration ? 'Tribunal Lobby' : 'Chambers Lobby',
+    isArbitration
+  };
+}
+window.getForumProfile = getForumProfile;
+
+// ── JUDGE SELECTION ──
+// Each archetype changes the bench's actual behaviour via a directive injected
+// into the simulate-bench context (same mechanism as the forum directive).
+export const JUDGE_ARCHETYPES = {
+  auto:       { label: 'Auto (match difficulty & forum)', scope: 'any', directive: '' },
+  friendly:   { label: 'Friendly Judge', scope: 'court', directive: 'Adopt a warm, encouraging tone. Ask gentle clarifying questions, let the advocate finish, and guide rather than trap. Low pressure, minimal interruption.' },
+  neutral:    { label: 'Neutral Judge', scope: 'any', directive: 'Be balanced and impartial. Test both sides evenly with measured, fair questions. Moderate pressure, no theatrics.' },
+  aggressive: { label: 'Aggressive Judge', scope: 'any', directive: 'Be highly adversarial. Interrupt frequently, demand direct yes/no answers, and refuse to let the advocate evade or filibuster. High pressure throughout.' },
+  technical:  { label: 'Technical Judge', scope: 'any', directive: 'Drill doctrinal precision: the exact legal test, each of its elements, the statutory/treaty text, and definitional accuracy. Punish loose or imprecise statements of law.' },
+  procedural: { label: 'Procedural Judge', scope: 'court', directive: 'Fixate on threshold and procedure: jurisdiction, maintainability, standing/locus standi, limitation, correct forum and relief. Do not let the advocate reach the merits until procedure is satisfied.' },
+  skeptical:  { label: 'Skeptical Judge', scope: 'any', directive: 'Distrust every authority and assertion. Repeatedly ask "why should I accept that?", force the advocate to distinguish adverse cases, and challenge each leap in logic.' },
+  purist:     { label: 'Constitutional Purist', scope: 'court', directive: 'Reason from first principles, constitutional structure, rights-balancing and proportionality. Probe the broader doctrinal consequences of the advocate\'s position.' },
+  arbitrator: { label: 'International Arbitrator', scope: 'tribunal', directive: 'Sit as an arbitral tribunal. Focus on treaty interpretation (VCLT), jurisdiction ratione materiae/personae/temporis, applicable law, and the standard of review. Use arbitration register (address as "Members of the Tribunal", parties as Claimant/Respondent); never use "My Lords".' },
+  hostile:    { label: 'Hostile Tribunal', scope: 'any', directive: 'Apply maximum pressure: rapid-fire questioning, set traps, express open skepticism and impatience, and cut off weak or evasive answers. Relentless from the first question.' },
+  mixed:      { label: 'Mixed Bench', scope: 'any', directive: 'Rotate between 2-3 distinct personas (e.g. a procedural stickler, a doctrinal technician, and a hard skeptic), each questioning from their own angle so the advocate must adapt to shifting styles. Vary which member speaks.' }
+};
+
+export let selectedJudgeArchetype = 'auto';
+window.selectedJudgeArchetype = 'auto';
+
+// Build the forum-appropriate option set (courts get judges, tribunals get arbitrators).
+function judgeOptionsForForum() {
+  const fp = getForumProfile();
+  const universal = ['auto', 'neutral', 'aggressive', 'technical', 'skeptical', 'hostile', 'mixed'];
+  if (fp.isArbitration) {
+    return ['auto', 'arbitrator', 'neutral', 'aggressive', 'technical', 'skeptical', 'hostile', 'mixed'];
+  }
+  return ['auto', 'friendly', 'neutral', 'aggressive', 'technical', 'procedural', 'skeptical', 'purist', 'hostile', 'mixed'];
+}
+
+export function populateJudgeSelector() {
+  const sel = document.getElementById('bench-judge-select');
+  if (!sel) return;
+  const opts = judgeOptionsForForum();
+  // If the current selection is not valid for this forum, reset to auto.
+  if (!opts.includes(selectedJudgeArchetype)) setJudgeArchetype('auto');
+  sel.innerHTML = opts.map(k => `<option value="${k}"${k === selectedJudgeArchetype ? ' selected' : ''}>${JUDGE_ARCHETYPES[k].label}</option>`).join('');
+}
+window.populateJudgeSelector = populateJudgeSelector;
+
+export function setJudgeArchetype(key) {
+  if (!JUDGE_ARCHETYPES[key]) key = 'auto';
+  selectedJudgeArchetype = key;
+  window.selectedJudgeArchetype = key;
+  const sel = document.getElementById('bench-judge-select');
+  if (sel && sel.value !== key) sel.value = key;
+}
+window.setJudgeArchetype = setJudgeArchetype;
+
+// The directive that actually changes bench behaviour for the chosen archetype.
+export function getJudgeDirective() {
+  const arch = JUDGE_ARCHETYPES[selectedJudgeArchetype] || JUDGE_ARCHETYPES.auto;
+  if (!arch.directive) return '';
+  return `[Presiding persona: ${arch.label}. ${arch.directive}]`;
+}
+
 export function setBenchDifficulty(mode) {
   benchDifficultyMode = mode;
   window.benchDifficultyMode = mode;
@@ -49,6 +149,7 @@ export function setBenchDifficulty(mode) {
     if (el) el.className = `diff-btn${d === mode ? ` active-${d}` : ''}`;
   });
   updateBenchProfileUI(mode);
+  populateJudgeSelector();
 }
 
 export function updateBenchProfileUI(mode) {
@@ -180,22 +281,54 @@ export function startBenchSession() {
     chat.querySelectorAll('.bench-msg').forEach(m => m.remove());
   }
 
+  // Forum-adaptive labels (Court+Judges vs Tribunal+Arbitrators)
+  const fp = getForumProfile();
+  const benchWord = fp.isArbitration ? 'TRIBUNAL' : 'BENCH';
+
   // Update Global Chambers Header for Text Session
   const mootName = document.getElementById('ws-moot-name')?.value?.trim() || 'General Appellate Docket';
   const sessionTitleEl = document.getElementById('cr-session-title');
   const sessionMetaEl = document.getElementById('cr-session-meta');
   const exitBtn = document.getElementById('chambers-exit-btn');
   if (sessionTitleEl) sessionTitleEl.textContent = mootName;
-  if (sessionMetaEl) sessionMetaEl.textContent = `TEXT BENCH SIMULATION · ${benchDifficultyMode.toUpperCase()} BENCH`;
   if (exitBtn) exitBtn.style.display = 'block';
 
   const openingMap = {
-    easy: "Good morning, Counsel. This Court is ready to hear your submissions. Please state the nature of your petition and establish your locus standi before proceeding.",
-    moderate: "Counsel, you may proceed. This Bench has read the proposition. Begin with your first issue and your primary submission on it. Be precise.",
-    hard: "Counsel — before you commence your submissions on the merits, satisfy this Bench on one thing: on what precise constitutional or statutory basis does this Court have jurisdiction to entertain this petition?"
+    easy: `Good morning, Counsel. This ${fp.court} is ready to hear your submissions. Please state the nature of your case and establish your standing before proceeding.`,
+    moderate: `Counsel, you may proceed. This ${fp.isArbitration ? 'Tribunal' : 'Bench'} has read the proposition. Begin with your first issue and your primary submission on it. Be precise.`,
+    hard: `Counsel — before you commence your submissions on the merits, satisfy this ${fp.court} on one thing: on what precise basis does this ${fp.court} have jurisdiction to entertain this matter?`
   };
 
-  const opening = openingMap[benchDifficultyMode] || openingMap.moderate;
+  // Show the advocate exactly what context the Bench is using (proves the
+  // Issues + Advocacy selections are connected to this session).
+  const ms = window.mootState || {};
+  const ctxStance = ms.stance || 'Petitioner';
+  const ctxIssue = ms.issueText || 'General appellate docket';
+  const ctxAuthCount = Array.isArray(ms.authorities) ? ms.authorities.length : 0;
+  const ctxHasMemorial = !!(ms.memorialDraft && ms.memorialDraft.trim());
+  const ctxHasOral = !!(ms.oralSubmission && ms.oralSubmission.trim());
+  if (sessionMetaEl) {
+    sessionMetaEl.textContent = `${ctxStance.toUpperCase()} · ${benchDifficultyMode.toUpperCase()} ${benchWord} · ${fp.benchType.toUpperCase()}`;
+  }
+  const ctxPlan = ms.plan || {};
+  const ctxPredicted = ((ctxPlan.fatalQuestions || []).length) + ((ctxPlan.benchQuestions || []).length);
+  const ctxParts = [
+    `Forum: ${fp.benchType}${fp.specificBody ? ' (' + fp.specificBody + ')' : ''}`,
+    `Arguing as: ${ctxStance}`,
+    `Issue: ${ctxIssue}`,
+    `Authorities loaded: ${ctxAuthCount}`,
+    `Memorial draft: ${ctxHasMemorial ? 'attached' : 'none'}`,
+    `Oral draft: ${ctxHasOral ? 'attached' : 'none'}`,
+    `Predicted questions loaded: ${ctxPredicted}`,
+    `Bench persona: ${(JUDGE_ARCHETYPES[selectedJudgeArchetype] || JUDGE_ARCHETYPES.auto).label}`
+  ];
+  appendBenchMessage('system', `This ${fp.court} is using your selections — ${ctxParts.join('  ·  ')}`);
+
+  let opening = openingMap[benchDifficultyMode] || openingMap.moderate;
+  // Open on the advocate's ACTUAL case so it's immediately their session, not generic.
+  if (ctxIssue && ctxIssue !== 'General appellate docket') {
+    opening = `Counsel for the ${ctxStance}, we are taking up your issue — "${ctxIssue}". ${opening}`;
+  }
   appendBenchMessage('judge', opening, null, 'Opening the session', 1);
   benchConversation.push({ role: 'judge', content: opening });
 
@@ -241,8 +374,9 @@ export function clearBenchSession() {
   const exitBtn = document.getElementById('chambers-exit-btn');
   const timerEl = document.getElementById('cr-timer');
   const voiceStatusEl = document.getElementById('bench-voice-status');
-  if (sessionTitleEl) sessionTitleEl.textContent = 'Judicial Chambers';
-  if (sessionMetaEl) sessionMetaEl.textContent = 'Chambers Lobby';
+  const fpReset = getForumProfile();
+  if (sessionTitleEl) sessionTitleEl.textContent = fpReset.chambersLabel;
+  if (sessionMetaEl) sessionMetaEl.textContent = fpReset.lobbyLabel;
   if (exitBtn) exitBtn.style.display = 'none';
   if (timerEl) timerEl.style.display = 'none';
   if (voiceStatusEl) voiceStatusEl.style.display = 'none';
@@ -425,10 +559,46 @@ export async function submitToBench() {
   }
 
   try {
-    const selectedIssue = document.getElementById('builder-issue-select')?.value || '';
-    const selectedStance = (typeof getCurrentSelectedSide === 'function') ? getCurrentSelectedSide() : 'Petitioner';
-    const selectedAuthsText = (selectedAuthorities || []).map(a => `${a.name}: ${a.ratio}`).join(', ');
-    const contextPrefix = `[Advocate Side: ${selectedStance.toUpperCase()}] [Target Issue: ${selectedIssue}] [Selected Authorities: ${selectedAuthsText}]\n\n`;
+    // Read the live, shared moot state (set by the Issues + Advocacy stages).
+    const ms = window.mootState || {};
+    const selectedIssue = ms.issueText
+      || document.getElementById('builder-issue-select')?.value
+      || '';
+    const selectedStance = ms.stance
+      || ((typeof getCurrentSelectedSide === 'function') ? getCurrentSelectedSide() : null)
+      || 'Petitioner';
+    const authList = (Array.isArray(ms.authorities) && ms.authorities.length > 0)
+      ? ms.authorities
+      : (selectedAuthorities || []);
+    const selectedAuthsText = authList.map(a => `${a.name}: ${a.ratio}`).join(', ') || 'None deployed';
+
+    // Carry the advocate's actual drafts so the Bench questions their own submissions.
+    const memorialDraft = (ms.memorialDraft || '').trim();
+    const oralDraft = (ms.oralSubmission || '').trim();
+    const draftBlock =
+      (memorialDraft ? `\n[Advocate's Written Memorial Draft]\n${memorialDraft.slice(0, 1500)}\n` : '') +
+      (oralDraft ? `\n[Advocate's Oral Submission Draft]\n${oralDraft.slice(0, 1500)}\n` : '');
+
+    // Forum directive so the AI adjudicator adopts the correct persona/terminology.
+    const fp = getForumProfile();
+    const forumDirective = `[Forum: ${fp.benchType}${fp.specificBody ? ' — ' + fp.specificBody : ''}] [You are the ${fp.judgePlural}; refer to yourselves as the ${fp.court}; the advocate addresses you as "${fp.addressing}". Questioning style: ${fp.questioningStyle || 'rigorous and probing'}. Standard of review: ${fp.standardOfReview}.]`;
+
+    // Use the analysis's issue-specific intelligence to DRIVE questioning:
+    // the predicted bench questions and the side's known weaknesses.
+    const plan = ms.plan || {};
+    const predicted = [];
+    (plan.fatalQuestions || []).forEach(q => { const t = (q && (q.question || q)) || ''; if (t) predicted.push(t); });
+    (plan.benchQuestions || []).forEach(q => { if (q) predicted.push(q); });
+    const predictedBlock = predicted.length
+      ? `\n[Predicted questions for this issue — press the advocate on these first, phrased in your own words]\n- ${predicted.slice(0, 6).join('\n- ')}\n`
+      : '';
+    const defects = (plan.defects || []).map(d => `${d.defectType || 'Weakness'}: ${d.explanation || d}`);
+    const defectBlock = defects.length
+      ? `\n[Known weaknesses in the advocate's side — probe these relentlessly]\n- ${defects.slice(0, 4).join('\n- ')}\n`
+      : '';
+
+    const judgeDirective = getJudgeDirective();
+    const contextPrefix = `${forumDirective}${judgeDirective ? '\n' + judgeDirective : ''}\n[Advocate Side: ${String(selectedStance).toUpperCase()}] [Target Issue: ${selectedIssue || 'General'}] [Selected Authorities: ${selectedAuthsText}]${draftBlock}${predictedBlock}${defectBlock}\n\n`;
 
     // Reset judge's text container to clear old judge text
     const judgeTextContainer = document.getElementById('judge-text-container');
@@ -591,12 +761,18 @@ export function updateBenchState(state) {
   // Update Bench Header Judge Info & Bench Name on state change
   const judgeNameEl = document.getElementById('cr-judge-name');
   const benchNameEl = document.getElementById('cr-bench-name');
+  const fpState = getForumProfile();
   if (judgeNameEl && state === 'connecting') {
-    judgeNameEl.textContent = `⚖️ Presiding Judge`;
+    judgeNameEl.textContent = `⚖️ Presiding ${fpState.judge}`;
   }
   if (benchNameEl) {
-    const difficultyLabel = (benchDifficultyMode || 'moderate').toUpperCase();
-    benchNameEl.textContent = difficultyLabel === 'HARD' ? 'Constitutional Bench' : (difficultyLabel === 'EASY' ? 'District Court Bench' : 'Division Bench');
+    // Forum-driven name when known; otherwise difficulty-based fallback.
+    if (window.forumIntelligence) {
+      benchNameEl.textContent = fpState.benchType;
+    } else {
+      const difficultyLabel = (benchDifficultyMode || 'moderate').toUpperCase();
+      benchNameEl.textContent = difficultyLabel === 'HARD' ? 'Constitutional Bench' : (difficultyLabel === 'EASY' ? 'District Court Bench' : 'Division Bench');
+    }
   }
 
   if (statusEl) statusEl.textContent = text;
@@ -672,8 +848,10 @@ export async function startOralRound() {
   const timerEl = document.getElementById('cr-timer');
   const voiceStatusEl = document.getElementById('bench-voice-status');
 
+  const fpVoice = getForumProfile();
+  const benchWordVoice = fpVoice.isArbitration ? 'TRIBUNAL' : 'BENCH';
   if (sessionTitleEl) sessionTitleEl.textContent = mootName;
-  if (sessionMetaEl) sessionMetaEl.textContent = `VOICE BENCH SIMULATION · ${benchDifficultyMode.toUpperCase()} BENCH`;
+  if (sessionMetaEl) sessionMetaEl.textContent = `VOICE ${benchWordVoice} SIMULATION · ${benchDifficultyMode.toUpperCase()} ${benchWordVoice}`;
   if (exitBtn) exitBtn.style.display = 'block';
   if (timerEl) timerEl.style.display = 'block';
   if (voiceStatusEl) voiceStatusEl.style.display = 'flex';
@@ -817,8 +995,9 @@ export function stopOralRound() {
   const exitBtn = document.getElementById('chambers-exit-btn');
   const timerEl = document.getElementById('cr-timer');
   const voiceStatusEl = document.getElementById('bench-voice-status');
-  if (sessionTitleEl) sessionTitleEl.textContent = 'Judicial Chambers';
-  if (sessionMetaEl) sessionMetaEl.textContent = 'Chambers Lobby';
+  const fpStop = getForumProfile();
+  if (sessionTitleEl) sessionTitleEl.textContent = fpStop.chambersLabel;
+  if (sessionMetaEl) sessionMetaEl.textContent = fpStop.lobbyLabel;
   if (exitBtn) exitBtn.style.display = 'none';
   if (timerEl) timerEl.style.display = 'none';
   if (voiceStatusEl) voiceStatusEl.style.display = 'none';

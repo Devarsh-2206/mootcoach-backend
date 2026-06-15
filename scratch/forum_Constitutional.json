@@ -1,0 +1,33 @@
+{
+  "forumClassification": {
+       "broadType": "Appellate Court",
+       "specificBody": "Supreme Court of India"
+   },
+   "proceduralFramework": {
+       "applicableRules": [
+           "Indian Constitution (Articles 14, 19(1)(a), 19(2), 21)",
+           "Information Technology Act",
+           "Digital Content Regulation Act, 2025",
+           "Supreme Court Rules, 2013"
+       ],
+       "standardOfReview": "Error of Law",
+       "burdenOfProof": "Petitioner (Internet Freedom Foundation)"
+   },
+   "adjudicatorModel": {
+       "benchType": "Constitutional Bench",
+       "addressingStyle": "Your Lordships"
+   },
+   "simulatorDirectives": {
+       "questioningStyle": "Inquisitorial and text-focused",
+       "terminologyOverrides": {
+           "court": "Supreme Court",
+           "judge": "Lordship",
+           "plaintiff": "Petitioner",
+           "defendant": "Respondent"
+       }
+   },
+   "proceduralHierarchyMapping": {
+       "Level1_Impact": "The Supreme Court of India's jurisdiction to hear the challenge against the 'Digital Content Regulation Act, 2025' must be established before proceeding to subsequent levels.",
+       "Level2_Impact": "The admissibility of the petition, given that it challenges a legislative enactment, must be determined before proceeding to the merits of the case."
+   }
+}

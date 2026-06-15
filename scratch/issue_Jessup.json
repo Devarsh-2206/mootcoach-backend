@@ -1,0 +1,280 @@
+{
+  "issues":[
+      {
+         "hierarchyLevel":1,
+         "issueDefinition":{
+            "exactLegalQuestion":"Does the International Court of Justice have jurisdiction over the dispute between Aglovale and Ragnell?",
+            "whyItMatters":"The ICJ's jurisdiction is a threshold issue that must be established before the Court can proceed to consider the merits of the case.",
+            "whatWinningLooksLike":"Aglovale must demonstrate that the ICJ has jurisdiction over the dispute, which could involve showing that the dispute falls within the scope of the UN Charter or other treaties in force between the parties."
+         },
+         "petitionerFramework":{
+            "coreTheory":"The ICJ has jurisdiction over the dispute because it falls within the scope of the UN Charter and the parties have consented to the Court's jurisdiction.",
+            "primaryArguments":[
+               {
+                  "argumentId":"Jurisdiction under UN Charter",
+                  "legalBasis":"Article 36(1) of the ICJ Statute",
+                  "factualBasis":"The dispute between Aglovale and Ragnell falls within the scope of the UN Charter.",
+                  "strategicImportance":"Establishing jurisdiction is a threshold issue that must be resolved before the Court can consider the merits of the case."
+               }
+            ],
+            "auxiliaryArguments":[
+               "The parties have consented to the ICJ's jurisdiction through their participation in the proceedings.",
+               "The ICJ has previously exercised jurisdiction over similar disputes."
+            ]
+         },
+         "respondentFramework":{
+            "coreTheory":"The ICJ lacks jurisdiction over the dispute because it does not fall within the scope of the UN Charter and the parties have not consented to the Court's jurisdiction.",
+            "primaryResponses":[
+               {
+                  "responseId":"Lack of Jurisdiction",
+                  "legalBasis":"Article 36(1) of the ICJ Statute",
+                  "factualBasis":"The dispute between Aglovale and Ragnell does not fall within the scope of the UN Charter.",
+                  "strategicImportance":"Challenging jurisdiction is a key defense strategy that could result in the dismissal of the case."
+               }
+            ],
+            "auxiliaryResponses":[
+               "The parties have not consented to the ICJ's jurisdiction.",
+               "The ICJ has previously declined to exercise jurisdiction over similar disputes."
+            ]
+         },
+         "rebuttalMatrix":[
+            {
+               "petitionerArgument":"Jurisdiction under UN Charter",
+               "respondentAttack":"Lack of Jurisdiction",
+               "petitionerReply":"The dispute falls within the scope of the UN Charter because it involves a breach of international peace and security."
+            }
+         ],
+         "benchVulnerabilityMatrix":{
+            "mostDangerousJudicialQuestion":"What is the scope of the ICJ's jurisdiction under the UN Charter?",
+            "mostDangerousFactualWeakness":"The lack of evidence demonstrating that the dispute falls within the scope of the UN Charter.",
+            "mostDangerousLegalWeakness":"The uncertainty surrounding the ICJ's jurisdiction over cyber operations.",
+            "mostDangerousProceduralWeakness":"The potential for the ICJ to exercise its discretion to refuse the case due to lack of jurisdiction."
+         },
+         "authorityRequirements":{
+            "landmarkAuthorityNeeded":"A decision of the ICJ establishing its jurisdiction over a similar dispute.",
+            "jurisdictionSpecificAuthorityNeeded":"A treaty or convention that grants the ICJ jurisdiction over the dispute.",
+            "comparativeAuthorityNeeded":"A decision of another international court or tribunal that has exercised jurisdiction over a similar dispute.",
+            "policyAuthorityNeeded":"A statement of the UN Security Council or General Assembly supporting the ICJ's jurisdiction over the dispute."
+         }
+      },
+      {
+         "hierarchyLevel":2,
+         "issueDefinition":{
+            "exactLegalQuestion":"Is the claim admissible before the International Court of Justice?",
+            "whyItMatters":"The admissibility of the claim is a threshold issue that must be established before the Court can proceed to consider the merits of the case.",
+            "whatWinningLooksLike":"Aglovale must demonstrate that the claim is admissible, which may involve showing that all local remedies have been exhausted and that the claim is not otherwise inadmissible due to issues such as lack of standing or failure to state a claim."
+         },
+         "petitionerFramework":{
+            "coreTheory":"The claim is admissible because Aglovale has exhausted all local remedies and the claim is not otherwise inadmissible.",
+            "primaryArguments":[
+               {
+                  "argumentId":"Exhaustion of Local Remedies",
+                  "legalBasis":"Article 36(1) of the ICJ Statute",
+                  "factualBasis":"Aglovale has exhausted all local remedies available to it.",
+                  "strategicImportance":"Establishing admissibility is a key step in demonstrating that the claim is properly before the Court."
+               }
+            ],
+            "auxiliaryArguments":[
+               "The claim is not otherwise inadmissible due to issues such as lack of standing or failure to state a claim.",
+               "The ICJ has previously exercised jurisdiction over similar claims."
+            ]
+         },
+         "respondentFramework":{
+            "coreTheory":"The claim is inadmissible because Aglovale has not exhausted all local remedies and the claim is otherwise inadmissible.",
+            "primaryResponses":[
+               {
+                  "responseId":"Inadmissibility",
+                  "legalBasis":"Article 36(1) of the ICJ Statute",
+                  "factualBasis":"Aglovale has not exhausted all local remedies available to it.",
+                  "strategicImportance":"Challenging admissibility is a key defense strategy that could result in the dismissal of the case."
+               }
+            ],
+            "auxiliaryResponses":[
+               "The claim is otherwise inadmissible due to issues such as lack of standing or failure to state a claim.",
+               "The ICJ has previously declined to exercise jurisdiction over similar claims."
+            ]
+         },
+         "rebuttalMatrix":[
+            {
+               "petitionerArgument":"Exhaustion of Local Remedies",
+               "respondentAttack":"Inadmissibility",
+               "petitionerReply":"Aglovale has exhausted all local remedies available to it, and the claim is not otherwise inadmissible."
+            }
+         ],
+         "benchVulnerabilityMatrix":{
+            "mostDangerousJudicialQuestion":"What is the scope of the ICJ's admissibility requirements?",
+            "mostDangerousFactualWeakness":"The lack of evidence demonstrating that Aglovale has exhausted all local remedies.",
+            "mostDangerousLegalWeakness":"The uncertainty surrounding the ICJ's admissibility requirements.",
+            "mostDangerousProceduralWeakness":"The potential for the ICJ to exercise its discretion to refuse the case due to inadmissibility."
+         },
+         "authorityRequirements":{
+            "landmarkAuthorityNeeded":"A decision of the ICJ establishing its admissibility requirements.",
+            "jurisdictionSpecificAuthorityNeeded":"A treaty or convention that grants the ICJ jurisdiction over the claim.",
+            "comparativeAuthorityNeeded":"A decision of another international court or tribunal that has exercised jurisdiction over a similar claim.",
+            "policyAuthorityNeeded":"A statement of the UN Security Council or General Assembly supporting the ICJ's admissibility requirements."
+         }
+      },
+      {
+         "hierarchyLevel":3,
+         "issueDefinition":{
+            "exactLegalQuestion":"Did Ragnell's cyber-operation constitute a 'use of force' under UN Charter Article 2(4)?",
+            "whyItMatters":"The characterization of Ragnell's cyber-operation as a 'use of force' is a critical issue that will determine the legality of its actions.",
+            "whatWinningLooksLike":"Aglovale must demonstrate that Ragnell's cyber-operation constituted a 'use of force' under UN Charter Article 2(4), which could involve showing that the operation caused significant harm or disruption to Aglovale's critical infrastructure."
+         },
+         "petitionerFramework":{
+            "coreTheory":"Ragnell's cyber-operation constituted a 'use of force' under UN Charter Article 2(4) because it caused significant harm or disruption to Aglovale's critical infrastructure.",
+            "primaryArguments":[
+               {
+                  "argumentId":"Use of Force",
+                  "legalBasis":"UN Charter Article 2(4)",
+                  "factualBasis":"Ragnell's cyber-operation caused significant harm or disruption to Aglovale's critical infrastructure.",
+                  "strategicImportance":"Establishing that Ragnell's cyber-operation constituted a 'use of force' is critical to demonstrating the illegality of its actions."
+               }
+            ],
+            "auxiliaryArguments":[
+               "The cyber-operation was a violation of Aglovale's sovereignty and territorial integrity.",
+               "The ICJ has previously recognized the concept of 'use of force' in the context of cyber operations."
+            ]
+         },
+         "respondentFramework":{
+            "coreTheory":"Ragnell's cyber-operation did not constitute a 'use of force' under UN Charter Article 2(4) because it did not cause significant harm or disruption to Aglovale's critical infrastructure.",
+            "primaryResponses":[
+               {
+                  "responseId":"No Use of Force",
+                  "legalBasis":"UN Charter Article 2(4)",
+                  "factualBasis":"Ragnell's cyber-operation did not cause significant harm or disruption to Aglovale's critical infrastructure.",
+                  "strategicImportance":"Challenging the characterization of the cyber-operation as a 'use of force' is a key defense strategy that could result in the dismissal of the case."
+               }
+            ],
+            "auxiliaryResponses":[
+               "The cyber-operation was a lawful countermeasure or act of self-defense.",
+               "The ICJ has not previously recognized the concept of 'use of force' in the context of cyber operations."
+            ]
+         },
+         "rebuttalMatrix":[
+            {
+               "petitionerArgument":"Use of Force",
+               "respondentAttack":"No Use of Force",
+               "petitionerReply":"Ragnell's cyber-operation caused significant harm or disruption to Aglovale's critical infrastructure, and therefore constituted a 'use of force' under UN Charter Article 2(4)."
+            }
+         ],
+         "benchVulnerabilityMatrix":{
+            "mostDangerousJudicialQuestion":"What is the scope of the concept of 'use of force' under UN Charter Article 2(4) in the context of cyber operations?",
+            "mostDangerousFactualWeakness":"The lack of evidence demonstrating that Ragnell's cyber-operation caused significant harm or disruption to Aglovale's critical infrastructure.",
+            "mostDangerousLegalWeakness":"The uncertainty surrounding the concept of 'use of force' in the context of cyber operations.",
+            "mostDangerousProceduralWeakness":"The potential for the ICJ to exercise its discretion to refuse the case due to lack of jurisdiction or admissibility."
+         },
+         "authorityRequirements":{
+            "landmarkAuthorityNeeded":"A decision of the ICJ or another international court or tribunal that has addressed the concept of 'use of force' in the context of cyber operations.",
+            "jurisdictionSpecificAuthorityNeeded":"A treaty or convention that defines the concept of 'use of force' in the context of cyber operations.",
+            "comparativeAuthorityNeeded":"A decision of another international court or tribunal that has addressed the concept of 'use of force' in a similar context.",
+            "policyAuthorityNeeded":"A statement of the UN Security Council or General Assembly supporting the characterization of cyber operations as a 'use of force'."
+         }
+      },
+      {
+         "hierarchyLevel":4,
+         "issueDefinition":{
+            "exactLegalQuestion":"Was Ragnell's cyber-operation a lawful countermeasure or justified by the doctrine of necessity?",
+            "whyItMatters":"The characterization of Ragnell's cyber-operation as a lawful countermeasure or act justified by the doctrine of necessity is a critical issue that will determine the legality of its actions.",
+            "whatWinningLooksLike":"Ragnell must demonstrate that its cyber-operation was a lawful countermeasure or act justified by the doctrine of necessity, which could involve showing that the operation was necessary and proportionate to the threat posed by Aglovale's alleged sponsorship of militant groups."
+         },
+         "petitionerFramework":{
+            "coreTheory":"Ragnell's cyber-operation was not a lawful countermeasure or act justified by the doctrine of necessity because it was not necessary and proportionate to the threat posed by Aglovale's alleged sponsorship of militant groups.",
+            "primaryArguments":[
+               {
+                  "argumentId":"Unlawful Countermeasure",
+                  "legalBasis":"International law on countermeasures",
+                  "factualBasis":"Ragnell's cyber-operation was not necessary and proportionate to the threat posed by Aglovale's alleged sponsorship of militant groups.",
+                  "strategicImportance":"Challenging the characterization of Ragnell's cyber-operation as a lawful countermeasure or act justified by the doctrine of necessity is a key strategy that could result in the dismissal of the case."
+               }
+            ],
+            "auxiliaryArguments":[
+               "The cyber-operation was a violation of Aglovale's sovereignty and territorial integrity.",
+               "The ICJ has previously recognized the concept of 'necessity' in the context of international law."
+            ]
+         },
+         "respondentFramework":{
+            "coreTheory":"Ragnell's cyber-operation was a lawful countermeasure or act justified by the doctrine of necessity because it was necessary and proportionate to the threat posed by Aglovale's alleged sponsorship of militant groups.",
+            "primaryResponses":[
+               {
+                  "responseId":"Lawful Countermeasure",
+                  "legalBasis":"International law on countermeasures",
+                  "factualBasis":"Ragnell's cyber-operation was necessary and proportionate to the threat posed by Aglovale's alleged sponsorship of militant groups.",
+                  "strategicImportance":"Establishing that Ragnell's cyber-operation was a lawful countermeasure or act justified by the doctrine of necessity is critical to demonstrating the legality of its actions."
+               }
+            ],
+            "auxiliaryResponses":[
+               "The cyber-operation was a violation of Aglovale's sovereignty and territorial integrity, but was justified by the doctrine of necessity.",
+               "The ICJ has previously recognized the concept of 'necessity' in the context of international law."
+            ]
+         },
+         "rebuttalMatrix":[
+            {
+               "petitionerArgument":"Unlawful Countermeasure",
+               "respondentAttack":"Lawful Countermeasure",
+               "petitionerReply":"Ragnell's cyber-operation was not necessary and proportionate to the threat posed by Aglovale's alleged sponsorship of militant groups, and therefore was not a lawful countermeasure or act justified by the doctrine of necessity."
+            }
+         ],
+         "benchVulnerabilityMatrix":{
+            "mostDangerousJudicialQuestion":"What is the scope of the concept of 'necessity' in the context of international law?",
+            "mostDangerousFactualWeakness":"The lack of evidence demonstrating that Ragnell's cyber-operation was necessary and proportionate to the threat posed by Aglovale's alleged sponsorship of militant groups.",
+            "mostDangerousLegalWeakness":"The uncertainty surrounding the concept of 'necessity' in the context of international law.",
+            "mostDangerousProceduralWeakness":"The potential for the ICJ to exercise its discretion to refuse the case due to lack of jurisdiction or admissibility."
+         },
+         "authorityRequirements":{
+            "landmarkAuthorityNeeded":"A decision of the ICJ or another international court or tribunal that has addressed the concept of 'necessity' in the context of international law.",
+            "jurisdictionSpecificAuthorityNeeded":"A treaty or convention that defines the concept of 'necessity' in the context of international law.",
+            "comparativeAuthorityNeeded":"A decision of another international court or tribunal that has addressed the concept of 'necessity' in a similar context.",
+            "policyAuthorityNeeded":"A statement of the UN Security Council or General Assembly supporting the characterization of Ragnell's cyber-operation as a lawful countermeasure or act justified by the doctrine of necessity."
+         }
+      },
+      {
+         "hierarchyLevel":5,
+         "issueDefinition":{
+            "exactLegalQuestion":"What relief is Aglovale entitled to if Ragnell's cyber-operation is found to be unlawful?",
+            "whyItMatters":"The relief sought by Aglovale is a critical issue that will determine the outcome of the case.",
+            "whatWinningLooksLike":"Aglovale must demonstrate that it is entitled to relief, which could involve seeking a declaration that Ragnell's cyber-operation was unlawful, as well as compensation or other forms of reparation."
+         },
+         "petitionerFramework":{
+            "coreTheory":"Aglovale is entitled to relief, including a declaration that Ragnell's cyber-operation was unlawful, as well as compensation or other forms of reparation.",
+            "primaryArguments":[
+               {
+                  "argumentId":"Relief",
+                  "legalBasis":"International law on state responsibility",
+                  "factualBasis":"Ragnell's cyber-operation was unlawful and caused harm to Aglovale.",
+                  "strategicImportance":"Establishing that Aglovale is entitled to relief is critical to demonstrating the outcome of the case."
+               }
+            ],
+            "auxiliaryArguments":[
+               "The ICJ has previously recognized the concept of 'relief' in the context of international law.",
+               "Aglovale has suffered significant harm as a result of Ragnell's cyber-operation."
+            ]
+         },
+         "respondentFramework":{
+            "coreTheory":"Aglovale is not entitled to relief, including a declaration that Ragnell's cyber-operation was unlawful, as well as compensation or other forms of reparation.",
+            "primaryResponses":[
+               {
+                  "responseId":"No Relief",
+                  "legalBasis":"International law on state responsibility",
+                  "factualBasis":"Ragnell's cyber-operation was not unlawful and did not cause harm to Aglovale.",
+                  "strategicImportance":"Challenging the relief sought by Aglovale is a key defense strategy that could result in the dismissal of the case."
+               }
+            ],
+            "auxiliaryResponses":[
+               "The ICJ has not previously recognized the concept of 'relief' in the context of international law.",
+               "Aglovale has not suffered significant harm as a result of Ragnell's cyber-operation."
+            ]
+         },
+         "rebuttalMatrix":[
+            {
+               "petitionerArgument":"Relief",
+               "respondentAttack":"No Relief",
+               "petitionerReply":"Aglovale is entitled to relief, including a declaration that Ragnell's cyber-operation was unlawful, as well as compensation or other forms of reparation, because Ragnell's cyber-operation was unlawful and caused harm to Aglovale."
+            }
+         ],
+         "benchVulnerabilityMatrix":{
+            "mostDangerousJudicialQuestion":"What is the scope of the relief available to Aglovale if Ragnell's cyber-operation is found to be unlawful?",
+            "mostDangerousFactualWeakness":"The lack of evidence demonstrating that Ragnell's cyber-operation caused harm to Aglovale.",
+            "mostDangerousLegalWeakness":"The uncertainty surrounding the concept of 'relief' in the context of international law.",
+            "mostDangerousProceduralWeakness":"The potential for the ICJ to exercise its discretion to refuse the case due to lack of jurisdiction or admissibility."
+         }}]}

@@ -1,0 +1,3213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>
+  const _log = console.log;
+  console.log = function(...args) {
+    _log.apply(console, args);
+    const msg = args.map(a => typeof a === 'object' ? JSON.stringify(a) : a).join(' ');
+    if (msg.includes('[RECOVERY]')) {
+      fetch('/api/client-log', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: msg })
+      }).catch(e => {});
+    }
+  };
+  console.log("[RECOVERY TEST] Frontend logger loaded");
+</script>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>MootCoach — AI Moot Operating System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Merriweather:ital,wght@0,300;0,400;0,700;1,400&display=swap" rel="stylesheet">
+
+<!-- Tailwind CSS CDN & Config to prevent breaking vanilla CSS -->
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    corePlugins: {
+      preflight: false,
+    },
+    theme: {
+      extend: {
+        colors: {
+          'moot-border': 'rgba(255, 255, 255, 0.08)',
+          'moot-muted': 'rgba(245, 243, 239, 0.45)',
+          'moot-panel': '#0e1220',
+          'moot-accent': '#c9a84c',
+          'white-muted': 'rgba(245, 243, 239, 0.45)',
+        },
+        fontFamily: { sans: ['Inter', 'sans-serif'], serif: ['Merriweather', 'serif'] }
+      }
+    }
+  }
+</script>
+
+<!-- Firebase Compat SDKs (For Vanilla JS integration) -->
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+<style>
+/* ═══════════════════════════════════════════
+   RESET & TOKENS
+═══════════════════════════════════════════ */
+*, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+
+:root {
+  --navy:        #0a0d14;
+  --navy-2:      #0e1220;
+  --navy-3:      #141826;
+  --navy-4:      #1c2235;
+  --navy-5:      #222840;
+  --gold:        #c9a84c;
+  --gold-light:  #e2c47a;
+  --gold-muted:  rgba(201,168,76,.12);
+  --gold-border: rgba(201,168,76,.28);
+  --white:       #f5f3ef;
+  --white-2:     rgba(245,243,239,.85);
+  --white-muted: rgba(245,243,239,.45);
+  --white-faint: rgba(245,243,239,.10);
+  --glass:       rgba(255,255,255,.04);
+  --glass-b:     rgba(255,255,255,.08);
+  --success:     #4caf82;
+  --error:       #e05252;
+  --serif: 'Merriweather', Georgia, serif;
+  --sans:  'Inter', system-ui, sans-serif;
+  --r:  10px;
+  --rl: 16px;
+}
+
+html { scroll-behavior:smooth; }
+
+body {
+  background: var(--navy);
+  color: var(--white);
+  font-family: var(--sans);
+  font-size: 15px;
+  font-weight: 300;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* noise texture */
+body::before {
+  content:''; position:fixed; inset:0; z-index:0;
+  opacity:.022;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  pointer-events:none;
+}
+
+h1,h2,h3 { font-family:var(--serif); font-weight:300; line-height:1.15; }
+h1 { font-size: clamp(2.2rem,4.5vw,3.6rem); letter-spacing:-.025em; line-height: 1.1; }
+h2 { font-size: clamp(1.8rem,3.5vw,2.8rem); letter-spacing:-.015em; }
+h3 { font-size:1.3rem; }
+p  { color:var(--white-2); }
+
+/* ── SHARED SCROLLBAR ── */
+::-webkit-scrollbar { width:4px; height:4px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:var(--glass-b); border-radius:4px; }
+::-webkit-scrollbar-thumb:hover { background:rgba(255,255,255,.16); }
+
+/* ═══════════════════════════════════════════
+   VIEWS — only one visible at a time
+═══════════════════════════════════════════ */
+.view { display:none; }
+.view.active { display:block; }
+#view-workspace.active { display:flex; flex-direction:column; height:100vh; overflow:hidden; }
+
+/* ═══════════════════════════════════════════
+   SHARED BUTTONS
+═══════════════════════════════════════════ */
+.btn-primary {
+  font-family:var(--sans); font-size:.82rem; font-weight:500;
+  letter-spacing:.12em; text-transform:uppercase;
+  color:var(--navy); background:var(--gold);
+  border:none; cursor:pointer; padding:10px 22px;
+  border-radius:4px; transition: all 0.2s ease-in-out;
+  text-decoration:none; display:inline-block;
+}
+.btn-primary:hover  { background:var(--gold-light); transform:translateY(-1px); }
+.btn-primary:active { transform:translateY(0); }
+.btn-primary:disabled { opacity:.45; cursor:not-allowed; transform:none; }
+
+.btn-outline {
+  font-family:var(--sans); font-size:.82rem; font-weight:500;
+  letter-spacing:.12em; text-transform:uppercase;
+  color:var(--gold); background:transparent;
+  border:1px solid var(--gold-border); cursor:pointer; padding:10px 22px;
+  border-radius:4px; transition: all 0.2s ease-in-out;
+  text-decoration:none; display:inline-block;
+}
+.btn-outline:hover { background:rgba(255, 255, 255, 0.05); border-color:rgba(255, 255, 255, 0.08); transform:translateY(-1px); }
+
+.btn-ghost {
+  font-family:var(--sans); font-size:.85rem; font-weight:500;
+  letter-spacing:.12em; text-transform:uppercase;
+  color:var(--white-muted); background:none; border:none;
+  cursor:pointer; padding:8px 12px; transition: all 0.2s ease-in-out;
+  text-decoration:none;
+}
+.btn-ghost:hover { color:var(--white); background:rgba(255, 255, 255, 0.05); border-radius:4px; }
+
+.sep {
+  width:100%; height:1px;
+  background:linear-gradient(90deg,transparent,var(--glass-b) 30%,var(--glass-b) 70%,transparent);
+}
+
+/* ── NAV ── */
+.land-nav {
+  position:fixed; top:0; left:0; right:0; z-index:100;
+  height:68px; display:flex; align-items:center;
+  justify-content:space-between; padding:0 6vw;
+  background:rgba(10,13,20,.8);
+  backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--glass-b);
+}
+.nav-logo {
+  font-family:var(--serif); font-size:1.4rem; font-weight:600;
+  color:var(--white); text-decoration:none; letter-spacing:.02em;
+}
+.nav-logo span { color:var(--gold); }
+.nav-links { display:flex; align-items:center; gap:2rem; list-style:none; }
+.nav-links a {
+  font-size:.82rem; font-weight:500; letter-spacing:.12em; text-transform:uppercase;
+  color:var(--white-muted); text-decoration:none; transition:color .2s;
+}
+.nav-links a:hover { color:var(--white); }
+.nav-right { display:flex; align-items:center; gap:1rem; }
+
+/* ── HERO ── */
+.hero {
+  min-height:100vh; display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  text-align:center; padding:120px 6vw 80px;
+  position:relative; overflow:hidden;
+}
+.hero::before {
+  content:''; position:absolute; top:-200px; left:50%; transform:translateX(-50%);
+  width:900px; height:900px;
+  background:radial-gradient(ellipse at center,rgba(201,168,76,.07) 0%,transparent 65%);
+  pointer-events:none;
+}
+.hero-eyebrow {
+  font-size:.72rem; font-weight:500; letter-spacing:.2em; text-transform:uppercase;
+  color:var(--gold); margin-bottom:1.5rem;
+  display:flex; align-items:center; gap:12px;
+}
+.hero-eyebrow::before,.hero-eyebrow::after {
+  content:''; display:block; width:32px; height:1px; background:var(--gold); opacity:.5;
+}
+.hero h1 { max-width:820px; margin-bottom:1.2rem; }
+.hero h1 em { font-style:italic; color:var(--gold); }
+.hero-sub {
+  font-size:1rem; color:var(--white-muted);
+  max-width:620px; margin:0 auto 2.5rem; line-height:1.65;
+  font-weight:300;
+}
+.hero-ctas { display:flex; gap:1rem; justify-content:center; flex-wrap:wrap; margin-bottom:3rem; }
+.hero-ctas .btn-primary,.hero-ctas .btn-outline { padding:14px 32px; font-size:.85rem; }
+.trust-badges { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; }
+.badge {
+  display:flex; align-items:center; gap:6px;
+  font-size:.7rem; font-weight:400; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--white-muted); background:var(--glass);
+  border:1px solid var(--glass-b); border-radius:100px; padding:5px 14px;
+}
+.badge-dot { width:5px; height:5px; border-radius:50%; background:var(--gold); opacity:.7; flex-shrink:0; }
+
+/* ── PREMIUM TRUST BANNER ── */
+.trust-banner { display:flex; align-items:center; justify-content:center; gap:3rem; padding:2rem 6vw; border-top:1px solid var(--glass-b); border-bottom:1px solid var(--glass-b); background:rgba(255,255,255,.01); flex-wrap:wrap; opacity:.7; margin-bottom: 2rem; }
+.trust-item { font-family:var(--serif); font-size:1.15rem; color:var(--white-muted); display:flex; align-items:center; gap:10px; }
+.trust-item svg { width:22px; height:22px; fill:var(--gold); opacity:.7; }
+
+/* ── SECTION SHARED ── */
+.land-section { position:relative; z-index:1; }
+.section-wrap { padding:100px 6vw; max-width:1100px; margin:0 auto; }
+.section-eyebrow {
+  font-size:.7rem; font-weight:500; letter-spacing:.2em; text-transform:uppercase;
+  color:var(--gold); margin-bottom:1rem;
+  display:flex; align-items:center; gap:10px;
+}
+.section-eyebrow::before { content:''; display:block; width:24px; height:1px; background:var(--gold); opacity:.5; }
+.section-header { margin-bottom:60px; }
+.section-header h2 { margin-bottom:1rem; }
+.section-header p { color:var(--white-muted); max-width:500px; font-size:1rem; }
+
+/* ── HOW IT WORKS ── */
+.steps-grid {
+  display:grid; grid-template-columns:repeat(3,1fr);
+  gap:2px; background:var(--glass-b);
+  border:1px solid var(--glass-b); border-radius:var(--rl); overflow:hidden;
+}
+.step { background:var(--navy-2); padding:36px 30px; transition:background .3s; }
+.step:hover { background:var(--navy-3); }
+.step-num { font-family:var(--serif); font-size:4rem; font-weight:400; color:var(--gold); opacity:.2; line-height:1; margin-bottom:1rem; }
+.step h3 { margin-bottom:.6rem; }
+.step p { font-size:.88rem; color:var(--white-muted); }
+
+/* ── FEATURES ── */
+.features-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:20px; }
+.feat-card {
+  background:var(--glass); border:1px solid var(--glass-b);
+  border-radius:var(--rl); padding:30px 26px;
+  transition:border-color .3s,background .3s,transform .2s; cursor:default;
+}
+.feat-card:hover { background:var(--navy-3); border-color:var(--gold-border); transform:translateY(-3px); }
+.feat-icon {
+  width:38px; height:38px; border-radius:8px;
+  background:var(--gold-muted); border:1px solid var(--gold-border);
+  display:flex; align-items:center; justify-content:center;
+  color:var(--gold); font-size:1rem; margin-bottom:1.2rem;
+}
+.feat-card h3 { margin-bottom:.5rem; font-size:1.1rem; }
+.feat-card p  { font-size:.86rem; color:var(--white-muted); line-height:1.65; }
+
+/* ── BETA CARD ── */
+.proof-section { padding:100px 6vw; text-align:center; position:relative; overflow:hidden; z-index:1; }
+.proof-section::before {
+  content:''; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+  width:700px; height:500px;
+  background:radial-gradient(ellipse at center,rgba(201,168,76,.05) 0%,transparent 70%);
+  pointer-events:none;
+}
+.proof-tagline {
+  font-family:var(--serif); font-size:clamp(1.6rem,3.5vw,2.4rem);
+  font-style:italic; color:var(--white-2);
+  max-width:700px; margin:0 auto 3rem; line-height:1.4;
+}
+.proof-tagline em { font-style:normal; color:var(--gold); }
+.beta-card {
+  max-width:580px; margin:0 auto;
+  background:var(--glass); border:1px solid var(--gold-border);
+  border-radius:var(--rl); padding:36px 40px;
+}
+.beta-pill {
+  display:inline-block; font-size:.68rem; font-weight:500; letter-spacing:.16em; text-transform:uppercase;
+  color:var(--gold); background:var(--gold-muted); border:1px solid var(--gold-border);
+  border-radius:100px; padding:4px 14px; margin-bottom:1.2rem;
+}
+.beta-desc { font-size:.92rem; color:var(--white-muted); line-height:1.7; margin-bottom:1.8rem; }
+
+/* ── COMING SOON ── */
+.soon-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; }
+.soon-card {
+  background:var(--glass); border:1px solid var(--glass-b);
+  border-radius:var(--rl); padding:24px 20px; position:relative; overflow:hidden; opacity:.75;
+}
+.soon-tag {
+  font-size:.62rem; font-weight:500; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--gold); background:var(--gold-muted); border:1px solid var(--gold-border);
+  border-radius:100px; padding:3px 10px; display:inline-block; margin-bottom:14px;
+}
+.soon-card h3 { font-size:1rem; margin-bottom:.4rem; }
+.soon-card p  { font-size:.82rem; color:var(--white-muted); }
+.soon-card::after {
+  content:''; position:absolute; top:0; right:0; width:60px; height:60px;
+  background:radial-gradient(circle at top right,rgba(201,168,76,.08),transparent 60%);
+  pointer-events:none;
+}
+
+/* ── CTA SECTION ── */
+.cta-section {
+  padding:120px 6vw; text-align:center; position:relative; overflow:hidden; z-index:1;
+}
+.cta-section::before {
+  content:''; position:absolute; bottom:-100px; left:50%; transform:translateX(-50%);
+  width:800px; height:600px;
+  background:radial-gradient(ellipse at center,rgba(201,168,76,.06) 0%,transparent 60%);
+  pointer-events:none;
+}
+.cta-section h2 { margin-bottom:1rem; }
+.cta-section p  { color:var(--white-muted); max-width:480px; margin:0 auto 2.5rem; }
+.cta-section .btn-primary { padding:16px 40px; font-size:.88rem; }
+
+/* ── FOOTER ── */
+.land-footer {
+  padding:36px 6vw; border-top:1px solid var(--glass-b);
+  display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:1rem;
+  position:relative; z-index:1;
+}
+.footer-brand { font-family:var(--serif); font-size:1.1rem; font-weight:600; color:var(--white-muted); }
+.footer-brand span { color:var(--gold); }
+.footer-links { display:flex; gap:1.5rem; list-style:none; }
+.footer-links a {
+  font-size:.76rem; color:var(--white-muted); text-decoration:none;
+  letter-spacing:.06em; text-transform:uppercase; transition:color .2s;
+}
+.footer-links a:hover { color:var(--gold); }
+.footer-copy { font-size:.73rem; color:var(--white-faint); letter-spacing:.04em; }
+
+/* ── LANDING ANIMATIONS ── */
+@keyframes fadeUp {
+  from { opacity:0; transform:translateY(24px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+.hero > * { animation:fadeUp .7s cubic-bezier(.22,.68,0,1.2) both; }
+.hero > *:nth-child(1){animation-delay:.05s}
+.hero > *:nth-child(2){animation-delay:.15s}
+.hero > *:nth-child(3){animation-delay:.25s}
+.hero > *:nth-child(4){animation-delay:.35s}
+.hero > *:nth-child(5){animation-delay:.42s}
+
+/* ── LOGIN ── */
+#view-login {
+  min-height:100vh; display:none; flex-direction:column;
+}
+#view-login.active { display:flex; }
+
+/* Auth Overlay Styling */
+#auth-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(4, 5, 8, 0.95);
+  backdrop-filter: blur(12px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+#auth-overlay.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+#view-login::after {
+  content:''; position:fixed; top:-300px; left:50%; transform:translateX(-50%);
+  width:900px; height:800px;
+  background:radial-gradient(ellipse at center,rgba(201,168,76,.06) 0%,transparent 60%);
+  pointer-events:none; z-index:0;
+}
+
+.login-nav {
+  position:relative; z-index:10;
+  height:68px; display:flex; align-items:center; justify-content:space-between;
+  padding:0 6vw; border-bottom:1px solid var(--glass-b); flex-shrink:0;
+}
+.login-nav-back {
+  font-size:.76rem; font-weight:400; letter-spacing:.08em; text-transform:uppercase;
+  color:var(--white-muted); text-decoration:none; transition:color .2s;
+}
+.login-nav-back:hover { color:var(--white); }
+
+.login-main {
+  flex:1; display:flex; align-items:center; justify-content:center;
+  padding:48px 6vw; position:relative; z-index:1;
+}
+.auth-wrap { width:100%; max-width:440px; }
+
+.auth-header { text-align:center; margin-bottom:2.5rem; }
+.auth-header h1 { font-family:var(--serif); font-size:2.6rem; font-weight:500; margin-bottom:.6rem; }
+.auth-header h1 em { font-style:italic; color:var(--gold); }
+.auth-header p { font-size:.9rem; color:var(--white-muted); }
+
+.auth-tabs {
+  display:flex; background:var(--glass); border:1px solid var(--glass-b);
+  border-radius:var(--r); padding:4px; margin-bottom:2rem; gap:4px;
+}
+.auth-tab {
+  flex:1; font-family:var(--sans); font-size:.8rem; font-weight:400;
+  letter-spacing:.06em; text-transform:uppercase;
+  color:var(--white-muted); background:none; border:none; cursor:pointer;
+  padding:10px; border-radius:7px; transition:background .2s,color .2s;
+}
+.auth-tab.active { background:var(--navy-4); color:var(--white); border:1px solid var(--glass-b); }
+
+.auth-card {
+  background:var(--navy-3); border:1px solid var(--glass-b);
+  border-radius:var(--rl); padding:34px 30px;
+}
+
+.field { margin-bottom:1.2rem; }
+.field label {
+  display:block; font-size:.72rem; font-weight:400; letter-spacing:.15em;
+  text-transform:uppercase; color:var(--white-muted); margin-bottom:7px;
+}
+.field input {
+  width:100%; background:var(--navy-4); border:1px solid var(--glass-b);
+  border-radius:var(--r); color:var(--white); font-family:var(--sans);
+  font-size:.93rem; font-weight:300; padding:12px 15px; outline:none; transition:border-color .2s;
+  -webkit-appearance:none;
+}
+.field input::placeholder { color:var(--white-faint); }
+.field input:focus { border-color:var(--gold-border); }
+.field input.err { border-color:var(--error); }
+.field-hint { font-size:.7rem; color:var(--error); margin-top:4px; display:none; }
+.field-hint.show { display:block; }
+.field-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.field-meta { display:flex; justify-content:flex-end; margin-bottom:7px; }
+.field-meta a { font-size:.74rem; color:var(--gold); text-decoration:none; opacity:.75; transition:opacity .2s; }
+.field-meta a:hover { opacity:1; }
+
+.btn-submit {
+  width:100%; font-family:var(--sans); font-size:.84rem; font-weight:500;
+  letter-spacing:.1em; text-transform:uppercase;
+  color:var(--navy); background:var(--gold); border:none; cursor:pointer;
+  padding:14px; border-radius:var(--r); margin-top:.4rem;
+  transition: all 0.2s ease-in-out; position:relative; overflow:hidden;
+}
+.btn-submit:hover { background:var(--gold-light); transform:translateY(-1px); }
+.btn-submit:disabled { opacity:.55; cursor:not-allowed; transform:none; }
+
+.auth-divider {
+  display:flex; align-items:center; gap:12px; margin:1.4rem 0;
+}
+.auth-divider::before,.auth-divider::after { content:''; flex:1; height:1px; background:var(--glass-b); }
+.auth-divider span { font-size:.7rem; letter-spacing:.1em; text-transform:uppercase; color:var(--white-muted); }
+
+.btn-google {
+  width:100%; display:flex; align-items:center; justify-content:center; gap:10px;
+  font-family:var(--sans); font-size:.84rem; font-weight:400;
+  color:var(--white-2); background:var(--glass); border:1px solid var(--glass-b);
+  border-radius:var(--r); padding:11px; cursor:pointer;
+  transition: all 0.2s ease-in-out;
+}
+.btn-google:hover { background:rgba(255, 255, 255, 0.05); border-color:rgba(255, 255, 255, 0.05); transform:translateY(-1px); }
+.btn-google svg { width:17px; height:17px; flex-shrink:0; }
+
+.auth-footer-note { text-align:center; font-size:.78rem; color:var(--white-muted); margin-top:1.4rem; }
+.auth-footer-note a { color:var(--gold); text-decoration:none; opacity:.85; }
+.auth-footer-note a:hover { opacity:1; }
+.auth-terms { text-align:center; font-size:.7rem; color:var(--white-muted); opacity:.5; margin-top:1rem; line-height:1.6; }
+.auth-terms a { color:inherit; text-decoration:underline; }
+
+.auth-success { display:none; text-align:center; padding:20px 0; }
+.success-icon { font-size:2.5rem; margin-bottom:1rem; }
+.auth-success h3 { font-family:var(--serif); font-size:1.6rem; font-weight:500; margin-bottom:.6rem; }
+.auth-success p { font-size:.88rem; color:var(--white-muted); margin-bottom:1.5rem; }
+
+.login-footer {
+  position:relative; z-index:1;
+  padding:18px 6vw; text-align:center;
+  font-size:.72rem; color:var(--white-muted); opacity:.4;
+  border-top:1px solid var(--glass-b); flex-shrink:0;
+}
+
+/* ── SPINNER ── */
+@keyframes spin { to { transform:rotate(360deg); } }
+.spinner {
+  display:inline-block; width:14px; height:14px;
+  border:2px solid rgba(10,13,20,.3); border-top-color:var(--navy);
+  border-radius:50%; animation:spin .7s linear infinite;
+  vertical-align:middle; margin-right:6px;
+}
+
+/* ── WORKSPACE ── */
+#view-workspace {
+  height:100vh; overflow:hidden;
+}
+
+.ws-topbar {
+  display: none !important;
+}
+.ws-logo { font-family:var(--serif); font-size:1.3rem; font-weight:600; color:var(--white); text-decoration:none; letter-spacing:.02em; flex-shrink:0; cursor:pointer; }
+.ws-logo span { color:var(--gold); }
+.ws-divider { width:1px; height:20px; background:var(--glass-b); flex-shrink:0; }
+.ws-name { flex:1; font-size:.8rem; color:var(--white-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.ws-name strong { color:var(--white); font-weight:400; }
+.ws-right { display:flex; align-items:center; gap:12px; flex-shrink:0; }
+.ws-badge {
+  font-size:.7rem; font-weight:400; letter-spacing:.08em; text-transform:uppercase;
+  color:var(--gold); background:var(--gold-muted); border:1px solid var(--gold-border);
+  border-radius:100px; padding:4px 12px; display:flex; align-items:center; gap:5px;
+}
+.ws-avatar {
+  width:32px; height:32px; border-radius:50%; background:var(--navy-5);
+  border:1px solid var(--glass-b); display:flex; align-items:center; justify-content:center;
+  font-size:.7rem; color:var(--white-muted); flex-shrink:0; cursor:pointer;
+}
+
+.ws-body { flex:1; display:flex; overflow:hidden; }
+
+/* ── SIDEBAR ── */
+.ws-sidebar {
+  width:255px; background:rgba(14, 18, 32, 0.4); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border-right:1px solid var(--glass-b);
+  display:flex; flex-direction:column; flex-shrink:0; height:100%;
+  overflow:hidden;
+}
+.ws-sb-content {
+  flex:1; overflow-y:auto; overflow-x:hidden;
+  display:flex; flex-direction:column; min-height:0;
+}
+.ws-sb-content::-webkit-scrollbar { width:4px; height:4px; }
+.ws-sb-content::-webkit-scrollbar-thumb { background:var(--glass-b); border-radius:4px; }
+
+.ws-sb-section { padding:12px 14px 6px; flex-shrink:0; }
+.ws-sb-label {
+  font-size:.63rem; font-weight:500; letter-spacing:.16em; text-transform:uppercase;
+  color:var(--white-muted); opacity:.6; padding:0 8px; margin-bottom:6px;
+}
+.ws-sb-item {
+  display:flex; align-items:center; gap:10px;
+  padding:9px 8px; border-radius:var(--r);
+  color:var(--white-muted); font-size:.83rem; font-weight:300;
+  cursor:pointer; transition: all 0.2s ease-in-out;
+  background:none; border:none; width:100%; text-align:left;
+}
+.ws-sb-item:hover { background:rgba(255, 255, 255, 0.05); color:var(--white-2); }
+.ws-sb-item.active { background:var(--gold-muted); color:var(--gold); border:1px solid var(--gold-border); }
+.ws-sb-icon { font-size:.95rem; flex-shrink:0; width:18px; text-align:center; }
+.ws-sb-item.locked { opacity:.35; cursor:not-allowed; }
+
+.ws-sb-divider { height:1px; background:var(--glass-b); margin:6px 14px; flex-shrink:0;}
+
+/* RECENT MOOTS (SCROLLABLE AREA) */
+#ws-recent-list {
+  max-height: 180px; /* Constrains height to preserve bottom tools */
+  overflow-y: auto;
+  padding-right: 4px;
+}
+#ws-recent-list::-webkit-scrollbar { width:4px; height:4px; }
+#ws-recent-list::-webkit-scrollbar-thumb { background:rgba(255,255,255,.2); border-radius:4px; }
+#ws-recent-list::-webkit-scrollbar-thumb:hover { background:var(--gold); }
+
+.ws-sb-infobox { margin:8px 14px; padding:10px 12px; background:var(--glass); border:1px solid var(--glass-b); border-radius:var(--r); }
+.wsib-label { font-size:.62rem; font-weight:500; letter-spacing:.14em; text-transform:uppercase; color:var(--white-muted); opacity:.6; margin-bottom:4px; }
+.wsib-value { font-size:.8rem; color:var(--white-2); line-height:1.4; word-break:break-word; }
+.wsib-value.empty { color:var(--white-faint); font-style:italic; }
+
+.ws-sb-bottom { margin-top:auto; padding:14px; border-top:1px solid var(--glass-b); flex-shrink:0;}
+.ws-sb-bottom button {
+  display:flex; align-items:center; gap:8px;
+  font-size:.76rem; color:var(--white-muted); background:none; border:none; cursor:pointer;
+  transition: all 0.2s ease-in-out; font-family:var(--sans); font-weight:300; width: 100%; justify-content: center;
+  border-radius:4px; padding:6px 0;
+}
+.ws-sb-bottom button:hover { color:var(--white); background:rgba(255, 255, 255, 0.05); }
+.ws-sb-bottom button.logout:hover { color:var(--error); } 
+
+/* ── MAIN AREA ── */
+.ws-main {
+  flex:1;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+  min-height:0;
+  padding-top: 72px; /* Allow space for floating Dynamic Island */
+  position: relative;
+}
+
+/* panels */
+.ws-panel {
+  display:none;
+  flex:1;
+  flex-direction:column;
+  min-height:0;
+  overflow:hidden;
+}
+.ws-panel.active { display:flex; }
+.hidden { display: none !important; }
+
+/* Upload panel */
+.ws-upload-panel {
+  align-items:center;
+  padding:48px 32px;
+  overflow-y:auto;
+}
+.ws-upload-inner {
+  width:100%;
+  max-width:620px;
+  margin:auto 0;
+}
+.ws-up-eyebrow {
+  font-size:.7rem; font-weight:500; letter-spacing:.18em; text-transform:uppercase;
+  color:var(--gold); margin-bottom:.8rem; display:flex; align-items:center; gap:10px;
+}
+.ws-up-eyebrow::before { content:''; display:block; width:20px; height:1px; background:var(--gold); opacity:.5; }
+.ws-upload-inner h2 { font-family:var(--serif); font-size:2.1rem; font-weight:500; line-height:1.15; margin-bottom:.6rem; }
+.ws-upload-inner h2 em { font-style:italic; color:var(--gold); }
+.ws-upload-inner > p { font-size:.88rem; color:var(--white-muted); margin-bottom:2rem; line-height:1.65; }
+
+.ws-field { margin-bottom:1.3rem; }
+.ws-field label {
+  display:block; font-size:.7rem; font-weight:400; letter-spacing:.15em; text-transform:uppercase;
+  color:var(--white-muted); margin-bottom:7px;
+}
+.ws-field input {
+  width:100%; background:var(--navy-3); border:1px solid var(--glass-b);
+  border-radius:var(--r); color:var(--white); font-family:var(--sans);
+  font-size:.92rem; font-weight:300; padding:11px 15px; outline:none; transition:border-color .2s;
+}
+.ws-field input::placeholder { color:var(--white-faint); }
+.ws-field input:focus { border-color:var(--gold-border); }
+
+.dropzone {
+  border:1.5px dashed var(--glass-b); border-radius:var(--rl);
+  background:var(--glass); padding:48px 32px; text-align:center;
+  cursor:pointer; transition:border-color .2s,background .2s;
+  position:relative; margin-bottom:1.3rem;
+}
+.dropzone:hover, .dropzone.drag-over { border-color:var(--gold-border); background:var(--gold-muted); }
+.dropzone input[type=file] { position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; }
+.dz-icon  { font-size:2.2rem; margin-bottom:12px; opacity:.45; }
+.dz-title { font-family:var(--serif); font-size:1.25rem; font-weight:500; color:var(--white-2); margin-bottom:6px; }
+.dz-sub   { font-size:.78rem; color:var(--white-muted); }
+.dz-sub span { color:var(--gold); opacity:.8; }
+
+.file-pill {
+  display:none; align-items:center; gap:14px;
+  background:var(--navy-3); border:1px solid var(--gold-border);
+  border-radius:var(--r); padding:13px 15px; margin-bottom:1.3rem;
+}
+.file-pill.show { display:flex; }
+.fp-icon { width:36px; height:36px; background:var(--gold-muted); border:1px solid var(--gold-border); border-radius:7px; display:flex; align-items:center; justify-content:center; font-size:1rem; flex-shrink:0; }
+.fp-details { flex:1; min-width:0; }
+.fp-name { font-size:.86rem; color:var(--white); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.fp-size { font-size:.72rem; color:var(--white-muted); margin-top:2px; }
+.fp-remove { background:none; border:none; color:var(--white-muted); font-size:1rem; cursor:pointer; padding:4px; transition:color .2s; flex-shrink:0; }
+.fp-remove:hover { color:var(--error); }
+
+.btn-analyze {
+  width:100%; font-family:var(--sans); font-size:.84rem; font-weight:500;
+  letter-spacing:.1em; text-transform:uppercase;
+  color:var(--navy); background:var(--gold); border:none; cursor:pointer;
+  padding:15px; border-radius:var(--r); transition: all 0.2s ease-in-out;
+}
+.btn-analyze:hover:not(:disabled) { background:var(--gold-light); transform:translateY(-1px); }
+.btn-analyze:disabled { opacity:.4; cursor:not-allowed; }
+
+.upload-note { font-size:.72rem; color:var(--white-muted); opacity:.45; text-align:center; margin-top:1rem; line-height:1.6; }
+
+/* ── TOAST ── */
+.toast-stack { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); z-index:9999; display:flex; flex-direction:column; gap:10px; pointer-events:none; }
+.toast {
+  display:flex; align-items:center; gap:10px;
+  background:var(--navy-4); border:1px solid var(--glass-b);
+  border-radius:var(--r); padding:12px 18px;
+  font-size:.82rem; color:var(--white-2);
+  box-shadow:0 8px 32px rgba(0,0,0,.4);
+  pointer-events:all; min-width:260px; max-width:400px;
+  animation: toastIn .25s cubic-bezier(.22,.68,0,1.2) both;
+}
+.toast.removing { animation: toastOut .2s ease forwards; }
+.toast-icon { font-size:1rem; flex-shrink:0; }
+.toast.info  { border-color:var(--gold-border); }
+.toast.info .toast-icon { color:var(--gold); }
+.toast.ok    { border-color:rgba(76,175,130,.3); }
+.toast.ok .toast-icon { color:var(--success); }
+.toast.err   { border-color:rgba(224,82,82,.3); }
+.toast.err .toast-icon { color:var(--error); }
+@keyframes toastIn  { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+@keyframes toastOut { from{opacity:1;transform:translateY(0)}    to{opacity:0;transform:translateY(8px)} }
+
+/* ── BACKEND STATUS BADGE ── */
+.backend-status {
+  display:flex; align-items:center; gap:7px;
+  font-size:.7rem; letter-spacing:.06em; text-transform:uppercase;
+  color:var(--white-muted); background:var(--glass); border:1px solid var(--glass-b);
+  border-radius:100px; padding:4px 12px; cursor:default;
+  transition:border-color .3s, color .3s;
+}
+.backend-status.online  { border-color:rgba(76,175,130,.3); color:var(--success); }
+.backend-status.offline { border-color:rgba(224,82,82,.25); color:var(--error); }
+.backend-status.checking{ border-color:var(--gold-border); color:var(--gold); }
+.bs-dot { width:6px; height:6px; border-radius:50%; background:currentColor; flex-shrink:0; }
+.backend-status.checking .bs-dot { animation:pdot .9s ease-in-out infinite; }
+
+/* Results panel */
+.ws-results-panel { flex-direction:column; }
+
+.res-topbar {
+  padding:22px 30px 0;
+  display:flex; align-items:flex-start; justify-content:space-between; gap:16px; flex-wrap:wrap;
+}
+.res-eyebrow { font-size:.68rem; font-weight:500; letter-spacing:.16em; text-transform:uppercase; color:var(--gold); margin-bottom:.4rem; }
+.res-title { font-family:var(--serif); font-size:1.75rem; font-weight:500; color:var(--white); line-height:1.15; }
+.res-actions { display:flex; gap:8px; flex-shrink:0; align-items:center; }
+.btn-sm {
+  font-family:var(--sans); font-size:.72rem; font-weight:400; letter-spacing:.08em;
+  text-transform:uppercase; padding:8px 15px; border-radius:6px; cursor:pointer;
+  transition: all 0.2s ease-in-out; border:none;
+}
+.btn-sm-ghost { color:var(--white-muted); background:var(--glass); border:1px solid var(--glass-b); }
+.btn-sm-ghost:hover { background:rgba(255, 255, 255, 0.05); border-color:rgba(255, 255, 255, 0.05); color:var(--white); }
+.btn-sm-gold { color:var(--navy); background:var(--gold); }
+.btn-sm-gold:hover { background:var(--gold-light); transform:translateY(-1px); }
+
+.res-meta { display:flex; align-items:center; gap:14px; padding:10px 30px; flex-wrap:wrap; }
+.res-chip { display:flex; align-items:center; gap:5px; font-size:.7rem; color:var(--white-muted); letter-spacing:.04em; }
+.res-chip-dot { width:5px; height:5px; border-radius:50%; background:var(--success); }
+
+.res-body { flex:1; padding:18px 30px 40px; overflow-y:auto; }
+
+.analysis-box { background:var(--navy-3); border:1px solid var(--glass-b); border-radius:var(--rl); overflow:hidden; }
+.analysis-box-header {
+  padding:13px 18px; background:var(--navy-4); border-bottom:1px solid var(--glass-b);
+  display:flex; align-items:center; justify-content:space-between;
+}
+.abh-title {
+  font-size:.7rem; font-weight:500; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--white-muted); display:flex; align-items:center; gap:7px;
+}
+.abh-dot { width:5px; height:5px; border-radius:50%; background:var(--success); }
+.btn-copy {
+  font-size:.68rem; font-weight:400; letter-spacing:.08em; text-transform:uppercase;
+  color:var(--white-muted); background:none; border:1px solid var(--glass-b);
+  border-radius:5px; padding:4px 10px; cursor:pointer; transition:color .2s,border-color .2s;
+}
+.btn-copy:hover { color:var(--gold); border-color:var(--gold-border); }
+.btn-copy.copied { color:var(--success); border-color:var(--success); }
+
+.analysis-content {
+  padding:26px; font-size:.88rem; color:var(--white-2); line-height:1.8;
+  font-family:var(--sans); font-weight:300;
+}
+.analysis-content h1,
+.analysis-content h2,
+.analysis-content h3 { font-family:var(--serif); font-weight:500; color:var(--white); margin:1.5rem 0 .5rem; line-height:1.25; }
+.analysis-content h1 { font-size:1.45rem; }
+.analysis-content h2 { font-size:1.2rem; }
+.analysis-content h3 { font-size:1rem; color:var(--gold); }
+.analysis-content h1:first-child,.analysis-content h2:first-child { margin-top:0; }
+.analysis-content p { margin-bottom:.9rem; }
+.analysis-content p:last-child { margin-bottom:0; }
+.analysis-content ul,.analysis-content ol { padding-left:1.4rem; margin-bottom:.9rem; }
+.analysis-content li { margin-bottom:.3rem; }
+.analysis-content strong { color:var(--white); font-weight:500; }
+.analysis-content em { color:var(--gold); font-style:italic; }
+.analysis-content blockquote { border-left:2px solid var(--gold-border); padding:8px 14px; margin:1rem 0; color:var(--white-muted); font-style:italic; background:var(--glass); border-radius:0 var(--r) var(--r) 0; }
+.analysis-content hr { border:none; border-top:1px solid var(--glass-b); margin:1.4rem 0; }
+
+/* Empty results */
+.res-empty {
+  flex:1; display:flex; align-items:center; justify-content:center;
+  flex-direction:column; padding:48px; text-align:center; gap:12px;
+}
+.res-empty-icon { font-size:2.5rem; opacity:.18; }
+.res-empty-title { font-family:var(--serif); font-size:1.3rem; font-weight:500; color:var(--white-muted); }
+.res-empty-sub   { font-size:.82rem; color:var(--white-muted); opacity:.55; }
+
+/* Error box */
+.error-box {
+  background:rgba(224,82,82,.08); border:1px solid rgba(224,82,82,.25);
+  border-radius:var(--rl); padding:28px 24px; text-align:center;
+}
+.error-box-title { font-family:var(--serif); font-size:1.25rem; font-weight:500; color:var(--error); margin-bottom:.5rem; }
+.error-box-msg { font-size:.86rem; color:var(--white-muted); margin-bottom:1.4rem; line-height:1.6; }
+
+/* ── LOADING OVERLAY ── */
+.loading-overlay {
+  display:none; position:fixed; inset:0;
+  background:rgba(10,13,20,.93); backdrop-filter:blur(14px);
+  z-index:999; flex-direction:column; align-items:center; justify-content:center; gap:0;
+}
+.loading-overlay.show { display:flex; }
+.lo-glow {
+  width:110px; height:110px; border-radius:50%;
+  background:radial-gradient(circle,rgba(201,168,76,.16) 0%,transparent 70%);
+  display:flex; align-items:center; justify-content:center;
+  margin-bottom:1.8rem; position:relative;
+}
+.lo-glow::before {
+  content:''; position:absolute; inset:-2px; border-radius:50%;
+  border:1.5px solid transparent; border-top-color:var(--gold); border-right-color:rgba(201,168,76,.3);
+  animation:spin 1.2s linear infinite;
+}
+.lo-symbol { font-family:var(--serif); font-size:2.6rem; color:var(--gold); opacity:.7; animation: pulseGlow 1.5s infinite alternate; }
+@keyframes pulseGlow {
+  0% { transform: scale(0.95); opacity: 0.6; text-shadow: 0 0 10px rgba(201,168,76, 0.2); }
+  100% { transform: scale(1.05); opacity: 1; text-shadow: 0 0 25px rgba(201,168,76, 0.8); }
+}
+
+.lo-steps { display:flex; flex-direction:column; align-items:center; gap:9px; margin-bottom:1.4rem; }
+.lo-step { display:flex; align-items:center; gap:10px; font-size:.82rem; color:var(--white-muted); transition:color .4s,opacity .4s; opacity:.3; }
+.lo-step.active { color:var(--white); opacity:1; }
+.lo-step.done   { color:var(--success); opacity:.65; }
+.lo-dot { width:5px; height:5px; border-radius:50%; background:currentColor; flex-shrink:0; }
+.lo-step.active .lo-dot { animation:pdot .8s ease-in-out infinite; }
+@keyframes pdot { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.7);opacity:.5} }
+.lo-label { font-family:var(--serif); font-size:1.4rem; font-weight:500; color:var(--white-2); }
+
+/* ── LEGAL MODALS ── */
+.legal-modal-overlay { display:none; position:fixed; inset:0; background:rgba(10,13,20,.85); backdrop-filter:blur(8px); z-index:10000; align-items:center; justify-content:center; padding:20px; opacity:0; transition:opacity .3s ease; }
+.legal-modal-overlay.show { display:flex; opacity:1; }
+.legal-modal-content { background:var(--navy-3); border:1px solid var(--gold-border); border-radius:var(--rl); width:100%; max-width:680px; max-height:85vh; display:flex; flex-direction:column; overflow:hidden; transform:translateY(20px); transition:transform .3s cubic-bezier(.22,.68,0,1.2); box-shadow:0 24px 64px rgba(0,0,0,.4); }
+.legal-modal-overlay.show .legal-modal-content { transform:translateY(0); }
+.lm-header { padding:24px 32px; border-bottom:1px solid var(--glass-b); display:flex; justify-content:space-between; align-items:center; background:var(--navy-4); }
+.lm-title { font-family:var(--serif); font-size:1.8rem; font-weight:500; color:var(--white); }
+.lm-close { background:var(--glass); border:1px solid var(--glass-b); color:var(--white-muted); width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all .2s; }
+.lm-close:hover { background:var(--error); color:#fff; border-color:var(--error); }
+.lm-body { padding:32px; overflow-y:auto; font-size:.9rem; color:var(--white-2); line-height:1.7; font-family:var(--sans); font-weight:300; }
+.lm-body h3 { font-family:var(--serif); color:var(--gold); font-size:1.3rem; margin:1.5rem 0 .5rem; }
+.lm-body h3:first-child { margin-top:0; }
+.lm-body p { margin-bottom:1rem; }
+.lm-body ul { margin-bottom:1rem; padding-left:1.2rem; }
+.lm-body li { margin-bottom:.4rem; }
+
+/* ═══════════════════════════════════════════
+   PREMIUM RESULT RENDERER
+═══════════════════════════════════════════ */
+
+/* Dynamic Score Colors */
+.text-green { color: #4caf82 !important; text-shadow: 0 0 20px rgba(76,175,130,0.3); }
+.text-gold { color: var(--gold) !important; text-shadow: 0 0 20px rgba(201,168,76,0.3); }
+.text-red { color: #e05252 !important; text-shadow: 0 0 20px rgba(224,82,82,0.3); }
+
+/* Sticky section nav */
+.res-sticky-nav {
+  position: sticky; top: 0; z-index: 20;
+  background: rgba(10,13,20,.95);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--glass-b);
+  padding: 0 30px;
+  display: flex; align-items: center; gap: 2px;
+  overflow-x: auto; scrollbar-width: none; flex-shrink: 0;
+  min-height: 44px;
+}
+.res-sticky-nav::-webkit-scrollbar { display: none; }
+.rn-item {
+  font-size: .62rem; font-weight: 500; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--white-muted);
+  background: none; border: none; border-bottom: 2px solid transparent;
+  cursor: pointer; padding: 13px 11px; white-space: nowrap;
+  transition: color .2s, border-color .2s; font-family: var(--sans);
+}
+.rn-item:hover { color: var(--white-2); }
+.rn-item.active { color: var(--gold); border-bottom-color: var(--gold); }
+
+/* Result layout */
+.result-grid {
+  display: flex; flex-direction: column; gap: 16px;
+  padding: 24px 28px 60px;
+}
+
+/* Score hero row */
+.score-hero {
+  display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-bottom: 4px;
+}
+.score-card {
+  background: linear-gradient(135deg, rgba(201,168,76,.09) 0%, rgba(201,168,76,.03) 100%);
+  border: 1px solid var(--gold-border); border-radius: 14px;
+  padding: 20px 22px; position: relative; overflow: hidden;
+  transition: transform .3s ease, border-color .3s ease, box-shadow .3s ease;
+}
+.score-card:hover { 
+  transform: translateY(-4px); 
+  border-color: rgba(201,168,76,.6); 
+  box-shadow: 0 12px 32px rgba(201,168,76, 0.12);
+}
+.score-card::after {
+  content: ''; position: absolute; top: -20px; right: -20px;
+  width: 80px; height: 80px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(201,168,76,.14), transparent 70%);
+  pointer-events: none;
+}
+.sc-label {
+  font-size: .6rem; font-weight: 500; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--white-muted);
+  margin-bottom: 10px; display: flex; align-items: center; gap: 6px;
+}
+.sc-label-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--gold); opacity: .7; }
+.sc-value { font-family: var(--serif); font-size: 2.6rem; font-weight: 500; color: var(--white); line-height: 1; margin-bottom: 5px; transition: color 0.5s ease; }
+.sc-sub { font-size: .72rem; color: var(--gold); }
+.sc-bar { margin-top: 14px; height: 3px; background: rgba(255,255,255,.07); border-radius: 2px; overflow: hidden; }
+.sc-bar-fill {
+  height: 100%; border-radius: 2px; width: 0%;
+  transition: width 1.4s cubic-bezier(.22,.68,0,1.2);
+}
+.sf-gold   { background: linear-gradient(90deg,var(--gold),var(--gold-light)); }
+.sf-blue   { background: linear-gradient(90deg,#60a5fa,#93c5fd); }
+.sf-green  { background: linear-gradient(90deg,#4caf82,#6ee7b7); }
+.sf-red    { background: linear-gradient(90deg,#e05252,#f87171); }
+.sf-purple { background: linear-gradient(90deg,#a78bfa,#c4b5fd); }
+
+/* Section cards */
+.analysis-section-card {
+  background: var(--navy-3); border: 1px solid var(--glass-b);
+  border-radius: 14px; overflow: hidden;
+  transition: transform .3s ease, border-color .3s ease, box-shadow .3s ease;
+  animation: secReveal .5s cubic-bezier(.22,.68,0,1.2) both;
+}
+.analysis-section-card:hover { 
+  border-color: rgba(255,255,255,.15); 
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+}
+@keyframes secReveal {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.asc-header {
+  padding: 16px 20px; display: flex; align-items: center;
+  justify-content: space-between; cursor: pointer; user-select: none;
+  background: var(--navy-4); border-bottom: 1px solid var(--glass-b);
+  transition: background .15s;
+}
+.asc-header:hover { background: rgba(255,255,255,.035); }
+.asc-header-left { display: flex; align-items: center; gap: 11px; }
+.asc-icon {
+  width: 30px; height: 30px; border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .85rem; flex-shrink: 0;
+}
+.asc-icon-gold   { background: var(--gold-muted);            border: 1px solid var(--gold-border);            color: var(--gold); }
+.asc-icon-blue   { background: rgba(96,165,250,.1);          border: 1px solid rgba(96,165,250,.25);          color: #60a5fa; }
+.asc-icon-green  { background: rgba(76,175,130,.1);          border: 1px solid rgba(76,175,130,.25);          color: #4caf82; }
+.asc-icon-red    { background: rgba(224,82,82,.1);           border: 1px solid rgba(224,82,82,.25);           color: #e05252; }
+.asc-icon-purple { background: rgba(167,139,250,.1);         border: 1px solid rgba(167,139,250,.25);         color: #a78bfa; }
+.asc-icon-teal   { background: rgba(45,212,191,.1);          border: 1px solid rgba(45,212,191,.25);          color: #2dd4bf; }
+.asc-title { font-family: var(--serif); font-size: .98rem; font-weight: 500; color: var(--white); }
+.asc-header-right { display: flex; align-items: center; gap: 8px; }
+.asc-badge {
+  font-size: .58rem; font-weight: 500; letter-spacing: .12em;
+  text-transform: uppercase; padding: 3px 8px; border-radius: 100px; border: 1px solid;
+}
+.badge-gold   { color: var(--gold);  background: var(--gold-muted);         border-color: var(--gold-border); }
+.badge-blue   { color: #60a5fa;      background: rgba(96,165,250,.1);       border-color: rgba(96,165,250,.25); }
+.badge-green  { color: #4caf82;      background: rgba(76,175,130,.1);       border-color: rgba(76,175,130,.25); }
+.badge-red    { color: #e05252;      background: rgba(224,82,82,.1);        border-color: rgba(224,82,82,.25); }
+.badge-purple { color: #a78bfa;      background: rgba(167,139,250,.1);      border-color: rgba(167,139,250,.25); }
+.badge-teal   { color: #2dd4bf;      background: rgba(45,212,191,.1);       border-color: rgba(45,212,191,.25); }
+.asc-copy {
+  font-size: .58rem; font-weight: 400; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--white-muted); background: none; border: 1px solid var(--glass-b);
+  border-radius: 5px; padding: 3px 9px; cursor: pointer; font-family: var(--sans);
+  transition: color .2s, border-color .2s;
+}
+.asc-copy:hover { color: var(--gold); border-color: var(--gold-border); }
+.asc-copy.copied { color: #4caf82; border-color: rgba(76,175,130,.3); }
+.asc-chevron { color: var(--white-muted); font-size: .65rem; transition: transform .3s cubic-bezier(.22,.68,0,1.2); flex-shrink: 0; }
+.asc-header.asc-collapsed .asc-chevron { transform: rotate(-90deg); }
+.asc-body {
+  max-height: 450px;
+  overflow-y: auto;
+  transition: opacity .3s ease;
+}
+.asc-body::-webkit-scrollbar { width:4px; height:4px; }
+.asc-body::-webkit-scrollbar-thumb { background:rgba(255,255,255,.2); border-radius:4px; }
+.asc-body::-webkit-scrollbar-thumb:hover { background:var(--gold); }
+.asc-body.asc-collapsed { display: none; }
+
+/* Summary card */
+.summary-card {
+  background: linear-gradient(135deg, rgba(201,168,76,.07), rgba(255,255,255,.015));
+  border: 1px solid var(--gold-border); border-radius: 12px; padding: 24px 26px;
+  position: relative; overflow: hidden;
+}
+.summary-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg,transparent,rgba(201,168,76,.6),transparent);
+}
+.summary-quote { font-family: var(--serif); font-size: 3.5rem; color: var(--gold); opacity: .15; line-height: .8; margin-bottom: -10px; }
+.summary-body { font-family: var(--serif); font-size: 1.02rem; line-height: 1.9; color: var(--white-2); font-style: italic; }
+.summary-body strong { color: var(--white); font-style: normal; font-weight: 500; }
+
+/* Insight list */
+.insight-list { display: flex; flex-direction: column; gap: 8px; list-style: none; padding: 0; }
+.insight-item {
+  display: flex; gap: 11px; padding: 13px 15px;
+  background: rgba(255,255,255,.02); border: 1px solid var(--glass-b);
+  border-radius: 9px; transition: background .15s, border-color .15s, transform .15s;
+}
+.insight-item:hover { background: rgba(255,255,255,.04); border-color: rgba(255,255,255,.09); transform: translateX(3px); }
+.insight-bullet { width: 5px; height: 5px; border-radius: 50%; background: var(--gold); opacity: .65; flex-shrink: 0; margin-top: 8px; }
+.ib-blue   { background: #60a5fa; }
+.ib-green  { background: #4caf82; }
+.ib-red    { background: #e05252; }
+.ib-purple { background: #a78bfa; }
+.ib-teal   { background: #2dd4bf; }
+.insight-text { font-size: .85rem; color: var(--white-2); line-height: 1.72; }
+.insight-text strong { color: var(--white); font-weight: 500; }
+.insight-text em { color: var(--gold); font-style: italic; }
+
+/* Case cards */
+.case-card {
+  display: flex; gap: 14px; padding: 15px 16px;
+  background: rgba(255,255,255,.02); border: 1px solid var(--glass-b);
+  border-radius: 9px; margin-bottom: 9px;
+  transition: background .15s, border-color .15s;
+}
+.case-card:hover { background: rgba(255,255,255,.04); border-color: var(--gold-border); }
+.case-num { font-family: var(--serif); font-size: 1.4rem; color: var(--gold); opacity: .3; flex-shrink: 0; min-width: 26px; line-height: 1.2; padding-top: 1px; }
+.case-name { font-size: .86rem; font-weight: 500; color: var(--white); margin-bottom: 3px; }
+.case-desc { font-size: .78rem; color: var(--white-muted); line-height: 1.6; }
+
+/* Provision tags */
+.provision-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+.provision-tag {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 13px; background: rgba(201,168,76,.07);
+  border: 1px solid rgba(201,168,76,.2); border-radius: 8px;
+  font-size: .78rem; color: var(--white-2);
+  transition: background .15s, border-color .15s;
+}
+.provision-tag:hover { background: rgba(201,168,76,.13); border-color: rgba(201,168,76,.36); }
+.provision-tag-sym { color: var(--gold); font-size: .8rem; }
+
+/* Strategy items */
+.strategy-item {
+  padding: 14px 16px 14px 18px;
+  border-left: 2px solid var(--gold); border-radius: 0 9px 9px 0;
+  background: rgba(201,168,76,.04); margin-bottom: 9px;
+  font-size: .85rem; color: var(--white-2); line-height: 1.72;
+  transition: background .15s;
+}
+.strategy-item:hover { background: rgba(201,168,76,.08); }
+.strategy-item strong { color: var(--white); font-weight: 500; }
+
+/* Difficulty pill */
+.diff-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 15px; border-radius: 100px;
+  font-size: .74rem; font-weight: 500; margin-bottom: 14px; margin-right: 6px;
+}
+.dp-high   { background: rgba(224,82,82,.12); border: 1px solid rgba(224,82,82,.3);   color: #f87171; }
+.dp-medium { background: rgba(251,191,36,.1); border: 1px solid rgba(251,191,36,.28); color: #fbbf24; }
+.dp-low    { background: rgba(76,175,130,.1); border: 1px solid rgba(76,175,130,.28); color: #4caf82; }
+
+/* Section divider */
+.result-divider {
+  display: flex; align-items: center; gap: 12px; padding: 4px 0;
+}
+.result-divider span { font-size: .6rem; font-weight: 500; letter-spacing: .16em; text-transform: uppercase; color: var(--white-muted); opacity: .4; white-space: nowrap; }
+.result-divider::before,.result-divider::after { content: ''; flex: 1; height: 1px; background: var(--glass-b); }
+
+/* Override res-body padding so result-grid controls its own spacing */
+.ws-results-panel .res-body { padding: 0; }
+
+/* ═══════════════════════════════════════════
+   ORAL EVALUATION + BENCH SIMULATOR
+═══════════════════════════════════════════ */
+
+.oral-panel-inner { width:100%; max-width:700px; }
+
+.oral-difficulty-row { display:flex; gap:8px; margin-bottom:1.4rem; flex-wrap:wrap; }
+
+.diff-btn {
+  font-family:var(--sans); font-size:.7rem; font-weight:500; letter-spacing:.1em;
+  text-transform:uppercase; padding:8px 16px; border-radius:6px; cursor:pointer;
+  border:1px solid var(--glass-b); background:var(--glass); color:var(--white-muted);
+  transition:background .15s,border-color .15s,color .15s;
+}
+.diff-btn:hover { background:rgba(255,255,255,.06); color:var(--white-2); }
+.diff-btn.active-easy     { background:rgba(76,175,130,.1);  border-color:rgba(76,175,130,.3);  color:#4caf82; }
+.diff-btn.active-moderate { background:rgba(251,191,36,.1);  border-color:rgba(251,191,36,.28); color:#fbbf24; }
+.diff-btn.active-hard     { background:rgba(224,82,82,.1);   border-color:rgba(224,82,82,.3);   color:#e05252; }
+
+.oral-textarea {
+  width:100%; min-height:180px; background:var(--navy-3);
+  border:1px solid var(--glass-b); border-radius:var(--r);
+  color:var(--white); font-family:var(--sans); font-size:.88rem;
+  font-weight:300; padding:14px 16px; outline:none; resize:vertical;
+  transition:border-color .2s; line-height:1.7; margin-bottom:1.2rem;
+}
+.oral-textarea::placeholder { color:var(--white-faint); }
+.oral-textarea:focus { border-color:var(--gold-border); }
+
+.oral-grade-badge {
+  display:inline-flex; align-items:center; justify-content:center;
+  width:56px; height:56px; border-radius:50%;
+  font-family:var(--serif); font-size:1.8rem; font-weight:500; flex-shrink:0;
+}
+.grade-A { background:rgba(76,175,130,.15);  border:2px solid rgba(76,175,130,.4);  color:#4caf82; }
+.grade-B { background:rgba(96,165,250,.12);  border:2px solid rgba(96,165,250,.3);  color:#60a5fa; }
+.grade-C { background:rgba(251,191,36,.1);   border:2px solid rgba(251,191,36,.3);  color:#fbbf24; }
+.grade-D { background:rgba(251,146,60,.1);   border:2px solid rgba(251,146,60,.3);  color:#fb923c; }
+.grade-F { background:rgba(224,82,82,.1);    border:2px solid rgba(224,82,82,.3);   color:#e05252; }
+
+/* Bench simulator layout */
+.bench-panel {
+  flex-direction:column;
+  flex:1;
+  min-height:0;
+  overflow:hidden;
+}
+
+.bench-controls {
+  padding:14px 22px; background:var(--navy-4); border-bottom:1px solid var(--glass-b);
+  display:flex; align-items:center; gap:10px; flex-wrap:wrap; flex-shrink:0;
+}
+
+.bench-chat {
+  flex:1;
+  min-height:0;
+  overflow-y:auto;
+  padding:20px 22px;
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+}
+
+.bench-input-row {
+  padding:13px 18px;
+  border-top:1px solid var(--glass-b);
+  background:var(--navy-4);
+  display:flex;
+  gap:10px;
+  flex-shrink:0;
+  align-items:flex-end;
+}
+
+.bench-textarea {
+  flex:1; background:var(--navy-3); border:1px solid var(--glass-b);
+  border-radius:var(--r); color:var(--white); font-family:var(--sans);
+  font-size:.86rem; font-weight:300; padding:10px 14px; outline:none;
+  resize:none; transition:border-color .2s; min-height:42px; max-height:120px; line-height:1.6;
+}
+.bench-textarea::placeholder { color:var(--white-faint); }
+.bench-textarea:focus { border-color:var(--gold-border); }
+
+.btn-send {
+  font-family:var(--sans); font-size:.72rem; font-weight:500; letter-spacing:.08em;
+  text-transform:uppercase; color:var(--navy); background:var(--gold); border:none;
+  border-radius:var(--r); padding:10px 18px; cursor:pointer; flex-shrink:0;
+  transition: all 0.2s ease-in-out;
+}
+.btn-send:hover:not(:disabled) { background:var(--gold-light); transform:translateY(-1px); }
+.btn-send:disabled { opacity:.4; cursor:not-allowed; }
+
+/* Bench messages */
+.bench-msg { max-width:88%; animation:secReveal .3s ease both; }
+.bench-msg-judge {
+  align-self:flex-start;
+  background:rgba(224,82,82,.06); border:1px solid rgba(224,82,82,.14);
+  border-radius:0 12px 12px 12px; padding:13px 15px;
+}
+.bench-msg-advocate {
+  align-self:flex-end;
+  background:rgba(201,168,76,.07); border:1px solid rgba(201,168,76,.14);
+  border-radius:12px 0 12px 12px; padding:13px 15px;
+}
+.bench-msg-system {
+  align-self:center; max-width:100%;
+  background:rgba(255,255,255,.03); border:1px solid var(--glass-b);
+  border-radius:8px; padding:9px 16px; text-align:center;
+}
+.bm-role {
+  font-size:.56rem; font-weight:500; letter-spacing:.16em;
+  text-transform:uppercase; margin-bottom:7px;
+}
+.bm-role-judge    { color:#e05252; }
+.bm-role-advocate { color:var(--gold); }
+.bm-role-system   { color:var(--white-muted); }
+.bm-text { font-size:.84rem; color:var(--white-2); line-height:1.72; }
+.bm-meta { display:flex; align-items:center; gap:8px; margin-top:8px; flex-wrap:wrap; }
+.bm-weakness { font-size:.62rem; color:var(--white-muted); padding:2px 7px; background:rgba(255,255,255,.03); border:1px solid var(--glass-b); border-radius:4px; }
+.pressure-dots { display:flex; gap:3px; }
+.pressure-dot { width:5px; height:5px; border-radius:50%; background:rgba(255,255,255,.1); }
+.pressure-dot.filled { background:#e05252; }
+
+.bench-empty {
+  flex:1; display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  gap:12px; padding:40px; text-align:center;
+}
+/* ── RESPONSIVE ── */
+@media (max-width:900px) {
+  .nav-links { display:none; }
+  .steps-grid,.features-grid { grid-template-columns:1fr; }
+  .soon-grid { grid-template-columns:1fr 1fr; }
+}
+/* Mobile Navigation UI */
+.ws-mobile-menu-btn {
+  display:none; background:none; border:none; color:var(--white-muted); 
+  font-size:1.4rem; cursor:pointer; padding-right:12px; transition:color .2s;
+}
+.ws-mobile-menu-btn:hover { color:var(--white); }
+
+.ws-sidebar-overlay {
+  display:none; position:fixed; inset:0; z-index:80;
+  background:rgba(10,13,20,.7); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+  opacity:0; transition:opacity .3s ease;
+}
+.ws-sidebar-overlay.show { display:block; opacity:1; }
+
+@media (max-width:720px) {
+  .ws-mobile-menu-btn { display:block; }
+  
+  .ws-sidebar { 
+    position:fixed; top:62px; bottom:0; left:0; z-index:90; 
+    transform:translateX(-100%); transition:transform .3s cubic-bezier(.22,.68,0,1.2); 
+    display:flex !important; box-shadow: 10px 0 30px rgba(0,0,0,.5);
+  }
+  .ws-sidebar.show { transform:translateX(0); }
+  
+  .res-topbar { padding:16px 16px 0; }
+  .res-meta { padding:8px 16px; }
+  .res-body { padding:16px 16px 32px; }
+  .ws-upload-panel { padding:24px 16px; }
+  .auth-card { padding:26px 18px; }
+  .field-row { grid-template-columns:1fr; }
+}
+@media (max-width:600px) {
+  .soon-grid { grid-template-columns:1fr; }
+  .land-footer { flex-direction:column; align-items:flex-start; }
+  .beta-card { padding:26px 20px; }
+}
+
+/* ═══════════════════════════════════════════
+   PREMIUM UI POLISH (SIDEBAR, TOPBAR, CARDS)
+   ═══════════════════════════════════════════ */
+.ws-sb-item {
+  position: relative;
+  overflow: hidden;
+  border-left: 3px solid transparent;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.ws-sb-item:hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--white);
+  padding-left: 12px;
+}
+.ws-sb-item.active {
+  background: linear-gradient(90deg, rgba(201, 168, 76, 0.08) 0%, transparent 100%) !important;
+  color: var(--gold) !important;
+  border-left-color: var(--gold) !important;
+  border-top: none !important;
+  border-right: none !important;
+  border-bottom: none !important;
+  border-radius: 0 8px 8px 0;
+  box-shadow: inset 1px 0 0 rgba(201, 168, 76, 0.1);
+  padding-left: 12px;
+}
+.ws-topbar {
+  background: linear-gradient(180deg, rgba(14, 18, 32, 0.95) 0%, rgba(10, 13, 20, 0.95) 100%);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+.ws-sidebar {
+  background: #0b0e17;
+}
+.dropzone {
+  border: 1.5px dashed rgba(201, 168, 76, 0.2);
+  transition: all 0.3s ease;
+}
+.dropzone:hover {
+  border-color: var(--gold);
+  background: rgba(201, 168, 76, 0.03);
+}
+
+/* ═══════════════════════════════════════════
+   VIRTUAL COURTROOM SCREEN (ORAL ROUND)
+   ═══════════════════════════════════════════ */
+.courtroom-view {
+  display: none;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  background: radial-gradient(circle at top, #141b2e 0%, var(--navy) 100%);
+  position: relative;
+}
+.courtroom-view.active {
+  display: flex;
+}
+
+/* Courtroom Header */
+.cr-header {
+  padding: 16px 24px;
+  background: rgba(10, 13, 20, 0.4);
+  border-bottom: 1px solid var(--glass-b);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+}
+.cr-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.cr-session-title {
+  font-family: var(--serif);
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: var(--white);
+}
+.cr-session-meta {
+  font-size: 0.7rem;
+  color: var(--gold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.cr-header-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.cr-timer {
+  font-family: monospace;
+  font-size: 1.1rem;
+  color: var(--white-muted);
+  background: var(--navy-3);
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--glass-b);
+  letter-spacing: 0.05em;
+}
+.cr-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 100px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+  transition: all 0.3s ease;
+}
+.cr-status-badge.connecting {
+  background: rgba(201, 168, 76, 0.1);
+  border-color: var(--gold-border);
+  color: var(--gold);
+}
+.cr-status-badge.listening {
+  background: rgba(76, 175, 130, 0.1);
+  border-color: rgba(76, 175, 130, 0.3);
+  color: var(--success);
+}
+.cr-status-badge.speaking-judge {
+  background: rgba(224, 82, 82, 0.1);
+  border-color: rgba(224, 82, 82, 0.3);
+  color: #e05252;
+}
+.cr-status-badge.speaking-user {
+  background: rgba(96, 165, 250, 0.1);
+  border-color: rgba(96, 165, 250, 0.3);
+  color: #60a5fa;
+}
+.cr-status-badge.processing {
+  background: rgba(167, 139, 250, 0.1);
+  border-color: rgba(167, 139, 250, 0.3);
+  color: #a78bfa;
+}
+
+/* Courtroom Stage (Avatars) */
+.cr-stage {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding: 30px 20px;
+  background: rgba(255, 255, 255, 0.01);
+  border-bottom: 1px solid var(--glass-b);
+  flex-shrink: 0;
+  gap: 20px;
+}
+.cr-avatar-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: 140px;
+  position: relative;
+}
+.cr-avatar {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background: var(--navy-3);
+  border: 2px solid var(--glass-b);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.8rem;
+  transition: all 0.4s ease;
+  position: relative;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+.cr-avatar::after {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  opacity: 0;
+  transition: all 0.4s ease;
+}
+
+/* Speaking glow animations */
+.cr-avatar.speaking-judge {
+  border-color: #e05252;
+  box-shadow: 0 0 20px rgba(224, 82, 82, 0.4);
+}
+.cr-avatar.speaking-judge::after {
+  border-color: rgba(224, 82, 82, 0.4);
+  animation: cr-pulse-red 1.5s infinite;
+  opacity: 1;
+}
+.cr-avatar.speaking-user {
+  border-color: #60a5fa;
+  box-shadow: 0 0 20px rgba(96, 165, 250, 0.4);
+}
+.cr-avatar.speaking-user::after {
+  border-color: rgba(96, 165, 250, 0.4);
+  animation: cr-pulse-blue 1.5s infinite;
+  opacity: 1;
+}
+.cr-avatar.listening-user {
+  border-color: var(--success);
+  box-shadow: 0 0 15px rgba(76, 175, 130, 0.2);
+}
+
+@keyframes cr-pulse-red {
+  0% { transform: scale(1); opacity: 0.8; }
+  100% { transform: scale(1.25); opacity: 0; }
+}
+@keyframes cr-pulse-blue {
+  0% { transform: scale(1); opacity: 0.8; }
+  100% { transform: scale(1.25); opacity: 0; }
+}
+
+.cr-avatar-name {
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--white-muted);
+  text-align: center;
+  transition: color 0.3s;
+}
+.cr-avatar.speaking-judge + .cr-avatar-name { color: #e05252; }
+.cr-avatar.speaking-user + .cr-avatar-name { color: #60a5fa; }
+
+/* Visualizer Waveform */
+.cr-visualizer-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 24px;
+  width: 100%;
+}
+.cr-wave-bar {
+  width: 3px;
+  height: 4px;
+  background: var(--glass-b);
+  border-radius: 20px;
+  transition: all 0.25s ease;
+}
+.cr-visualizer-bar.active .cr-wave-bar {
+  background: var(--gold);
+  animation: cr-wave-bounce 1s ease-in-out infinite alternate;
+}
+.cr-visualizer-bar.active.judge .cr-wave-bar {
+  background: #e05252;
+}
+.cr-visualizer-bar.active.user .cr-wave-bar {
+  background: #60a5fa;
+}
+
+/* Stagger animations for wave bars */
+.cr-visualizer-bar.active .cr-wave-bar:nth-child(1) { animation-delay: 0.1s; height: 16px; }
+.cr-visualizer-bar.active .cr-wave-bar:nth-child(2) { animation-delay: 0.35s; height: 8px; }
+.cr-visualizer-bar.active .cr-wave-bar:nth-child(3) { animation-delay: 0.2s; height: 22px; }
+.cr-visualizer-bar.active .cr-wave-bar:nth-child(4) { animation-delay: 0.5s; height: 12px; }
+.cr-visualizer-bar.active .cr-wave-bar:nth-child(5) { animation-delay: 0.15s; height: 18px; }
+.cr-visualizer-bar.active .cr-wave-bar:nth-child(6) { animation-delay: 0.4s; height: 6px; }
+.cr-visualizer-bar.active .cr-wave-bar:nth-child(7) { animation-delay: 0.3s; height: 14px; }
+
+@keyframes cr-wave-bounce {
+  0% { transform: scaleY(0.3); }
+  100% { transform: scaleY(1.2); }
+}
+
+/* Courtroom Transcript Feed */
+.cr-transcript-feed {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 0;
+}
+.cr-transcript-feed::-webkit-scrollbar { width: 4px; }
+.cr-transcript-feed::-webkit-scrollbar-thumb { background: var(--glass-b); border-radius: 4px; }
+
+.cr-transcript-msg {
+  max-width: 85%;
+  animation: secReveal 0.3s ease both;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.cr-transcript-msg.judge {
+  align-self: flex-start;
+  background: rgba(224, 82, 82, 0.04);
+  border: 1px solid rgba(224, 82, 82, 0.12);
+  border-radius: 0 12px 12px 12px;
+  padding: 12px 16px;
+}
+.cr-transcript-msg.advocate {
+  align-self: flex-end;
+  background: rgba(96, 165, 250, 0.04);
+  border: 1px solid rgba(96, 165, 250, 0.12);
+  border-radius: 12px 0 12px 12px;
+  padding: 12px 16px;
+}
+.cr-transcript-msg.system {
+  align-self: center;
+  max-width: 90%;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--glass-b);
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 0.8rem;
+  color: var(--white-muted);
+  text-align: center;
+}
+
+.cr-msg-role {
+  font-size: 0.58rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.cr-msg-role.judge { color: #e05252; }
+.cr-msg-role.advocate { color: #60a5fa; }
+
+.cr-msg-text {
+  font-size: 0.86rem;
+  color: var(--white-2);
+  line-height: 1.65;
+}
+
+/* User speech bubble */
+.cr-interim-bubble {
+  align-self: flex-end;
+  max-width: 85%;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px dashed var(--glass-b);
+  border-radius: 12px 12px 0 12px;
+  padding: 10px 14px;
+  font-size: 0.84rem;
+  color: var(--white-muted);
+  font-style: italic;
+  animation: fadeIn 0.2s ease;
+}
+
+/* ── CHAMBERS EMPTY STATE ── */
+.be-card {
+  max-width: 540px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.02) 0%, rgba(255, 255, 255, 0.005) 100%);
+  border: 1px solid var(--glass-b);
+  border-radius: 16px;
+  padding: 40px 32px;
+  text-align: center;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+  transition: border-color 0.3s;
+}
+.be-card:hover {
+  border-color: var(--gold-border);
+}
+.be-icon {
+  font-size: 2.8rem;
+  color: var(--gold);
+  margin-bottom: 20px;
+  opacity: 0.85;
+}
+.be-title {
+  font-family: var(--serif);
+  font-size: 1.6rem;
+  color: var(--white);
+  margin-bottom: 12px;
+}
+.be-sub {
+  font-size: 0.88rem;
+  color: var(--white-muted);
+  line-height: 1.65;
+  margin-bottom: 28px;
+}
+.be-action-group {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+.be-action-group button {
+  padding: 12px 24px;
+}
+.be-notice {
+  font-size: 0.78rem;
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.06);
+  border: 1px solid rgba(251, 191, 36, 0.15);
+  border-radius: 8px;
+  padding: 10px 16px;
+  line-height: 1.5;
+  text-align: left;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in {
+  animation: fadeIn 0.3s ease forwards;
+}
+@keyframes cycleLoadingText {
+  0%, 24% { content: "Analyzing Authorities..."; }
+  25%, 49% { content: "Mapping Constitutional Issues..."; }
+  50%, 74% { content: "Constructing IRAC Framework..."; }
+  75%, 100% { content: "Generating Submission..."; }
+}
+.animate-cycle-text::after {
+  content: "Analyzing Authorities...";
+  animation: cycleLoadingText 8s infinite steps(1);
+  display: inline-block;
+}
+
+.panel-transition {
+  opacity: 0 !important;
+  transform: translate(-50%, calc(-50% + 12px)) scale(0.92) !important;
+  filter: blur(10px) !important;
+  transform-origin: center !important;
+  transition: opacity 450ms cubic-bezier(0.22, 1, 0.36, 1) !important,
+              transform 450ms cubic-bezier(0.22, 1, 0.36, 1) !important,
+              filter 450ms cubic-bezier(0.22, 1, 0.36, 1) !important;
+  will-change: transform, opacity, filter;
+}
+
+.panel-transition.active {
+  opacity: 1 !important;
+  transform: translate(-50%, -50%) scale(1) !important;
+  filter: blur(0) !important;
+}
+
+/* Background overlay transition */
+.overlay-transition {
+  opacity: 0 !important;
+  backdrop-filter: blur(0px) !important;
+  transition: opacity 300ms ease-out !important,
+              backdrop-filter 300ms ease-out !important;
+  will-change: opacity, backdrop-filter;
+}
+
+.overlay-transition.active {
+  opacity: 1 !important;
+  backdrop-filter: blur(12px) !important;
+}
+
+/* Inactive states for content elements to prepare for stagger */
+#aux-panel > *, #memorial-panel > * {
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 400ms cubic-bezier(0.22, 1, 0.36, 1),
+              transform 400ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* When active, transition top level elements in with stagger */
+#aux-panel.active > *, #memorial-panel.active > * {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Delays for top level header & toolbar */
+#aux-panel.active > :nth-child(1), #memorial-panel.active > :nth-child(1) {
+  transition-delay: 60ms;
+}
+#aux-panel.active > :nth-child(2), #memorial-panel.active > :nth-child(2) {
+  transition-delay: 110ms;
+}
+#aux-panel.active > :nth-child(3), #memorial-panel.active > :nth-child(3) {
+  transition-delay: 160ms;
+}
+
+/* Keyframes for internal body content stagger */
+@keyframes fadeUpStagger {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Stagger for Tab Bar (first child of main container inside body) */
+#aux-panel.active #aux-panel-content > div > :nth-child(1) {
+  opacity: 0;
+  transform: translateY(8px);
+  animation: fadeUpStagger 400ms cubic-bezier(0.22, 1, 0.36, 1) 210ms forwards;
+}
+
+/* Stagger for Active Tab Content Cards (children of card wrapper) */
+#aux-panel.active #aux-panel-content > div > :nth-child(2) > * {
+  opacity: 0;
+  transform: translateY(8px);
+  animation: fadeUpStagger 400ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+#aux-panel.active #aux-panel-content > div > :nth-child(2) > :nth-child(1) { animation-delay: 260ms; }
+#aux-panel.active #aux-panel-content > div > :nth-child(2) > :nth-child(2) { animation-delay: 310ms; }
+#aux-panel.active #aux-panel-content > div > :nth-child(2) > :nth-child(3) { animation-delay: 360ms; }
+#aux-panel.active #aux-panel-content > div > :nth-child(2) > :nth-child(4) { animation-delay: 410ms; }
+#aux-panel.active #aux-panel-content > div > :nth-child(2) > :nth-child(5) { animation-delay: 460ms; }
+
+/* Stagger for Memorial document layout */
+#memorial-panel.active #memorial-panel-content > div {
+  opacity: 0;
+  transform: translateY(8px);
+  animation: fadeUpStagger 400ms cubic-bezier(0.22, 1, 0.36, 1) 210ms forwards;
+}
+
+#memorial-panel.active #memorial-viewer-canvas > * {
+  opacity: 0;
+  transform: translateY(8px);
+  animation: fadeUpStagger 400ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* ── DYNAMIC ISLAND NAVIGATION ── */
+.dynamic-island-nav {
+  position: fixed;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 44px;
+  padding: 0 16px;
+  background: rgba(10, 13, 20, 0.75);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 22px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+  transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  max-width: 95vw;
+  width: max-content;
+}
+
+.dynamic-island-nav:hover {
+  border-color: rgba(201, 168, 76, 0.3);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.7), 0 0 20px rgba(201, 168, 76, 0.15);
+}
+
+.di-branding {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.di-logo {
+  font-family: var(--serif);
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--white);
+  letter-spacing: 0.01em;
+}
+.di-logo span {
+  color: var(--gold);
+}
+
+.di-divider {
+  width: 1px;
+  height: 16px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.di-stepper {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.di-step {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 10px;
+  border-radius: 12px;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  color: var(--white-muted);
+}
+.di-step:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--white);
+}
+
+.di-step .step-icon {
+  font-family: var(--sans);
+  font-size: 9px;
+  font-weight: 700;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1px solid var(--white-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.25s;
+}
+
+.di-step .step-label {
+  font-family: var(--sans);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.di-step.active {
+  background: rgba(201, 168, 76, 0.08);
+  color: var(--gold);
+}
+.di-step.active .step-icon {
+  border-color: var(--gold);
+  background: rgba(201, 168, 76, 0.15);
+  color: var(--gold);
+}
+
+.di-step.completed {
+  color: var(--white-2);
+}
+.di-step.completed .step-icon {
+  border-color: var(--success);
+  background: rgba(76, 175, 130, 0.15);
+  color: var(--success);
+}
+
+.di-step.upcoming {
+  opacity: 0.45;
+}
+.di-step.upcoming:hover {
+  opacity: 0.8;
+}
+
+.di-profile {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.di-docket-name {
+  font-size: 9px;
+  color: var(--white-muted);
+  max-width: 110px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.di-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--navy-5);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  color: var(--white-2);
+  cursor: pointer;
+  font-weight: 600;
+  transition: border-color 0.2s;
+}
+.di-avatar:hover {
+  border-color: var(--gold);
+}
+
+@media (max-width: 768px) {
+  .di-step-text, .di-docket-name, .di-step .step-label {
+    display: none;
+  }
+  .dynamic-island-nav {
+    padding: 0 10px;
+  }
+}
+
+/* ── STAGE 2 STRATEGIC LABELS ── */
+.issue-card {
+  transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1) !important;
+}
+.issue-card:hover {
+  border-color: rgba(201, 168, 76, 0.3) !important;
+  transform: translateY(-2px);
+}
+.issue-card.selected {
+  border-color: var(--gold) !important;
+  background: rgba(201, 168, 76, 0.05) !important;
+  box-shadow: 0 0 20px rgba(201, 168, 76, 0.1) !important;
+}
+
+/* ── AUTHORITY ARSENAL ── */
+.authority-arsenal-card {
+  transition: all 0.3s ease;
+}
+.authority-arsenal-card:hover {
+  transform: translateY(-1px);
+}
+.btn-weapon-toggle {
+  cursor: pointer;
+}
+
+/* ── TABBED OVERLAY MODAL ── */
+.auth-modal-overlay {
+  transition: opacity 0.35s ease, backdrop-filter 0.35s ease;
+}
+.auth-modal-tab-active {
+  color: var(--gold) !important;
+  border-bottom-color: var(--gold) !important;
+  background: rgba(201, 168, 76, 0.05) !important;
+}
+
+/* ── ADVOCACY ARSENAL MODULES ── */
+.arsenal-module-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+.arsenal-module-card:hover {
+  border-color: rgba(201, 168, 76, 0.25);
+  background: rgba(255, 255, 255, 0.04);
+  transform: translateY(-2px);
+}
+
+/* ── COURTROOM ENTRANCE ── */
+.courtroom-entrance-layout {
+  animation: fadeIn 0.4s ease-out forwards;
+}
+.judge-profile-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  padding: 10px 12px;
+  transition: all 0.25s ease;
+}
+.judge-profile-card:hover {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+#memorial-panel.active #memorial-viewer-canvas > :nth-child(1) { animation-delay: 260ms; } /* Issue */
+#memorial-panel.active #memorial-viewer-canvas > :nth-child(2) { animation-delay: 290ms; } /* Divider */
+#memorial-panel.active #memorial-viewer-canvas > :nth-child(3) { animation-delay: 320ms; } /* Rule */
+#memorial-panel.active #memorial-viewer-canvas > :nth-child(4) { animation-delay: 350ms; } /* Divider */
+#memorial-panel.active #memorial-viewer-canvas > :nth-child(5) { animation-delay: 380ms; } /* Application */
+#memorial-panel.active #memorial-viewer-canvas > :nth-child(6) { animation-delay: 410ms; } /* Divider */
+#memorial-panel.active #memorial-viewer-canvas > :nth-child(7) { animation-delay: 440ms; } /* Conclusion */
+
+/* ═══════════════════════════════════════════
+   GUIDED WORKFLOW STEPPER & STAGES
+   ═══════════════════════════════════════════ */
+.ws-stepper {
+  display: none !important;
+}
+.ws-stepper::-webkit-scrollbar {
+  display: none;
+}
+
+.step-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 10px;
+  border-radius: 14px;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  flex-shrink: 0;
+}
+.step-item:focus {
+  outline: none;
+}
+
+.step-icon {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 600;
+  font-family: var(--sans);
+  border: 1.2px solid;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.step-label {
+  font-size: 11px;
+  font-weight: 500;
+  font-family: var(--sans);
+  letter-spacing: 0.02em;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  white-space: nowrap;
+}
+
+.step-connector {
+  width: 10px;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.1);
+  flex-shrink: 0;
+  transition: all 0.3s ease;
+}
+
+/* Active State */
+.step-item.active {
+  background: rgba(201, 168, 76, 0.08);
+}
+.step-item.active .step-icon {
+  background: var(--gold-muted);
+  border-color: var(--gold);
+  color: var(--gold);
+}
+.step-item.active .step-label {
+  color: var(--gold);
+  font-weight: 600;
+}
+.step-item.active::after {
+  display: none;
+}
+
+/* Completed State */
+.step-item.completed .step-icon {
+  background: rgba(76, 175, 130, 0.15);
+  border-color: var(--success);
+  color: var(--success);
+}
+.step-item.completed .step-label {
+  color: var(--white-2);
+}
+
+/* Upcoming State */
+.step-item.upcoming {
+  opacity: 0.45;
+}
+.step-item.upcoming .step-icon {
+  background: transparent;
+  border-color: var(--white-muted);
+  color: var(--white-muted);
+}
+.step-item.upcoming .step-label {
+  color: var(--white-muted);
+}
+.step-item.upcoming:hover {
+  opacity: 0.75;
+}
+
+/* Stage Containers */
+.ws-stage {
+  flex: 1;
+  display: none;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+.ws-stage.active {
+  display: flex;
+}
+
+/* Floating Wizard Navigation */
+.ws-floating-nav {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  display: flex;
+  align-items: center;
+  background: rgba(14, 18, 32, 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  padding: 5px;
+  gap: 4px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+  z-index: 90;
+}
+.ws-floating-nav button {
+  background: transparent;
+  border: none;
+  color: var(--white-muted);
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 8px 14px;
+  border-radius: 15px;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+.ws-floating-nav button:hover {
+  color: var(--white);
+  background: rgba(255, 255, 255, 0.06);
+}
+.ws-floating-nav button.primary {
+  color: var(--navy);
+  background: var(--gold);
+  font-weight: 600;
+}
+.ws-floating-nav button.primary:hover {
+  background: var(--gold-light);
+}
+
+/* Interactive Issue Cards */
+.issue-card-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+.issue-card {
+  padding: 18px 20px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1.5px solid var(--glass-b);
+  border-radius: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  gap: 16px;
+}
+.issue-card:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.15);
+  transform: translateX(4px);
+}
+@keyframes goldPulse {
+  0% { box-shadow: 0 0 0 0 rgba(201, 168, 76, 0.35); border-color: rgba(201, 168, 76, 0.6); }
+  70% { box-shadow: 0 0 0 8px rgba(201, 168, 76, 0); border-color: rgba(201, 168, 76, 0.3); }
+  100% { box-shadow: 0 0 0 0 rgba(201, 168, 76, 0); border-color: rgba(201, 168, 76, 0.4); }
+}
+.issue-card.selected {
+  background: rgba(201, 168, 76, 0.06);
+  border-color: var(--gold);
+  animation: goldPulse 2s infinite;
+}
+
+/* Respect prefers-reduced-motion accessibility settings */
+@media (prefers-reduced-motion: reduce) {
+  .panel-transition {
+    transition: opacity 200ms ease-out !important;
+    transform: none !important;
+    filter: none !important;
+  }
+  .overlay-transition {
+    transition: opacity 200ms ease-out !important;
+    backdrop-filter: none !important;
+  }
+}
+</style>
+</head>
+<body>
+
+<!-- ═══ VIEW 1 — LANDING ═══ -->
+<div id="view-landing" class="view active">
+  <nav class="land-nav">
+    <a class="nav-logo" id="land-nav-logo" style="cursor:pointer">Moot<span>Coach</span></a>
+    <ul class="nav-links">
+      <li><a href="#how">How it Works</a></li>
+      <li><a href="#features">Features</a></li>
+      <li><a href="#pricing">Access</a></li>
+    </ul>
+    <div class="nav-right">
+      <button class="btn-ghost tracking-widest font-medium" id="nav-btn-login">Login</button>
+      <button class="btn-primary btn-login-nav tracking-widest font-medium" id="nav-btn-get-started" data-default="Get Started">Get Started</button>
+    </div>
+  </nav>
+
+  <section class="hero land-section">
+    <div class="hero-eyebrow">The AI Workspace for Elite Mooters</div>
+    <h1 class="font-light tracking-tight text-5xl">Don't just survive the bench.<br/><em>Control the courtroom.</em></h1>
+    <p class="hero-sub font-light text-lg">Upload your proposition, extract the ratio, build unassailable arguments, and face a hostile AI judge before you ever step into the moot hall.</p>
+    <div class="hero-ctas">
+      <button class="btn-primary tracking-widest font-medium" id="hero-btn-start">Start Building Your Case →</button>
+      <a href="#how" class="btn-outline tracking-widest font-medium">Examine the Process</a>
+    </div>
+    <div class="trust-badges">
+      <div class="badge"><span class="badge-dot"></span>Trained on Landmark Precedents</div>
+      <div class="badge"><span class="badge-dot"></span>Strict Legal Logic</div>
+      <div class="badge"><span class="badge-dot"></span>Secure & Confidential</div>
+    </div>
+  </section>
+
+  <div class="trust-banner">
+    <div class="trust-item"><svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg> Built for the ambitious law student</div>
+    <div class="trust-item"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> Save 40+ hours of initial research</div>
+    <div class="trust-item"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> Bank-grade privacy for your strategies</div>
+  </div>
+
+  <div class="sep"></div>
+
+  <section class="land-section" id="how">
+    <div class="section-wrap">
+      <div class="section-header">
+        <div class="section-eyebrow">Process</div>
+        <h2>How MootCoach Works</h2>
+        <p>Three steps from raw proposition to confident advocate.</p>
+      </div>
+      <div class="steps-grid">
+        <div class="step"><div class="step-num">01</div><h3>Create Moot Workspace</h3><p>Upload your moot proposition PDF and set up your workspace. The AI reads it and starts building context immediately.</p></div>
+        <div class="step"><div class="step-num">02</div><h3>Practice with AI</h3><p>Enter the AI Practice Room. Argue your side, face dynamic bench questions, and iterate on your oral submissions in real time.</p></div>
+        <div class="step"><div class="step-num">03</div><h3>Receive Strategic Feedback</h3><p>Get structured critique on argument clarity, counter-argument readiness, precedent use, and oral advocacy — every round.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="sep"></div>
+
+  <section class="land-section" id="features">
+    <div class="section-wrap">
+      <div class="section-header">
+        <div class="section-eyebrow">Capabilities</div>
+        <h2>Engineered for <em style="font-family:var(--serif);font-style:italic;color:var(--gold)">Outcomes</em></h2>
+        <p>Not features. Results you can carry into the moot hall.</p>
+      </div>
+      <div class="features-grid">
+        <div class="feat-card"><div class="feat-icon">⚖</div><h3>Identify Legal Issues Instantly</h3><p>AI parses your proposition and surfaces every contestable issue, relevant precedent, and constitutional angle before you start drafting.</p></div>
+        <div class="feat-card"><div class="feat-icon">◎</div><h3>Improve Oral Advocacy with Realtime Critique</h3><p>Submit your speech, receive scored feedback on structure, language, and legal precision. Know exactly where you lose the bench.</p></div>
+        <div class="feat-card"><div class="feat-icon">✦</div><h3>Build Unassailable Arguments</h3><p>Construct arguments with proper ratio, precedent chains, and pre-emptive rebuttals — structured for competition judges.</p></div>
+        <div class="feat-card"><div class="feat-icon">◈</div><h3>Memorial Guidance That Wins Marks</h3><p>AI-assisted feedback on your written memorial — structure, research depth, citation style, and persuasive framing.</p></div>
+        <div class="feat-card"><div class="feat-icon">↯</div><h3>Anticipate Every Bench Question</h3><p>Train against an AI bench that targets your weakest arguments. Walk into the moot hall with answers already prepared.</p></div>
+        <div class="feat-card"><div class="feat-icon">▣</div><h3>Track Progress Round by Round</h3><p>Analytics across all your sessions. Watch scores improve, spot recurring weaknesses, and measure growth over time.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="sep"></div>
+
+  <section class="land-section proof-section" id="pricing">
+    <p class="proof-tagline">Built for the next generation of mooters.<br/><em>Currently in Beta — join early and shape the product.</em></p>
+    <div class="beta-card">
+      <div class="beta-pill">100% Free Beta Access</div>
+      <p class="beta-desc" style="font-size: 1.05rem; margin-bottom: 1.2rem;">MootCoach is actively being built. Early users get complete, unrestricted free access to all features while we build the foundation.</p>
+      <ul style="list-style: none; text-align: left; max-width: 300px; margin: 0 auto 2rem; color: var(--white-2); line-height: 1.8;">
+        <li><span style="color:var(--gold);margin-right:8px;">✓</span>Unlimited Proposition Analysis</li>
+        <li><span style="color:var(--gold);margin-right:8px;">✓</span>Unlimited Bench Simulations</li>
+        <li><span style="color:var(--gold);margin-right:8px;">✓</span>Unlimited Oral Scoring</li>
+        <li><span style="color:var(--gold);margin-right:8px;">✓</span>Cloud Saved Workspaces</li>
+      </ul>
+      <button class="btn-primary btn-login-nav tracking-widest font-medium" id="beta-btn-signup" data-default="Create Free Account →" style="padding:14px 32px;font-size:.88rem; width:100%;">Create Free Account →</button>
+    </div>
+  </section>
+
+  <div class="sep"></div>
+
+  <section class="land-section">
+    <div class="section-wrap">
+      <div class="section-header">
+        <div class="section-eyebrow">Roadmap</div>
+        <h2>What's Coming Next</h2>
+        <p>MootCoach is ambitious. These features are in active development.</p>
+      </div>
+      <div class="soon-grid">
+        <div class="soon-card"><div class="soon-tag">Coming Soon</div><h3>Live AI Judge</h3><p>A simulated bench that interrupts, questions, and scores your round in real time.</p></div>
+        <div class="soon-card"><div class="soon-tag">Coming Soon</div><h3>Memorial Analyzer</h3><p>Deep analysis of your written memorial — structure, research depth, citation style.</p></div>
+        <div class="soon-card"><div class="soon-tag">Coming Soon</div><h3>Team Collaboration</h3><p>Co-counsel mode. Build and argue with your partner in one shared workspace.</p></div>
+        <div class="soon-card"><div class="soon-tag">Coming Soon</div><h3>Voice Round Simulation</h3><p>Full voice-based oral practice with pitch, pace, and clarity coaching.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="sep"></div>
+
+  <section class="land-section cta-section">
+    <div class="section-eyebrow" style="justify-content:center">Enter the Practice Room</div>
+    <h2>Your next moot starts here.</h2>
+    <p>MootCoach is in early access. Get in now, help shape the product, and prepare smarter than everyone else in the room.</p>
+    <button class="btn-primary btn-login-nav tracking-widest font-medium" id="bottom-btn-practice" data-default="Enter AI Practice Room →">Enter AI Practice Room →</button>
+  </section>
+
+  <footer class="land-footer">
+    <div class="footer-brand">Moot<span>Coach</span></div>
+    <ul class="footer-links">
+      <li><a href="#how">How it Works</a></li>
+      <li><a href="#features">Features</a></li>
+      <li><a href="#" id="footer-link-terms">Terms</a></li>
+      <li><a href="#" id="footer-link-privacy">Privacy</a></li>
+    </ul>
+    <div class="footer-copy">© 2026 MootCoach. All rights reserved. Strictly confidential workspace.</div>
+  </footer>
+</div>
+
+
+<!-- ═══ VIEW 2 — LOGIN ═══ -->
+<div id="view-login" class="view">
+  <nav class="login-nav">
+    <a class="nav-logo" id="login-nav-logo" style="cursor:pointer">Moot<span>Coach</span></a>
+    <button class="login-nav-back" id="login-nav-back">← Back to Home</button>
+  </nav>
+  <main class="login-main">
+    <div class="auth-wrap">
+      <div class="auth-header">
+        <h1>Welcome to<br/><em>MootCoach</em></h1>
+        <p>Your AI moot preparation workspace.</p>
+      </div>
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="tab-login">Sign In</button>
+        <button class="auth-tab" id="tab-signup">Create Account</button>
+      </div>
+      <div class="auth-card">
+        <!-- LOGIN FORM -->
+        <div id="form-login">
+          <div class="field">
+            <label class="tracking-wide">Email Address</label>
+            <input type="email" id="li-email" placeholder="you@lawschool.edu" autocomplete="email"/>
+            <div class="field-hint" id="h-li-email">Please enter a valid email.</div>
+          </div>
+          <div class="field">
+            <div class="field-meta"><a href="#" id="login-forgot-pass">Forgot password?</a></div>
+            <input type="password" id="li-pass" placeholder="Your password" autocomplete="current-password"/>
+            <div class="field-hint" id="h-li-pass">Password is required.</div>
+          </div>
+          <button class="btn-submit" id="btn-li">Sign In</button>
+          <div class="auth-divider"><span>or</span></div>
+          <button class="btn-google" id="btn-google-login">
+            <svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.2l6.8-6.8C35.9 2.2 30.3 0 24 0 14.7 0 6.7 5.4 2.6 13.3l7.9 6.1C12.4 13 17.8 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4.1 7.1-10.1 7.1-17z"/><path fill="#FBBC05" d="M10.5 28.6A14.4 14.4 0 0 1 9.5 24c0-1.6.3-3.2.8-4.6L2.4 13.3A24 24 0 0 0 0 24c0 3.9.9 7.5 2.5 10.8l8-6.2z"/><path fill="#34A853" d="M24 48c6.5 0 12-2.1 16-5.8l-7.5-5.8c-2.2 1.5-5 2.3-8.5 2.3-6.2 0-11.5-4.2-13.4-9.9l-8 6.2C6.6 42.5 14.7 48 24 48z"/></svg>
+            Continue with Google
+          </button>
+        </div>
+        <!-- SIGNUP FORM -->
+        <div id="form-signup" style="display:none">
+          <div class="field-row">
+            <div class="field">
+              <label class="tracking-wide">First Name</label>
+              <input type="text" id="su-fname" placeholder="Arjun" autocomplete="given-name"/>
+              <div class="field-hint" id="h-su-fname">Required.</div>
+            </div>
+            <div class="field">
+              <label class="tracking-wide">Last Name</label>
+              <input type="text" id="su-lname" placeholder="Mehta" autocomplete="family-name"/>
+            </div>
+          </div>
+          <div class="field">
+            <label class="tracking-wide">Email Address</label>
+            <input type="email" id="su-email" placeholder="you@lawschool.edu" autocomplete="email"/>
+            <div class="field-hint" id="h-su-email">Please enter a valid email.</div>
+          </div>
+          <div class="field">
+            <label class="tracking-wide">Law School / University</label>
+            <input type="text" id="su-school" placeholder="NALSAR, NLS, NUJS..."/>
+          </div>
+          <div class="field">
+            <label class="tracking-wide">Password</label>
+            <input type="password" id="su-pass" placeholder="Min. 8 characters" autocomplete="new-password"/>
+            <div class="field-hint" id="h-su-pass">Must be at least 8 characters.</div>
+          </div>
+          <button class="btn-submit" id="btn-su">Create Account</button>
+          <div class="auth-divider"><span>or</span></div>
+          <button class="btn-google" id="btn-google-signup">
+            <svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.2l6.8-6.8C35.9 2.2 30.3 0 24 0 14.7 0 6.7 5.4 2.6 13.3l7.9 6.1C12.4 13 17.8 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4.1 7.1-10.1 7.1-17z"/><path fill="#FBBC05" d="M10.5 28.6A14.4 14.4 0 0 1 9.5 24c0-1.6.3-3.2.8-4.6L2.4 13.3A24 24 0 0 0 0 24c0 3.9.9 7.5 2.5 10.8l8-6.2z"/><path fill="#34A853" d="M24 48c6.5 0 12-2.1 16-5.8l-7.5-5.8c-2.2 1.5-5 2.3-8.5 2.3-6.2 0-11.5-4.2-13.4-9.9l-8 6.2C6.6 42.5 14.7 48 24 48z"/></svg>
+            Continue with Google
+          </button>
+          <p class="auth-terms">By creating an account you agree to our <a href="#" id="signup-link-terms">Terms of Service</a> and <a href="#" id="signup-link-privacy">Privacy Policy</a>.</p>
+        </div>
+        <!-- SUCCESS -->
+        <div class="auth-success" id="auth-success">
+          <div class="success-icon">✦</div>
+          <h3>You're in.</h3>
+          <p>Taking you to your workspace now...</p>
+        </div>
+      </div>
+      <p class="auth-footer-note" id="note-login">Don't have an account? <a href="#" id="link-goto-signup">Create one free →</a></p>
+      <p class="auth-footer-note" id="note-signup" style="display:none">Already have an account? <a href="#" id="link-goto-login">Sign in →</a></p>
+    </div>
+  </main>
+  <footer class="login-footer">© 2026 MootCoach. All rights reserved. Strictly confidential workspace.</footer>
+</div>
+
+
+<!-- ═══ VIEW 3 — WORKSPACE ═══ -->
+<div id="view-workspace" class="view hidden">
+  <!-- Floating Dynamic Island Navigation Capsule -->
+  <div class="dynamic-island-nav" id="dynamic-island-nav">
+    <div class="di-branding">
+      <div class="di-logo" onclick="window.navigate('landing')">Moot<span>Coach</span></div>
+      <div class="backend-status checking border-none bg-transparent p-0" id="backend-status" title="Server status" style="border:none !important; background:transparent !important; padding:0 !important; width:auto; min-width:0; gap:0; display:flex;">
+        <div class="bs-dot"></div>
+        <span id="bs-label" class="hidden">Checking server…</span>
+      </div>
+    </div>
+    
+    <div class="di-divider"></div>
+    
+    <div class="di-stepper">
+      <button class="di-step active" id="step-1" onclick="window.goToStage(1)" title="Proposition Analysis">
+        <div class="step-icon">1</div>
+        <span class="step-label">Analysis</span>
+      </button>
+      <button class="di-step upcoming" id="step-2" onclick="window.goToStage(2)" title="Issue Workspace">
+        <div class="step-icon">2</div>
+        <span class="step-label">Issues</span>
+      </button>
+      <button class="di-step upcoming" id="step-3" onclick="window.goToStage(3)" title="Advocacy Workspace">
+        <div class="step-icon">3</div>
+        <span class="step-label">Advocacy</span>
+      </button>
+      <button class="di-step upcoming" id="step-4" onclick="window.goToStage(4)" title="Bench Simulator">
+        <div class="step-icon">4</div>
+        <span class="step-label">Simulator</span>
+      </button>
+    </div>
+    
+    <div class="di-divider"></div>
+    
+    <div class="di-profile">
+      <div class="di-docket-name" id="di-docket-name">Active Docket</div>
+      <div class="di-avatar" id="ws-avatar" onclick="toggleMobileSidebar()">U</div>
+    </div>
+  </div>
+
+  <div class="ws-body">
+    <div class="ws-sidebar-overlay" id="ws-sidebar-overlay" onclick="toggleMobileSidebar()"></div>
+    
+    <aside class="ws-sidebar" id="ws-sidebar">
+      <div class="ws-sb-content">
+        <div class="ws-sb-section hidden">
+          <div class="ws-sb-label">Workspace</div>
+          <button class="ws-sb-item active" id="wsb-upload" onclick="showWsPanel('upload')">
+            <span class="ws-sb-icon">⊕</span> Analyze Proposition
+          </button>
+          <button class="ws-sb-item" id="wsb-results" onclick="showWsPanel('results')">
+            <span class="ws-sb-icon">◎</span> Proposition Briefing
+          </button>
+        </div>
+        <div class="ws-sb-divider"></div>
+        
+        <!-- ADDED RECENT MOOTS SECTION -->
+        <div class="ws-sb-section" id="ws-recent-section" style="display:none; flex-direction:column; padding-bottom:0;">
+          <div class="ws-sb-label">Recent Moots</div>
+          <div id="ws-recent-list"></div>
+        </div>
+        <div class="ws-sb-divider"></div>
+
+        <div class="ws-sb-section">
+          <div class="ws-sb-label">Moot Details</div>
+          <div class="ws-sb-infobox">
+            <div class="wsib-label">Moot Name</div>
+            <div class="wsib-value empty" id="wsib-moot">Not set</div>
+          </div>
+          <div class="ws-sb-infobox" style="margin-top:6px">
+            <div class="wsib-label">Proposition File</div>
+            <div class="wsib-value empty" id="wsib-file">No file uploaded</div>
+          </div>
+        </div>
+        <div class="ws-sb-divider"></div>
+        <div class="ws-sb-section">
+          <div class="ws-sb-label">Coming Soon</div>
+          <button class="ws-sb-item locked"><span class="ws-sb-icon" style="opacity: 0.5;">🔒</span> Memorial Guide</button>
+        </div>
+      </div>
+      <div class="ws-sb-bottom">
+        <button class="logout" onclick="handleLogout()">
+          <span class="ws-sb-icon">⇥</span> Sign Out
+        </button>
+      </div>
+    </aside>
+
+    <main class="ws-main">
+      <!-- STAGE 1: PROPOSITION ANALYSIS -->
+      <div class="ws-stage active" id="stage-1-container">
+        <!-- UPLOAD PANEL -->
+        <div class="ws-panel ws-upload-panel active" id="wsp-upload">
+          <div class="ws-upload-inner">
+            <div class="ws-up-eyebrow">New Analysis</div>
+            <h2>Lodge<br/><em>Proposition</em></h2>
+            <p>Provide your moot problem as a PDF. The AI will analyze it — surfacing key legal issues, contestable arguments, and strategic angles.</p>
+            <div class="ws-field">
+              <label class="tracking-wide">Moot Name <span style="opacity:.5;font-size:.9em">(optional)</span></label>
+              <input type="text" id="ws-moot-name" placeholder="e.g. NALSAR MCC 2025 – Environmental Law" oninput="updateWsMootName(this.value)"/>
+            </div>
+            <div class="dropzone" id="ws-dropzone">
+              <input type="file" id="proposition-upload" accept=".pdf" />
+              <div class="dz-icon">⬆</div>
+              <div class="dz-title">Lodge Proposition Dossier (.pdf)</div>
+              <div class="dz-sub">or <span>click to browse</span> · PDF only</div>
+            </div>
+            <div class="file-pill" id="ws-file-pill">
+              <div class="fp-icon">📄</div>
+              <div class="fp-details">
+                <div class="fp-name" id="fp-name">—</div>
+                <div class="fp-size" id="fp-size">—</div>
+              </div>
+              <button class="fp-remove" id="fp-remove">✕</button>
+            </div>
+            <button class="btn-analyze tracking-widest font-medium" id="analyze-submit-btn" disabled>
+              File Submission
+            </button>
+            <p class="upload-note">Analysis powered by Groq · llama3-70b-8192 · Automatically saved to your account.</p>
+          </div>
+        </div>
+
+        <!-- RESULTS PANEL -->
+        <div class="ws-panel ws-results-panel hidden" id="wsp-results">
+          <div class="res-empty" id="res-empty">
+            <div class="res-empty-icon">◎</div>
+            <div class="res-empty-title">No analysis yet</div>
+            <div class="res-empty-sub">Upload and analyze a proposition to see results here.</div>
+          </div>
+          <!-- filled state -->
+          <div id="res-filled" style="display:none;flex:1;flex-direction:column;overflow:hidden;">
+            <div class="res-topbar">
+              <div>
+                <div class="res-eyebrow">AI Analysis Complete</div>
+                <div class="res-title" id="res-moot-title">Proposition Briefing</div>
+              </div>
+              <div class="res-actions">
+                <button class="btn-sm btn-sm-ghost" onclick="showWsPanel('upload')">New Analysis</button>
+                <button class="btn-sm btn-sm-gold" onclick="copyAnalysis()">Copy All</button>
+              </div>
+            </div>
+            <div class="res-meta">
+              <div class="res-chip"><div class="res-chip-dot"></div> Saved to Cloud</div>
+              <div class="res-chip">· Groq · llama-3.3-70b</div>
+              <div class="res-chip" id="res-file-chip">·</div>
+            </div>
+            <!-- sticky section nav -->
+            <div class="res-sticky-nav" id="res-sticky-nav">
+              <div id="res-sticky-nav-inner" style="display:flex;align-items:center;gap:0;"></div>
+            </div>
+            <!-- scrollable body -->
+            <div class="res-body" style="flex:1;overflow-y:auto;">
+              <div class="analysis-content" id="analysis-output"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STAGE 2: ISSUE WORKSPACE -->
+      <div class="ws-stage" id="stage-2-container" style="display:none; overflow-y:auto; padding:40px 32px;">
+        <div class="max-w-[800px] mx-auto w-full flex flex-col gap-6">
+          <div class="ws-up-eyebrow flex items-center gap-1.5 text-xs text-moot-accent font-semibold tracking-widest uppercase">
+            <span class="w-1.5 h-1.5 rounded-full bg-moot-accent"></span>
+            Issue Workspace
+          </div>
+          <div>
+            <h2 style="font-family:var(--serif); font-size:2rem; font-weight:500; line-height:1.15; margin-bottom:.4rem;">Issue Workspace</h2>
+            <p style="font-size:.84rem; color:var(--white-muted); line-height:1.6;">
+              Select your advocacy stance and focus on a specific legal issue extracted from the proposition.
+            </p>
+          </div>
+          
+          <div class="bg-white/5 border border-white/10 rounded-xl p-6 backdrop-blur-md space-y-6">
+            <!-- Stance Selector -->
+            <div class="ws-field flex flex-col gap-2">
+              <label class="tracking-wide text-xs font-semibold uppercase text-white-2">1. Select Side</label>
+              <div class="grid grid-cols-2 gap-2 w-full mt-1">
+                <label class="cursor-pointer flex-1">
+                  <input type="radio" name="stance" value="petitioner" class="peer sr-only" checked>
+                  <div class="w-full py-2.5 px-2 text-xs font-semibold tracking-widest text-center whitespace-nowrap rounded-md border border-moot-border text-moot-muted peer-checked:bg-indigo-500/10 peer-checked:border-indigo-500 peer-checked:text-indigo-400 transition-all duration-200 flex items-center justify-center">
+                    PETITIONER / APPELLANT
+                  </div>
+                </label>
+                <label class="cursor-pointer flex-1">
+                  <input type="radio" name="stance" value="respondent" class="peer sr-only">
+                  <div class="w-full py-2.5 px-2 text-xs font-semibold tracking-widest text-center whitespace-nowrap rounded-md border border-moot-border text-moot-muted peer-checked:bg-rose-500/10 peer-checked:border-rose-500 peer-checked:text-rose-400 transition-all duration-200 flex items-center justify-center">
+                    RESPONDENT / OPPOSITION
+                  </div>
+                </label>
+              </div>
+            </div>
+            
+            <!-- Hidden original select for compatibility -->
+            <select id="builder-issue-select" class="hidden">
+              <option value="Issue 1: Jurisdiction & Maintainability">Issue 1: Jurisdiction & Maintainability</option>
+              <option value="Issue 2: Constitutional Validity of the Act/Provision">Issue 2: Constitutional Validity of the Act/Provision</option>
+              <option value="Issue 3: Substantive Merits & Breach of Rights">Issue 3: Substantive Merits & Breach of Rights</option>
+              <option value="Issue 4: Appropriate Remedies & Relief Sought">Issue 4: Appropriate Remedies & Relief Sought</option>
+            </select>
+
+            <!-- Card list container -->
+            <div class="ws-field flex flex-col gap-2">
+              <label class="tracking-wide text-xs font-semibold uppercase text-white-2">2. Select Legal Issue</label>
+              <div id="stage-2-extracted-issues-list" class="mt-1">
+                <!-- Populated dynamically via JS -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STAGE 3: ADVOCACY WORKSPACE -->
+      <div class="ws-stage" id="stage-3-container" style="display:none; overflow-y:auto;">
+        <div class="workspace-container flex flex-col lg:flex-row gap-6" style="padding:30px 24px; min-height:100%; max-width:1800px; margin:0 auto; width:100%; box-sizing:border-box;">
+          
+          <!-- LEFT SIDEBAR: Strategy & Arsenal (25% width) -->
+          <div class="w-full lg:w-[25%] flex flex-col space-y-4">
+            <div class="ws-up-eyebrow flex items-center gap-1.5 text-xs text-moot-accent font-semibold tracking-widest uppercase">
+              <span class="w-1.5 h-1.5 rounded-full bg-moot-accent"></span>
+              Strategy & Arsenal
+            </div>
+            
+            <!-- Side Badge Card -->
+            <div class="bg-white/5 border border-white/10 rounded-xl p-4 backdrop-blur-md">
+              <div class="text-[10px] uppercase tracking-widest text-white-muted font-sans font-semibold mb-2">Selected Stance</div>
+              <div id="stage3-side-badge" class="text-xs font-semibold tracking-widest text-center py-2 px-3 rounded-md border">
+                PETITIONER
+              </div>
+            </div>
+
+            <!-- Active Issue Card -->
+            <div class="bg-white/5 border border-white/10 rounded-xl p-4 backdrop-blur-md">
+              <div class="text-[10px] uppercase tracking-widest text-white-muted font-sans font-semibold mb-2">Selected Legal Issue</div>
+              <div id="stage3-selected-issue-text" class="text-xs font-sans text-white font-medium leading-relaxed font-semibold">
+                No issue selected yet.
+              </div>
+            </div>
+
+            <!-- Recommended Authorities -->
+            <div class="bg-white/5 border border-white/10 rounded-xl p-4 backdrop-blur-md flex flex-col gap-3">
+              <div class="text-xs uppercase tracking-wider text-moot-accent font-semibold flex items-center gap-1.5 font-sans mb-1">
+                <span>💡</span> Authority Armory
+              </div>
+              <div class="text-[10px] text-white-muted leading-relaxed font-sans">
+                Toggle supporting authorities to feed into the AI drafting engine.
+              </div>
+              <div id="pre-draft-chips" class="flex flex-col gap-2 max-h-[220px] overflow-y-auto pr-1">
+                <!-- Populated dynamically via JS -->
+              </div>
+            </div>
+
+            <!-- Bench Attack Forecast -->
+            <div class="bg-white/5 border border-white/10 rounded-xl p-4 backdrop-blur-md flex flex-col gap-3">
+              <div class="text-xs uppercase tracking-wider text-red-400 font-semibold flex items-center gap-1.5 font-sans mb-1">
+                <span>🎯</span> Bench Attack Forecast
+              </div>
+              <div class="text-[10px] text-white-muted leading-relaxed font-sans">
+                Predict the specific hostile questions the bench will ask on this issue.
+              </div>
+              <button id="btn-generate-forecast" class="w-full py-2 bg-red-500/10 border border-red-500/30 text-red-400 text-xs tracking-widest uppercase font-semibold rounded hover:bg-red-500/20 transition-all duration-300 cursor-pointer" onclick="window.generateBenchForecast()">
+                Generate Forecast
+              </button>
+              <div id="bench-forecast-results" class="hidden flex flex-col gap-3 mt-2 text-left max-h-[300px] overflow-y-auto pr-1">
+                <!-- Injected via JS -->
+              </div>
+            </div>
+
+            <!-- Case Overview/Context Card -->
+            <div class="bg-white/5 border border-white/10 rounded-xl p-4 backdrop-blur-md">
+              <div class="text-[10px] uppercase tracking-widest text-white-muted font-sans font-semibold mb-2">Case Summary Context</div>
+              <div id="stage3-case-context" class="text-xs text-white-muted font-serif leading-relaxed max-h-[150px] overflow-y-auto pr-1">
+                Upload and analyze a proposition to see summary context here.
+              </div>
+            </div>
+
+            <!-- Hidden elements to preserve JS compatibility -->
+            <div id="live-intelligence-panel" class="hidden">
+              <span id="intel-cases-count">0</span>
+              <span id="intel-statutes-count">0</span>
+              <div id="intel-pills-container"></div>
+              <div id="intel-empty-hint"></div>
+            </div>
+            <div id="workspace-refinements-panel" class="hidden"></div>
+          </div>
+          
+          <!-- CENTER PANEL: Argument Builder (45% width) -->
+          <div class="w-full lg:w-[45%] flex flex-col space-y-4">
+            <div class="ws-up-eyebrow flex items-center gap-1.5 text-xs text-moot-accent font-semibold tracking-widest uppercase">
+              <span class="w-1.5 h-1.5 rounded-full bg-moot-accent"></span>
+              Argument Builder
+            </div>
+
+            <!-- Input Notes Area -->
+            <div class="bg-white/5 border border-white/10 rounded-xl p-4 backdrop-blur-md mb-2">
+              <form id="builder-form" onsubmit="event.preventDefault();" class="flex flex-col space-y-3">
+                <div class="ws-field flex flex-col gap-2 mb-0">
+                  <label for="builder-notes-input" class="tracking-wide text-xs font-semibold uppercase text-white-2">Draft Notes & Custom Arguments</label>
+                  <textarea id="builder-notes-input" class="oral-textarea w-full min-h-[100px] resize-y mt-1 mb-2" rows="3" placeholder="Enter raw thoughts, facts, or custom arguments. Selected authorities will be automatically included..." style="font-size:.82rem;"></textarea>
+                </div>
+                <button class="btn-analyze w-full py-2.5 text-xs tracking-widest font-medium transition-all duration-300 hover:shadow-[0_0_20px_rgba(201,168,76,0.3)]" id="btn-builder-submit" disabled>
+                  Generate Structured Draft →
+                </button>
+              </form>
+            </div>
+
+            <!-- AI Counsel Output Workspace -->
+            <div id="ai-counsel-workspace" class="flex-1 flex flex-col min-h-[400px] relative">
+              <div class="flex-1 bg-white/5 border border-white/10 rounded-xl p-5 flex flex-col transition-all duration-300 hover:border-white/15 overflow-y-auto">
+                <!-- Empty state -->
+                <div id="builder-empty-state" class="flex flex-col items-center justify-center text-center p-6 h-full min-h-[300px]">
+                  <div class="text-moot-accent text-4xl mb-4 animate-[pulse_2s_infinite]">⚖️</div>
+                  <h3 class="text-md font-serif text-white font-normal">AI Drafter</h3>
+                  <p class="text-[11px] text-white-muted mt-2 max-w-sm mb-4">Complete the drafting steps or select recommended authorities, then click Generate Draft.</p>
+                </div>
+
+                <!-- Loading State -->
+                <div id="builder-loading-state" class="hidden flex-col items-center justify-center text-center p-6 h-full min-h-[300px] w-full">
+                  <div class="flex items-center gap-2 mb-6 bg-indigo-500/10 border border-indigo-500/20 px-3 py-1.5 rounded-full animate-pulse">
+                    <span class="w-1.5 h-1.5 rounded-full bg-indigo-400"></span>
+                    <span class="text-[10px] uppercase tracking-wider text-indigo-300 font-sans font-medium">Drafting...</span>
+                  </div>
+                  <div class="text-xs font-sans text-indigo-300 font-medium tracking-wide mb-6">
+                    <span class="animate-cycle-text"></span>
+                  </div>
+                  <div class="w-full space-y-4 text-left">
+                    <div class="h-3 bg-white/10 rounded w-1/4 mb-4"></div>
+                    <div class="space-y-2">
+                      <div class="h-2 bg-white/5 rounded w-full"></div>
+                      <div class="h-2 bg-white/5 rounded w-5/6"></div>
+                      <div class="h-2 bg-white/5 rounded w-full"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Output State -->
+                <div id="builder-output-state" class="hidden flex-col gap-4 w-full h-full text-left text-sm leading-relaxed"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- RIGHT COLUMN: Oral Coach (30% width) -->
+          <div class="w-full lg:w-[30%] flex flex-col space-y-4">
+            <div class="ws-up-eyebrow flex items-center gap-1.5 text-xs text-moot-accent font-semibold tracking-widest uppercase">
+              <span class="w-1.5 h-1.5 rounded-full bg-moot-accent"></span>
+              Oral Coach
+            </div>
+            
+            <div class="bg-white/5 border border-white/10 rounded-xl p-5 backdrop-blur-md flex flex-col h-full">
+              <div class="mb-4">
+                <h3 class="text-sm font-serif text-white font-medium mb-1">Evaluate Your Submission</h3>
+                <p class="text-[10px] text-white-muted leading-relaxed">
+                  Paste your oral argument below. MootCoach will stress-test it and evaluate it as a competition judge.
+                </p>
+              </div>
+
+              <div id="oral-context-notice" style="display:none;align-items:center;gap:10px;margin-bottom:1rem;padding:8px 12px;background:rgba(201,168,76,.07);border:1px solid var(--gold-border);border-radius:8px;font-size:.7rem;color:var(--white-2);">
+                <span style="color:var(--gold);">✦</span>
+                <span>Context loaded.</span>
+                <button onclick="clearOralContext()" style="background:none;border:none;color:var(--gold);cursor:pointer;font-size:.7rem;text-decoration:underline;margin-left:auto;">Clear</button>
+              </div>
+
+              <div class="ws-field flex flex-col gap-2 mb-3">
+                <label class="tracking-wide text-[10px] uppercase text-white-2 font-semibold">Evaluation Mode</label>
+                <div class="oral-difficulty-row flex gap-2">
+                  <button class="diff-btn active-easy text-[10px] py-1.5 px-2 flex-1" id="oral-diff-easy" onclick="setOralDifficulty('easy',this)">Easy Bench</button>
+                  <button class="diff-btn text-[10px] py-1.5 px-2 flex-1" id="oral-diff-moderate" onclick="setOralDifficulty('moderate',this)">Moderate</button>
+                  <button class="diff-btn text-[10px] py-1.5 px-2 flex-1" id="oral-diff-hard" onclick="setOralDifficulty('hard',this)">Hard Bench</button>
+                </div>
+              </div>
+
+              <div class="ws-field flex flex-col gap-2 flex-1">
+                <label class="tracking-wide text-[10px] uppercase text-white-2 font-semibold">Your Oral Argument</label>
+                <textarea class="oral-textarea flex-1 min-h-[150px]" id="oral-argument-input" placeholder="Paste your oral argument, opening submission, or any portion of your advocacy here..." style="font-size:0.8rem;"></textarea>
+              </div>
+
+              <button class="btn-analyze w-full py-2.5 text-xs tracking-widest font-medium transition-all mt-3 mb-2" id="btn-oral-eval" onclick="runOralEvaluation()" disabled>
+                Evaluate Argument →
+              </button>
+              
+              <div id="oral-results-area" style="display:none;margin-top:1rem;width:100%; max-h-[400px] overflow-y-auto pr-1">
+                <div class="sep" style="margin-bottom:1rem;"></div>
+                <div id="oral-results-content" class="text-xs"></div>
+              </div>
+            </div>
+
+            <!-- CHAMBER BRIEFING / ADVOCACY ARSENAL -->
+            <div class="bg-white/5 border border-white/10 rounded-xl p-5 backdrop-blur-md flex flex-col mt-4">
+              <div class="text-xs uppercase tracking-wider text-moot-accent font-semibold mb-3 flex items-center gap-1.5 font-sans">
+                <span>🎙️</span> CHAMBERS BRIEFING
+              </div>
+              
+              <div id="stage4-chamber-briefing" class="text-xs text-white-2 space-y-4 max-h-[400px] overflow-y-auto pr-2">
+                <div class="text-white-muted italic p-4 bg-white/[0.01] border border-dashed border-white/10 rounded-xl font-sans text-center">
+                  Draft your submissions in the center panel to generate your Battle Plan here.
+                </div>
+              </div>
+            </div>
+          </div>
+          
+        </div>
+      </div>
+
+      <!-- STAGE 5: BENCH SIMULATION -->
+      <div class="ws-stage" id="stage-4-container" style="display:none; flex:1; flex-direction:column; min-height:0; overflow:hidden;">
+        <!-- BENCH SIMULATION PANEL -->
+        <div class="ws-panel bench-panel active" id="wsp-bench" style="display:flex; flex:1; flex-direction:column; min-height:0; overflow:hidden;">
+          
+          <!-- GLOBAL CHAMBERS HEADER -->
+          <div class="cr-header flex items-center justify-between" id="chambers-global-header" style="flex-shrink:0;">
+            <div class="cr-header-left">
+              <div class="cr-session-title" id="cr-session-title">Judicial Chambers</div>
+              <div class="cr-session-meta" id="cr-session-meta">Chambers Lobby</div>
+            </div>
+            <div class="flex items-center gap-3">
+              <!-- voice status relocated here -->
+              <div id="bench-voice-status" class="backend-status checking" style="display:none; padding:3px 10px; font-size:.65rem; border-radius:100px; margin-right:10px;">
+                <div class="bs-dot" id="bench-voice-dot"></div>
+                <span id="bench-voice-text">Connecting...</span>
+              </div>
+              <div class="cr-timer" id="cr-timer" style="display:none; font-family:monospace;">ELAPSED: 00:00</div>
+              <button class="exit-chambers-btn font-sans" id="chambers-exit-btn" onclick="clearBenchSession()" style="display:none; background:none; border:none; color:var(--white-muted); cursor:pointer; font-size:11px; text-transform:uppercase; letter-spacing:0.08em; padding:6px 12px; border-radius:4px; transition:all 0.2s;" onmouseover="this.style.color='var(--white)'" onmouseout="this.style.color='var(--white-muted)'">Exit Chambers</button>
+            </div>
+          </div>
+
+          <!-- Hidden elements container to maintain JS compatibility -->
+          <div style="display:none;" aria-hidden="true">
+            <button id="btn-bench-oral"></button>
+            <button id="btn-bench-start"></button>
+            <button id="btn-bench-clear"></button>
+          </div>
+          
+          <!-- COURTROOM VIEW -->
+          <div class="courtroom-view" id="courtroom-view">
+            <!-- Bench Header -->
+            <div class="cr-bench-header flex flex-col items-center justify-center p-6 border-b border-moot-border bg-[#0e1220]/60">
+              <div id="cr-judge-name" class="font-serif text-xl text-white mb-1">⚖️ Presiding Judge</div>
+              <div id="cr-bench-name" class="text-xs text-moot-accent tracking-widest uppercase">Constitutional Bench</div>
+              <div id="cr-session-status" class="text-xs text-moot-muted mt-2">Connecting to Bench...</div>
+            </div>
+
+            <!-- Speech Recognition Diagnostics Panel -->
+            <div id="mic-diagnostics-panel" class="hidden mx-4 my-2 p-3 bg-slate-900/80 border border-slate-700/50 rounded-lg text-xs font-mono space-y-1">
+              <div class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold mb-1">🎙️ Voice Diagnostics (Dev Mode)</div>
+              <div>Browser: <span id="diag-browser" class="text-white">-</span></div>
+              <div>SpeechRecognition Available: <span id="diag-available" class="text-white">-</span></div>
+              <div>Microphone Permission: <span id="diag-permission" class="text-white">-</span></div>
+              <div>Recognition Active: <span id="diag-active" class="text-white">-</span></div>
+              <div>Last Event: <span id="diag-timestamp" class="text-white">-</span></div>
+              <div id="diag-error-msg" class="text-red-400 font-semibold hidden">Speech Recognition not supported in this browser</div>
+            </div>
+
+            <!-- Transcript Container -->
+            <div id="bench-transcript-panel" class="flex-1 overflow-y-auto p-4 flex flex-col gap-4"></div>
+
+            <!-- Footer section -->
+            <div class="cr-footer-section p-4 border-t border-moot-border bg-black/10 flex flex-col gap-3 items-center justify-center">
+              <div class="flex items-center justify-between w-full max-w-xl gap-4">
+                <div class="flex items-center gap-2">
+                  <div id="cr-indicator-dot" class="w-2.5 h-2.5 rounded-full bg-[#c9a84c] animate-pulse"></div>
+                  <span id="cr-indicator-label" class="text-xs tracking-wider uppercase text-moot-muted">Connecting to Bench...</span>
+                </div>
+                
+                <div class="flex items-center gap-1.5 h-6" id="cr-waveform-container">
+                  <div class="cr-wave-bar w-[3px] h-1 bg-moot-muted/30 rounded-full transition-all duration-150"></div>
+                  <div class="cr-wave-bar w-[3px] h-1 bg-moot-muted/30 rounded-full transition-all duration-150"></div>
+                  <div class="cr-wave-bar w-[3px] h-1 bg-moot-muted/30 rounded-full transition-all duration-150"></div>
+                  <div class="cr-wave-bar w-[3px] h-1 bg-moot-muted/30 rounded-full transition-all duration-150"></div>
+                  <div class="cr-wave-bar w-[3px] h-1 bg-moot-muted/30 rounded-full transition-all duration-150"></div>
+                  <div class="cr-wave-bar w-[3px] h-1 bg-moot-muted/30 rounded-full transition-all duration-150"></div>
+                  <div class="cr-wave-bar w-[3px] h-1 bg-moot-muted/30 rounded-full transition-all duration-150"></div>
+                  <div class="cr-wave-bar w-[3px] h-1 bg-moot-muted/30 rounded-full transition-all duration-150"></div>
+                  <div class="cr-wave-bar w-[3px] h-1 bg-moot-muted/30 rounded-full transition-all duration-150"></div>
+                  <div class="cr-wave-bar w-[3px] h-1 bg-moot-muted/30 rounded-full transition-all duration-150"></div>
+                </div>
+                
+                <div class="flex items-center gap-2 text-xs text-moot-muted">
+                  <span class="text-[10px] tracking-widest uppercase">Mic</span>
+                  <div class="w-16 h-1.5 bg-[#1c2235] rounded-full overflow-hidden border border-moot-border">
+                    <div id="cr-mic-level" class="h-full bg-[#4caf82] transition-all duration-100" style="width: 0%"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Action controls -->
+            <div class="cr-action-section p-3 border-t border-moot-border/50 bg-black/30 flex justify-center">
+              <button class="btn-sm btn-sm-ghost bg-red-950/20 border border-red-900/50 hover:bg-red-900/40 hover:border-red-800 text-red-400 font-medium tracking-widest uppercase py-2 px-6 rounded transition-all duration-200" onclick="stopOralRound()">
+                🛑 End Oral Round
+              </button>
+            </div>
+          </div>
+
+          <div class="bench-empty" id="bench-empty" style="display: flex; justify-content: center; align-items: stretch; width: 100%; box-sizing: border-box; padding: 24px;">
+            <div class="w-full max-w-[1200px] flex flex-col lg:flex-row gap-6 text-left items-stretch" style="width: 100%;">
+              
+              <!-- LEFT PANEL: Controls (40%) -->
+              <div class="w-full lg:w-[40%] bg-white/[0.02] border border-white/10 rounded-2xl p-6 flex flex-col justify-between hover:border-white/15 transition-all duration-200" style="display: flex; flex-direction: column; justify-content: space-between;">
+                <div>
+                  <div class="be-icon text-left mb-2" style="font-size: 2.2rem; color: var(--gold); margin-bottom: 12px;">⚖️</div>
+                  <h3 class="font-serif text-2xl text-white font-medium mb-2" style="font-family: var(--serif); font-size: 1.5rem; margin-bottom: 8px;">Courtroom Chambers</h3>
+                  <p class="text-xs text-white-muted leading-relaxed mb-6" style="color: #cbd5e0; font-size: 11px; line-height: 1.5;">Practice appellate advocacy under intense Socratic questioning. Face a simulated AI Bench that probes your argument's logic, precedents, and structure.</p>
+                </div>
+                
+                <div class="ws-field flex flex-col gap-2 mb-6" style="margin-bottom: 24px;">
+                  <span class="text-[10px] tracking-widest uppercase text-white-muted font-sans font-semibold" style="font-size: 9px; letter-spacing: 0.1em; color: #a0aec0;">Chamber Difficulty</span>
+                  <div class="oral-difficulty-row flex gap-2 w-full" style="display: flex; gap: 8px; width: 100%; margin-top: 6px;">
+                    <button class="diff-btn text-[10px] uppercase font-sans tracking-wider py-1.5 px-3 flex-1" id="bench-diff-easy" onclick="setBenchDifficulty('easy')" style="flex: 1; text-align: center;">Easy</button>
+                    <button class="diff-btn active-moderate text-[10px] uppercase font-sans tracking-wider py-1.5 px-3 flex-1" id="bench-diff-moderate" onclick="setBenchDifficulty('moderate')" style="flex: 1; text-align: center;">Moderate</button>
+                    <button class="diff-btn text-[10px] uppercase font-sans tracking-wider py-1.5 px-3 flex-1" id="bench-diff-hard" onclick="setBenchDifficulty('hard')" style="flex: 1; text-align: center;">Hard</button>
+                  </div>
+                </div>
+
+                <div class="flex flex-col gap-2 mt-auto" style="display: flex; flex-direction: column; gap: 8px;">
+                  <button class="btn-primary tracking-widest font-medium py-3 text-xs w-full text-center" onclick="startOralRound()" style="width: 100%; padding: 12px 0; text-transform: uppercase; font-size: 11px;">
+                    🎙️ Start Oral Round (Voice)
+                  </button>
+                  <button class="btn-outline tracking-widest font-medium py-3 text-xs w-full text-center" onclick="startBenchSession()" style="width: 100%; padding: 12px 0; text-transform: uppercase; font-size: 11px;">
+                    ✍️ Start Text Session
+                  </button>
+                  
+                  <div id="bench-no-context" class="be-notice mt-4" style="display:none; font-size: 10px; color: #fbbf24; background: rgba(251,191,36,0.05); border: 1px solid rgba(251,191,36,0.2); padding: 10px 14px; border-radius: 8px; margin-top: 16px; line-height: 1.4;">
+                    <span>⚠ No proposition loaded. The simulator will run with a general constitutional law docket. Upload a PDF first for a custom case briefing.</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- RIGHT PANEL: Bench Profile (60%) -->
+              <div class="w-full lg:w-[60%] bg-white/[0.02] border border-white/10 rounded-2xl p-6 flex flex-col gap-6 hover:border-white/15 transition-all duration-200 text-left" style="display: flex; flex-direction: column; gap: 20px;">
+                <div class="border-b border-white/5 pb-3" style="border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 10px;">
+                  <span class="text-[9px] uppercase tracking-widest text-moot-accent font-semibold" style="color: var(--gold); font-size: 9px; letter-spacing: 0.12em;">Presiding Bench Profile</span>
+                  <h4 class="text-sm font-sans font-semibold text-white mt-0.5" id="lobby-bench-type-title" style="font-size: 14px; color: #fff; margin-top: 2px;">Moderate Constitutional Bench</h4>
+                </div>
+                
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-4" id="lobby-bench-stats" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px;">
+                  <div class="p-3 bg-white/[0.01] border border-white/5 rounded-xl" style="background: rgba(255,255,255,0.01); border: 1px solid rgba(255,255,255,0.05); padding: 10px; border-radius: 8px;">
+                    <div class="text-[9px] text-white-muted uppercase tracking-wider" style="font-size: 9px; color: #a0aec0;">Expected Questions</div>
+                    <div class="text-xs font-semibold text-white mt-1" id="lobby-expected-questions" style="font-size: 11px; margin-top: 4px; color: #fff;">15–20</div>
+                  </div>
+                  <div class="p-3 bg-white/[0.01] border border-white/5 rounded-xl" style="background: rgba(255,255,255,0.01); border: 1px solid rgba(255,255,255,0.05); padding: 10px; border-radius: 8px;">
+                    <div class="text-[9px] text-white-muted uppercase tracking-wider" style="font-size: 9px; color: #a0aec0;">Interruption Freq</div>
+                    <div class="text-xs font-semibold text-white mt-1" id="lobby-interruption-freq" style="font-size: 11px; margin-top: 4px; color: #fff;">Medium</div>
+                  </div>
+                  <div class="p-3 bg-white/[0.01] border border-white/5 rounded-xl" style="background: rgba(255,255,255,0.01); border: 1px solid rgba(255,255,255,0.05); padding: 10px; border-radius: 8px;">
+                    <div class="text-[9px] text-white-muted uppercase tracking-wider" style="font-size: 9px; color: #a0aec0;">Follow-Up Aggression</div>
+                    <div class="text-xs font-semibold text-white mt-1" id="lobby-aggression" style="font-size: 11px; margin-top: 4px; color: #fff;">High</div>
+                  </div>
+                  <div class="p-3 bg-white/[0.01] border border-white/5 rounded-xl col-span-2" style="background: rgba(255,255,255,0.01); border: 1px solid rgba(255,255,255,0.05); padding: 10px; border-radius: 8px; grid-column: span 2;">
+                    <div class="text-[9px] text-white-muted uppercase tracking-wider" style="font-size: 9px; color: #a0aec0;">Focus Areas</div>
+                    <div class="text-[10px] text-moot-accent font-sans mt-1" id="lobby-focus-areas" style="font-size: 10px; margin-top: 4px; color: var(--gold);">Privacy · Proportionality · Due Process · Algorithmic Accountability</div>
+                  </div>
+                  <div class="p-3 bg-white/[0.01] border border-white/5 rounded-xl" style="background: rgba(255,255,255,0.01); border: 1px solid rgba(255,255,255,0.05); padding: 10px; border-radius: 8px;">
+                    <div class="text-[9px] text-white-muted uppercase tracking-wider" style="font-size: 9px; color: #a0aec0;">Estimated Duration</div>
+                    <div class="text-xs font-semibold text-white mt-1" id="lobby-duration" style="font-size: 11px; margin-top: 4px; color: #fff;">20 mins</div>
+                  </div>
+                </div>
+
+                <div class="flex-1 flex flex-col gap-3" style="display: flex; flex-direction: column; gap: 8px; margin-top: 10px;">
+                  <span class="text-[9px] uppercase tracking-widest text-white-muted font-semibold" style="font-size: 9px; letter-spacing: 0.1em; color: #a0aec0;">Presiding Judges Panel</span>
+                  <div class="flex flex-col gap-3" id="lobby-judges-roster" style="display: flex; flex-direction: column; gap: 10px;">
+                    <!-- Populated dynamically via JS -->
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+          
+          <div class="bench-chat" id="bench-chat" style="display:none;"></div>
+          
+          <div class="bench-input-row" id="bench-input-row" style="display:none;">
+            <textarea class="bench-textarea" id="bench-input" placeholder="Type your response to the bench..." onkeydown="handleBenchKeydown(event)"></textarea>
+            <button class="btn-send tracking-widest font-medium" id="btn-bench-send" onclick="submitToBench()" disabled>Submit</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- FLOATING WIZARD NAVIGATION -->
+      <div class="ws-floating-nav">
+        <button id="wizard-prev-btn" onclick="window.wizardPrev()" style="display:none;">
+          ← Previous
+        </button>
+        <button id="wizard-next-btn" class="primary" onclick="window.wizardNext()">
+          Next →
+        </button>
+      </div>
+    </main>
+  </div><!-- /ws-body -->
+</div>
+
+<!-- PREMIUM AUTH OVERLAY -->
+<div id="auth-overlay" class="opacity-0 pointer-events-none hidden">
+  <div class="w-full max-w-[420px] bg-[#0f141e] border border-gray-800 border-t border-t-moot-accent/30 shadow-2xl shadow-black/80 rounded-xl p-8 relative">
+    <a href="#" id="auth-overlay-back" class="absolute top-4 left-4 text-xs text-moot-muted hover:text-white transition-colors">← Back</a>
+    <h2 class="font-serif text-3xl font-normal tracking-tight text-moot-accent mb-8 mt-2 text-center">MootCoach Chambers</h2>
+    
+    <!-- Sign In / Sign Up form container -->
+    <div id="auth-overlay-form" class="space-y-4 text-left">
+      <!-- Fields shown only for signup -->
+      <div id="auth-overlay-signup-fields" style="display: none;" class="space-y-4">
+        <div class="flex gap-4">
+          <div class="flex-1">
+            <label class="block text-xs font-semibold tracking-widest uppercase text-gray-500 mb-2">First Name</label>
+            <input type="text" id="auth-fname" placeholder="Arjun" class="w-full bg-transparent border-0 border-b border-gray-700 text-white focus:ring-0 focus:border-moot-accent px-0 py-2 transition-colors duration-200" />
+            <div class="text-[10px] text-red-400 mt-1 hidden" id="h-auth-fname">First name is required.</div>
+          </div>
+          <div class="flex-1">
+            <label class="block text-xs font-semibold tracking-widest uppercase text-gray-500 mb-2">Last Name</label>
+            <input type="text" id="auth-lname" placeholder="Mehta" class="w-full bg-transparent border-0 border-b border-gray-700 text-white focus:ring-0 focus:border-moot-accent px-0 py-2 transition-colors duration-200" />
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold tracking-widest uppercase text-gray-500 mb-2">Law School / University</label>
+          <input type="text" id="auth-school" placeholder="NALSAR, NLS, NUJS..." class="w-full bg-transparent border-0 border-b border-gray-700 text-white focus:ring-0 focus:border-moot-accent px-0 py-2 transition-colors duration-200" />
+        </div>
+      </div>
+      
+      <!-- Always visible Email / Password -->
+      <div>
+        <label class="block text-xs font-semibold tracking-widest uppercase text-gray-500 mb-2">Email Address</label>
+        <input type="email" id="auth-email" placeholder="you@lawschool.edu" class="w-full bg-transparent border-0 border-b border-gray-700 text-white focus:ring-0 focus:border-moot-accent px-0 py-2 transition-colors duration-200" />
+        <div class="text-[10px] text-red-400 mt-1 hidden" id="h-auth-email">Please enter a valid email.</div>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold tracking-widest uppercase text-gray-500 mb-2">Password</label>
+        <input type="password" id="auth-password" placeholder="Your password" class="w-full bg-transparent border-0 border-b border-gray-700 text-white focus:ring-0 focus:border-moot-accent px-0 py-2 transition-colors duration-200" />
+        <div class="text-[10px] text-red-400 mt-1 hidden" id="h-auth-password">Password is required.</div>
+        <div class="flex justify-end mt-2"><button type="button" id="forgot-password-btn" class="text-xs text-gray-500 hover:text-moot-accent transition-colors">Forgot password?</button></div>
+      </div>
+      
+      <!-- Error placeholder -->
+      <div id="auth-overlay-error" class="hidden text-xs text-red-400 mt-2"></div>
+      
+      <!-- Submit Button -->
+      <button id="auth-overlay-submit" class="w-full py-3 mt-6 border border-moot-accent text-moot-accent bg-transparent hover:bg-moot-accent hover:text-black transition-all duration-300 text-sm font-medium tracking-widest uppercase cursor-pointer">
+        Sign In
+      </button>
+      <p id="auth-status-message" class="text-xs text-center mt-3"></p>
+    </div>
+    
+    <!-- Switch mode text toggle -->
+    <p class="text-center text-xs text-moot-muted mt-6 mb-0">
+      <span id="auth-overlay-toggle-text">Don't have an account?</span> 
+      <a href="#" id="auth-overlay-toggle-btn" class="text-moot-accent hover:underline ml-1">Create Account</a>
+    </p>
+  </div>
+</div>
+
+<!-- LOADING OVERLAY -->
+<div class="loading-overlay" id="loading-overlay">
+  <div style="width: 100%; max-width: 500px; padding: 32px; background: var(--navy-3); border: 1px solid var(--glass-b); border-radius: var(--rl); display: flex; flex-direction: column; gap: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.5);">
+    <div class="w-full space-y-6 animate-pulse">
+      <div class="h-4 bg-moot-border/50 rounded w-1/4 mb-4"></div>
+      <div class="space-y-3">
+        <div class="h-3 bg-moot-border/30 rounded w-full"></div>
+        <div class="h-3 bg-moot-border/30 rounded w-5/6"></div>
+        <div class="h-3 bg-moot-border/30 rounded w-full"></div>
+      </div>
+      <div class="h-4 bg-moot-border/50 rounded w-1/3 mt-6 mb-4"></div>
+      <div class="space-y-3">
+        <div class="h-3 bg-moot-border/30 rounded w-full"></div>
+        <div class="h-3 bg-moot-border/30 rounded w-4/5"></div>
+      </div>
+    </div>
+    
+    <div class="lo-steps" style="display: none;">
+      <div class="lo-step" id="ls-1"><div class="lo-dot"></div>Reading PDF</div>
+      <div class="lo-step" id="ls-2"><div class="lo-dot"></div>Extracting text</div>
+      <div class="lo-step" id="ls-3"><div class="lo-dot"></div>Sending to Groq AI</div>
+      <div class="lo-step" id="ls-4"><div class="lo-dot"></div>Generating analysis</div>
+      <div class="lo-step" id="ls-5"><div class="lo-dot"></div>Saving to Cloud</div>
+    </div>
+    
+    <div class="lo-label" id="lo-label" style="text-align: center; font-family: var(--serif); font-size: 1.25rem; color: var(--white-2);">Analyzing your proposition…</div>
+  </div>
+</div>
+
+<!-- ── LEGAL MODALS ── -->
+<div class="legal-modal-overlay" id="legal-modal" onclick="closeLegalModal(event)">
+  <div class="legal-modal-content" onclick="event.stopPropagation()">
+    <div class="lm-header">
+      <div class="lm-title" id="lm-title">Legal</div>
+      <button class="lm-close" onclick="closeLegalModal()">✕</button>
+    </div>
+    <div class="lm-body" id="lm-body"></div>
+  </div>
+</div>
+
+<!-- AUXILIARY SLIDE-OVER PANEL -->
+<div id="aux-panel-overlay" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 hidden overlay-transition"></div>
+<div id="aux-panel" class="fixed top-1/2 left-1/2 w-[92%] md:w-[80%] lg:w-[70%] xl:w-[60%] max-w-[850px] h-[85vh] md:h-auto md:max-h-[85vh] bg-[#0f1115]/80 border border-white/10 z-50 flex flex-col shadow-2xl shadow-black/80 rounded-2xl panel-transition hidden" role="dialog" aria-modal="true" aria-labelledby="aux-panel-title">
+  <!-- Header -->
+  <div class="p-5 border-b border-white/10 flex justify-between items-center bg-black/20">
+    <h3 id="aux-panel-title" class="font-serif text-lg text-white font-medium">Auxiliary View</h3>
+    <button id="aux-panel-close-btn" class="text-white-muted hover:text-white bg-transparent border-none cursor-pointer text-lg font-sans transition-colors p-1" aria-label="Close panel">✕</button>
+  </div>
+  
+  <!-- Toolbar -->
+  <div class="px-5 py-3 border-b border-white/10 bg-black/10 flex gap-2">
+    <button id="btn-aux-copy" class="btn-sm btn-sm-ghost text-xs tracking-wider flex items-center gap-1.5 font-sans border border-white/10 hover:bg-white/5 cursor-pointer">
+      📋 Copy Content
+    </button>
+    <button id="btn-aux-print" class="btn-sm btn-sm-ghost text-xs tracking-wider flex items-center gap-1.5 font-sans border border-white/10 hover:bg-white/5 cursor-pointer">
+      📄 Export PDF
+    </button>
+  </div>
+  
+  <!-- Body Content -->
+  <div id="aux-panel-content" class="flex-1 overflow-y-auto p-6 text-white/80 space-y-4 font-sans leading-relaxed"></div>
+</div>
+
+<!-- MEMORIAL SLIDE-OVER PANEL -->
+<div id="memorial-panel" class="fixed top-1/2 left-1/2 w-[92%] md:w-[80%] lg:w-[70%] xl:w-[60%] max-w-[850px] h-[85vh] md:h-auto md:max-h-[85vh] bg-[#0f1115]/80 border border-white/10 z-50 flex flex-col shadow-2xl shadow-black/80 rounded-2xl panel-transition hidden" role="dialog" aria-modal="true" aria-labelledby="memorial-panel-title">
+  <!-- Header -->
+  <div class="p-5 border-b border-white/10 flex justify-between items-center bg-black/20">
+    <h3 id="memorial-panel-title" class="font-serif text-lg text-white font-medium">Appellate Memorial Viewer</h3>
+    <button id="memorial-panel-close-btn" class="text-white-muted hover:text-white bg-transparent border-none cursor-pointer text-lg font-sans transition-colors p-1" aria-label="Close panel">✕</button>
+  </div>
+  
+  <!-- Toolbar -->
+  <div class="px-5 py-3 border-b border-white/10 bg-black/10 flex gap-2">
+    <button id="btn-memorial-copy" class="btn-sm btn-sm-ghost text-xs tracking-wider flex items-center gap-1.5 font-sans border border-white/10 hover:bg-white/5 cursor-pointer">
+      📋 Copy Memorial
+    </button>
+    <button id="btn-memorial-print" class="btn-sm btn-sm-ghost text-xs tracking-wider flex items-center gap-1.5 font-sans border border-white/10 hover:bg-white/5 cursor-pointer">
+      📄 Export PDF
+    </button>
+  </div>
+  
+  <!-- Body Content -->
+  <div id="memorial-panel-content" class="flex-1 overflow-y-auto p-6 bg-[#fcfbfa] text-slate-800 space-y-4 font-sans leading-relaxed"></div>
+</div>
+
+<!-- TABBED OVERLAY MODAL FOR AUTHORITIES -->
+<div id="authority-detail-modal" class="fixed inset-0 bg-black/75 backdrop-blur-md z-[200] hidden flex items-center justify-center p-4" onclick="window.closeAuthorityModal()">
+  <div class="bg-[#0f1220] border border-white/10 rounded-2xl w-full max-w-lg overflow-hidden flex flex-col shadow-2xl animate-fade-in" onclick="event.stopPropagation()">
+    <!-- Header -->
+    <div class="p-5 border-b border-white/10 flex justify-between items-center bg-black/20">
+      <div>
+        <span class="text-[9px] uppercase tracking-wider text-moot-accent font-semibold" id="auth-modal-theme">Theme</span>
+        <h3 class="text-sm font-sans font-semibold text-white mt-1" id="auth-modal-name">Case Name</h3>
+      </div>
+      <button onclick="window.closeAuthorityModal()" class="text-white-muted hover:text-white bg-transparent border-none cursor-pointer text-lg">✕</button>
+    </div>
+    
+    <!-- Tabs Nav -->
+    <div class="flex border-b border-white/5 bg-black/10 px-4 scrollbar-width-none overflow-x-auto">
+      <button id="auth-tab-ratio" onclick="window.switchAuthModalTab('ratio')" class="py-2.5 px-3 text-[10px] uppercase tracking-wider font-semibold text-white-muted border-b-2 border-transparent cursor-pointer bg-transparent transition-all whitespace-nowrap">Ratio</button>
+      <button id="auth-tab-rationale" onclick="window.switchAuthModalTab('rationale')" class="py-2.5 px-3 text-[10px] uppercase tracking-wider font-semibold text-white-muted border-b-2 border-transparent cursor-pointer bg-transparent transition-all whitespace-nowrap">Why Selected</button>
+      <button id="auth-tab-usage" onclick="window.switchAuthModalTab('usage')" class="py-2.5 px-3 text-[10px] uppercase tracking-wider font-semibold text-white-muted border-b-2 border-transparent cursor-pointer bg-transparent transition-all whitespace-nowrap">Application</button>
+      <button id="auth-tab-courtroom" onclick="window.switchAuthModalTab('courtroom')" class="py-2.5 px-3 text-[10px] uppercase tracking-wider font-semibold text-white-muted border-b-2 border-transparent cursor-pointer bg-transparent transition-all whitespace-nowrap">Courtroom</button>
+      <button id="auth-tab-counter" onclick="window.switchAuthModalTab('counter')" class="py-2.5 px-3 text-[10px] uppercase tracking-wider font-semibold text-white-muted border-b-2 border-transparent cursor-pointer bg-transparent transition-all whitespace-nowrap">Opponent</button>
+      <button id="auth-tab-strategy" onclick="window.switchAuthModalTab('strategy')" class="py-2.5 px-3 text-[10px] uppercase tracking-wider font-semibold text-white-muted border-b-2 border-transparent cursor-pointer bg-transparent transition-all whitespace-nowrap">Distinguish</button>
+      <button id="auth-tab-bench" onclick="window.switchAuthModalTab('bench')" class="py-2.5 px-3 text-[10px] uppercase tracking-wider font-semibold text-white-muted border-b-2 border-transparent cursor-pointer bg-transparent transition-all whitespace-nowrap">Bench Trap</button>
+    </div>
+    
+    <!-- Content Body -->
+    <div class="p-6 overflow-y-auto max-h-[350px] text-xs leading-relaxed text-white-2 font-sans space-y-4">
+      <div id="auth-modal-tab-content" class="text-xs text-white-2 leading-relaxed font-sans"></div>
+    </div>
+    
+    <!-- Footer -->
+    <div class="p-4 border-t border-white/5 bg-black/20 flex justify-between items-center">
+      <div class="text-[9px] text-white-muted" id="auth-modal-priority">Priority</div>
+      <button id="auth-modal-select-btn" class="btn-sm text-xs font-semibold px-4 py-1.5 rounded transition-all cursor-pointer bg-white/5 border border-white/10 text-white hover:bg-white/10"></button>
+    </div>
+  </div>
+</div>
+
+<!-- ADVOCACY ARSENAL DETAIL MODAL -->
+<div id="advocacy-arsenal-modal" class="fixed inset-0 bg-black/75 backdrop-blur-md z-[200] hidden flex items-center justify-center p-4" onclick="window.closeArsenalModal()">
+  <div class="bg-[#0f1220] border border-white/10 rounded-2xl w-full max-w-lg overflow-hidden flex flex-col shadow-2xl animate-fade-in" onclick="event.stopPropagation()">
+    <!-- Header -->
+    <div class="p-5 border-b border-white/10 flex justify-between items-center bg-black/20">
+      <div>
+        <span class="text-[9px] uppercase tracking-wider text-moot-accent font-semibold">Advocacy Arsenal</span>
+        <h3 class="text-sm font-sans font-semibold text-white mt-1" id="arsenal-modal-title">Module Title</h3>
+      </div>
+      <button onclick="window.closeArsenalModal()" class="text-white-muted hover:text-white bg-transparent border-none cursor-pointer text-lg">✕</button>
+    </div>
+    
+    <!-- Content Body -->
+    <div class="p-6 overflow-y-auto max-h-[400px] text-xs leading-relaxed text-white-2 font-sans space-y-4" id="arsenal-modal-body">
+      <!-- Injected dynamically -->
+    </div>
+    
+    <!-- Footer -->
+    <div class="p-4 border-t border-white/5 bg-black/20 flex justify-end">
+      <button onclick="window.closeArsenalModal()" class="btn-sm px-4 py-1.5 bg-white/5 border border-white/10 text-white hover:bg-white/10 rounded text-xs transition-all cursor-pointer">Close</button>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="./js/app.js"></script>
+</body>
+</html>

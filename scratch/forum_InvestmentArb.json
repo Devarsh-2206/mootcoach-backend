@@ -1,0 +1,31 @@
+{
+  "forumClassification": {
+       "broadType": "International Arbitration",
+       "specificBody": "ICSID"
+   },
+   "proceduralFramework": {
+       "applicableRules": [
+           "ICSID Convention",
+           "ICSID Arbitration Rules"
+       ],
+       "standardOfReview": "De Novo",
+       "burdenOfProof": "Claimant (GNP Ltd.)"
+   },
+   "adjudicatorModel": {
+       "benchType": "Arbitral Tribunal",
+       "addressingStyle": "Members of the Tribunal"
+   },
+   "simulatorDirectives": {
+       "questioningStyle": "Inquisitorial and text-focused",
+       "terminologyOverrides": {
+           "court": "Tribunal",
+           "judge": "Arbitrator",
+           "plaintiff": "Claimant",
+           "defendant": "Respondent"
+       }
+   },
+   "proceduralHierarchyMapping": {
+       "Level1_Impact": "The ICSID Arbitration Rules and the ICSID Convention govern the jurisdictional phase, with the tribunal assessing whether it has jurisdiction over the claim based on the legality of the investment under Mercuria's new domestic law.",
+       "Level2_Impact": "The admissibility phase is also governed by the ICSID Arbitration Rules and the ICSID Convention, with the tribunal considering the interplay between domestic law and international investment law to determine whether the claim is admissible."
+   }
+}

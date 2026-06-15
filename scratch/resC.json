@@ -1,0 +1,99 @@
+{
+  "caseMetadata": {
+    "caseName": "Case Concerning the Maritime Boundary and Resource Extraction",
+    "competitionName": null,
+    "year": null,
+    "forumIndicators": [
+      "INTERNATIONAL COURT OF JUSTICE (ICJ)"
+    ]
+  },
+  "parties": {
+    "claimant_petitioner": {
+      "name": "Republic of Tropico",
+      "type": "State"
+    },
+    "respondent": {
+      "name": "Kingdom of Valoria",
+      "type": "State"
+    },
+    "thirdParties": []
+  },
+  "factualMatrix": {
+    "materialFacts": [
+      "Tropico and Valoria are adjacent coastal states.",
+      "Both Tropico and Valoria are parties to UNCLOS.",
+      "Valoria unilaterally extended its Exclusive Economic Zone (EEZ) by 50 nautical miles.",
+      "Valoria began deep-sea oil drilling in an area Tropico claims as its continental shelf.",
+      "Tropico argues Valoria's actions violate UNCLOS provisions on maritime delimitation.",
+      "Valoria argues the area is an historic bay and UNCLOS does not apply."
+    ],
+    "chronology": [],
+    "keyEvents": [
+      "Valoria unilaterally extended its Exclusive Economic Zone (EEZ) by 50 nautical miles.",
+      "Valoria began deep-sea oil drilling in an area Tropico claims as its continental shelf."
+    ]
+  },
+  "proceduralContext": {
+    "currentStage": "Final Hearing",
+    "proceduralPosture": "Original Application",
+    "reliefSought": [
+      "Immediate cessation of drilling",
+      "Reparations"
+    ]
+  },
+  "governingLaw": {
+    "domesticLaw": [],
+    "internationalLaw": [
+      "United Nations Convention on the Law of the Sea (UNCLOS)"
+    ],
+    "treaties": [
+      "United Nations Convention on the Law of the Sea (UNCLOS)"
+    ],
+    "statutes": [],
+    "rules": []
+  },
+  "jurisdictionSignals": {
+    "courtIndicators": [
+      "INTERNATIONAL COURT OF JUSTICE (ICJ)",
+      "The ICJ has assumed jurisdiction."
+    ],
+    "arbitrationIndicators": [],
+    "tribunalIndicators": []
+  },
+  "issues": {
+    "explicit": [
+      "Whether Valoria's unilateral extension of its EEZ and deep-sea oil drilling violates UNCLOS provisions on maritime delimitation.",
+      "Whether the disputed area constitutes an historic bay, thereby rendering UNCLOS inapplicable as argued by Valoria."
+    ],
+    "implicit": [
+      "What are the applicable principles of maritime delimitation under UNCLOS for adjacent coastal states?",
+      "What are the criteria for establishing an 'historic bay' under international law?",
+      "What is the legal effect of a unilateral extension of an EEZ?",
+      "What is the scope of Tropico's continental shelf claim in relation to Valoria's EEZ extension?",
+      "What are the legal consequences and appropriate remedies (e.g., reparations) for a violation of UNCLOS provisions on maritime delimitation?"
+    ],
+    "hiddenComplexities": [
+      "The specific articles of UNCLOS governing maritime delimitation between adjacent states.",
+      "The evidentiary burden and requirements for proving an 'historic bay' claim.",
+      "The relationship and potential overlap between EEZ rights and continental shelf rights.",
+      "The concept of 'unilateral action' in international law concerning maritime zones.",
+      "The potential for environmental law considerations related to deep-sea oil drilling."
+    ]
+  },
+  "mootIntelligence": {
+    "mostContestedArea": "The legal status of the disputed maritime area (historic bay vs. area subject to UNCLOS delimitation).",
+    "mostVulnerableArea": "Valoria's argument that the area is an historic bay and UNCLOS does not apply, as historic bay claims are often difficult to establish under international law.",
+    "mostImportantFacts": [
+      "Valoria unilaterally extended its Exclusive Economic Zone (EEZ) by 50 nautical miles.",
+      "Valoria began deep-sea oil drilling in an area Tropico claims as its continental shelf.",
+      "Tropico and Valoria are adjacent coastal states.",
+      "Both Tropico and Valoria are parties to UNCLOS.",
+      "Valoria argues the area is an historic bay and UNCLOS does not apply."
+    ],
+    "factsLikelyToBeAttacked": [
+      "Valoria's assertion that the area constitutes an historic bay.",
+      "The precise extent and legal basis of Tropico's claim to the continental shelf in the disputed area.",
+      "The 'unilateral' nature of Valoria's EEZ extension and its legal validity."
+    ]
+  }
+}

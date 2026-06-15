@@ -1,0 +1,128 @@
+{
+  "caseMetadata": {
+    "caseName": "Case Concerning The Clarento Peace Treaty",
+    "competitionName": "PHILIP C. JESSUP INTERNATIONAL LAW MOOT COURT COMPETITION",
+    "year": 2023,
+    "forumIndicators": [
+      "International Court of Justice"
+    ]
+  },
+  "parties": {
+    "claimant_petitioner": {
+      "name": "State of Aglovale",
+      "type": "State"
+    },
+    "respondent": {
+      "name": "State of Ragnell",
+      "type": "State"
+    },
+    "thirdParties": []
+  },
+  "factualMatrix": {
+    "materialFacts": [
+      "Aglovale and Ragnell are neighboring states.",
+      "Aglovale and Ragnell signed the Clarento Peace Treaty after a brief war.",
+      "Ragnell conducted a cyber-operation disabling Aglovale's critical water infrastructure.",
+      "Ragnell claims the cyber-operation was a lawful countermeasure.",
+      "Ragnell alleges Aglovale sponsored militant groups in Ragnell's territory.",
+      "Aglovale brings the matter to the International Court of Justice (ICJ).",
+      "Aglovale argues the cyberattack violated the UN Charter Article 2(4) prohibition on the use of force.",
+      "Ragnell argues cyber operations do not constitute 'force'.",
+      "Ragnell relies on the doctrine of necessity."
+    ],
+    "chronology": [
+      {
+        "date": "Prior to Clarento Peace Treaty",
+        "event": "Brief war between Aglovale and Ragnell"
+      },
+      {
+        "date": "After brief war",
+        "event": "Signing of the Clarento Peace Treaty"
+      },
+      {
+        "date": "Prior to Ragnell's cyber-operation",
+        "event": "Aglovale allegedly sponsors militant groups in Ragnell's territory"
+      },
+      {
+        "date": "Recently",
+        "event": "Ragnell conducts a cyber-operation disabling Aglovale's critical water infrastructure"
+      },
+      {
+        "date": "After cyber-operation",
+        "event": "Aglovale brings the matter to the International Court of Justice (ICJ)"
+      }
+    ],
+    "keyEvents": [
+      "Signing of the Clarento Peace Treaty.",
+      "Ragnell's cyber-operation against Aglovale's critical water infrastructure.",
+      "Aglovale's alleged sponsorship of militant groups in Ragnell's territory.",
+      "Aglovale's initiation of proceedings before the International Court of Justice."
+    ]
+  },
+  "proceduralContext": {
+    "currentStage": "Initial proceedings before the International Court of Justice",
+    "proceduralPosture": "Original application before the International Court of Justice",
+    "reliefSought": [
+      "Declaration that Ragnell's cyber-operation violated the UN Charter Article 2(4) prohibition on the use of force."
+    ]
+  },
+  "governingLaw": {
+    "domesticLaw": [],
+    "internationalLaw": [
+      "UN Charter Article 2(4)",
+      "International law on countermeasures",
+      "International law on necessity",
+      "International law on the use of force"
+    ],
+    "treaties": [
+      "Clarento Peace Treaty",
+      "UN Charter"
+    ],
+    "statutes": [],
+    "rules": []
+  },
+  "jurisdictionSignals": {
+    "courtIndicators": [
+      "International Court of Justice (ICJ)"
+    ],
+    "arbitrationIndicators": [],
+    "tribunalIndicators": []
+  },
+  "issues": {
+    "explicit": [
+      "Whether Ragnell's cyber-operation disabling Aglovale's critical water infrastructure constitutes a 'use of force' under UN Charter Article 2(4).",
+      "Whether Ragnell's cyber-operation was a lawful countermeasure against Aglovale's alleged sponsoring of militant groups.",
+      "Whether the doctrine of necessity justifies Ragnell's cyber-operation."
+    ],
+    "implicit": [
+      "What is the threshold for a cyber-operation to be considered a 'use of force' under international law?",
+      "Does the alleged sponsorship of militant groups by Aglovale constitute an 'armed attack' or other internationally wrongful act justifying countermeasures or self-defense by Ragnell?",
+      "What are the conditions for invoking the doctrine of necessity in this context, and were they met?",
+      "What is the legal characterization of Aglovale's alleged sponsorship of militant groups?",
+      "What is the evidentiary standard for proving Aglovale's sponsorship of militant groups?"
+    ],
+    "hiddenComplexities": [
+      "The definition and attribution of cyber-operations in international law, particularly in relation to state responsibility.",
+      "The relationship between the prohibition on the use of force, countermeasures, and necessity in the context of cyber warfare.",
+      "The potential applicability of International Humanitarian Law if the cyber-operation is deemed to cross the threshold into an armed conflict.",
+      "The concept of 'due diligence' in preventing militant group activities from one's territory.",
+      "The legal implications of attacks on 'critical infrastructure' in both peacetime and armed conflict scenarios."
+    ]
+  },
+  "mootIntelligence": {
+    "mostContestedArea": "The legal classification of Ragnell's cyber-operation as a 'use of force' under UN Charter Article 2(4) and the legality of Ragnell's actions as countermeasures or under the doctrine of necessity.",
+    "mostVulnerableArea": "Ragnell's burden of proof regarding Aglovale's alleged sponsorship of militant groups and the proportionality/necessity of its cyber-operation.",
+    "mostImportantFacts": [
+      "Ragnell conducted a cyber-operation disabling Aglovale's critical water infrastructure.",
+      "Ragnell claims this was a lawful countermeasure against Aglovale's sponsoring of militant groups.",
+      "Aglovale argues the cyberattack violated UN Charter Article 2(4).",
+      "Ragnell argues cyber operations do not constitute 'force' and relies on the doctrine of necessity."
+    ],
+    "factsLikelyToBeAttacked": [
+      "Ragnell's claim that Aglovale sponsored militant groups in Ragnell's territory (e.g., lack of evidence, attribution).",
+      "Ragnell's assertion that the cyber-operation was a 'lawful countermeasure' (e.g., proportionality, prior injury, notification requirements).",
+      "The severity and impact of the cyber-operation on Aglovale's critical water infrastructure (to determine if it meets the 'use of force' threshold).",
+      "The immediacy and gravity of the threat invoked by Ragnell for the doctrine of necessity."
+    ]
+  }
+}

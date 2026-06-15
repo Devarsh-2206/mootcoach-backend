@@ -1,0 +1,214 @@
+{
+  "advocacyRoadmap": [
+       {
+           "targetIssueId": 1,
+           "coreSubmission": "The tribunal has jurisdiction over the dispute pursuant to the arbitration agreement and the PCA Rules.",
+           "memorialStructure": {
+               "issueStatement": "The tribunal's jurisdiction over the dispute is a threshold requirement for the arbitration to proceed.",
+               "ruleStatement": "The arbitration agreement and the PCA Rules provide a valid basis for the tribunal's jurisdiction.",
+               "factualApplication": "The parties' consent to arbitration and the applicable law support the tribunal's jurisdiction.",
+               "anticipatedCounter": "The respondent may argue that the arbitration agreement is invalid or unenforceable.",
+               "preemptiveResponse": "The arbitration agreement is valid and enforceable, as evidenced by the parties' consent and the applicable law.",
+               "reliefRequested": "The tribunal should confirm its jurisdiction over the dispute."
+           },
+           "oralAdvocacyStructure": {
+               "openingHook": "The tribunal's jurisdiction is a fundamental aspect of this arbitration, and we will demonstrate that it is properly established.",
+               "primarySignposting": [
+                   "The arbitration agreement",
+                   "The PCA Rules",
+                   "The parties' consent to arbitration"
+               ],
+               "auxiliaryPivot": "The respondent's challenge to the arbitration agreement is unfounded and should be rejected.",
+               "closingPosition": "In conclusion, the tribunal has jurisdiction over the dispute, and we request that it confirm this jurisdiction."
+           },
+           "authorityIntegrationPlan": [
+               {
+                   "targetAuthorityRequirement": "Landmark authority on jurisdiction in international commercial arbitration",
+                   "injectionPoint": "The tribunal's jurisdiction is a threshold requirement for the arbitration to proceed.",
+                   "tacticalUsage": "To establish the tribunal's jurisdiction and demonstrate the validity of the arbitration agreement."
+               }
+           ],
+           "benchPreparationMap": {
+               "mostLikelyQuestion": "What is the basis for the tribunal's jurisdiction, and how does it relate to the parties' agreement and the applicable law?",
+               "mostDangerousQuestion": "Is the arbitration agreement valid and enforceable, and what are the consequences if it is not?",
+               "fatalQuestion": "Can the tribunal exercise jurisdiction over the dispute without a valid arbitration agreement?",
+               "defensivePivot": "The arbitration agreement is valid and enforceable, as evidenced by the parties' consent and the applicable law."
+           },
+           "rebuttalStrategy": {
+               "triggerPhrasesToListenFor": [
+                   "Invalid arbitration agreement",
+                   "Lack of jurisdiction"
+               ],
+               "immediateOralResponse": "The arbitration agreement is valid and enforceable, and the tribunal has jurisdiction over the dispute."
+           }
+       },
+       {
+           "targetIssueId": 2,
+           "coreSubmission": "The claim is admissible because it is governed by the CISG, which applies to international sales contracts.",
+           "memorialStructure": {
+               "issueStatement": "The admissibility of the claim is a threshold requirement for the arbitration to proceed on its merits.",
+               "ruleStatement": "The CISG applies to international sales contracts between parties from different countries.",
+               "factualApplication": "The contract is an international sales contract governed by the CISG.",
+               "anticipatedCounter": "The respondent may argue that the CISG does not apply to this specific type of contract or transaction.",
+               "preemptiveResponse": "The CISG applies to international sales contracts by default, and the parties' agreement does not exclude its application.",
+               "reliefRequested": "The tribunal should confirm the admissibility of the claim."
+           },
+           "oralAdvocacyStructure": {
+               "openingHook": "The admissibility of the claim is a crucial aspect of this arbitration, and we will demonstrate that it is properly established.",
+               "primarySignposting": [
+                   "The CISG",
+                   "International sales contracts",
+                   "The parties' agreement"
+               ],
+               "auxiliaryPivot": "The respondent's challenge to the applicability of the CISG is unfounded and should be rejected.",
+               "closingPosition": "In conclusion, the claim is admissible, and we request that the tribunal confirm this admissibility."
+           },
+           "authorityIntegrationPlan": [
+               {
+                   "targetAuthorityRequirement": "Mandatory authority on the CISG and international sales contracts",
+                   "injectionPoint": "The CISG applies to international sales contracts between parties from different countries.",
+                   "tacticalUsage": "To establish the admissibility of the claim and demonstrate the applicability of the CISG."
+               }
+           ],
+           "benchPreparationMap": {
+               "mostLikelyQuestion": "What is the basis for the admissibility of the claim, and how does it relate to the applicable law and the parties' agreement?",
+               "mostDangerousQuestion": "Is the CISG applicable to this specific type of contract or transaction, and what are the consequences if it is not?",
+               "fatalQuestion": "Can the tribunal hear the claim on its merits without the CISG applying?",
+               "defensivePivot": "The CISG applies to international sales contracts by default, and the parties' agreement does not exclude its application."
+           },
+           "rebuttalStrategy": {
+               "triggerPhrasesToListenFor": [
+                   "Inapplicable CISG",
+                   "Excluded by agreement"
+               ],
+               "immediateOralResponse": "The CISG applies to international sales contracts by default, and the parties' agreement does not exclude its application."
+           }
+       },
+       {
+           "targetIssueId": 3,
+           "coreSubmission": "The respondent breached Article 35 CISG by delivering non-conforming UAVs.",
+           "memorialStructure": {
+               "issueStatement": "The respondent's breach of Article 35 CISG is a crucial aspect of this arbitration.",
+               "ruleStatement": "The seller must deliver goods that are fit for their intended purpose.",
+               "factualApplication": "The UAVs were not fit for their intended purpose of delivering medical supplies in Equatoriana's tropical climate.",
+               "anticipatedCounter": "The respondent may argue that the UAVs were fit for their intended purpose, and the claimant's allegations are unfounded.",
+               "preemptiveResponse": "The respondent's compliance with Article 35 CISG is not sufficient to establish conformity, as the UAVs were not fit for their intended purpose.",
+               "reliefRequested": "The tribunal should find that the respondent breached Article 35 CISG."
+           },
+           "oralAdvocacyStructure": {
+               "openingHook": "The respondent's breach of Article 35 CISG is a fundamental aspect of this arbitration, and we will demonstrate that it occurred.",
+               "primarySignposting": [
+                   "Article 35 CISG",
+                   "Non-conforming goods",
+                   "Intended purpose"
+               ],
+               "auxiliaryPivot": "The respondent's challenge to the claimant's allegations is unfounded and should be rejected.",
+               "closingPosition": "In conclusion, the respondent breached Article 35 CISG, and we request that the tribunal find in our favor."
+           },
+           "authorityIntegrationPlan": [
+               {
+                   "targetAuthorityRequirement": "Landmark authority on Article 35 CISG and non-conforming goods",
+                   "injectionPoint": "The seller must deliver goods that are fit for their intended purpose.",
+                   "tacticalUsage": "To establish the respondent's breach of Article 35 CISG and demonstrate the non-conformity of the UAVs."
+               }
+           ],
+           "benchPreparationMap": {
+               "mostLikelyQuestion": "What is the basis for the respondent's alleged breach of Article 35 CISG, and how does it relate to the applicable law and the parties' agreement?",
+               "mostDangerousQuestion": "Is the respondent's compliance with Article 35 CISG sufficient to establish conformity, and what are the consequences if it is not?",
+               "fatalQuestion": "Can the tribunal find that the respondent breached Article 35 CISG without evidence of non-conformity?",
+               "defensivePivot": "The respondent's compliance with Article 35 CISG is not sufficient to establish conformity, as the UAVs were not fit for their intended purpose."
+           },
+           "rebuttalStrategy": {
+               "triggerPhrasesToListenFor": [
+                   "Conforming goods",
+                   "No breach of Article 35 CISG"
+               ],
+               "immediateOralResponse": "The respondent's compliance with Article 35 CISG is not sufficient to establish conformity, as the UAVs were not fit for their intended purpose."
+           }
+       },
+       {
+           "targetIssueId": 4,
+           "coreSubmission": "The claimant provided timely notice of non-conformity under Article 39 CISG.",
+           "memorialStructure": {
+               "issueStatement": "The timeliness of notice is a crucial aspect of this arbitration.",
+               "ruleStatement": "The buyer must provide notice of non-conformity within a reasonable time.",
+               "factualApplication": "The claimant provided notice of non-conformity within a reasonable time after discovering the defect.",
+               "anticipatedCounter": "The respondent may argue that the claimant failed to provide timely notice of non-conformity.",
+               "preemptiveResponse": "The claimant provided notice of non-conformity within a reasonable time, considering the circumstances and the respondent's failure to provide adequate instructions or warnings.",
+               "reliefRequested": "The tribunal should find that the claimant provided timely notice of non-conformity."
+           },
+           "oralAdvocacyStructure": {
+               "openingHook": "The timeliness of notice is a fundamental aspect of this arbitration, and we will demonstrate that it was provided.",
+               "primarySignposting": [
+                   "Article 39 CISG",
+                   "Timely notice",
+                   "Reasonable time"
+               ],
+               "auxiliaryPivot": "The respondent's challenge to the timeliness of notice is unfounded and should be rejected.",
+               "closingPosition": "In conclusion, the claimant provided timely notice of non-conformity, and we request that the tribunal find in our favor."
+           },
+           "authorityIntegrationPlan": [
+               {
+                   "targetAuthorityRequirement": "Comparative authority on Article 39 CISG and timely notice",
+                   "injectionPoint": "The buyer must provide notice of non-conformity within a reasonable time.",
+                   "tacticalUsage": "To establish the timeliness of notice and demonstrate the claimant's compliance with Article 39 CISG."
+               }
+           ],
+           "benchPreparationMap": {
+               "mostLikelyQuestion": "What is the basis for the claimant's alleged timely notice of non-conformity, and how does it relate to the applicable law and the parties' agreement?",
+               "mostDangerousQuestion": "Is the claimant's notice of non-conformity sufficient to inform the respondent of the defect and its potential consequences, and what are the consequences if it is not?",
+               "fatalQuestion": "Can the tribunal find that the claimant provided timely notice of non-conformity without evidence of the timing and content of the notice?",
+               "defensivePivot": "The claimant provided notice of non-conformity within a reasonable time, considering the circumstances and the respondent's failure to provide adequate instructions or warnings."
+           },
+           "rebuttalStrategy": {
+               "triggerPhrasesToListenFor": [
+                   "Untimely notice",
+                   "Insufficient notice"
+               ],
+               "immediateOralResponse": "The claimant provided notice of non-conformity within a reasonable time, considering the circumstances and the respondent's failure to provide adequate instructions or warnings."
+           }
+       },
+       {
+           "targetIssueId": 5,
+           "coreSubmission": "The damages sought by the claimant are justifiable and calculable under the CISG.",
+           "memorialStructure": {
+               "issueStatement": "The calculation of damages is a crucial aspect of this arbitration.",
+               "ruleStatement": "The CISG provides for the calculation of damages based on the losses suffered by the buyer.",
+               "factualApplication": "The claimant suffered losses due to the respondent's breach of Article 35 CISG, including the cost of replacement or repair of the UAVs.",
+               "anticipatedCounter": "The respondent may argue that the damages sought by the claimant are excessive or unsupported by evidence.",
+               "preemptiveResponse": "The claimant's calculation of damages is reasonable and based on the applicable law and evidence.",
+               "reliefRequested": "The tribunal should find that the damages sought by the claimant are justifiable and calculable under the CISG."
+           },
+           "oralAdvocacyStructure": {
+               "openingHook": "The calculation of damages is a fundamental aspect of this arbitration, and we will demonstrate that it is justifiable and calculable.",
+               "primarySignposting": [
+                   "The CISG",
+                   "Damages calculation",
+                   "Losses suffered"
+               ],
+               "auxiliaryPivot": "The respondent's challenge to the calculation of damages is unfounded and should be rejected.",
+               "closingPosition": "In conclusion, the damages sought by the claimant are justifiable and calculable under the CISG, and we request that the tribunal find in our favor."
+           },
+           "authorityIntegrationPlan": [
+               {
+                   "targetAuthorityRequirement": "Policy authority on the CISG and damages calculation",
+                   "injectionPoint": "The CISG provides for the calculation of damages based on the losses suffered by the buyer.",
+                   "tacticalUsage": "To establish the justifiability and calculability of damages under the CISG and demonstrate the claimant's entitlement to compensation."
+               }
+           ],
+           "benchPreparationMap": {
+               "mostLikelyQuestion": "What is the basis for the claimant's calculation of damages, and how does it relate to the applicable law and the parties' agreement?",
+               "mostDangerousQuestion": "Is the claimant's calculation of damages reasonable and based on the applicable law and evidence, and what are the consequences if it is not?",
+               "fatalQuestion": "Can the tribunal find that the damages sought by the claimant are justifiable and calculable under the CISG without evidence of the losses suffered?",
+               "defensivePivot": "The claimant's calculation of damages is reasonable and based on the applicable law and evidence."
+           },
+           "rebuttalStrategy": {
+               "triggerPhrasesToListenFor": [
+                   "Excessive damages",
+                   "Unsupported damages"
+               ],
+               "immediateOralResponse": "The claimant's calculation of damages is reasonable and based on the applicable law and evidence."
+           }
+       }
+   ]
+}

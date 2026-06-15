@@ -1,0 +1,32 @@
+{
+  "forumClassification": {
+       "broadType": "International Court",
+       "specificBody": "International Court of Justice (ICJ)"
+   },
+   "proceduralFramework": {
+       "applicableRules": [
+           "Statute of the International Court of Justice",
+           "Rules of the International Court of Justice",
+           "United Nations Charter"
+       ],
+       "standardOfReview": "De Novo",
+       "burdenOfProof": "Claimant (Aglovale) bears the burden of proof for establishing jurisdiction, admissibility, and merits of the claim, while Respondent (Ragnell) bears the burden for affirmative defenses such as lawful countermeasures and necessity"
+   },
+   "adjudicatorModel": {
+       "benchType": "Full Court or Chamber of the International Court of Justice",
+       "addressingStyle": "Your Excellencies"
+   },
+   "simulatorDirectives": {
+       "questioningStyle": "Inquisitorial and text-focused, with an emphasis on the application of international law to the facts of the case",
+       "terminologyOverrides": {
+           "court": "International Court of Justice",
+           "judge": "Judge",
+           "plaintiff": "Claimant (Aglovale)",
+           "defendant": "Respondent (Ragnell)"
+       }
+   },
+   "proceduralHierarchyMapping": {
+       "Level1_Impact": "The ICJ's rules on jurisdiction will apply, requiring Aglovale to establish that the Court has jurisdiction over the dispute, which could involve demonstrating that the dispute falls within the scope of the UN Charter or other treaties in force between the parties",
+       "Level2_Impact": "The ICJ's rules on admissibility will apply, requiring Aglovale to show that the claim is admissible, which may involve demonstrating that all local remedies have been exhausted and that the claim is not otherwise inadmissible due to issues such as lack of standing or failure to state a claim"
+   }
+}

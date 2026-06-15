@@ -1,0 +1,79 @@
+{
+  "hierarchyTree":[
+      {
+         "level":1,
+         "category":"Jurisdiction",
+         "nature":"Threshold",
+         "isFatalToClaim":true,
+         "coreLegalQuestion":"Does the International Court of Justice have jurisdiction over the dispute between Aglovale and Ragnell?",
+         "mappedExplicitIssues":[
+            "Whether the ICJ has jurisdiction to hear the case"
+         ],
+         "blocksDownstreamLevels":[
+            2,
+            3,
+            4,
+            5
+         ]
+      },
+      {
+         "level":2,
+         "category":"Admissibility",
+         "nature":"Threshold",
+         "isFatalToClaim":true,
+         "coreLegalQuestion":"Is the claim admissible before the International Court of Justice?",
+         "mappedExplicitIssues":[
+            "Whether Aglovale has exhausted all local remedies"
+         ],
+         "blocksDownstreamLevels":[
+            3,
+            4,
+            5
+         ]
+      },
+      {
+         "level":3,
+         "category":"Liability/Merits",
+         "nature":"Substantive",
+         "isFatalToClaim":true,
+         "coreLegalQuestion":"Did Ragnell's cyber-operation constitute a 'use of force' under UN Charter Article 2(4)?",
+         "mappedExplicitIssues":[
+            "Whether Ragnell's cyber-operation disabling Aglovale's critical water infrastructure constitutes a 'use of force' under UN Charter Article 2(4)"
+         ],
+         "blocksDownstreamLevels":[
+            4,
+            5
+         ]
+      },
+      {
+         "level":4,
+         "category":"Defenses",
+         "nature":"Affirmative Defense",
+         "isFatalToClaim":false,
+         "coreLegalQuestion":"Was Ragnell's cyber-operation a lawful countermeasure or justified by the doctrine of necessity?",
+         "mappedExplicitIssues":[
+            "Whether Ragnell's cyber-operation was a lawful countermeasure against Aglovale's alleged sponsoring of militant groups",
+            "Whether the doctrine of necessity justifies Ragnell's cyber-operation"
+         ],
+         "blocksDownstreamLevels":[
+            5
+         ]
+      },
+      {
+         "level":5,
+         "category":"Remedies",
+         "nature":"Relief",
+         "isFatalToClaim":false,
+         "coreLegalQuestion":"What relief is Aglovale entitled to if Ragnell's cyber-operation is found to be unlawful?",
+         "mappedExplicitIssues":[
+            "Declaration that Ragnell's cyber-operation violated the UN Charter Article 2(4) prohibition on the use of force"
+         ],
+         "blocksDownstreamLevels":[
+         ]
+      }
+   ],
+   "strategicImplications":{
+      "petitionerOptimalPath":"Aglovale should focus on establishing the ICJ's jurisdiction and the admissibility of the claim, then prove that Ragnell's cyber-operation constituted a 'use of force' under UN Charter Article 2(4), and finally seek relief",
+      "respondentOptimalPath":"Ragnell should challenge the ICJ's jurisdiction and the admissibility of the claim, and if that fails, argue that the cyber-operation was a lawful countermeasure or justified by the doctrine of necessity"
+   }
+}

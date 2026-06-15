@@ -1,0 +1,31 @@
+{
+  "forumClassification": {
+       "broadType": "International Commercial Arbitration",
+       "specificBody": "PCA (Permanent Court of Arbitration)"
+   },
+   "proceduralFramework": {
+       "applicableRules": [
+           "PCA Rules",
+           "United Nations Convention on Contracts for the International Sale of Goods (CISG)"
+       ],
+       "standardOfReview": "De Novo",
+       "burdenOfProof": "Claimant bears the burden of proving non-conformity and timeliness of notice"
+   },
+   "adjudicatorModel": {
+       "benchType": "Arbitral Tribunal",
+       "addressingStyle": "Members of the Tribunal"
+   },
+   "simulatorDirectives": {
+       "questioningStyle": "Inquisitorial and text-focused",
+       "terminologyOverrides": {
+           "court": "Tribunal",
+           "judge": "Arbitrator",
+           "plaintiff": "Claimant",
+           "defendant": "Respondent"
+       }
+   },
+   "proceduralHierarchyMapping": {
+       "Level1_Impact": "The tribunal's jurisdiction over the dispute must be established, with the PCA Rules governing the arbitration process.",
+       "Level2_Impact": "The admissibility of the claim is determined by whether the contract is governed by the CISG, which in turn affects the application of substantive law in subsequent levels."
+   }
+}

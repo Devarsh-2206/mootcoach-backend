@@ -1,0 +1,107 @@
+{
+  "caseMetadata": {
+    "caseName": "Association for Digital Privacy v. Union of Indus",
+    "competitionName": null,
+    "year": 2026,
+    "forumIndicators": [
+      "Supreme Court of Indus",
+      "Constitutional Bench"
+    ]
+  },
+  "parties": {
+    "claimant_petitioner": {
+      "name": "Association for Digital Privacy",
+      "type": "Association"
+    },
+    "respondent": {
+      "name": "Union of Indus",
+      "type": "State"
+    },
+    "thirdParties": []
+  },
+  "factualMatrix": {
+    "materialFacts": [
+      "The Union of Indus passed the \"National Identity Grid Act, 2025\".",
+      "The Act mandates a DNA database for all citizens to access public services.",
+      "The Association for Digital Privacy filed a writ petition under Article 32.",
+      "The petition argues that the Act violates the fundamental right to privacy under Article 21.",
+      "The Union argues the database is necessary for national security and preventing welfare fraud."
+    ],
+    "chronology": [
+      {
+        "date": "2025",
+        "event": "Union of Indus passed the \"National Identity Grid Act, 2025\"."
+      },
+      {
+        "date": "2026",
+        "event": "Association for Digital Privacy filed a writ petition."
+      }
+    ],
+    "keyEvents": [
+      "Enactment of the National Identity Grid Act, 2025.",
+      "Filing of a writ petition challenging the Act's constitutionality.",
+      "Referral of the matter to a 5-judge Constitutional Bench."
+    ]
+  },
+  "proceduralContext": {
+    "currentStage": "Final Hearing",
+    "proceduralPosture": "Original Writ",
+    "reliefSought": [
+      "Declaration that the National Identity Grid Act, 2025 violates the fundamental right to privacy under Article 21.",
+      "Quashing of the National Identity Grid Act, 2025."
+    ]
+  },
+  "governingLaw": {
+    "domesticLaw": [
+      "Constitution of Indus (Article 21, Article 32)",
+      "National Identity Grid Act, 2025"
+    ],
+    "internationalLaw": [],
+    "treaties": [],
+    "statutes": [
+      "National Identity Grid Act, 2025"
+    ],
+    "rules": []
+  },
+  "jurisdictionSignals": {
+    "courtIndicators": [
+      "Supreme Court of Indus",
+      "Writ Petition (Civil) No. ____ of 2026",
+      "Article 32",
+      "5-judge Constitutional Bench"
+    ],
+    "arbitrationIndicators": [],
+    "tribunalIndicators": []
+  },
+  "issues": {
+    "explicit": [
+      "Whether the \"National Identity Grid Act, 2025\" violates the fundamental right to privacy under Article 21 of the Constitution of Indus."
+    ],
+    "implicit": [
+      "Whether the state's interest in national security and preventing welfare fraud constitutes a legitimate aim for infringing the right to privacy.",
+      "Whether the mandatory DNA database under the National Identity Grid Act, 2025, is a proportionate measure to achieve the stated aims.",
+      "What is the scope and limitations of the fundamental right to privacy under Article 21 in the context of state-mandated data collection."
+    ],
+    "hiddenComplexities": [
+      "The definition and evidentiary standard for 'national security' and 'welfare fraud' as compelling state interests.",
+      "The potential for misuse, data breaches, and discrimination arising from a centralized DNA database.",
+      "The availability and efficacy of less intrusive alternatives to a DNA database for achieving the state's objectives.",
+      "The balance between individual autonomy and collective societal interests in a digital age."
+    ]
+  },
+  "mootIntelligence": {
+    "mostContestedArea": "The proportionality and necessity of a mandatory DNA database for all citizens to achieve the stated objectives of national security and preventing welfare fraud, in light of the fundamental right to privacy.",
+    "mostVulnerableArea": "The Union's argument regarding the 'necessity' of a *DNA* database specifically, as opposed to other forms of identification, and the lack of robust safeguards for such sensitive personal data.",
+    "mostImportantFacts": [
+      "National Identity Grid Act, 2025 mandates a DNA database for all citizens.",
+      "Access to public services is contingent on inclusion in the DNA database.",
+      "The challenge is based on the violation of the fundamental right to privacy under Article 21.",
+      "The Union's justifications are national security and preventing welfare fraud."
+    ],
+    "factsLikelyToBeAttacked": [
+      "The assertion that a DNA database is the *only* or *least intrusive* way to achieve national security and prevent welfare fraud.",
+      "The implied lack of consent for DNA collection for public service access.",
+      "The absence of explicit safeguards for the collected DNA data within the proposition."
+    ]
+  }
+}

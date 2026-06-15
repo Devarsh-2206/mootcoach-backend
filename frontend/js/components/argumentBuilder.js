@@ -2415,7 +2415,63 @@ function resolveIssueKey(selectValue) {
   return "Issue 3";
 }
 
+// Map a Stage 1 precedentsNeeded entry to the authority card shape the
+// Advocacy renderers expect. Guarantees `name` and `ratio` are strings.
+function mapPrecedentToAuthority(dp) {
+  const name = (dp.caseName || dp.name || "Unverified authority").toString();
+  const ratio = (dp.holdingRelevant || dp.ratio || "Holding relevant to this issue — verify the exact citation before the oral round.").toString();
+  const jurisdiction = (dp.jurisdiction || "").toString();
+  const citation = (dp.citation || "").toString();
+  const hasCitation = citation && citation.toLowerCase() !== 'citation unverified';
+  return {
+    name,
+    display: hasCitation ? `${name} — ${citation}` : name,
+    ratio,
+    section: jurisdiction || "Authority",
+    whyItMatters: ratio,
+    citation,
+    jurisdiction,
+    confidenceLevel: dp.confidenceLevel || null,
+    caveat: dp.caveat || null
+  };
+}
+
+// CASE CONTINUITY: pull the exact cases produced in Stage 1 (precedentsNeeded).
+// No new AI call. These already match the proposition's jurisdiction.
+function getCasesFromAnalysis() {
+  try {
+    const analysisStr = window.lastAnalysis || lastAnalysis;
+    if (!analysisStr) return [];
+    const data = JSON.parse(analysisStr);
+    const precedents = data.precedentsNeeded || [];
+    const seen = new Set();
+    const out = [];
+    precedents.forEach(dp => {
+      const name = dp.caseName || dp.name;
+      if (!name) return;
+      const key = name.toString().toLowerCase();
+      if (seen.has(key)) return;
+      seen.add(key);
+      out.push(mapPrecedentToAuthority(dp));
+    });
+    return out;
+  } catch (e) {
+    console.error("getCasesFromAnalysis parse error:", e);
+    return [];
+  }
+}
+window.getCasesFromAnalysis = getCasesFromAnalysis;
+
+// Advocacy Authority Armory source of truth.
+// Prefers the Stage 1 analysis cases (case continuity); only falls back to the
+// static demo registry when no proposition has been analysed yet.
 function getAuthoritiesForIssueAndStance(issueVal, stance) {
+  const analysisCases = getCasesFromAnalysis();
+  if (analysisCases.length > 0) return analysisCases;
+  return getAuthoritiesFromStaticRegistry(issueVal, stance);
+}
+
+function getAuthoritiesFromStaticRegistry(issueVal, stance) {
   let matchedAuthorities = [];
   const selectStr = (issueVal || "").toLowerCase();
   
@@ -2592,40 +2648,385 @@ export function renderPreDraftAuthorities() {
 }
 
 export function renderStage3Workspace() {
-  const stance = getCurrentSelectedSide() || selectedSide || 'Petitioner';
+  const stance = getCurrentSelectedSide() || 'Petitioner';
+  const issueSelect = document.getElementById('builder-issue-select');
+  const activeIssue = issueSelect ? issueSelect.value : 'No issue selected';
+
   const sideBadge = document.getElementById('stage3-side-badge');
   if (sideBadge) {
     sideBadge.textContent = stance.toUpperCase();
-    if (stance.toLowerCase().includes('petitioner')) {
-      sideBadge.className = 'text-xs font-semibold tracking-widest text-center py-2 px-3 rounded-md border bg-emerald-500/10 border-emerald-500/20 text-emerald-400 font-sans';
+    if (stance.toLowerCase() === 'petitioner') {
+      sideBadge.className = 'text-xs font-semibold tracking-widest text-center py-2 px-3 rounded-md border bg-indigo-500/10 border-indigo-500 text-indigo-400';
     } else {
-      sideBadge.className = 'text-xs font-semibold tracking-widest text-center py-2 px-3 rounded-md border bg-rose-500/10 border-rose-500/20 text-rose-400 font-sans';
+      sideBadge.className = 'text-xs font-semibold tracking-widest text-center py-2 px-3 rounded-md border bg-rose-500/10 border-rose-500 text-rose-400';
     }
   }
 
-  const issueSelect = document.getElementById('builder-issue-select');
-  const selectedIssueText = document.getElementById('stage3-selected-issue-text');
-  if (selectedIssueText && issueSelect) {
-    selectedIssueText.textContent = issueSelect.value || 'No issue selected yet.';
-  }
-
-  const caseContext = document.getElementById('stage3-case-context');
-  if (caseContext) {
-    if (currentPropositionContext) {
-      caseContext.innerHTML = fmtInline(currentPropositionContext);
-    } else {
-      caseContext.textContent = 'Upload and analyze a proposition to see summary context here.';
-    }
-  }
-
-  validateDraftForm();
-
-  const notesInput = document.getElementById('builder-notes-input');
-  if (notesInput) {
-    updateLiveIntelligence(notesInput.value);
+  const issueText = document.getElementById('stage3-selected-issue-text');
+  if (issueText) {
+    issueText.textContent = activeIssue;
   }
 
   renderPreDraftAuthorities();
+}
+
+window.selectAdvocacyIssue = function(idx) {
+  // Save current BEFORE switching
+  if (typeof window.currentAdvocacyIssueIndex !== 'undefined' && window.currentAdvocacyIssueIndex !== idx) {
+    if (typeof saveTimeout !== 'undefined') clearTimeout(saveTimeout);
+    window.saveAdvocacyDrafts();
+  }
+
+  window.currentAdvocacyIssueIndex = idx;
+  const issues = window.advocacyIssues || [];
+  const issue = issues[idx];
+  if (!issue) return;
+
+  // Highlight navigator
+  issues.forEach((_, i) => {
+    const el = document.getElementById(`advocacy-nav-issue-${i}`);
+    if (el) {
+      if (i === idx) {
+        el.classList.add('bg-moot-accent/10', 'border-moot-accent/30');
+        el.classList.remove('bg-white/[0.02]', 'border-white/5');
+      } else {
+        el.classList.remove('bg-moot-accent/10', 'border-moot-accent/30');
+        el.classList.add('bg-white/[0.02]', 'border-white/5');
+      }
+    }
+  });
+
+  // Update title
+  const titleEl = document.getElementById('advocacy-active-issue-title');
+  const displayIssue = typeof issue === 'string' ? issue : (issue.issue || issue.title || `Issue ${idx + 1}`);
+  if (titleEl) titleEl.textContent = displayIssue;
+
+  // Sync shared moot state so the Simulator targets the same issue.
+  if (window.mootState) {
+    window.mootState.issueIndex = idx;
+    window.mootState.issueText = displayIssue;
+  }
+
+  // Load authorities for this issue
+  renderAdvocacyAuthorities(issue);
+
+  // Load drafts
+  loadAdvocacyDrafts(idx);
+};
+
+function renderAdvocacyAuthorities(issue) {
+  const dock = document.getElementById('advocacy-authority-dock');
+  if (!dock) return;
+
+  const stance = window.getCurrentSelectedSide ? window.getCurrentSelectedSide() : (typeof selectedSide !== 'undefined' ? selectedSide : 'Petitioner');
+  const issueTitle = typeof issue === 'string' ? issue : (issue.issue || issue.title || "");
+  const authorities = getAuthoritiesForIssueAndStance(issueTitle, stance);
+
+  if (authorities.length === 0) {
+    dock.innerHTML = `<div class="text-xs text-white-muted italic py-4">No key recommended authorities for this issue.</div>`;
+    return;
+  }
+
+  dock.innerHTML = authorities.map(auth => {
+    return `
+      <div class="bg-white/[0.02] border border-white/10 rounded-xl p-4 flex flex-col gap-2 transition-all hover:border-moot-accent/30">
+        <div class="text-[9px] uppercase tracking-wider px-2 py-0.5 rounded bg-moot-accent/10 text-moot-accent border border-moot-accent/20 font-sans font-semibold inline-block self-start">${auth.section || 'Constitutional Law'}</div>
+        <h4 class="text-xs font-semibold text-white leading-snug">${auth.display || auth.name}</h4>
+        <p class="text-[11px] text-white-muted leading-relaxed line-clamp-3">${auth.whyItMatters || auth.ratio.substring(0, 100) + '...'}</p>
+        <button class="mt-2 text-[10px] font-bold uppercase tracking-wider py-1.5 px-3 rounded bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-colors w-full flex items-center justify-center gap-2" onclick="window.insertAuthority('${auth.name.replace(/'/g, "\\'")}')">
+          <span>+</span> Insert into Draft
+        </button>
+      </div>
+    `;
+  }).join('');
+}
+
+window.insertAuthority = function(caseName) {
+  const memorialDraft = document.getElementById('advocacy-memorial-draft');
+  if (!memorialDraft) return;
+
+  const stance = window.getCurrentSelectedSide ? window.getCurrentSelectedSide() : (typeof selectedSide !== 'undefined' ? selectedSide : 'Petitioner');
+  const authorities = getAuthoritiesForIssueAndStance(document.getElementById('advocacy-active-issue-title')?.textContent || "", stance);
+  const auth = authorities.find(a => a.name === caseName);
+  
+  let textToInsert = caseName;
+  if (auth && auth.ratio) {
+    textToInsert = `As established in ${caseName}, ${auth.ratio.toLowerCase()}`;
+  }
+
+  // Track deployed authority in shared moot state so the Simulator can cite it.
+  if (window.mootState) {
+    if (!Array.isArray(window.mootState.authorities)) window.mootState.authorities = [];
+    if (!window.mootState.authorities.some(a => a.name === caseName)) {
+      window.mootState.authorities.push({ name: caseName, ratio: auth ? (auth.ratio || '') : '' });
+    }
+  }
+
+  const cursorPosition = memorialDraft.selectionStart;
+  const textBefore = memorialDraft.value.substring(0, cursorPosition);
+  const textAfter = memorialDraft.value.substring(cursorPosition, memorialDraft.value.length);
+  
+  memorialDraft.value = textBefore + (textBefore.endsWith(' ') ? '' : ' ') + textToInsert + (textAfter.startsWith(' ') ? '' : ' ') + textAfter;
+  
+  // Set cursor
+  memorialDraft.selectionStart = cursorPosition + textToInsert.length + 1;
+  memorialDraft.selectionEnd = cursorPosition + textToInsert.length + 1;
+  memorialDraft.focus();
+
+  // Save automatically
+  window.saveAdvocacyDrafts();
+  
+  if (typeof showToast === 'function') showToast(`Inserted ${caseName}`, "ok");
+};
+
+// Auto-save debouncing
+let saveTimeout;
+window.debounceSaveAdvocacy = function(event) {
+  const statusEl = document.getElementById('advocacy-autosave-status');
+  if (statusEl) {
+    statusEl.innerHTML = `<div class="w-1.5 h-1.5 rounded-full bg-moot-accent animate-pulse"></div> Saving...`;
+    statusEl.classList.remove('opacity-50');
+  }
+
+  clearTimeout(saveTimeout);
+  saveTimeout = setTimeout(() => {
+    window.saveAdvocacyDrafts();
+  }, 1000);
+};
+
+window.saveAdvocacyDrafts = function() {
+  const idx = window.currentAdvocacyIssueIndex;
+  if (typeof idx === 'undefined') return;
+
+  const notes = document.getElementById('advocacy-issue-notes')?.value || "";
+  const oral = document.getElementById('advocacy-oral-submission')?.value || "";
+  const memorial = document.getElementById('advocacy-memorial-draft')?.value || "";
+
+  // Mirror the drafts into shared moot state for the Simulator.
+  if (window.mootState) {
+    window.mootState.strategicNotes = notes;
+    window.mootState.oralSubmission = oral;
+    window.mootState.memorialDraft = memorial;
+  }
+
+  const mootId = window.currentMootDocId || "default";
+
+  // Save to local variable
+  if (!window.advocacyDrafts) window.advocacyDrafts = {};
+  if (!window.advocacyDrafts[mootId]) window.advocacyDrafts[mootId] = {};
+  window.advocacyDrafts[mootId][idx] = { notes, oral, memorial, lastUpdated: new Date().toISOString() };
+
+  // Save to Firebase if available
+  try {
+    if (typeof window.firebase !== 'undefined' && window.firebase.auth().currentUser && mootId !== "default") {
+      const uid = window.firebase.auth().currentUser.uid;
+      const db = window.firebase.firestore();
+      
+      const firestorePath = `artifacts/moot.coach/users/${uid}/analyses/${mootId}/advocacy/issue_${idx}`;
+      console.log(`[FIREBASE SAVE] Writing to path: ${firestorePath}`);
+      
+      db.collection('artifacts').doc('moot.coach').collection('users').doc(uid).collection('analyses').doc(mootId).collection('advocacy').doc(`issue_${idx}`).set({
+        notes, oral, memorial, lastUpdated: window.firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: true })
+      .then(() => {
+        updateSaveStatus("Saved");
+      })
+      .catch(e => {
+        console.error("Error saving advocacy draft to Firebase", e);
+        updateSaveStatus("Local Only");
+      });
+    } else {
+      updateSaveStatus("Local Only");
+    }
+  } catch (e) {
+    updateSaveStatus("Local Only");
+  }
+};
+
+function updateSaveStatus(text) {
+  const statusEl = document.getElementById('advocacy-autosave-status');
+  if (statusEl) {
+    statusEl.innerHTML = `<div class="w-1.5 h-1.5 rounded-full bg-[#4caf82]"></div> ${text}`;
+    statusEl.classList.add('opacity-50');
+  }
+}
+
+// Build a structured starting brief from the Stage 2 committed plan and drop it
+// into any empty Stage 3 fields. This is the change that makes Stage 2 matter:
+// selecting an issue + stance now configures the Advocacy workspace.
+function seedAdvocacyFromPlan(notesEl, oralEl) {
+  const plan = window.mootState && window.mootState.plan;
+  if (!plan) return;
+
+  if (notesEl && !notesEl.value.trim()) {
+    const lines = [];
+    if (plan.issueText) lines.push(`ISSUE: ${plan.issueText}`, `ARGUING AS: ${plan.stance || 'Petitioner'}`, '');
+    // Prefer the arguments the user explicitly ACCEPTED in Stage 2; fall back to all recommended.
+    const acceptedForIssue = (window.mootState && window.mootState.acceptedArgs && window.mootState.acceptedArgs[plan.issueText]) || [];
+    const argsToSeed = acceptedForIssue.length ? acceptedForIssue : (Array.isArray(plan.recommendedArguments) ? plan.recommendedArguments : []);
+    if (argsToSeed.length) {
+      lines.push(acceptedForIssue.length ? 'YOUR ACCEPTED ARGUMENTS:' : 'RECOMMENDED ARGUMENTS (from Analysis):');
+      argsToSeed.forEach((a, i) => lines.push(`${i + 1}. ${a}`));
+      lines.push('');
+    }
+    if (Array.isArray(plan.fatalQuestions) && plan.fatalQuestions.length) {
+      lines.push('MUST ADDRESS — the bench will attack here:');
+      plan.fatalQuestions.forEach(q => {
+        const question = (q && (q.question || q)) || '';
+        const exit = q && q.safeExit ? `  (safe exit: ${q.safeExit})` : '';
+        lines.push(`• ${question}${exit}`);
+      });
+      lines.push('');
+    }
+    if (Array.isArray(plan.rebuttals) && plan.rebuttals.length) {
+      lines.push('ANTICIPATED COUNTER-ATTACKS:');
+      plan.rebuttals.forEach(r => lines.push(`• ${(r.attackAngle || '')} → ${(r.defenseStrategy || '')}`));
+    }
+    if (lines.length) {
+      notesEl.value = lines.join('\n').trim();
+      notesEl.setAttribute('data-seeded', '1');
+    }
+  }
+
+  if (oralEl && !oralEl.value.trim() && plan.oralHook) {
+    let oral = plan.oralHook;
+    if (Array.isArray(plan.signposting) && plan.signposting.length) {
+      oral += '\n\nRoadmap:\n' + plan.signposting.map((s, i) => `${i + 1}. ${s}`).join('\n');
+    }
+    oralEl.value = oral;
+    oralEl.setAttribute('data-seeded', '1');
+  }
+}
+
+// Stage 3 "Generate Structured Draft" — turns the advocate's notes + selected
+// authorities into an IRAC memorial via the existing /api/build-argument endpoint,
+// writing the result straight into the Written Memorial field. No new endpoint.
+window.generateAdvocacyDraft = async function() {
+  const notesEl = document.getElementById('advocacy-issue-notes');
+  const oralEl = document.getElementById('advocacy-oral-submission');
+  const memorialEl = document.getElementById('advocacy-memorial-draft');
+  const btn = document.getElementById('btn-advocacy-generate');
+
+  const ms = window.mootState || {};
+  const stance = ms.stance || (window.getCurrentSelectedSide && window.getCurrentSelectedSide()) || 'Petitioner';
+  const issue = ms.issueText || document.getElementById('advocacy-active-issue-title')?.textContent || '';
+
+  let notesToSend = [notesEl?.value, oralEl?.value].filter(Boolean).join('\n\n');
+  const auths = Array.isArray(ms.authorities) ? ms.authorities : [];
+  if (auths.length) {
+    notesToSend += '\n\nAuthorities to weave in:\n' + auths.map(a => `- ${a.name}: ${a.ratio}`).join('\n');
+  }
+  if ((!issue || issue.length < 3) && notesToSend.trim().length < 5) {
+    showToast('Add a few notes or pick an issue first.', 'err');
+    return;
+  }
+
+  // Forum payload so the builder adapts law + terminology (no Indian default).
+  const fp = (typeof window.getForumProfile === 'function') ? window.getForumProfile() : null;
+  const df = window.detectedForum || {};
+  const forumPayload = {
+    forum: df.forum || (fp && (fp.specificBody || fp.benchType)) || '',
+    benchType: fp ? fp.benchType : '',
+    broadType: fp ? fp.broadType : '',
+    jurisdiction: df.jurisdiction || '',
+    governingLaw: df.governingLaw || ''
+  };
+
+  if (btn) { btn.disabled = true; btn.dataset.label = btn.textContent; btn.textContent = 'Generating…'; }
+  try {
+    const data = await buildArgument(stance, issue, notesToSend, currentPropositionContext, forumPayload);
+    if (data && data.success && data.response) {
+      const m = data.response.memorial || data.response;
+      const parts = [];
+      if (m.issue)       parts.push(`ISSUE\n${cleanSectionText(m.issue, 'issue')}`);
+      if (m.rule)        parts.push(`RULE\n${cleanSectionText(m.rule, 'rule')}`);
+      if (m.application) parts.push(`APPLICATION\n${cleanSectionText(m.application, 'application')}`);
+      if (m.conclusion)  parts.push(`CONCLUSION\n${cleanSectionText(m.conclusion, 'conclusion')}`);
+      const draft = parts.join('\n\n').trim();
+      if (memorialEl && draft) {
+        memorialEl.value = memorialEl.value.trim() ? (memorialEl.value.trim() + '\n\n' + draft) : draft;
+        if (window.mootState) window.mootState.memorialDraft = memorialEl.value;
+        if (typeof window.saveAdvocacyDrafts === 'function') window.saveAdvocacyDrafts();
+      }
+      lastBuiltArgument = data.response;
+      showToast('Structured draft generated into your Memorial.', 'ok');
+    } else {
+      throw new Error((data && data.error) || 'Generation failed.');
+    }
+  } catch (e) {
+    showToast('Draft generation failed: ' + e.message, 'err');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = btn.dataset.label || 'Generate Structured Draft'; }
+  }
+};
+
+window.loadAdvocacyDrafts = function(idx) {
+  const notesEl = document.getElementById('advocacy-issue-notes');
+  const oralEl = document.getElementById('advocacy-oral-submission');
+  const memorialEl = document.getElementById('advocacy-memorial-draft');
+
+  // Reset first
+  if (notesEl) notesEl.value = "";
+  if (oralEl) oralEl.value = "";
+  if (memorialEl) memorialEl.value = "";
+
+  const mootId = window.currentMootDocId || "default";
+
+  // Load from local if exists
+  if (window.advocacyDrafts && window.advocacyDrafts[mootId] && window.advocacyDrafts[mootId][idx]) {
+    const draft = window.advocacyDrafts[mootId][idx];
+    if (notesEl) notesEl.value = draft.notes || "";
+    if (oralEl) oralEl.value = draft.oral || "";
+    if (memorialEl) memorialEl.value = draft.memorial || "";
+  }
+
+  // SEED FROM STAGE 2 PLAN: if this issue has no draft yet, pre-fill the
+  // workspace with the committed battle plan so Stage 3 opens loaded, not blank.
+  // Only fills EMPTY fields — never overwrites the advocate's own work.
+  seedAdvocacyFromPlan(notesEl, oralEl);
+
+  // Keep shared moot state in sync with the issue now showing in the editor.
+  if (window.mootState) {
+    window.mootState.strategicNotes = notesEl ? notesEl.value : "";
+    window.mootState.oralSubmission = oralEl ? oralEl.value : "";
+    window.mootState.memorialDraft = memorialEl ? memorialEl.value : "";
+  }
+
+  // Fetch from Firebase
+  try {
+    if (typeof window.firebase !== 'undefined' && window.firebase.auth().currentUser && mootId !== "default") {
+      const uid = window.firebase.auth().currentUser.uid;
+      const db = window.firebase.firestore();
+      db.collection('artifacts').doc('moot.coach').collection('users').doc(uid).collection('analyses').doc(mootId).collection('advocacy').doc(`issue_${idx}`).get()
+      .then(doc => {
+        if (window.currentAdvocacyIssueIndex !== idx) return; // Abort if user already switched
+        if (doc.exists) {
+          const data = doc.data();
+          
+          const localDraft = (window.advocacyDrafts && window.advocacyDrafts[mootId] && window.advocacyDrafts[mootId][idx]) ? window.advocacyDrafts[mootId][idx] : {notes:"", oral:"", memorial:""};
+          const notesUnchanged = !notesEl || notesEl.value === (localDraft.notes || "");
+          const oralUnchanged = !oralEl || oralEl.value === (localDraft.oral || "");
+          const memorialUnchanged = !memorialEl || memorialEl.value === (localDraft.memorial || "");
+          
+          if (notesEl && data.notes && notesUnchanged) notesEl.value = data.notes;
+          if (oralEl && data.oral && oralUnchanged) oralEl.value = data.oral;
+          if (memorialEl && data.memorial && memorialUnchanged) memorialEl.value = data.memorial;
+          
+          if (!window.advocacyDrafts) window.advocacyDrafts = {};
+          if (!window.advocacyDrafts[mootId]) window.advocacyDrafts[mootId] = {};
+          
+          window.advocacyDrafts[mootId][idx] = {
+            notes: notesUnchanged ? (data.notes || "") : (notesEl ? notesEl.value : ""),
+            oral: oralUnchanged ? (data.oral || "") : (oralEl ? oralEl.value : ""),
+            memorial: memorialUnchanged ? (data.memorial || "") : (memorialEl ? memorialEl.value : "")
+          };
+          updateSaveStatus("Loaded");
+        }
+      });
+    }
+  } catch (e) {
+    console.log("Firebase not ready for loadAdvocacyDrafts");
+  }
 }
 
 function getImprovementPathwayHTML(notes, casesCount, statutesCount, scoring, finalReadinessScore) {

@@ -1,0 +1,114 @@
+{
+  "caseMetadata": {
+    "caseName": "Nexus Corp Ltd. v. Stark Industries Inc.",
+    "competitionName": null,
+    "year": null,
+    "forumIndicators": [
+      "Arbitration Tribunal"
+    ]
+  },
+  "parties": {
+    "claimant_petitioner": {
+      "name": "Nexus Corp Ltd.",
+      "type": "Corporation"
+    },
+    "respondent": {
+      "name": "Stark Industries Inc.",
+      "type": "Corporation"
+    },
+    "thirdParties": []
+  },
+  "factualMatrix": {
+    "materialFacts": [
+      "Nexus Corp Ltd. entered into a Commercial Supply Agreement with Stark Industries Inc. on Jan 1, 2024.",
+      "The Commercial Supply Agreement was governed by English law.",
+      "The agreement included an arbitration clause specifying London as the seat and UNCITRAL Rules.",
+      "Stark Industries Inc. failed to deliver vibranium cores by Dec 31, 2025.",
+      "Stark Industries Inc. claimed force majeure due to a global shortage as the reason for non-delivery.",
+      "Nexus Corp Ltd. claims breach of contract.",
+      "Nexus Corp Ltd. seeks $50M in damages.",
+      "Stark Industries Inc. claims the force majeure clause excuses performance."
+    ],
+    "chronology": [
+      {
+        "date": "Jan 1, 2024",
+        "event": "Commercial Supply Agreement entered into between Nexus Corp Ltd. and Stark Industries Inc."
+      },
+      {
+        "date": "Dec 31, 2025",
+        "event": "Deadline for Stark Industries Inc. to deliver vibranium cores; Stark Industries Inc. failed to deliver."
+      }
+    ],
+    "keyEvents": [
+      "Signing of Commercial Supply Agreement.",
+      "Failure of Stark Industries Inc. to deliver vibranium cores.",
+      "Stark Industries Inc. invoking force majeure.",
+      "Nexus Corp Ltd. claiming breach of contract and damages."
+    ]
+  },
+  "proceduralContext": {
+    "currentStage": "Arbitration",
+    "proceduralPosture": "Claim for breach of contract and damages in arbitration.",
+    "reliefSought": [
+      "$50M in damages (by Nexus Corp Ltd.)",
+      "Excuse from performance (by Stark Industries Inc.)"
+    ]
+  },
+  "governingLaw": {
+    "domesticLaw": [
+      "English law"
+    ],
+    "internationalLaw": [],
+    "treaties": [],
+    "statutes": [],
+    "rules": [
+      "UNCITRAL Arbitration Rules"
+    ]
+  },
+  "jurisdictionSignals": {
+    "courtIndicators": [],
+    "arbitrationIndicators": [
+      "IN THE ARBITRATION TRIBUNAL SEATED IN LONDON",
+      "UNDER THE UNCITRAL ARBITRATION RULES",
+      "arbitration clause (London seat, UNCITRAL Rules)"
+    ],
+    "tribunalIndicators": [
+      "Arbitration Tribunal"
+    ]
+  },
+  "issues": {
+    "explicit": [
+      "Whether Stark Industries Inc. breached the Commercial Supply Agreement.",
+      "Whether Stark Industries Inc.'s non-performance is excused by the force majeure clause.",
+      "Whether Nexus Corp Ltd. is entitled to $50M in damages."
+    ],
+    "implicit": [
+      "What constitutes 'force majeure' under the agreement and English law.",
+      "Whether a 'global shortage' qualifies as a force majeure event under the specific contract terms.",
+      "Whether Stark Industries Inc. took reasonable steps to mitigate the impact of the alleged force majeure event.",
+      "The interpretation of the force majeure clause within the Commercial Supply Agreement.",
+      "The calculation and quantum of damages for breach of contract under English law."
+    ],
+    "hiddenComplexities": [
+      "The specific wording and scope of the force majeure clause in the Commercial Supply Agreement will be critical.",
+      "The burden of proof for establishing a force majeure event and its causal link to non-performance.",
+      "Potential arguments regarding foreseeability of the 'global shortage'.",
+      "Any notice requirements for invoking force majeure."
+    ]
+  },
+  "mootIntelligence": {
+    "mostContestedArea": "The applicability and interpretation of the force majeure clause.",
+    "mostVulnerableArea": "Stark Industries Inc.'s ability to prove that the 'global shortage' meets the contractual definition of force majeure and that it was the sole cause of non-performance.",
+    "mostImportantFacts": [
+      "The existence and terms of the Commercial Supply Agreement.",
+      "The specific wording of the arbitration clause and force majeure clause.",
+      "The failure to deliver vibranium cores by the deadline.",
+      "The claim of 'global shortage' as the basis for force majeure."
+    ],
+    "factsLikelyToBeAttacked": [
+      "The assertion that a 'global shortage' constitutes a force majeure event under the contract.",
+      "The causal link between the 'global shortage' and Stark Industries Inc.'s inability to deliver.",
+      "The extent to which Stark Industries Inc. attempted to mitigate the shortage."
+    ]
+  }
+}

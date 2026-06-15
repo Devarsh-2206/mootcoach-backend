@@ -1,0 +1,31 @@
+{
+  "forumClassification": {
+       "broadType": "Appellate Tribunal",
+       "specificBody": "National Company Law Appellate Tribunal (NCLAT)"
+   },
+   "proceduralFramework": {
+       "applicableRules": [
+           "Competition Act, 2002",
+           "National Company Law Appellate Tribunal Rules, 2016"
+       ],
+       "standardOfReview": "Error of Law and Fact",
+       "burdenOfProof": "MegaRetailers (Appellant) bears the burden to prove that the CCI's decision was erroneous"
+   },
+   "adjudicatorModel": {
+       "benchType": "Tribunal",
+       "addressingStyle": "Hon'ble Members of the Tribunal"
+   },
+   "simulatorDirectives": {
+       "questioningStyle": "Inquisitorial and text-focused, with an emphasis on legal and factual analysis",
+       "terminologyOverrides": {
+           "court": "Tribunal",
+           "judge": "Member",
+           "plaintiff": "Appellant",
+           "defendant": "Respondent"
+       }
+   },
+   "proceduralHierarchyMapping": {
+       "Level1_Impact": "The NCLAT's jurisdiction to hear the appeal against the CCI's order is a threshold issue that must be resolved before proceeding to the merits of the case",
+       "Level2_Impact": "The admissibility of the appeal is also a threshold issue, and the NCLAT must determine whether the appeal is properly before it before considering the merits"
+   }
+}

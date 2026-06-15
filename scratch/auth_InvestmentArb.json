@@ -1,0 +1,94 @@
+{
+  "authorityRoadmap": [
+       {
+           "targetIssueId": 1,
+           "targetArgumentId": "Jurisdictional Argument",
+           "strategicPurpose": "Establish jurisdiction over the claim",
+           "authorityType": "Landmark",
+           "jurisdictionIntelligence": {
+               "requiredJurisdiction": "International",
+               "prohibitedJurisdictions": [
+                   "Domestic Supreme Courts"
+               ],
+               "reasoning": "The claim is before an ICSID tribunal, and the issue of jurisdiction is governed by international investment law."
+           },
+           "ratioIntelligence": {
+               "requiredLegalRatio": "The legality of an investment under domestic law at the time it was made is the relevant factor for determining jurisdiction",
+               "requiredFactualSimilarity": "The investment was made under a bilateral investment treaty that provides for ICSID arbitration",
+               "whyItIsNeeded": "To establish that the tribunal has jurisdiction over the claim, despite the respondent's argument that the investment was illegal under new domestic law."
+           }
+       },
+       {
+           "targetIssueId": 2,
+           "targetArgumentId": "Admissibility Argument",
+           "strategicPurpose": "Establish admissibility of the claim",
+           "authorityType": "Comparative",
+           "jurisdictionIntelligence": {
+               "requiredJurisdiction": "International",
+               "prohibitedJurisdictions": [
+                   "Domestic Supreme Courts"
+               ],
+               "reasoning": "The claim is before an ICSID tribunal, and the issue of admissibility is governed by international investment law."
+           },
+           "ratioIntelligence": {
+               "requiredLegalRatio": "The interplay between domestic law and international investment law determines admissibility",
+               "requiredFactualSimilarity": "The investment was made under a bilateral investment treaty that provides for ICSID arbitration",
+               "whyItIsNeeded": "To establish that the claim is admissible, despite the respondent's argument that the investment was illegal under new domestic law."
+           }
+       },
+       {
+           "targetIssueId": 3,
+           "targetArgumentId": "Expropriation Argument",
+           "strategicPurpose": "Establish expropriation of the investment",
+           "authorityType": "Mandatory",
+           "jurisdictionIntelligence": {
+               "requiredJurisdiction": "International",
+               "prohibitedJurisdictions": [
+                   "Domestic Supreme Courts"
+               ],
+               "reasoning": "The claim is before an ICSID tribunal, and the issue of expropriation is governed by international investment law."
+           },
+           "ratioIntelligence": {
+               "requiredLegalRatio": "The destruction of an investment constitutes expropriation",
+               "requiredFactualSimilarity": "The respondent's actions resulted in the destruction of the investment",
+               "whyItIsNeeded": "To establish that the respondent expropriated the investment, and is liable for compensation."
+           }
+       },
+       {
+           "targetIssueId": 3,
+           "targetArgumentId": "FET Argument",
+           "strategicPurpose": "Establish violation of the FET standard",
+           "authorityType": "Landmark",
+           "jurisdictionIntelligence": {
+               "requiredJurisdiction": "International",
+               "prohibitedJurisdictions": [
+                   "Domestic Supreme Courts"
+               ],
+               "reasoning": "The claim is before an ICSID tribunal, and the issue of FET is governed by international investment law."
+           },
+           "ratioIntelligence": {
+               "requiredLegalRatio": "The FET standard requires transparency, non-discrimination, and proportionality",
+               "requiredFactualSimilarity": "The respondent's actions were arbitrary, discriminatory, and lacked transparency",
+               "whyItIsNeeded": "To establish that the respondent violated the FET standard, and is liable for compensation."
+           }
+       },
+       {
+           "targetIssueId": 4,
+           "targetArgumentId": "Police Power Argument",
+           "strategicPurpose": "Challenge the police power doctrine as a defense",
+           "authorityType": "Persuasive",
+           "jurisdictionIntelligence": {
+               "requiredJurisdiction": "International",
+               "prohibitedJurisdictions": [
+                   "Domestic Supreme Courts"
+               ],
+               "reasoning": "The claim is before an ICSID tribunal, and the issue of the police power doctrine is governed by international investment law."
+           },
+           "ratioIntelligence": {
+               "requiredLegalRatio": "The police power doctrine does not excuse expropriation or FET violations that are not necessary to protect public health or other essential interests",
+               "requiredFactualSimilarity": "The respondent's actions were not necessary to protect public health or other essential interests",
+               "whyItIsNeeded": "To challenge the respondent's argument that the police power doctrine excuses the need for compensation."
+           }
+       }
+   ]
+}

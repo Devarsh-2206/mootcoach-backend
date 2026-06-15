@@ -1,0 +1,279 @@
+{
+  "issues":[
+      {
+         "hierarchyLevel":1,
+         "issueDefinition":{
+            "exactLegalQuestion":"Does the National Company Law Appellate Tribunal (NCLAT) have jurisdiction to hear the appeal against the order of the Competition Commission of India (CCI)?",
+            "whyItMatters":"The NCLAT's jurisdiction is a threshold issue that must be resolved before proceeding to the merits of the case.",
+            "whatWinningLooksLike":"The NCLAT finds that it has jurisdiction to hear the appeal, allowing the case to proceed to the merits."
+         },
+         "petitionerFramework":{
+            "coreTheory":"The NCLAT has jurisdiction to hear appeals against orders of the CCI under the Competition Act, 2002.",
+            "primaryArguments":[
+               {
+                  "argumentId":"Jurisdiction under the Competition Act",
+                  "legalBasis":"Section 53A of the Competition Act, 2002",
+                  "factualBasis":"The CCI's order was made under Section 4 of the Competition Act, 2002",
+                  "strategicImportance":"Establishing jurisdiction is a threshold issue that must be resolved before proceeding to the merits."
+               }
+            ],
+            "auxiliaryArguments":[
+               "The NCLAT's jurisdiction is not limited to appeals against orders of the CCI, but also extends to appeals against decisions of the CCI."
+            ]
+         },
+         "respondentFramework":{
+            "coreTheory":"The NCLAT does not have jurisdiction to hear the appeal because the CCI's order was not a final order.",
+            "primaryResponses":[
+               {
+                  "responseId":"Lack of finality",
+                  "legalBasis":"Section 53A of the Competition Act, 2002",
+                  "factualBasis":"The CCI's order was an interim order, not a final order",
+                  "strategicImportance":"If the NCLAT finds that it does not have jurisdiction, the appeal will be dismissed."
+               }
+            ],
+            "auxiliaryResponses":[
+               "The NCLAT's jurisdiction is limited to appeals against orders of the CCI, and does not extend to appeals against decisions of the CCI."
+            ]
+         },
+         "rebuttalMatrix":[
+            {
+               "petitionerArgument":"Jurisdiction under the Competition Act",
+               "respondentAttack":"The CCI's order was not a final order, and therefore the NCLAT does not have jurisdiction.",
+               "petitionerReply":"The NCLAT's jurisdiction is not limited to final orders, but also extends to interim orders that have a significant impact on the parties."
+            }
+         ],
+         "benchVulnerabilityMatrix":{
+            "mostDangerousJudicialQuestion":"What is the scope of the NCLAT's jurisdiction under the Competition Act, 2002?",
+            "mostDangerousFactualWeakness":"The CCI's order was not a final order, but rather an interim order.",
+            "mostDangerousLegalWeakness":"The NCLAT's jurisdiction is limited to appeals against orders of the CCI, and does not extend to appeals against decisions of the CCI.",
+            "mostDangerousProceduralWeakness":"The appeal was not filed within the prescribed time limit."
+         },
+         "authorityRequirements":{
+            "landmarkAuthorityNeeded":"A decision of the Supreme Court of India on the scope of the NCLAT's jurisdiction under the Competition Act, 2002.",
+            "jurisdictionSpecificAuthorityNeeded":"A decision of the NCLAT on the scope of its jurisdiction under the Competition Act, 2002.",
+            "comparativeAuthorityNeeded":"A decision of a foreign jurisdiction on the scope of the jurisdiction of a similar appellate tribunal.",
+            "policyAuthorityNeeded":"A policy statement from the Government of India on the scope of the NCLAT's jurisdiction under the Competition Act, 2002."
+         }
+      },
+      {
+         "hierarchyLevel":2,
+         "issueDefinition":{
+            "exactLegalQuestion":"Is the appeal against the CCI's order admissible before the NCLAT?",
+            "whyItMatters":"The admissibility of the appeal is a threshold issue that must be resolved before proceeding to the merits of the case.",
+            "whatWinningLooksLike":"The NCLAT finds that the appeal is admissible, allowing the case to proceed to the merits."
+         },
+         "petitionerFramework":{
+            "coreTheory":"The appeal is admissible because it was filed within the prescribed time limit and meets all the requirements of the Competition Act, 2002.",
+            "primaryArguments":[
+               {
+                  "argumentId":"Timely filing",
+                  "legalBasis":"Section 53B of the Competition Act, 2002",
+                  "factualBasis":"The appeal was filed within the prescribed time limit",
+                  "strategicImportance":"Establishing admissibility is a threshold issue that must be resolved before proceeding to the merits."
+               }
+            ],
+            "auxiliaryArguments":[
+               "The appeal meets all the requirements of the Competition Act, 2002, including the requirement of a valid notice of appeal."
+            ]
+         },
+         "respondentFramework":{
+            "coreTheory":"The appeal is not admissible because it was not filed within the prescribed time limit.",
+            "primaryResponses":[
+               {
+                  "responseId":"Untimely filing",
+                  "legalBasis":"Section 53B of the Competition Act, 2002",
+                  "factualBasis":"The appeal was not filed within the prescribed time limit",
+                  "strategicImportance":"If the NCLAT finds that the appeal is not admissible, the appeal will be dismissed."
+               }
+            ],
+            "auxiliaryResponses":[
+               "The appeal does not meet all the requirements of the Competition Act, 2002, including the requirement of a valid notice of appeal."
+            ]
+         },
+         "rebuttalMatrix":[
+            {
+               "petitionerArgument":"Timely filing",
+               "respondentAttack":"The appeal was not filed within the prescribed time limit.",
+               "petitionerReply":"The appeal was filed within the prescribed time limit, and the respondent's argument is without merit."
+            }
+         ],
+         "benchVulnerabilityMatrix":{
+            "mostDangerousJudicialQuestion":"What is the scope of the NCLAT's discretion to admit an appeal under the Competition Act, 2002?",
+            "mostDangerousFactualWeakness":"The appeal was not filed within the prescribed time limit.",
+            "mostDangerousLegalWeakness":"The NCLAT's discretion to admit an appeal is limited by the requirements of the Competition Act, 2002.",
+            "mostDangerousProceduralWeakness":"The appeal was not properly served on the respondent."
+         },
+         "authorityRequirements":{
+            "landmarkAuthorityNeeded":"A decision of the Supreme Court of India on the admissibility of appeals under the Competition Act, 2002.",
+            "jurisdictionSpecificAuthorityNeeded":"A decision of the NCLAT on the admissibility of appeals under the Competition Act, 2002.",
+            "comparativeAuthorityNeeded":"A decision of a foreign jurisdiction on the admissibility of appeals under a similar competition law.",
+            "policyAuthorityNeeded":"A policy statement from the Government of India on the admissibility of appeals under the Competition Act, 2002."
+         }
+      },
+      {
+         "hierarchyLevel":3,
+         "issueDefinition":{
+            "exactLegalQuestion":"Does the 'SuperSeller' program constitute an abuse of dominant position under Section 4 of the Competition Act, 2002?",
+            "whyItMatters":"The 'SuperSeller' program is a key aspect of MegaRetailers' business model, and a finding of abuse of dominant position could have significant consequences for the company.",
+            "whatWinningLooksLike":"The NCLAT finds that the 'SuperSeller' program does not constitute an abuse of dominant position, allowing MegaRetailers to continue operating the program."
+         },
+         "petitionerFramework":{
+            "coreTheory":"The 'SuperSeller' program does not constitute an abuse of dominant position because it is a legitimate pro-competitive efficiency justification.",
+            "primaryArguments":[
+               {
+                  "argumentId":"Pro-competitive efficiency justification",
+                  "legalBasis":"Section 4 of the Competition Act, 2002",
+                  "factualBasis":"The 'SuperSeller' program increases efficiency and reduces costs for sellers",
+                  "strategicImportance":"Establishing a pro-competitive efficiency justification is a key aspect of MegaRetailers' defense."
+               }
+            ],
+            "auxiliaryArguments":[
+               "The 'SuperSeller' program is not exclusionary, and does not harm competition."
+            ]
+         },
+         "respondentFramework":{
+            "coreTheory":"The 'SuperSeller' program constitutes an abuse of dominant position because it is exclusionary and harms competition.",
+            "primaryResponses":[
+               {
+                  "responseId":"Exclusionary conduct",
+                  "legalBasis":"Section 4 of the Competition Act, 2002",
+                  "factualBasis":"The 'SuperSeller' program excludes other sellers from the market",
+                  "strategicImportance":"Establishing exclusionary conduct is a key aspect of the CCI's case against MegaRetailers."
+               }
+            ],
+            "auxiliaryResponses":[
+               "The 'SuperSeller' program is not a legitimate pro-competitive efficiency justification, but rather a pretext for anti-competitive conduct."
+            ]
+         },
+         "rebuttalMatrix":[
+            {
+               "petitionerArgument":"Pro-competitive efficiency justification",
+               "respondentAttack":"The 'SuperSeller' program is exclusionary and harms competition.",
+               "petitionerReply":"The 'SuperSeller' program is not exclusionary, and increases efficiency and reduces costs for sellers."
+            }
+         ],
+         "benchVulnerabilityMatrix":{
+            "mostDangerousJudicialQuestion":"What is the scope of the concept of 'abuse of dominant position' under Section 4 of the Competition Act, 2002?",
+            "mostDangerousFactualWeakness":"The 'SuperSeller' program excludes other sellers from the market.",
+            "mostDangerousLegalWeakness":"The 'SuperSeller' program is not a legitimate pro-competitive efficiency justification.",
+            "mostDangerousProceduralWeakness":"The CCI's investigation was flawed, and the evidence was not properly considered."
+         },
+         "authorityRequirements":{
+            "landmarkAuthorityNeeded":"A decision of the Supreme Court of India on the concept of 'abuse of dominant position' under Section 4 of the Competition Act, 2002.",
+            "jurisdictionSpecificAuthorityNeeded":"A decision of the NCLAT on the concept of 'abuse of dominant position' under Section 4 of the Competition Act, 2002.",
+            "comparativeAuthorityNeeded":"A decision of a foreign jurisdiction on the concept of 'abuse of dominant position' under a similar competition law.",
+            "policyAuthorityNeeded":"A policy statement from the Government of India on the concept of 'abuse of dominant position' under Section 4 of the Competition Act, 2002."
+         }
+      },
+      {
+         "hierarchyLevel":4,
+         "issueDefinition":{
+            "exactLegalQuestion":"Is the 'SuperSeller' program a legitimate pro-competitive efficiency justification?",
+            "whyItMatters":"The 'SuperSeller' program is a key aspect of MegaRetailers' business model, and a finding that it is a legitimate pro-competitive efficiency justification could have significant consequences for the company.",
+            "whatWinningLooksLike":"The NCLAT finds that the 'SuperSeller' program is a legitimate pro-competitive efficiency justification, allowing MegaRetailers to continue operating the program."
+         },
+         "petitionerFramework":{
+            "coreTheory":"The 'SuperSeller' program is a legitimate pro-competitive efficiency justification because it increases efficiency and reduces costs for sellers.",
+            "primaryArguments":[
+               {
+                  "argumentId":"Increased efficiency",
+                  "legalBasis":"Section 4 of the Competition Act, 2002",
+                  "factualBasis":"The 'SuperSeller' program increases efficiency and reduces costs for sellers",
+                  "strategicImportance":"Establishing increased efficiency is a key aspect of MegaRetailers' defense."
+               }
+            ],
+            "auxiliaryArguments":[
+               "The 'SuperSeller' program is not exclusionary, and does not harm competition."
+            ]
+         },
+         "respondentFramework":{
+            "coreTheory":"The 'SuperSeller' program is not a legitimate pro-competitive efficiency justification because it is exclusionary and harms competition.",
+            "primaryResponses":[
+               {
+                  "responseId":"Exclusionary conduct",
+                  "legalBasis":"Section 4 of the Competition Act, 2002",
+                  "factualBasis":"The 'SuperSeller' program excludes other sellers from the market",
+                  "strategicImportance":"Establishing exclusionary conduct is a key aspect of the CCI's case against MegaRetailers."
+               }
+            ],
+            "auxiliaryResponses":[
+               "The 'SuperSeller' program is not a legitimate pro-competitive efficiency justification, but rather a pretext for anti-competitive conduct."
+            ]
+         },
+         "rebuttalMatrix":[
+            {
+               "petitionerArgument":"Increased efficiency",
+               "respondentAttack":"The 'SuperSeller' program is exclusionary and harms competition.",
+               "petitionerReply":"The 'SuperSeller' program is not exclusionary, and increases efficiency and reduces costs for sellers."
+            }
+         ],
+         "benchVulnerabilityMatrix":{
+            "mostDangerousJudicialQuestion":"What is the scope of the concept of 'pro-competitive efficiency justification' under Section 4 of the Competition Act, 2002?",
+            "mostDangerousFactualWeakness":"The 'SuperSeller' program excludes other sellers from the market.",
+            "mostDangerousLegalWeakness":"The 'SuperSeller' program is not a legitimate pro-competitive efficiency justification.",
+            "mostDangerousProceduralWeakness":"The CCI's investigation was flawed, and the evidence was not properly considered."
+         },
+         "authorityRequirements":{
+            "landmarkAuthorityNeeded":"A decision of the Supreme Court of India on the concept of 'pro-competitive efficiency justification' under Section 4 of the Competition Act, 2002.",
+            "jurisdictionSpecificAuthorityNeeded":"A decision of the NCLAT on the concept of 'pro-competitive efficiency justification' under Section 4 of the Competition Act, 2002.",
+            "comparativeAuthorityNeeded":"A decision of a foreign jurisdiction on the concept of 'pro-competitive efficiency justification' under a similar competition law.",
+            "policyAuthorityNeeded":"A policy statement from the Government of India on the concept of 'pro-competitive efficiency justification' under Section 4 of the Competition Act, 2002."
+         }
+      },
+      {
+         "hierarchyLevel":5,
+         "issueDefinition":{
+            "exactLegalQuestion":"What relief is MegaRetailers entitled to if the 'SuperSeller' program is found not to be an abuse of dominant position or is justified as pro-competitive?",
+            "whyItMatters":"The relief sought by MegaRetailers is a key aspect of the case, and a finding in favor of MegaRetailers could have significant consequences for the company.",
+            "whatWinningLooksLike":"The NCLAT finds that MegaRetailers is entitled to the relief sought, including the overturning of the CCI's finding and the setting aside of the penalty."
+         },
+         "petitionerFramework":{
+            "coreTheory":"MegaRetailers is entitled to the relief sought because the 'SuperSeller' program is not an abuse of dominant position and is a legitimate pro-competitive efficiency justification.",
+            "primaryArguments":[
+               {
+                  "argumentId":"Overturning of the CCI's finding",
+                  "legalBasis":"Section 53A of the Competition Act, 2002",
+                  "factualBasis":"The 'SuperSeller' program is not an abuse of dominant position and is a legitimate pro-competitive efficiency justification",
+                  "strategicImportance":"Establishing that the 'SuperSeller' program is not an abuse of dominant position is a key aspect of MegaRetailers' case."
+               }
+            ],
+            "auxiliaryArguments":[
+               "The penalty imposed by the CCI should be set aside."
+            ]
+         },
+         "respondentFramework":{
+            "coreTheory":"MegaRetailers is not entitled to the relief sought because the 'SuperSeller' program is an abuse of dominant position and is not a legitimate pro-competitive efficiency justification.",
+            "primaryResponses":[
+               {
+                  "responseId":"Abuse of dominant position",
+                  "legalBasis":"Section 4 of the Competition Act, 2002",
+                  "factualBasis":"The 'SuperSeller' program is an abuse of dominant position",
+                  "strategicImportance":"Establishing that the 'SuperSeller' program is an abuse of dominant position is a key aspect of the CCI's case against MegaRetailers."
+               }
+            ],
+            "auxiliaryResponses":[
+               "The penalty imposed by the CCI should not be set aside."
+            ]
+         },
+         "rebuttalMatrix":[
+            {
+               "petitionerArgument":"Overturning of the CCI's finding",
+               "respondentAttack":"The 'SuperSeller' program is an abuse of dominant position.",
+               "petitionerReply":"The 'SuperSeller' program is not an abuse of dominant position, and is a legitimate pro-competitive efficiency justification."
+            }
+         ],
+         "benchVulnerabilityMatrix":{
+            "mostDangerousJudicialQuestion":"What is the scope of the relief available to MegaRetailers if the 'SuperSeller' program is found not to be an abuse of dominant position or is justified as pro-competitive?",
+            "mostDangerousFactualWeakness":"The 'SuperSeller' program is an abuse of dominant position.",
+            "mostDangerousLegalWeakness":"The 'SuperSeller' program is not a legitimate pro-competitive efficiency justification.",
+            "mostDangerousProceduralWeakness":"The CCI's investigation was flawed, and the evidence was not properly considered."
+         },
+         "authorityRequirements":{
+            "landmarkAuthorityNeeded":"A decision of the Supreme Court of India on the scope of relief available under Section 53A of the Competition Act, 2002.",
+            "jurisdictionSpecificAuthorityNeeded":"A decision of the NCLAT on the scope of relief available under Section 53A of the Competition Act, 2002.",
+            "comparativeAuthorityNeeded":"A decision of a foreign jurisdiction on the scope of relief available under a similar competition law.",
+            "policyAuthorityNeeded":"A policy statement from the Government of India on the scope of relief available under Section 53A of the Competition Act, 2002."
+         }
+      }
+   ]
+}

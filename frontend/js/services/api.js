@@ -50,11 +50,11 @@ export async function logSessionSecurely(payload) {
   return data;
 }
 
-export async function buildArgument(stance, issue, notes, propositionContext) {
+export async function buildArgument(stance, issue, notes, propositionContext, forum) {
   const res = await fetch(`${BASE_URL}/api/build-argument`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ stance, issue, notes, propositionContext })
+    body: JSON.stringify({ stance, issue, notes, propositionContext, forum })
   });
   const data = await res.json();
   if (!res.ok || !data.success) {

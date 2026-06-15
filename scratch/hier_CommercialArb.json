@@ -1,0 +1,81 @@
+{
+  "hierarchyTree":[
+      {
+         "level":1,
+         "category":"Jurisdiction",
+         "nature":"Threshold",
+         "isFatalToClaim":true,
+         "coreLegalQuestion":"Does the tribunal have jurisdiction over the dispute?",
+         "mappedExplicitIssues":[
+            "Whether the arbitration is properly seated in Vindobona under the PCA Rules."
+         ],
+         "blocksDownstreamLevels":[
+            2,
+            3,
+            4,
+            5
+         ]
+      },
+      {
+         "level":2,
+         "category":"Admissibility",
+         "nature":"Threshold",
+         "isFatalToClaim":true,
+         "coreLegalQuestion":"Is the claim admissible?",
+         "mappedExplicitIssues":[
+            "Whether the contract is governed by the CISG."
+         ],
+         "blocksDownstreamLevels":[
+            3,
+            4,
+            5
+         ]
+      },
+      {
+         "level":3,
+         "category":"Liability/Merits",
+         "nature":"Substantive",
+         "isFatalToClaim":true,
+         "coreLegalQuestion":"Did Respondent breach Article 35 CISG by delivering non-conforming UAVs?",
+         "mappedExplicitIssues":[
+            "Whether Respondent breached Article 35 CISG by delivering non-conforming UAVs.",
+            "Whether the UAVs were fit for the purpose of delivering medical supplies in Equatoriana's tropical climate."
+         ],
+         "blocksDownstreamLevels":[
+            4,
+            5
+         ]
+      },
+      {
+         "level":4,
+         "category":"Defenses",
+         "nature":"Affirmative Defense",
+         "isFatalToClaim":false,
+         "coreLegalQuestion":"Did Claimant fail to provide timely notice of non-conformity under Article 39 CISG?",
+         "mappedExplicitIssues":[
+            "Whether Claimant failed to provide timely notice of non-conformity under Article 39 CISG.",
+            "Whether the 'extreme humidity' of Equatoriana's tropical climate constitutes a specific condition that needed to be made known to the Respondent.",
+            "What constitutes 'timely manner' for notice of non-conformity under Article 39 CISG."
+         ],
+         "blocksDownstreamLevels":[
+            5
+         ]
+      },
+      {
+         "level":5,
+         "category":"Remedies",
+         "nature":"Relief",
+         "isFatalToClaim":false,
+         "coreLegalQuestion":"Are the damages sought by Claimant justifiable and calculable under the CISG?",
+         "mappedExplicitIssues":[
+            "Whether the damages sought by Claimant are justifiable and calculable under the CISG."
+         ],
+         "blocksDownstreamLevels":[
+         ]
+      }
+   ],
+   "strategicImplications":{
+      "petitionerOptimalPath":"Establish jurisdiction and admissibility, prove liability under Article 35 CISG, and demonstrate timely notice of non-conformity under Article 39 CISG to secure damages.",
+      "respondentOptimalPath":"Challenge jurisdiction or admissibility, argue that Claimant failed to provide timely notice of non-conformity under Article 39 CISG, or dispute the calculation of damages to limit or avoid liability."
+   }
+}

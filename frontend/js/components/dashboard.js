@@ -205,6 +205,10 @@ export async function runAnalysis() {
     let newMootId = null;
     if (data.isStructured && data.response && typeof data.response === 'object') {
       console.log("[UPLOAD_DEBUG] Parsing completed successfully (Structured JSON response).");
+      // Stash forum intelligence immediately so the Simulator adapts even before save/reload.
+      if (data.forumIntelligence) window.forumIntelligence = data.forumIntelligence;
+      // Also stash the lightweight P0 forum detection as a reliable fallback.
+      if (data.detectedForum) window.detectedForum = data.detectedForum;
       if (currentUser) {
         try {
           const mootName = document.getElementById('ws-moot-name')?.value?.trim() || 'Untitled Moot';
@@ -214,7 +218,13 @@ export async function runAnalysis() {
             mootName: mootName,
             fileName: selectedFile.name,
             score: data.response.overallScore || 0,
-            analysisData: data.response
+            analysisData: data.response,
+            propositionIntelligence: data.propositionIntelligence || null,
+            proceduralHierarchy: data.proceduralHierarchy || null,
+            forumIntelligence: data.forumIntelligence || null,
+            issueIntelligence: data.issueIntelligence || null,
+            authorityIntelligence: data.authorityIntelligence || null,
+            advocacyIntelligence: data.advocacyIntelligence || null
           });
           newMootId = logRes.id;
           await loadRecentSessions(); 

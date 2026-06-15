@@ -1,0 +1,126 @@
+{
+  "caseMetadata": {
+    "caseName": "MegaRetailers Ltd. v. Competition Commission of India",
+    "competitionName": "10TH NATIONAL ANTITRUST MOOT COURT COMPETITION",
+    "year": null,
+    "forumIndicators": [
+      "National Company Law Appellate Tribunal (NCLAT)"
+    ]
+  },
+  "parties": {
+    "claimant_petitioner": {
+      "name": "MegaRetailers Ltd.",
+      "type": "Corporation"
+    },
+    "respondent": {
+      "name": "Competition Commission of India (CCI)",
+      "type": "State Regulatory Body"
+    },
+    "thirdParties": []
+  },
+  "factualMatrix": {
+    "materialFacts": [
+      "MegaRetailers is a dominant e-commerce platform.",
+      "MegaRetailers introduced a 'SuperSeller' program.",
+      "The 'SuperSeller' program gave preferential algorithmic rankings to sellers.",
+      "This preference was given to sellers who exclusively used MegaRetailers' warehousing services.",
+      "The Competition Commission of India (CCI) found this program to be an abuse of dominant position.",
+      "The CCI's finding was made under Section 4 of the Competition Act, 2002.",
+      "The CCI imposed a penalty of INR 500 Crores on MegaRetailers.",
+      "MegaRetailers is appealing the CCI's decision to the National Company Law Appellate Tribunal (NCLAT).",
+      "MegaRetailers argues that the 'SuperSeller' program is a legitimate pro-competitive efficiency justification.",
+      "MegaRetailers also argues that the relevant market was defined too narrowly by the CCI."
+    ],
+    "chronology": [
+      {
+        "date": "Undated",
+        "event": "MegaRetailers introduced a 'SuperSeller' program."
+      },
+      {
+        "date": "Undated",
+        "event": "The CCI found the program to be an abuse of dominant position under Section 4 of the Competition Act, 2002."
+      },
+      {
+        "date": "Undated",
+        "event": "The CCI imposed a penalty of INR 500 Crores on MegaRetailers."
+      },
+      {
+        "date": "Undated",
+        "event": "MegaRetailers appealed the CCI's decision to the National Company Law Appellate Tribunal (NCLAT)."
+      }
+    ],
+    "keyEvents": [
+      "Introduction of the 'SuperSeller' program by MegaRetailers.",
+      "CCI's finding of abuse of dominant position and imposition of a penalty.",
+      "MegaRetailers' appeal to the NCLAT challenging the CCI's decision."
+    ]
+  },
+  "proceduralContext": {
+    "currentStage": "Appeal",
+    "proceduralPosture": "Appeal against an order of the Competition Commission of India (CCI)",
+    "reliefSought": [
+      "To overturn the CCI's finding that the 'SuperSeller' program constitutes an abuse of dominant position.",
+      "To set aside the penalty of INR 500 Crores imposed by the CCI.",
+      "To establish that the 'SuperSeller' program is a legitimate pro-competitive efficiency justification.",
+      "To argue for a broader definition of the relevant market than that adopted by the CCI."
+    ]
+  },
+  "governingLaw": {
+    "domesticLaw": [
+      "Competition Act, 2002"
+    ],
+    "internationalLaw": [],
+    "treaties": [],
+    "statutes": [
+      "Section 4 of the Competition Act, 2002"
+    ],
+    "rules": []
+  },
+  "jurisdictionSignals": {
+    "courtIndicators": [],
+    "arbitrationIndicators": [],
+    "tribunalIndicators": [
+      "National Company Law Appellate Tribunal (NCLAT)",
+      "Competition Commission of India (CCI)"
+    ]
+  },
+  "issues": {
+    "explicit": [
+      "Whether MegaRetailers' 'SuperSeller' program constitutes an abuse of dominant position under Section 4 of the Competition Act, 2002.",
+      "Whether the 'SuperSeller' program is a legitimate pro-competitive efficiency justification.",
+      "Whether the relevant market was defined too narrowly by the CCI."
+    ],
+    "implicit": [
+      "What constitutes 'abuse of dominant position' under Section 4 of the Competition Act, 2002 in the context of e-commerce platforms and preferential algorithmic rankings?",
+      "What are the criteria and methodology for defining a 'relevant market' in the e-commerce sector, particularly for multi-sided platforms?",
+      "How should 'pro-competitive efficiency justifications' be assessed and weighed against potential anti-competitive effects?",
+      "What is the standard of review for the NCLAT when hearing an appeal against an order of the Competition Commission of India?",
+      "Does the exclusive use of warehousing services as a condition for preferential algorithmic ranking amount to an anti-competitive vertical restraint or self-preferencing?"
+    ],
+    "hiddenComplexities": [
+      "The economic analysis required to prove or disprove efficiency justifications in digital markets.",
+      "The challenges in defining relevant markets for multi-sided platforms and the implications of network effects.",
+      "The interplay between platform dominance, data leverage, and vertical restraints in the e-commerce ecosystem.",
+      "The evidentiary burden on MegaRetailers to demonstrate actual efficiencies and on CCI to demonstrate anti-competitive harm.",
+      "The evolving jurisprudence on 'self-preferencing' by dominant digital platforms."
+    ]
+  },
+  "mootIntelligence": {
+    "mostContestedArea": "The characterization of the 'SuperSeller' program as either an abuse of dominant position or a legitimate pro-competitive efficiency justification.",
+    "mostVulnerableArea": "The precise definition of the 'relevant market' by the CCI, as market definition is often a highly technical and contentious area requiring robust economic evidence.",
+    "mostImportantFacts": [
+      "MegaRetailers is a dominant e-commerce platform.",
+      "The 'SuperSeller' program offers preferential algorithmic rankings.",
+      "This preference is contingent on exclusive use of MegaRetailers' warehousing services.",
+      "CCI found this to be an abuse of dominant position under Section 4 of the Competition Act, 2002.",
+      "MegaRetailers claims pro-competitive efficiency justification.",
+      "MegaRetailers disputes the CCI's relevant market definition as too narrow."
+    ],
+    "factsLikelyToBeAttacked": [
+      "The extent and nature of MegaRetailers' 'dominance' in the market.",
+      "The actual anti-competitive effects (or lack thereof) of the 'preferential algorithmic rankings'.",
+      "The validity and substantiation of MegaRetailers' 'pro-competitive efficiency justifications'.",
+      "The methodology and scope of the 'relevant market' definition adopted by the CCI."
+    ]
+  }
+}

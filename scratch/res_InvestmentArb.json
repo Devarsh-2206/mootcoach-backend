@@ -1,0 +1,130 @@
+{
+  "caseMetadata": {
+    "caseName": "Goliath National Products (GNP) Ltd. v. Republic of Mercuria",
+    "competitionName": "FOREIGN DIRECT INVESTMENT INTERNATIONAL ARBITRATION MOOT",
+    "year": 2022,
+    "forumIndicators": [
+      "International Arbitration",
+      "ICSID"
+    ]
+  },
+  "parties": {
+    "claimant_petitioner": {
+      "name": "Goliath National Products (GNP) Ltd.",
+      "type": "Corporation"
+    },
+    "respondent": {
+      "name": "Republic of Mercuria",
+      "type": "State"
+    },
+    "thirdParties": []
+  },
+  "factualMatrix": {
+    "materialFacts": [
+      "GNP invested $50M in a cannabis plantation in Mercuria.",
+      "The investment was made under the Mercuria-Basheera BIT.",
+      "In 2024, a new Mercurian government criminalized all cannabis production.",
+      "The criminalization was cited as being due to public health concerns.",
+      "This action effectively wiped out GNP's investment.",
+      "The military occupied the plantation.",
+      "GNP filed a claim at ICSID.",
+      "GNP is seeking $100M.",
+      "GNP's claim is for unlawful expropriation.",
+      "GNP's claim is for violation of the Fair and Equitable Treatment (FET) standard.",
+      "Mercuria argues the tribunal lacks jurisdiction.",
+      "Mercuria's jurisdictional argument is that the investment was illegal under its new domestic law.",
+      "Mercuria claims the police power doctrine excuses compensation."
+    ],
+    "chronology": [
+      {
+        "date": "2024",
+        "event": "New Mercurian government criminalized all cannabis production, citing public health concerns, and the military occupied GNP's plantation."
+      }
+    ],
+    "keyEvents": [
+      "GNP's $50M investment in a cannabis plantation in Mercuria under the Mercuria-Basheera BIT.",
+      "Mercurian government criminalized all cannabis production in 2024.",
+      "Military occupation of GNP's plantation.",
+      "GNP filed a claim at ICSID seeking $100M."
+    ]
+  },
+  "proceduralContext": {
+    "currentStage": "Claim filed at ICSID (Jurisdiction and Merits phase implied)",
+    "proceduralPosture": "International Arbitration Claim",
+    "reliefSought": [
+      "$100M for unlawful expropriation",
+      "$100M for violation of the Fair and Equitable Treatment (FET) standard"
+    ]
+  },
+  "governingLaw": {
+    "domesticLaw": [
+      "Mercurian domestic law (specifically the new law criminalizing cannabis production)"
+    ],
+    "internationalLaw": [
+      "International investment law",
+      "Principles of expropriation",
+      "Fair and Equitable Treatment (FET) standard",
+      "Police power doctrine in international law"
+    ],
+    "treaties": [
+      "Mercuria-Basheera BIT"
+    ],
+    "statutes": [],
+    "rules": [
+      "ICSID Convention and Arbitration Rules (implied by ICSID claim)"
+    ]
+  },
+  "jurisdictionSignals": {
+    "courtIndicators": [],
+    "arbitrationIndicators": [
+      "FOREIGN DIRECT INVESTMENT INTERNATIONAL ARBITRATION MOOT",
+      "ICSID",
+      "tribunal"
+    ],
+    "tribunalIndicators": [
+      "ICSID"
+    ]
+  },
+  "issues": {
+    "explicit": [
+      "Does the tribunal lack jurisdiction because the investment was illegal under Mercuria's new domestic law?",
+      "Did Mercuria unlawfully expropriate GNP's investment?",
+      "Did Mercuria violate the Fair and Equitable Treatment (FET) standard owed to GNP?",
+      "Does the police power doctrine excuse Mercuria from compensating GNP?"
+    ],
+    "implicit": [
+      "What is the relevant time for assessing the legality of an investment for jurisdictional purposes (at the time of investment vs. at the time of claim)?",
+      "Does the criminalization of cannabis production constitute an indirect expropriation under the Mercuria-Basheera BIT?",
+      "What are the criteria for a legitimate exercise of police power, and does Mercuria's action meet these criteria?",
+      "To what extent do 'public health concerns' justify regulatory measures that impact foreign investments without compensation?",
+      "Was GNP's legitimate expectation violated by the sudden criminalization and military occupation?",
+      "What is the scope and content of the FET standard under the Mercuria-Basheera BIT?",
+      "What is the impact of the military occupation on the expropriation claim?"
+    ],
+    "hiddenComplexities": [
+      "The interplay between the legality of an investment under domestic law and the jurisdiction of an international investment tribunal.",
+      "Distinguishing between a legitimate, non-compensable exercise of police power and a compensable indirect expropriation.",
+      "The standard of review for public health measures in international investment law and potential for abuse of 'public health concerns'.",
+      "The temporal dimension of legality requirements in BITs and the principle of *lex specialis*.",
+      "The specific wording of the Mercuria-Basheera BIT regarding expropriation, FET, and potential exceptions or general exceptions clauses."
+    ]
+  },
+  "mootIntelligence": {
+    "mostContestedArea": "Jurisdiction (legality of investment under new domestic law) and Merits (expropriation vs. police power, and FET violation).",
+    "mostVulnerableArea": "Mercuria's argument that the investment was illegal under *new* domestic law for jurisdictional purposes, potentially conflicting with the BIT's protection at the time of investment. Also, the application of the police power doctrine to a complete criminalization and military occupation.",
+    "mostImportantFacts": [
+      "GNP invested $50M under the Mercuria-Basheera BIT.",
+      "New Mercurian government criminalized all cannabis production in 2024, citing public health concerns.",
+      "The military occupied the plantation.",
+      "GNP claims unlawful expropriation and FET violation, seeking $100M.",
+      "Mercuria challenges jurisdiction based on the investment's illegality under *new* domestic law.",
+      "Mercuria invokes the police power doctrine to excuse compensation."
+    ],
+    "factsLikelyToBeAttacked": [
+      "The legitimacy and factual basis of Mercuria's 'public health concerns' as the sole driver for criminalization.",
+      "The proportionality and necessity of the criminalization and military occupation.",
+      "The legality of the investment *at the time it was made* versus *at the time of the claim* for jurisdictional purposes.",
+      "Whether the military occupation constitutes a direct or indirect expropriation, or a separate breach."
+    ]
+  }
+}

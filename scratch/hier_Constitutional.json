@@ -1,0 +1,81 @@
+{
+  "hierarchyTree":[
+      {
+         "level":1,
+         "category":"Jurisdiction",
+         "nature":"Threshold",
+         "isFatalToClaim":true,
+         "coreLegalQuestion":"Does the Supreme Court of India have jurisdiction to hear the challenge against the 'Digital Content Regulation Act, 2025'?",
+         "mappedExplicitIssues":[
+            "Whether the Supreme Court of India has jurisdiction to hear the challenge against the 'Digital Content Regulation Act, 2025'"
+         ],
+         "blocksDownstreamLevels":[
+            2,
+            3,
+            4,
+            5
+         ]
+      },
+      {
+         "level":2,
+         "category":"Admissibility",
+         "nature":"Threshold",
+         "isFatalToClaim":true,
+         "coreLegalQuestion":"Is the petition admissible, given that it challenges a legislative enactment?",
+         "mappedExplicitIssues":[
+            "Whether the petition is admissible, given that it challenges a legislative enactment"
+         ],
+         "blocksDownstreamLevels":[
+            3,
+            4,
+            5
+         ]
+      },
+      {
+         "level":3,
+         "category":"Merits",
+         "nature":"Substantive",
+         "isFatalToClaim":true,
+         "coreLegalQuestion":"Does the 'Digital Content Regulation Act, 2025' violate the fundamental rights to privacy and free speech under the Indian Constitution?",
+         "mappedExplicitIssues":[
+            "Whether the 'Digital Content Regulation Act, 2025' violates the fundamental right to privacy under Article 21 of the Indian Constitution.",
+            "Whether the 'Digital Content Regulation Act, 2025' violates the right to free speech under Article 19(1)(a) of the Indian Constitution.",
+            "Whether the 'Digital Content Regulation Act, 2025' is manifestly arbitrary under Article 14 of the Indian Constitution."
+         ],
+         "blocksDownstreamLevels":[
+            4,
+            5
+         ]
+      },
+      {
+         "level":4,
+         "category":"Defenses",
+         "nature":"Affirmative Defense",
+         "isFatalToClaim":false,
+         "coreLegalQuestion":"Is the requirement for OTT platforms to provide end-to-end decryption keys a reasonable restriction under Article 19(2) for national security?",
+         "mappedExplicitIssues":[
+            "Whether the requirement for OTT platforms to provide end-to-end decryption keys is a reasonable restriction under Article 19(2) for national security."
+         ],
+         "blocksDownstreamLevels":[
+            5
+         ]
+      },
+      {
+         "level":5,
+         "category":"Remedies",
+         "nature":"Relief",
+         "isFatalToClaim":false,
+         "coreLegalQuestion":"What relief is the petitioner entitled to if the 'Digital Content Regulation Act, 2025' is declared unconstitutional?",
+         "mappedExplicitIssues":[
+            "Declaration that the 'Digital Content Regulation Act, 2025' is unconstitutional.",
+            "Quashing of the 'Digital Content Regulation Act, 2025'."
+         ],
+         "blocksDownstreamLevels":[
+         ]
+      }
+   ],
+   "strategicImplications":{
+      "petitionerOptimalPath":"The petitioner should focus on establishing that the 'Digital Content Regulation Act, 2025' violates the fundamental rights to privacy and free speech, and that the requirement for OTT platforms to provide end-to-end decryption keys is not a reasonable restriction under Article 19(2) for national security.",
+      "respondentOptimalPath":"The respondent should focus on justifying the 'Digital Content Regulation Act, 2025' as a reasonable restriction under Article 19(2) for national security, and argue that the requirement for OTT platforms to provide end-to-end decryption keys is necessary for national security."
+   }
+}

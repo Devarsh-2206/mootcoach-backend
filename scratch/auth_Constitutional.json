@@ -1,0 +1,99 @@
+{
+  "authorityRoadmap":[
+      {
+         "targetIssueId":1,
+         "targetArgumentId":"Jurisdiction under Article 32",
+         "strategicPurpose":"Establish jurisdiction of the Supreme Court of India",
+         "authorityType":"Landmark",
+         "jurisdictionIntelligence":{
+            "requiredJurisdiction":"Supreme Court of India",
+            "prohibitedJurisdictions":[
+               "Domestic Lower Courts",
+               "Foreign Courts"
+            ],
+            "reasoning":"The Supreme Court of India has the final say on constitutional matters, and its jurisdiction must be established before proceeding to subsequent levels."
+         },
+         "ratioIntelligence":{
+            "requiredLegalRatio":"The Supreme Court of India has the authority to hear challenges against legislative enactments that allegedly violate fundamental rights.",
+            "requiredFactualSimilarity":"The case involves a challenge to a legislative enactment that allegedly violates fundamental rights.",
+            "whyItIsNeeded":"To establish the jurisdiction of the Supreme Court of India and proceed with the case."
+         }
+      },
+      {
+         "targetIssueId":2,
+         "targetArgumentId":"Admissibility under Article 32",
+         "strategicPurpose":"Establish admissibility of the petition",
+         "authorityType":"Landmark",
+         "jurisdictionIntelligence":{
+            "requiredJurisdiction":"Supreme Court of India",
+            "prohibitedJurisdictions":[
+               "Domestic Lower Courts",
+               "Foreign Courts"
+            ],
+            "reasoning":"The Supreme Court of India has the final say on constitutional matters, and its jurisdiction must be established before proceeding to subsequent levels."
+         },
+         "ratioIntelligence":{
+            "requiredLegalRatio":"The Supreme Court of India has the authority to hear petitions that challenge legislative enactments that allegedly violate fundamental rights.",
+            "requiredFactualSimilarity":"The case involves a petition that challenges a legislative enactment that allegedly violates fundamental rights.",
+            "whyItIsNeeded":"To establish the admissibility of the petition and proceed with the case."
+         }
+      },
+      {
+         "targetIssueId":3,
+         "targetArgumentId":"Violation of Right to Privacy",
+         "strategicPurpose":"Establish violation of the right to privacy",
+         "authorityType":"Landmark",
+         "jurisdictionIntelligence":{
+            "requiredJurisdiction":"Supreme Court of India",
+            "prohibitedJurisdictions":[
+               "Domestic Lower Courts",
+               "Foreign Courts"
+            ],
+            "reasoning":"The Supreme Court of India has the final say on constitutional matters, and its jurisdiction must be established before proceeding to subsequent levels."
+         },
+         "ratioIntelligence":{
+            "requiredLegalRatio":"The right to privacy is a fundamental right that is protected under Article 21 of the Indian Constitution.",
+            "requiredFactualSimilarity":"The case involves a violation of the right to privacy, as the 'Digital Content Regulation Act, 2025' requires OTT platforms to provide end-to-end decryption keys.",
+            "whyItIsNeeded":"To establish that the 'Digital Content Regulation Act, 2025' violates the fundamental right to privacy."
+         }
+      },
+      {
+         "targetIssueId":4,
+         "targetArgumentId":"Unreasonable Restriction",
+         "strategicPurpose":"Establish that the requirement for OTT platforms to provide end-to-end decryption keys is an unreasonable restriction",
+         "authorityType":"Landmark",
+         "jurisdictionIntelligence":{
+            "requiredJurisdiction":"Supreme Court of India",
+            "prohibitedJurisdictions":[
+               "Domestic Lower Courts",
+               "Foreign Courts"
+            ],
+            "reasoning":"The Supreme Court of India has the final say on constitutional matters, and its jurisdiction must be established before proceeding to subsequent levels."
+         },
+         "ratioIntelligence":{
+            "requiredLegalRatio":"The requirement for OTT platforms to provide end-to-end decryption keys is not a reasonable restriction under Article 19(2) of the Indian Constitution.",
+            "requiredFactualSimilarity":"The case involves a requirement for OTT platforms to provide end-to-end decryption keys, which is not necessary for national security.",
+            "whyItIsNeeded":"To establish that the requirement for OTT platforms to provide end-to-end decryption keys is an unreasonable restriction on the fundamental right to free speech."
+         }
+      },
+      {
+         "targetIssueId":5,
+         "targetArgumentId":"Relief under Article 32",
+         "strategicPurpose":"Establish the relief sought by the petitioner",
+         "authorityType":"Landmark",
+         "jurisdictionIntelligence":{
+            "requiredJurisdiction":"Supreme Court of India",
+            "prohibitedJurisdictions":[
+               "Domestic Lower Courts",
+               "Foreign Courts"
+            ],
+            "reasoning":"The Supreme Court of India has the final say on constitutional matters, and its jurisdiction must be established before proceeding to subsequent levels."
+         },
+         "ratioIntelligence":{
+            "requiredLegalRatio":"The petitioner is entitled to a declaration that the 'Digital Content Regulation Act, 2025' is unconstitutional and an order quashing the Act.",
+            "requiredFactualSimilarity":"The case involves a challenge to a legislative enactment that allegedly violates fundamental rights.",
+            "whyItIsNeeded":"To establish the relief sought by the petitioner and provide a remedy for the violation of fundamental rights."
+         }
+      }
+   ]
+}

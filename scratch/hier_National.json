@@ -1,0 +1,79 @@
+{
+  "hierarchyTree":[
+      {
+         "level":1,
+         "category":"Jurisdiction",
+         "nature":"Threshold",
+         "isFatalToClaim":true,
+         "coreLegalQuestion":"Does the National Company Law Appellate Tribunal (NCLAT) have jurisdiction to hear the appeal against the order of the Competition Commission of India (CCI)?",
+         "mappedExplicitIssues":[
+            "Whether the NCLAT has jurisdiction to hear the appeal"
+         ],
+         "blocksDownstreamLevels":[
+            2,
+            3,
+            4,
+            5
+         ]
+      },
+      {
+         "level":2,
+         "category":"Admissibility",
+         "nature":"Threshold",
+         "isFatalToClaim":true,
+         "coreLegalQuestion":"Is the appeal against the CCI's order admissible before the NCLAT?",
+         "mappedExplicitIssues":[
+            "Whether the appeal is admissible"
+         ],
+         "blocksDownstreamLevels":[
+            3,
+            4,
+            5
+         ]
+      },
+      {
+         "level":3,
+         "category":"Liability/Merits",
+         "nature":"Substantive",
+         "isFatalToClaim":true,
+         "coreLegalQuestion":"Does the 'SuperSeller' program constitute an abuse of dominant position under Section 4 of the Competition Act, 2002?",
+         "mappedExplicitIssues":[
+            "Whether MegaRetailers' 'SuperSeller' program constitutes an abuse of dominant position under Section 4 of the Competition Act, 2002"
+         ],
+         "blocksDownstreamLevels":[
+            4,
+            5
+         ]
+      },
+      {
+         "level":4,
+         "category":"Defenses",
+         "nature":"Affirmative Defense",
+         "isFatalToClaim":false,
+         "coreLegalQuestion":"Is the 'SuperSeller' program a legitimate pro-competitive efficiency justification?",
+         "mappedExplicitIssues":[
+            "Whether the 'SuperSeller' program is a legitimate pro-competitive efficiency justification"
+         ],
+         "blocksDownstreamLevels":[
+            5
+         ]
+      },
+      {
+         "level":5,
+         "category":"Remedies",
+         "nature":"Relief",
+         "isFatalToClaim":false,
+         "coreLegalQuestion":"What relief is MegaRetailers entitled to if the 'SuperSeller' program is found not to be an abuse of dominant position or is justified as pro-competitive?",
+         "mappedExplicitIssues":[
+            "To overturn the CCI's finding that the 'SuperSeller' program constitutes an abuse of dominant position",
+            "To set aside the penalty of INR 500 Crores imposed by the CCI"
+         ],
+         "blocksDownstreamLevels":[
+         ]
+      }
+   ],
+   "strategicImplications":{
+      "petitionerOptimalPath":"MegaRetailers should focus on establishing that the 'SuperSeller' program is a legitimate pro-competitive efficiency justification and that the relevant market was defined too narrowly by the CCI, while also challenging the CCI's finding of abuse of dominant position",
+      "respondentOptimalPath":"The CCI should focus on defending its finding of abuse of dominant position and the penalty imposed, while also arguing that the 'SuperSeller' program is not a legitimate pro-competitive efficiency justification and that the relevant market definition was correct"
+   }
+}

@@ -1,0 +1,249 @@
+{
+  "issues":[
+      {
+         "hierarchyLevel":1,
+         "issueDefinition":{
+            "exactLegalQuestion":"Does the tribunal have jurisdiction over the claim, considering the legality of the investment under Mercuria's new domestic law?",
+            "whyItMatters":"The jurisdiction of the tribunal is a threshold issue that determines whether the claim can proceed.",
+            "whatWinningLooksLike":"The tribunal finds that it has jurisdiction over the claim, allowing the case to proceed to the merits phase."
+         },
+         "petitionerFramework":{
+            "coreTheory":"The investment was legal under Mercuria's domestic law at the time it was made, and the tribunal has jurisdiction over the claim.",
+            "primaryArguments":[
+               {
+                  "argumentId":"Jurisdictional Argument",
+                  "legalBasis":"The Mercuria-Basheera BIT and the ICSID Convention",
+                  "factualBasis":"The investment was made under the Mercuria-Basheera BIT, which provides for ICSID arbitration",
+                  "strategicImportance":"Establishing jurisdiction is crucial for the petitioner's case to proceed"
+               }
+            ],
+            "auxiliaryArguments":[
+               "The respondent's argument that the investment was illegal under new domestic law is not relevant to the jurisdictional phase",
+               "The tribunal should consider the legality of the investment at the time it was made, not at the time of the claim"
+            ]
+         },
+         "respondentFramework":{
+            "coreTheory":"The investment was illegal under Mercuria's new domestic law, and the tribunal lacks jurisdiction over the claim.",
+            "primaryResponses":[
+               {
+                  "responseId":"Lack of Jurisdiction",
+                  "legalBasis":"The ICSID Convention and the Mercuria-Basheera BIT",
+                  "factualBasis":"The investment was made in an industry that was later criminalized by Mercuria's new domestic law",
+                  "strategicImportance":"Challenging jurisdiction is a key defense strategy for the respondent"
+               }
+            ],
+            "auxiliaryResponses":[
+               "The petitioner's argument that the investment was legal at the time it was made is not relevant to the jurisdictional phase",
+               "The tribunal should consider the respondent's public health concerns and the need to regulate the cannabis industry"
+            ]
+         },
+         "rebuttalMatrix":[
+            {
+               "petitionerArgument":"Jurisdictional Argument",
+               "respondentAttack":"The investment was illegal under Mercuria's new domestic law, and the tribunal lacks jurisdiction",
+               "petitionerReply":"The legality of the investment at the time it was made is the relevant factor, not the new domestic law"
+            }
+         ],
+         "benchVulnerabilityMatrix":{
+            "mostDangerousJudicialQuestion":"How does the tribunal reconcile the conflict between the Mercuria-Basheera BIT and Mercuria's new domestic law?",
+            "mostDangerousFactualWeakness":"The petitioner's failure to provide evidence of the investment's legality at the time it was made",
+            "mostDangerousLegalWeakness":"The respondent's argument that the ICSID Convention and the Mercuria-Basheera BIT do not provide for jurisdiction over illegal investments",
+            "mostDangerousProceduralWeakness":"The petitioner's failure to raise the jurisdictional issue at the earliest opportunity"
+         },
+         "authorityRequirements":{
+            "landmarkAuthorityNeeded":"A decision of the International Court of Justice or a prominent international arbitration tribunal on the issue of jurisdiction over investments made in violation of domestic law",
+            "jurisdictionSpecificAuthorityNeeded":"A decision of the ICSID tribunal or the Mercurian courts on the issue of jurisdiction over investments made under the Mercuria-Basheera BIT",
+            "comparativeAuthorityNeeded":"A comparison of the jurisdictional provisions of different bilateral investment treaties and international investment agreements",
+            "policyAuthorityNeeded":"A statement of policy by the Mercurian government or the ICSID Secretariat on the issue of jurisdiction over investments made in violation of domestic law"
+         }
+      },
+      {
+         "hierarchyLevel":2,
+         "issueDefinition":{
+            "exactLegalQuestion":"Is the claim admissible, considering the relevant time for assessing the legality of the investment and the interplay between domestic law and international investment law?",
+            "whyItMatters":"The admissibility of the claim is a threshold issue that determines whether the case can proceed to the merits phase.",
+            "whatWinningLooksLike":"The tribunal finds that the claim is admissible, allowing the case to proceed to the merits phase."
+         },
+         "petitionerFramework":{
+            "coreTheory":"The claim is admissible because the investment was legal under Mercuria's domestic law at the time it was made, and the respondent's new domestic law does not affect the admissibility of the claim.",
+            "primaryArguments":[
+               {
+                  "argumentId":"Admissibility Argument",
+                  "legalBasis":"The ICSID Convention and the Mercuria-Basheera BIT",
+                  "factualBasis":"The investment was made under the Mercuria-Basheera BIT, which provides for ICSID arbitration",
+                  "strategicImportance":"Establishing admissibility is crucial for the petitioner's case to proceed to the merits phase"
+               }
+            ],
+            "auxiliaryArguments":[
+               "The respondent's argument that the investment was illegal under new domestic law is not relevant to the admissibility phase",
+               "The tribunal should consider the interplay between domestic law and international investment law in determining admissibility"
+            ]
+         },
+         "respondentFramework":{
+            "coreTheory":"The claim is not admissible because the investment was illegal under Mercuria's new domestic law, and the petitioner has not met the requirements for admissibility.",
+            "primaryResponses":[
+               {
+                  "responseId":"Inadmissibility",
+                  "legalBasis":"The ICSID Convention and the Mercuria-Basheera BIT",
+                  "factualBasis":"The investment was made in an industry that was later criminalized by Mercuria's new domestic law",
+                  "strategicImportance":"Challenging admissibility is a key defense strategy for the respondent"
+               }
+            ],
+            "auxiliaryResponses":[
+               "The petitioner's argument that the investment was legal at the time it was made is not relevant to the admissibility phase",
+               "The tribunal should consider the respondent's public health concerns and the need to regulate the cannabis industry"
+            ]
+         },
+         "rebuttalMatrix":[
+            {
+               "petitionerArgument":"Admissibility Argument",
+               "respondentAttack":"The claim is not admissible because the investment was illegal under Mercuria's new domestic law",
+               "petitionerReply":"The admissibility of the claim is determined by the interplay between domestic law and international investment law, not by the new domestic law"
+            }
+         ],
+         "benchVulnerabilityMatrix":{
+            "mostDangerousJudicialQuestion":"How does the tribunal reconcile the conflict between the Mercuria-Basheera BIT and Mercuria's new domestic law in determining admissibility?",
+            "mostDangerousFactualWeakness":"The petitioner's failure to provide evidence of the investment's legality at the time it was made",
+            "mostDangerousLegalWeakness":"The respondent's argument that the ICSID Convention and the Mercuria-Basheera BIT do not provide for admissibility of claims based on illegal investments",
+            "mostDangerousProceduralWeakness":"The petitioner's failure to raise the admissibility issue at the earliest opportunity"
+         },
+         "authorityRequirements":{
+            "landmarkAuthorityNeeded":"A decision of the International Court of Justice or a prominent international arbitration tribunal on the issue of admissibility of claims based on investments made in violation of domestic law",
+            "jurisdictionSpecificAuthorityNeeded":"A decision of the ICSID tribunal or the Mercurian courts on the issue of admissibility of claims under the Mercuria-Basheera BIT",
+            "comparativeAuthorityNeeded":"A comparison of the admissibility provisions of different bilateral investment treaties and international investment agreements",
+            "policyAuthorityNeeded":"A statement of policy by the Mercurian government or the ICSID Secretariat on the issue of admissibility of claims based on investments made in violation of domestic law"
+         }
+      },
+      {
+         "hierarchyLevel":3,
+         "issueDefinition":{
+            "exactLegalQuestion":"Did Mercuria unlawfully expropriate GNP's investment or violate the Fair and Equitable Treatment (FET) standard?",
+            "whyItMatters":"The merits of the claim are crucial in determining whether Mercuria is liable for the expropriation or violation of the FET standard.",
+            "whatWinningLooksLike":"The tribunal finds that Mercuria unlawfully expropriated GNP's investment or violated the FET standard, and awards compensation to the petitioner."
+         },
+         "petitionerFramework":{
+            "coreTheory":"Mercuria unlawfully expropriated GNP's investment and violated the FET standard by criminalizing the cannabis industry and occupying the plantation.",
+            "primaryArguments":[
+               {
+                  "argumentId":"Expropriation Argument",
+                  "legalBasis":"The Mercuria-Basheera BIT and international investment law",
+                  "factualBasis":"The respondent's actions resulted in the destruction of the petitioner's investment",
+                  "strategicImportance":"Establishing expropriation is crucial for the petitioner's claim for compensation"
+               },
+               {
+                  "argumentId":"FET Argument",
+                  "legalBasis":"The Mercuria-Basheera BIT and international investment law",
+                  "factualBasis":"The respondent's actions were arbitrary, discriminatory, and lacked transparency",
+                  "strategicImportance":"Establishing a violation of the FET standard is crucial for the petitioner's claim for compensation"
+               }
+            ],
+            "auxiliaryArguments":[
+               "The respondent's actions were not justified by public health concerns",
+               "The respondent's actions were not proportionate to the alleged public health risks"
+            ]
+         },
+         "respondentFramework":{
+            "coreTheory":"Mercuria did not unlawfully expropriate GNP's investment and did not violate the FET standard, as the actions were justified by public health concerns and were proportionate to the risks.",
+            "primaryResponses":[
+               {
+                  "responseId":"No Expropriation",
+                  "legalBasis":"The Mercuria-Basheera BIT and international investment law",
+                  "factualBasis":"The respondent's actions were necessary to protect public health",
+                  "strategicImportance":"Challenging the expropriation claim is a key defense strategy for the respondent"
+               },
+               {
+                  "responseId":"No FET Violation",
+                  "legalBasis":"The Mercuria-Basheera BIT and international investment law",
+                  "factualBasis":"The respondent's actions were transparent, non-discriminatory, and proportionate to the risks",
+                  "strategicImportance":"Challenging the FET claim is a key defense strategy for the respondent"
+               }
+            ],
+            "auxiliaryResponses":[
+               "The petitioner's investment was not legitimate or lawful",
+               "The petitioner's expectations were not reasonable or legitimate"
+            ]
+         },
+         "rebuttalMatrix":[
+            {
+               "petitionerArgument":"Expropriation Argument",
+               "respondentAttack":"The respondent's actions were justified by public health concerns and were proportionate to the risks",
+               "petitionerReply":"The respondent's actions were not justified by public health concerns, as the measures were not proportionate to the risks and were not based on scientific evidence"
+            },
+            {
+               "petitionerArgument":"FET Argument",
+               "respondentAttack":"The respondent's actions were transparent, non-discriminatory, and proportionate to the risks",
+               "petitionerReply":"The respondent's actions were not transparent, as the measures were not publicly announced or explained, and were not based on scientific evidence"
+            }
+         ],
+         "benchVulnerabilityMatrix":{
+            "mostDangerousJudicialQuestion":"How does the tribunal determine whether the respondent's actions were justified by public health concerns and were proportionate to the risks?",
+            "mostDangerousFactualWeakness":"The petitioner's failure to provide evidence of the respondent's actions and their impact on the investment",
+            "mostDangerousLegalWeakness":"The respondent's argument that the Mercuria-Basheera BIT and international investment law do not provide for compensation for expropriation or FET violations in cases where the investment was made in violation of domestic law",
+            "mostDangerousProceduralWeakness":"The petitioner's failure to raise the expropriation and FET claims at the earliest opportunity"
+         },
+         "authorityRequirements":{
+            "landmarkAuthorityNeeded":"A decision of the International Court of Justice or a prominent international arbitration tribunal on the issue of expropriation and FET violations in the context of investments made in violation of domestic law",
+            "jurisdictionSpecificAuthorityNeeded":"A decision of the ICSID tribunal or the Mercurian courts on the issue of expropriation and FET violations under the Mercuria-Basheera BIT",
+            "comparativeAuthorityNeeded":"A comparison of the expropriation and FET provisions of different bilateral investment treaties and international investment agreements",
+            "policyAuthorityNeeded":"A statement of policy by the Mercurian government or the ICSID Secretariat on the issue of expropriation and FET violations in the context of investments made in violation of domestic law"
+         }
+      },
+      {
+         "hierarchyLevel":4,
+         "issueDefinition":{
+            "exactLegalQuestion":"Does the police power doctrine excuse Mercuria from compensating GNP for the expropriation or FET violation?",
+            "whyItMatters":"The police power doctrine is a key defense for the respondent, as it may excuse the need for compensation in cases where the expropriation or FET violation was necessary to protect public health or other essential interests.",
+            "whatWinningLooksLike":"The tribunal finds that the police power doctrine excuses Mercuria from compensating GNP, or that the compensation should be reduced or limited."
+         },
+         "petitionerFramework":{
+            "coreTheory":"The police power doctrine does not excuse Mercuria from compensating GNP, as the expropriation or FET violation was not necessary to protect public health or other essential interests.",
+            "primaryArguments":[
+               {
+                  "argumentId":"Police Power Argument",
+                  "legalBasis":"The Mercuria-Basheera BIT and international investment law",
+                  "factualBasis":"The respondent's actions were not necessary to protect public health or other essential interests",
+                  "strategicImportance":"Challenging the police power doctrine is crucial for the petitioner's claim for compensation"
+               }
+            ],
+            "auxiliaryArguments":[
+               "The respondent's actions were not proportionate to the risks",
+               "The respondent's actions were not based on scientific evidence"
+            ]
+         },
+         "respondentFramework":{
+            "coreTheory":"The police power doctrine excuses Mercuria from compensating GNP, as the expropriation or FET violation was necessary to protect public health or other essential interests.",
+            "primaryResponses":[
+               {
+                  "responseId":"Police Power Defense",
+                  "legalBasis":"The Mercuria-Basheera BIT and international investment law",
+                  "factualBasis":"The respondent's actions were necessary to protect public health or other essential interests",
+                  "strategicImportance":"Invoking the police power doctrine is a key defense strategy for the respondent"
+               }
+            ],
+            "auxiliaryResponses":[
+               "The petitioner's investment was not legitimate or lawful",
+               "The petitioner's expectations were not reasonable or legitimate"
+            ]
+         },
+         "rebuttalMatrix":[
+            {
+               "petitionerArgument":"Police Power Argument",
+               "respondentAttack":"The respondent's actions were necessary to protect public health or other essential interests",
+               "petitionerReply":"The respondent's actions were not necessary to protect public health or other essential interests, as the measures were not proportionate to the risks and were not based on scientific evidence"
+            }
+         ],
+         "benchVulnerabilityMatrix":{
+            "mostDangerousJudicialQuestion":"How does the tribunal determine whether the respondent's actions were necessary to protect public health or other essential interests?",
+            "mostDangerousFactualWeakness":"The petitioner's failure to provide evidence of the respondent's actions and their impact on the investment",
+            "mostDangerousLegalWeakness":"The respondent's argument that the Mercuria-Basheera BIT and international investment law provide for the police power doctrine as a defense to expropriation or FET claims",
+            "mostDangerousProceduralWeakness":"The petitioner's failure to raise the police power issue at the earliest opportunity"
+         },
+         "authorityRequirements":{
+            "landmarkAuthorityNeeded":"A decision of the International Court of Justice or a prominent international arbitration tribunal on the issue of the police power doctrine in the context of expropriation and FET claims",
+            "jurisdictionSpecificAuthorityNeeded":"A decision of the ICSID tribunal or the Mercurian courts on the issue of the police power doctrine under the Mercuria-Basheera BIT",
+            "comparativeAuthorityNeeded":"A comparison of the police power provisions of different bilateral investment treaties and international investment agreements",
+            "policyAuthorityNeeded":"A statement of policy by the Mercurian government or the ICSID Secretariat on the issue of the police power doctrine in the context of expropriation and FET claims"
+         }
+      }
+   ]
+}

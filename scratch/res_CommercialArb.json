@@ -1,0 +1,119 @@
+{
+  "caseMetadata": {
+    "caseName": "Drone Delivery Inc. (Equatoriana) v. Advanced UAV Solutions (Mediterraneo)",
+    "competitionName": "THIRTIETH ANNUAL WILLEM C. VIS INTERNATIONAL COMMERCIAL ARBITRATION MOOT",
+    "year": null,
+    "forumIndicators": [
+      "International Commercial Arbitration"
+    ]
+  },
+  "parties": {
+    "claimant_petitioner": {
+      "name": "Drone Delivery Inc",
+      "type": "Corporation"
+    },
+    "respondent": {
+      "name": "Advanced UAV Solutions",
+      "type": "Corporation"
+    },
+    "thirdParties": []
+  },
+  "factualMatrix": {
+    "materialFacts": [
+      "Claimant, Drone Delivery Inc, is from Equatoriana.",
+      "Respondent, Advanced UAV Solutions, is from Mediterraneo.",
+      "Claimant purchased 500 UAVs from Respondent.",
+      "The UAVs were intended for delivering medical supplies.",
+      "The contract is governed by the CISG.",
+      "The arbitration is seated in Vindobona.",
+      "The arbitration is conducted under PCA Rules.",
+      "Upon delivery, the UAVs suffered battery failures.",
+      "The battery failures occurred in Equatoriana's tropical climate.",
+      "Claimant alleges breach of Article 35 CISG.",
+      "Respondent argues that Claimant did not provide notice of the non-conformity in a timely manner.",
+      "Respondent's notice argument refers to Article 39 CISG.",
+      "Respondent argues that the batteries were not designed for extreme humidity.",
+      "Respondent claims that the extreme humidity of Equatoriana's climate was not made known to them.",
+      "Claimant seeks damages of $2M."
+    ],
+    "chronology": [
+      {
+        "date": "Upon delivery",
+        "event": "UAVs suffered battery failures in Equatoriana's tropical climate."
+      }
+    ],
+    "keyEvents": [
+      "Purchase of 500 UAVs by Claimant from Respondent.",
+      "Delivery of UAVs and subsequent battery failures.",
+      "Claimant's allegation of breach of Article 35 CISG.",
+      "Respondent's defense regarding untimely notice (Article 39 CISG).",
+      "Respondent's defense regarding undisclosed environmental conditions (extreme humidity)."
+    ]
+  },
+  "proceduralContext": {
+    "currentStage": "Final Hearing",
+    "proceduralPosture": "International Commercial Arbitration",
+    "reliefSought": [
+      "Damages of $2M"
+    ]
+  },
+  "governingLaw": {
+    "domesticLaw": [],
+    "internationalLaw": [
+      "United Nations Convention on Contracts for the International Sale of Goods (CISG)"
+    ],
+    "treaties": [
+      "United Nations Convention on Contracts for the International Sale of Goods (CISG)"
+    ],
+    "statutes": [],
+    "rules": [
+      "PCA Rules"
+    ]
+  },
+  "jurisdictionSignals": {
+    "courtIndicators": [],
+    "arbitrationIndicators": [
+      "International Commercial Arbitration",
+      "arbitration is seated in Vindobona",
+      "PCA Rules"
+    ],
+    "tribunalIndicators": []
+  },
+  "issues": {
+    "explicit": [
+      "Whether Respondent breached Article 35 CISG by delivering non-conforming UAVs.",
+      "Whether Claimant failed to provide timely notice of non-conformity under Article 39 CISG."
+    ],
+    "implicit": [
+      "Whether the UAVs were fit for the purpose of delivering medical supplies in Equatoriana's tropical climate.",
+      "Whether the 'extreme humidity' of Equatoriana's tropical climate constitutes a specific condition that needed to be made known to the Respondent.",
+      "What constitutes 'timely manner' for notice of non-conformity under Article 39 CISG.",
+      "Whether the battery failures were a direct result of the tropical climate/extreme humidity.",
+      "Whether the damages sought by Claimant are justifiable and calculable under the CISG."
+    ],
+    "hiddenComplexities": [
+      "The standard of knowledge expected from a seller regarding the buyer's operating environment in an international sale.",
+      "The interplay between the seller's obligation under Article 35 and the buyer's obligation under Article 39, particularly when environmental factors are involved.",
+      "The burden of proof for establishing non-conformity and the timeliness of notice.",
+      "Interpretation of 'tropical climate' and 'extreme humidity' in the context of product specifications and fitness for purpose.",
+      "Potential arguments regarding the foreseeability of the conditions or the seller's general duty to inquire."
+    ]
+  },
+  "mootIntelligence": {
+    "mostContestedArea": "The interplay between the conformity of goods (Article 35 CISG) in specific environmental conditions and the timeliness of notice of non-conformity (Article 39 CISG).",
+    "mostVulnerableArea": "Claimant's potential failure to provide timely notice under Article 39 CISG, or Respondent's argument that the specific environmental conditions (extreme humidity) were not disclosed.",
+    "mostImportantFacts": [
+      "Claimant purchased 500 UAVs for delivering medical supplies.",
+      "UAVs suffered battery failures in Equatoriana's tropical climate.",
+      "Contract governed by CISG.",
+      "Respondent's argument: untimely notice of non-conformity (Article 39 CISG).",
+      "Respondent's argument: batteries not designed for extreme humidity, which was not made known to them."
+    ],
+    "factsLikelyToBeAttacked": [
+      "The exact timing and sufficiency of the notice of non-conformity provided by Claimant.",
+      "Whether the 'tropical climate' and 'extreme humidity' were implicitly or explicitly communicated to Respondent, or should have been reasonably known.",
+      "The causal link between the specific environmental conditions and the battery failures.",
+      "The extent to which the UAVs were 'fit for purpose' given the stated use and the operating environment."
+    ]
+  }
+}

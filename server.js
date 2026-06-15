@@ -214,10 +214,17 @@ const benchForecastRoute = require("./routes/benchForecast");
 // Services
 const { handleLiveVoiceConnection, getChatCompletion } = require("./services/geminiService");
 const { createEmptyMemory, evaluateExchange } = require("./services/memoryEngine");
+const { extractPropositionIntelligence } = require("./services/propositionEngine");
+const { extractProceduralHierarchy } = require("./services/proceduralHierarchyEngine");
+const { extractForumIntelligence } = require("./services/forumIntelligenceEngine");
+const { extractIssueIntelligence } = require("./services/issueIntelligenceEngine");
+const { extractAuthorityIntelligence } = require("./services/authorityIntelligenceEngine");
+const { extractAdvocacyIntelligence } = require("./services/advocacyIntelligenceEngine");
 const textBenchMemories = new Map();
 
 // Prompts
 const LEGAL_VALIDATION_PROMPT = require("./prompts/legalValidationPrompt");
+const FORUM_DETECTION_PROMPT = require("./prompts/forumDetectionPrompt");
 const ANALYSIS_SYSTEM_PROMPT = require("./prompts/analysisSystemPrompt");
 const ORAL_EVAL_PROMPT = require("./prompts/oralEvalPrompt");
 const { buildJudgePrompt } = require("./prompts/benchJudgePrompt");
@@ -312,13 +319,43 @@ app.post("/analyze", aiLimiter, upload.single("file"), async (req, res) => {
       });
     }
 
-    /* ── PHASE 2: Full Legal Analysis ── */
+    /* ── PHASE 1.5: Forum Detection (P0) ──
+       Detect forum/jurisdiction/governing law BEFORE the main analysis so issues,
+       arguments and authorities are generated under the correct law from the start.
+       Fault-tolerant: on failure we proceed neutrally. */
+    let forumContext = null;
+    try {
+      const forumDetectCall = await getChatCompletion({
+        messages: [
+          { role: "system", content: FORUM_DETECTION_PROMPT },
+          { role: "user", content: `Detect the forum for this proposition. Return ONLY valid JSON:\n\n${fullPropositionText.slice(0, 4000)}` }
+        ],
+        temperature: 0.0,
+        max_tokens: 350,
+        requestLabel: "Forum Detection (P0)"
+      });
+      forumContext = extractAndParseJSON(forumDetectCall.text);
+      console.log("[FORUM P0] Detected:", forumContext && forumContext.forum, "|", forumContext && forumContext.jurisdiction);
+    } catch (forumErr) {
+      console.error("Forum pre-detection failed (proceeding neutral):", forumErr.message);
+    }
+
+    const forumDirective = (forumContext && forumContext.forum)
+      ? `\nDETECTED FORUM CONTEXT (AUTHORITATIVE — this overrides any default jurisdiction assumption):\n` +
+        `- Forum: ${forumContext.forum}\n` +
+        `- Jurisdiction: ${forumContext.jurisdiction || 'Unspecified'}\n` +
+        `- Governing Law: ${forumContext.governingLaw || 'Unspecified'}\n` +
+        `- Adjudicator: ${forumContext.adjudicatorType || 'Unspecified'}\n` +
+        `You MUST conduct the entire analysis under THIS forum and jurisdiction. Identify issues, frame arguments, and (critically) cite ONLY case law and authorities appropriate to this forum/jurisdiction. Do NOT default to Indian constitutional law unless the detected jurisdiction is India. Use the terminology of this forum (e.g., Tribunal/Arbitrators/Claimant for arbitration; Court/Judges/Petitioner for domestic courts).\n`
+      : '';
+
+    /* ── PHASE 2: Full Legal Analysis (forum-aware) ── */
     const analysisCall = await getChatCompletion({
       messages: [
         { role: "system", content: ANALYSIS_SYSTEM_PROMPT },
         {
           role: "user",
-          content: `Analyze this legal proposition. Return ONLY a valid JSON object. No markdown:\n\n${fullPropositionText}`
+          content: `Analyze this legal proposition. Return ONLY a valid JSON object. No markdown:${forumDirective}\n\n${fullPropositionText}`
         }
       ],
       temperature: 0.1,
@@ -356,12 +393,91 @@ app.post("/analyze", aiLimiter, upload.single("file"), async (req, res) => {
     else if (s >= 28) analysisData.scoreVerdict = "Weak";
     else              analysisData.scoreVerdict = "Critically Flawed";
 
+    /* ── PHASE 5: Proposition Intelligence Engine ── */
+    let propositionIntelligence = null;
+    let proceduralHierarchy = null;
+    let forumIntelligence = null;
+    let issueIntelligence = null;
+    let authorityIntelligence = null;
+    let advocacyIntelligence = null;
+    try {
+      const rawPropIntel = await extractPropositionIntelligence(forumDirective ? `${forumDirective}\n\n${fullPropositionText}` : fullPropositionText);
+      propositionIntelligence = extractAndParseJSON(rawPropIntel);
+      
+      /* ── PHASE 6: Procedural Hierarchy Intelligence ── */
+      try {
+        const rawHierarchy = await extractProceduralHierarchy(JSON.stringify(propositionIntelligence));
+        proceduralHierarchy = extractAndParseJSON(rawHierarchy);
+        
+        /* ── PHASE 7: Forum Intelligence ── */
+        try {
+          const rawForum = await extractForumIntelligence(
+            JSON.stringify(propositionIntelligence),
+            JSON.stringify(proceduralHierarchy)
+          );
+          forumIntelligence = extractAndParseJSON(rawForum);
+          
+          /* ── PHASE 8: Issue Intelligence ── */
+          try {
+            const rawIssue = await extractIssueIntelligence(
+              JSON.stringify(propositionIntelligence),
+              JSON.stringify(proceduralHierarchy),
+              JSON.stringify(forumIntelligence)
+            );
+            issueIntelligence = extractAndParseJSON(rawIssue);
+            
+            /* ── PHASE 9: Authority Intelligence ── */
+            try {
+              const rawAuthority = await extractAuthorityIntelligence(
+                JSON.stringify(propositionIntelligence),
+                JSON.stringify(proceduralHierarchy),
+                JSON.stringify(forumIntelligence),
+                JSON.stringify(issueIntelligence)
+              );
+              authorityIntelligence = extractAndParseJSON(rawAuthority);
+              
+              /* ── PHASE 10: Advocacy Intelligence ── */
+              try {
+                const rawAdvocacy = await extractAdvocacyIntelligence(
+                  JSON.stringify(propositionIntelligence),
+                  JSON.stringify(proceduralHierarchy),
+                  JSON.stringify(forumIntelligence),
+                  JSON.stringify(issueIntelligence),
+                  JSON.stringify(authorityIntelligence)
+                );
+                advocacyIntelligence = extractAndParseJSON(rawAdvocacy);
+              } catch (advErr) {
+                console.error("Advocacy Intelligence failed, but proceeding:", advErr);
+              }
+            } catch (authErr) {
+              console.error("Authority Intelligence failed, but proceeding:", authErr);
+            }
+          } catch (issueErr) {
+            console.error("Issue Intelligence failed, but proceeding:", issueErr);
+          }
+        } catch (forumErr) {
+          console.error("Forum Intelligence failed, but proceeding:", forumErr);
+        }
+      } catch (hierErr) {
+        console.error("Procedural Hierarchy failed, but proceeding:", hierErr);
+      }
+    } catch (propErr) {
+      console.error("Proposition Intelligence failed, but proceeding with legacy data:", propErr);
+    }
+
     return res.json({
       success: true,
       isStructured: true,
       modelUsed: analysisCall.model,
       documentType: validationResult.documentType,
-      response: analysisData
+      detectedForum: forumContext,
+      response: analysisData,
+      propositionIntelligence: propositionIntelligence,
+      proceduralHierarchy: proceduralHierarchy,
+      forumIntelligence: forumIntelligence,
+      issueIntelligence: issueIntelligence,
+      authorityIntelligence: authorityIntelligence,
+      advocacyIntelligence: advocacyIntelligence
     });
 
   } catch (error) {
@@ -566,7 +682,16 @@ app.post("/simulate-bench", express.json(), async (req, res) => {
 
 /* ─── /api/build-argument ─── */
 app.post("/api/build-argument", aiLimiter, express.json(), async (req, res) => {
-  const { stance, issue, notes, propositionContext } = req.body;
+  const { stance, issue, notes, propositionContext, forum } = req.body;
+
+  // Optional forum directive so the builder adapts law + terminology to the
+  // actual forum instead of defaulting to Indian constitutional doctrine.
+  const forumLine = (forum && (forum.forum || forum.benchType || forum.broadType))
+    ? `\nFORUM CONTEXT (authoritative): ${forum.forum || forum.benchType || forum.broadType}` +
+      `${forum.jurisdiction ? ' | Jurisdiction: ' + forum.jurisdiction : ''}` +
+      `${forum.governingLaw ? ' | Governing law: ' + forum.governingLaw : ''}` +
+      `\nUse ONLY authorities and terminology appropriate to this forum. If it is not Indian constitutional law, do NOT use the Indian constitutional registry.\n`
+    : '';
 
   if (!stance || !issue || !notes || notes.trim().length < 5) {
     return res.status(400).json({ success: false, error: "Please provide stance, issue, and notes." });
@@ -588,7 +713,7 @@ app.post("/api/build-argument", aiLimiter, express.json(), async (req, res) => {
           role: "user",
           content: `PROPOSITION FACTS / CONTEXT:
 ${propositionContext.trim()}
-
+${forumLine}
 STANCE / SIDE: ${stance}
 ISSUE SELECTED: ${issue}
 RAW NOTES & AUTHORITIES PROVIDED: ${notes.trim()}
@@ -617,7 +742,7 @@ Generate the full side-aware appellate package strictly based on the proposition
 
 /* ─── /api/log-session (Secure Backend Logging) ─── */
 app.post("/api/log-session", aiLimiter, express.json(), async (req, res) => {
-  const { uid, type, mootName, fileName, score, analysisData, durationSeconds } = req.body;
+  const { uid, type, mootName, fileName, score, analysisData, durationSeconds, propositionIntelligence, proceduralHierarchy, forumIntelligence, issueIntelligence, authorityIntelligence, advocacyIntelligence } = req.body;
 
   if (!uid) {
     return res.status(400).json({ success: false, error: "uid is required." });
@@ -641,6 +766,24 @@ app.post("/api/log-session", aiLimiter, express.json(), async (req, res) => {
         score: score || 0,
         analysisData: analysisData || {}
       });
+
+      if (propositionIntelligence || proceduralHierarchy || forumIntelligence || issueIntelligence || authorityIntelligence || advocacyIntelligence) {
+        try {
+          await userDocRef.collection('propositions').doc(result.id).set({
+            mootName: mootName || 'Untitled Moot',
+            timestamp: admin.firestore.FieldValue.serverTimestamp(),
+            intelligence: propositionIntelligence || null,
+            proceduralHierarchy: proceduralHierarchy || null,
+            forumIntelligence: forumIntelligence || null,
+            issueIntelligence: issueIntelligence || null,
+            authorityIntelligence: authorityIntelligence || null,
+            advocacyIntelligence: advocacyIntelligence || null
+          });
+          console.log("🔥 Proposition, Hierarchy, Forum, Issue, Authority, and Advocacy Intelligence saved to Firestore under ID:", result.id);
+        } catch (propErr) {
+          console.error("Failed to save proposition intelligence to Firestore:", propErr);
+        }
+      }
     } else if (type === 'voice_session') {
       result = await userDocRef.collection('voice_sessions').add({
         mootName: mootName || 'Untitled Moot',

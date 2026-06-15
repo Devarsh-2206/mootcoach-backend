@@ -320,6 +320,11 @@ export async function loadRecentSessions() {
 export async function loadSavedSession(docId) {
   console.log("[DEBUG] loadSavedSession invoked with docId:", docId);
   console.trace("[DEBUG] loadSavedSession trace");
+  
+  if (docId && typeof docId === 'string') {
+    window.currentMootDocId = docId;
+  }
+  
   if (!currentUser) return;
   
   // Failsafe in case it's passed a click event instead of docId string
@@ -328,6 +333,9 @@ export async function loadSavedSession(docId) {
     const onclickAttr = btn ? btn.getAttribute('onclick') : '';
     const match = onclickAttr ? onclickAttr.match(/loadSavedSession\('([^']+)'\)/) : null;
     docId = match ? match[1] : null;
+    if (docId && typeof docId === 'string') {
+      window.currentMootDocId = docId;
+    }
   }
   if (!docId || typeof docId !== 'string') return;
 
@@ -358,6 +366,12 @@ export async function loadSavedSession(docId) {
     
     hideLoading();
     if (stepsDiv) stepsDiv.style.display = 'flex'; 
+    
+    // NEW: Populate Issue Stack (Sprint 2A)
+    import('./issueWorkspace.js').then(module => {
+       module.populateIssueStack(data);
+    });
+
     if (data.analysisData) {
       showStructuredResults(data.analysisData);
       
@@ -963,6 +977,12 @@ export function showStructuredResults(data) {
     currentPropositionContext = data.summary || '';
     populateIssuesFromAnalysis();
 
+    // Legacy: Ensure the Stage 2 issue sidebar always populates from the analysis
+    // We just call renderStage2Issues to populate the old UI.
+    setTimeout(() => {
+      renderStage2Issues();
+    }, 100);
+
     const toList = arr => (arr || []).map(x => `- ${x}`).join('\n');
 
     const sections = [
@@ -1215,7 +1235,12 @@ export function renderStage2Issues() {
     const analysisStr = window.lastAnalysis || lastAnalysis;
     if (analysisStr) {
       const data = JSON.parse(analysisStr);
-      issues = data.legalIssues || [];
+      const intelIssues = data.issueIntelligence?.issues;
+      if (intelIssues && intelIssues.length > 0) {
+        issues = intelIssues.map((iss, i) => iss.issueDefinition?.exactLegalQuestion || iss.issueTitle || ('Issue ' + (i+1)));
+      } else {
+        issues = data.legalIssues || [];
+      }
     }
   } catch (e) {
     console.error("Error parsing analysis for Stage 2 issues:", e);
@@ -1309,6 +1334,10 @@ export function renderStage2Issues() {
           </div>
         `;
       }).join('')}
+      
+      <button class="btn-analyze w-full py-3 mt-4 text-xs tracking-widest font-medium transition-all" onclick="window.wizardNext()" style="margin-top: 20px;">
+        Proceed to Drafting Workspace →
+      </button>
     </div>
   `;
 
@@ -1621,3 +1650,5 @@ export function switchStage5Tab(tab) {
     }
   });
 }
+
+window.goToStage = goToStage;

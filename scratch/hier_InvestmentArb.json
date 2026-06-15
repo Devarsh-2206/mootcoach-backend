@@ -1,0 +1,74 @@
+{
+  "hierarchyTree":[
+      {
+         "level":1,
+         "category":"Jurisdiction",
+         "nature":"Threshold",
+         "isFatalToClaim":true,
+         "coreLegalQuestion":"Does the tribunal have jurisdiction over the claim, considering the legality of the investment under Mercuria's new domestic law?",
+         "mappedExplicitIssues":[
+            "Does the tribunal lack jurisdiction because the investment was illegal under Mercuria's new domestic law?"
+         ],
+         "blocksDownstreamLevels":[
+            2,
+            3,
+            4
+         ]
+      },
+      {
+         "level":2,
+         "category":"Admissibility",
+         "nature":"Threshold",
+         "isFatalToClaim":true,
+         "coreLegalQuestion":"Is the claim admissible, considering the relevant time for assessing the legality of the investment and the interplay between domestic law and international investment law?",
+         "mappedExplicitIssues":[
+            "What is the relevant time for assessing the legality of an investment for jurisdictional purposes (at the time of investment vs. at the time of claim)?"
+         ],
+         "blocksDownstreamLevels":[
+            3,
+            4
+         ]
+      },
+      {
+         "level":3,
+         "category":"Liability/Merits",
+         "nature":"Substantive",
+         "isFatalToClaim":true,
+         "coreLegalQuestion":"Did Mercuria unlawfully expropriate GNP's investment or violate the Fair and Equitable Treatment (FET) standard?",
+         "mappedExplicitIssues":[
+            "Did Mercuria unlawfully expropriate GNP's investment?",
+            "Did Mercuria violate the Fair and Equitable Treatment (FET) standard owed to GNP?"
+         ],
+         "blocksDownstreamLevels":[
+            4
+         ]
+      },
+      {
+         "level":4,
+         "category":"Defenses",
+         "nature":"Affirmative Defense",
+         "isFatalToClaim":false,
+         "coreLegalQuestion":"Does the police power doctrine excuse Mercuria from compensating GNP, and is the criminalization of cannabis production a legitimate exercise of police power?",
+         "mappedExplicitIssues":[
+            "Does the police power doctrine excuse Mercuria from compensating GNP?"
+         ],
+         "blocksDownstreamLevels":[
+         ]
+      },
+      {
+         "level":5,
+         "category":"Remedies",
+         "nature":"Relief",
+         "isFatalToClaim":false,
+         "coreLegalQuestion":"What is the appropriate compensation for GNP, considering the scope and content of the FET standard and the impact of the military occupation?",
+         "mappedExplicitIssues":[
+         ],
+         "blocksDownstreamLevels":[
+         ]
+      }
+   ],
+   "strategicImplications":{
+      "petitionerOptimalPath":"Establish jurisdiction and admissibility, then focus on demonstrating unlawful expropriation and FET violation, and finally argue for appropriate compensation.",
+      "respondentOptimalPath":"Challenge jurisdiction based on the investment's illegality under new domestic law, and if unsuccessful, focus on invoking the police power doctrine to excuse compensation."
+   }
+}

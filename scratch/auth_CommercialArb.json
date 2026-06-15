@@ -1,0 +1,84 @@
+{
+  "authorityRoadmap": [
+       {
+           "targetIssueId": 1,
+           "targetArgumentId": "Jurisdiction_Agreement",
+           "strategicPurpose": "Establish jurisdiction",
+           "authorityType": "Landmark",
+           "jurisdictionIntelligence": {
+               "requiredJurisdiction": "International Commercial Arbitration",
+               "prohibitedJurisdictions": ["Domestic Supreme Courts"],
+               "reasoning": "The arbitration is seated in Vindobona and governed by the PCA Rules, which requires international commercial arbitration expertise."
+           },
+           "ratioIntelligence": {
+               "requiredLegalRatio": "The arbitration agreement and the PCA Rules provide a valid basis for the tribunal's jurisdiction",
+               "requiredFactualSimilarity": "The parties' consent to arbitration and the applicable law",
+               "whyItIsNeeded": "To establish the tribunal's jurisdiction over the dispute"
+           }
+       },
+       {
+           "targetIssueId": 2,
+           "targetArgumentId": "CISG_Applicability",
+           "strategicPurpose": "Establish admissibility",
+           "authorityType": "Mandatory",
+           "jurisdictionIntelligence": {
+               "requiredJurisdiction": "International Sales Law",
+               "prohibitedJurisdictions": ["Domestic Supreme Courts"],
+               "reasoning": "The contract is governed by the CISG, which applies to international sales contracts."
+           },
+           "ratioIntelligence": {
+               "requiredLegalRatio": "The CISG applies to international sales contracts between parties from different countries",
+               "requiredFactualSimilarity": "The contract is an international sales contract governed by the CISG",
+               "whyItIsNeeded": "To establish the admissibility of the claim"
+           }
+       },
+       {
+           "targetIssueId": 3,
+           "targetArgumentId": "Non_Conformity",
+           "strategicPurpose": "Establish liability",
+           "authorityType": "Landmark",
+           "jurisdictionIntelligence": {
+               "requiredJurisdiction": "International Commercial Arbitration",
+               "prohibitedJurisdictions": ["Domestic Supreme Courts"],
+               "reasoning": "The arbitration is seated in Vindobona and governed by the PCA Rules, which requires international commercial arbitration expertise."
+           },
+           "ratioIntelligence": {
+               "requiredLegalRatio": "The seller must deliver goods that are fit for their intended purpose",
+               "requiredFactualSimilarity": "The UAVs were not fit for their intended purpose of delivering medical supplies in Equatoriana's tropical climate",
+               "whyItIsNeeded": "To establish the respondent's breach of Article 35 CISG"
+           }
+       },
+       {
+           "targetIssueId": 4,
+           "targetArgumentId": "Timely_Notice",
+           "strategicPurpose": "Establish notice of non-conformity",
+           "authorityType": "Comparative",
+           "jurisdictionIntelligence": {
+               "requiredJurisdiction": "International Sales Law",
+               "prohibitedJurisdictions": ["Domestic Supreme Courts"],
+               "reasoning": "The contract is governed by the CISG, which applies to international sales contracts."
+           },
+           "ratioIntelligence": {
+               "requiredLegalRatio": "The buyer must provide notice of non-conformity within a reasonable time",
+               "requiredFactualSimilarity": "The claimant provided notice of non-conformity within a reasonable time after discovering the defect",
+               "whyItIsNeeded": "To establish the timeliness of notice under Article 39 CISG"
+           }
+       },
+       {
+           "targetIssueId": 5,
+           "targetArgumentId": "Damages_Calculation",
+           "strategicPurpose": "Establish damages",
+           "authorityType": "Policy",
+           "jurisdictionIntelligence": {
+               "requiredJurisdiction": "International Commercial Arbitration",
+               "prohibitedJurisdictions": ["Domestic Supreme Courts"],
+               "reasoning": "The arbitration is seated in Vindobona and governed by the PCA Rules, which requires international commercial arbitration expertise."
+           },
+           "ratioIntelligence": {
+               "requiredLegalRatio": "The CISG provides for the calculation of damages based on the losses suffered by the buyer",
+               "requiredFactualSimilarity": "The claimant suffered losses due to the respondent's breach of Article 35 CISG",
+               "whyItIsNeeded": "To establish the justifiability and calculability of damages under the CISG"
+           }
+       }
+   ]
+}

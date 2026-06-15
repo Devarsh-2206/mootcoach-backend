@@ -1,0 +1,113 @@
+{
+  "caseMetadata": {
+    "caseName": "Internet Freedom Foundation v. Union of India",
+    "competitionName": null,
+    "year": 2026,
+    "forumIndicators": [
+      "Supreme Court of India",
+      "5-judge Constitution Bench"
+    ]
+  },
+  "parties": {
+    "claimant_petitioner": {
+      "name": "Internet Freedom Foundation",
+      "type": "Organization"
+    },
+    "respondent": {
+      "name": "Union of India",
+      "type": "State"
+    },
+    "thirdParties": []
+  },
+  "factualMatrix": {
+    "materialFacts": [
+      "The Union passed the 'Digital Content Regulation Act, 2025'.",
+      "The 'Digital Content Regulation Act, 2025' requires all OTT platforms to provide end-to-end decryption keys to the government.",
+      "This requirement is mandated under Section 69A of the IT Act.",
+      "Non-compliance with the Act results in immediate blocking of the platform."
+    ],
+    "chronology": [
+      {
+        "date": "2025",
+        "event": "Union passed the 'Digital Content Regulation Act, 2025'"
+      },
+      {
+        "date": "2026",
+        "event": "Writ Petition (Civil) filed in the Supreme Court of India"
+      }
+    ],
+    "keyEvents": [
+      "Enactment of the 'Digital Content Regulation Act, 2025'.",
+      "Imposition of requirement for OTT platforms to provide end-to-end decryption keys.",
+      "Provision for immediate blocking of non-compliant platforms.",
+      "Filing of a Writ Petition by Internet Freedom Foundation challenging the Act."
+    ]
+  },
+  "proceduralContext": {
+    "currentStage": "Final Hearing",
+    "proceduralPosture": "Original Writ",
+    "reliefSought": [
+      "Declaration that the 'Digital Content Regulation Act, 2025' is unconstitutional.",
+      "Quashing of the 'Digital Content Regulation Act, 2025'."
+    ]
+  },
+  "governingLaw": {
+    "domesticLaw": [
+      "Indian Constitution (Articles 14, 19(1)(a), 19(2), 21)",
+      "Information Technology Act"
+    ],
+    "internationalLaw": [],
+    "treaties": [],
+    "statutes": [
+      "Digital Content Regulation Act, 2025",
+      "Information Technology Act"
+    ],
+    "rules": []
+  },
+  "jurisdictionSignals": {
+    "courtIndicators": [
+      "Supreme Court of India",
+      "5-judge Constitution Bench"
+    ],
+    "arbitrationIndicators": [],
+    "tribunalIndicators": []
+  },
+  "issues": {
+    "explicit": [
+      "Whether the 'Digital Content Regulation Act, 2025' violates the fundamental right to privacy under Article 21 of the Indian Constitution.",
+      "Whether the 'Digital Content Regulation Act, 2025' violates the right to free speech under Article 19(1)(a) of the Indian Constitution.",
+      "Whether the 'Digital Content Regulation Act, 2025' is manifestly arbitrary under Article 14 of the Indian Constitution.",
+      "Whether the requirement for OTT platforms to provide end-to-end decryption keys is a reasonable restriction under Article 19(2) for national security."
+    ],
+    "implicit": [
+      "What is the scope and interpretation of 'national security' in the context of digital content regulation and encryption?",
+      "Does the requirement of providing end-to-end decryption keys satisfy the proportionality test for restrictions on fundamental rights?",
+      "Is the 'immediate blocking' of a platform for non-compliance a proportionate and non-arbitrary penalty?",
+      "What is the interplay between Section 69A of the IT Act and the 'Digital Content Regulation Act, 2025'?",
+      "Does the Act create a chilling effect on free speech and expression due to the decryption key requirement?"
+    ],
+    "hiddenComplexities": [
+      "The technical feasibility and implications of end-to-end decryption key provision for OTT platforms.",
+      "The potential for misuse of decryption keys by the government and its impact on user trust and privacy.",
+      "The evolving jurisprudence on the right to privacy in the digital age, particularly concerning encrypted communications.",
+      "The balance between state's interest in national security and individual fundamental rights in the digital domain.",
+      "The application of the 'manifest arbitrariness' test to legislative enactments affecting fundamental rights."
+    ]
+  },
+  "mootIntelligence": {
+    "mostContestedArea": "The proportionality and necessity of requiring end-to-end decryption keys for national security, and its impact on the fundamental rights to privacy and free speech.",
+    "mostVulnerableArea": "The Union's justification of the 'Digital Content Regulation Act, 2025' as a 'reasonable restriction' under Article 19(2), particularly concerning the broad scope of 'national security' and the severe consequence of 'immediate blocking'.",
+    "mostImportantFacts": [
+      "The 'Digital Content Regulation Act, 2025' mandates end-to-end decryption keys from OTT platforms.",
+      "This mandate is under Section 69A of the IT Act.",
+      "Non-compliance leads to immediate platform blocking.",
+      "Petitioner argues violations of Articles 14, 19(1)(a), and 21.",
+      "Respondent argues it is a reasonable restriction under Article 19(2) for national security."
+    ],
+    "factsLikelyToBeAttacked": [
+      "The assertion that requiring end-to-end decryption keys is strictly necessary for national security.",
+      "The proportionality of 'immediate blocking' as a consequence for non-compliance.",
+      "The definition and scope of 'national security' as applied to digital content and encryption."
+    ]
+  }
+}
