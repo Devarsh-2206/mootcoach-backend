@@ -428,11 +428,27 @@ app.post("/analyze", aiLimiter, upload.single("file"), async (req, res) => {
             
             /* ── PHASE 9: Authority Intelligence ── */
             try {
+              const authorityInputProp = {
+                factualMatrix: propositionIntelligence?.factualMatrix
+              };
+              
+              const authorityInputIssue = {
+                issues: (issueIntelligence?.issues || []).map(i => ({
+                  exactLegalQuestion: i.issueDefinition?.exactLegalQuestion,
+                  petitionerTheory: i.petitionerFramework?.coreTheory,
+                  respondentTheory: i.respondentFramework?.coreTheory,
+                  authorityRequirements: i.authorityRequirements
+                }))
+              };
+
+              const estimatedTokens = Math.ceil((JSON.stringify(authorityInputProp).length + JSON.stringify(forumContext).length + JSON.stringify(authorityInputIssue).length) / 4);
+              console.log(`[AUTHORITY TOKENS] estimated input tokens: ${estimatedTokens}`);
+
               const rawAuthority = await extractAuthorityIntelligence(
-                JSON.stringify(propositionIntelligence),
-                JSON.stringify(proceduralHierarchy),
-                JSON.stringify(forumIntelligence),
-                JSON.stringify(issueIntelligence)
+                JSON.stringify(authorityInputProp),
+                "{}",
+                JSON.stringify(forumContext || forumIntelligence),
+                JSON.stringify(authorityInputIssue)
               );
               authorityIntelligence = extractAndParseJSON(rawAuthority);
               
