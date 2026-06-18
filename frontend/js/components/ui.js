@@ -367,6 +367,10 @@ export async function loadSavedSession(docId) {
     hideLoading();
     if (stepsDiv) stepsDiv.style.display = 'flex'; 
     
+    // Restore forum context so the Simulator adapts (judges vs arbitrators) on reload.
+    if (data.forumIntelligence) window.forumIntelligence = data.forumIntelligence;
+    if (data.detectedForum) window.detectedForum = data.detectedForum;
+
     // NEW: Populate Issue Stack (Sprint 2A)
     import('./issueWorkspace.js').then(module => {
        module.populateIssueStack(data);
@@ -375,8 +379,11 @@ export async function loadSavedSession(docId) {
     if (data.analysisData) {
       showStructuredResults(data.analysisData);
       
-      // Highlight matching recent moot button in sidebar (results tab is already highlighted by showWsPanel inside showStructuredResults)
-      const recentBtn = document.querySelector(`button[onclick*="${docId}"]`);
+      // Highlight ONLY the selected recent moot — clear any previous highlight first.
+      document.querySelectorAll('#ws-recent-list .ws-sb-item').forEach(b =>
+        b.classList.remove('active', 'bg-moot-accent/10', 'text-moot-accent'));
+      const recentBtn = document.querySelector(`#ws-recent-list button[onclick*="${docId}"]`)
+        || document.querySelector(`button[onclick*="${docId}"]`);
       if (recentBtn) {
         recentBtn.classList.add('active', 'bg-moot-accent/10', 'text-moot-accent');
       }

@@ -758,7 +758,7 @@ Generate the full side-aware appellate package strictly based on the proposition
 
 /* ─── /api/log-session (Secure Backend Logging) ─── */
 app.post("/api/log-session", aiLimiter, express.json(), async (req, res) => {
-  const { uid, type, mootName, fileName, score, analysisData, durationSeconds, propositionIntelligence, proceduralHierarchy, forumIntelligence, issueIntelligence, authorityIntelligence, advocacyIntelligence } = req.body;
+  const { uid, type, mootName, fileName, score, analysisData, durationSeconds, detectedForum, propositionIntelligence, proceduralHierarchy, forumIntelligence, issueIntelligence, authorityIntelligence, advocacyIntelligence } = req.body;
 
   if (!uid) {
     return res.status(400).json({ success: false, error: "uid is required." });
@@ -780,7 +780,8 @@ app.post("/api/log-session", aiLimiter, express.json(), async (req, res) => {
         fileName: fileName || '',
         timestamp: admin.firestore.FieldValue.serverTimestamp(),
         score: score || 0,
-        analysisData: analysisData || {}
+        analysisData: analysisData || {},
+        detectedForum: detectedForum || null
       });
 
       if (propositionIntelligence || proceduralHierarchy || forumIntelligence || issueIntelligence || authorityIntelligence || advocacyIntelligence) {

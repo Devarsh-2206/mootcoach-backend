@@ -219,6 +219,7 @@ export async function runAnalysis() {
             fileName: selectedFile.name,
             score: data.response.overallScore || 0,
             analysisData: data.response,
+            detectedForum: data.detectedForum || null,
             propositionIntelligence: data.propositionIntelligence || null,
             proceduralHierarchy: data.proceduralHierarchy || null,
             forumIntelligence: data.forumIntelligence || null,

@@ -17,7 +17,7 @@ import {
 } from '../services/audioEngine.js';
 import { logSessionSecurely } from '../services/api.js';
 import { getCurrentSelectedSide, selectedAuthorities } from './argumentBuilder.js';
-import { DEPTH_PROFILES, JUDGE_ROSTERS, FULL_BENCH } from '../config/benchProfiles.js';
+import { DEPTH_PROFILES, JUDGE_ROSTERS, COURT_ROSTERS, FULL_BENCH } from '../config/benchProfiles.js';
 
 // Simulator State
 export let benchConversation = [];
@@ -63,6 +63,12 @@ export function getForumProfile() {
   const blob = `${benchType} ${cls.broadType || ''} ${cls.specificBody || ''} ${df.forum || ''} ${df.jurisdiction || ''} ${df.adjudicatorType || ''} ${term.judge || ''} ${term.court || ''}`.toLowerCase();
   const isArbitration = /arbitr|tribunal/.test(blob);
 
+  // Which national court roster to use (only relevant when NOT arbitration).
+  const jurBlob = `${df.jurisdiction || ''} ${cls.specificBody || ''} ${cls.broadType || ''} ${benchType}`.toLowerCase();
+  let courtJurisdiction = 'generic';
+  if (/india|indian|art(icle)?\.?\s*(32|226)/.test(jurBlob)) courtJurisdiction = 'india';
+  else if (/united kingdom|\buk\b|u\.k\.|england|wales|english|house of lords/.test(jurBlob)) courtJurisdiction = 'uk';
+
   const judge = term.judge || (isArbitration ? 'Arbitrator' : 'Judge');
   const court = term.court || (isArbitration ? 'Tribunal' : 'Court');
   const addressing = adj.addressingStyle || (isArbitration ? 'Members of the Tribunal' : 'Your Lordships');
@@ -80,7 +86,8 @@ export function getForumProfile() {
     questioningStyle: dir.questioningStyle || '',
     chambersLabel: isArbitration ? 'Arbitral Chamber' : 'Judicial Chambers',
     lobbyLabel: isArbitration ? 'Tribunal Lobby' : 'Chambers Lobby',
-    isArbitration
+    isArbitration,
+    courtJurisdiction
   };
 }
 window.getForumProfile = getForumProfile;
@@ -95,7 +102,9 @@ window.selectedJudgeId = null;
 // tribunals). The Full Bench card is offered ONLY in Hard mode.
 export function getActiveRoster(mode) {
   const fp = getForumProfile();
-  const base = fp.isArbitration ? JUDGE_ROSTERS.tribunal : JUDGE_ROSTERS.court;
+  const base = fp.isArbitration
+    ? JUDGE_ROSTERS.tribunal
+    : (COURT_ROSTERS[fp.courtJurisdiction] || COURT_ROSTERS.generic);
   const list = base.slice();
   if ((mode || benchDifficultyMode) === 'hard') list.push(FULL_BENCH);
   return list;
@@ -103,7 +112,10 @@ export function getActiveRoster(mode) {
 
 function findJudge(id) {
   if (id === FULL_BENCH.id) return FULL_BENCH;
-  const all = [...JUDGE_ROSTERS.court, ...JUDGE_ROSTERS.tribunal];
+  const all = [
+    ...COURT_ROSTERS.india, ...COURT_ROSTERS.uk, ...COURT_ROSTERS.generic,
+    ...JUDGE_ROSTERS.tribunal
+  ];
   return all.find(j => j.id === id) || null;
 }
 
