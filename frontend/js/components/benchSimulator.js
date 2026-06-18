@@ -57,10 +57,23 @@ export function deriveForumFromAnalysis() {
     const precBlob = precs.map(p => `${p.jurisdiction || ''} ${p.citation || ''} ${p.caseName || ''}`).join(' ');
     const blob = `${precBlob} ${data.summary || ''} ${(data.constitutionalIssues || []).join(' ')}`.toLowerCase();
     if (!blob.trim()) return null;
-    const isArbitration = /arbitr|tribunal|icsid|uncitral|investment treaty|bilateral investment|\bbit\b|arb\/|seat of arbitration|investor-state/.test(blob);
-    let courtJurisdiction = 'generic';
-    if (/\bindia\b|indian|supreme court of india|article\s*(32|226)|\bscc\b|\bair\s+\d/.test(blob)) courtJurisdiction = 'india';
-    else if (/england|wales|united kingdom|\buk\b|\[\d{4}\]\s*(ac|qb|wlr|ewca|ewhc|exch|ch|all er)/.test(blob)) courtJurisdiction = 'uk';
+    // PRECISE classification with India prioritised over bare "tribunal"/"arbitration"
+    // (Indian moots routinely mention ITAT/NCLT/NGT tribunals without being arbitration).
+    const strongIntlArb = /icsid|uncitral|investor-state|bilateral investment|\bbit\b|investment treaty|seat of arbitration|international (commercial )?arbitration|permanent court of arbitration|\bpca\b|arb\//;
+    const anyArb = /arbitral tribunal|arbitration/;
+    const indiaSig = /\bindia\b|indian|supreme court of india|\bscc\b|\bair\s+\d|article\s*(32|226)|delhi high court|bombay high court|madras high court|calcutta high court|high court of/;
+    const ukSig = /england|wales|united kingdom|\buk\b|\[\d{4}\]\s*(ac|qb|wlr|ewca|ewhc|exch|ch|all er)|house of lords/;
+
+    let isArbitration = false, courtJurisdiction = 'generic';
+    if (indiaSig.test(blob) && !strongIntlArb.test(blob)) {
+      courtJurisdiction = 'india';                 // Indian court/constitutional (even if it mentions a tribunal)
+    } else if (strongIntlArb.test(blob)) {
+      isArbitration = true;                         // unambiguous international arbitration
+    } else if (ukSig.test(blob)) {
+      courtJurisdiction = 'uk';
+    } else if (anyArb.test(blob)) {
+      isArbitration = true;                         // domestic/other arbitration, no court jurisdiction signal
+    }
     return { isArbitration, courtJurisdiction };
   } catch (e) { return null; }
 }
@@ -169,10 +182,12 @@ export function selectJudge(id) {
   selectedJudgeId = id;
   window.selectedJudgeId = id;
   renderJudgeCards();
-  // Reflect the presiding judge in the profile title.
-  const titleEl = document.getElementById('lobby-bench-type-title');
+  // Reflect the presiding judge in the profile title AND focus areas.
   const j = getPresidingJudge();
+  const titleEl = document.getElementById('lobby-bench-type-title');
   if (titleEl && j) titleEl.textContent = `${j.name} · ${j.archetype}`;
+  const focusEl = document.getElementById('lobby-focus-areas');
+  if (focusEl && j) focusEl.textContent = j.focus;
 }
 window.selectJudge = selectJudge;
 
