@@ -17,7 +17,7 @@ import {
 } from '../services/audioEngine.js';
 import { logSessionSecurely } from '../services/api.js';
 import { getCurrentSelectedSide, selectedAuthorities } from './argumentBuilder.js';
-import { benchProfiles } from '../config/benchProfiles.js';
+import { DEPTH_PROFILES, JUDGE_ROSTERS, FULL_BENCH } from '../config/benchProfiles.js';
 
 // Simulator State
 export let benchConversation = [];
@@ -85,60 +85,88 @@ export function getForumProfile() {
 }
 window.getForumProfile = getForumProfile;
 
-// ── JUDGE SELECTION ──
-// Each archetype changes the bench's actual behaviour via a directive injected
-// into the simulate-bench context (same mechanism as the forum directive).
-export const JUDGE_ARCHETYPES = {
-  auto:       { label: 'Auto (match difficulty & forum)', scope: 'any', directive: '' },
-  friendly:   { label: 'Friendly Judge', scope: 'court', directive: 'Adopt a warm, encouraging tone. Ask gentle clarifying questions, let the advocate finish, and guide rather than trap. Low pressure, minimal interruption.' },
-  neutral:    { label: 'Neutral Judge', scope: 'any', directive: 'Be balanced and impartial. Test both sides evenly with measured, fair questions. Moderate pressure, no theatrics.' },
-  aggressive: { label: 'Aggressive Judge', scope: 'any', directive: 'Be highly adversarial. Interrupt frequently, demand direct yes/no answers, and refuse to let the advocate evade or filibuster. High pressure throughout.' },
-  technical:  { label: 'Technical Judge', scope: 'any', directive: 'Drill doctrinal precision: the exact legal test, each of its elements, the statutory/treaty text, and definitional accuracy. Punish loose or imprecise statements of law.' },
-  procedural: { label: 'Procedural Judge', scope: 'court', directive: 'Fixate on threshold and procedure: jurisdiction, maintainability, standing/locus standi, limitation, correct forum and relief. Do not let the advocate reach the merits until procedure is satisfied.' },
-  skeptical:  { label: 'Skeptical Judge', scope: 'any', directive: 'Distrust every authority and assertion. Repeatedly ask "why should I accept that?", force the advocate to distinguish adverse cases, and challenge each leap in logic.' },
-  purist:     { label: 'Constitutional Purist', scope: 'court', directive: 'Reason from first principles, constitutional structure, rights-balancing and proportionality. Probe the broader doctrinal consequences of the advocate\'s position.' },
-  arbitrator: { label: 'International Arbitrator', scope: 'tribunal', directive: 'Sit as an arbitral tribunal. Focus on treaty interpretation (VCLT), jurisdiction ratione materiae/personae/temporis, applicable law, and the standard of review. Use arbitration register (address as "Members of the Tribunal", parties as Claimant/Respondent); never use "My Lords".' },
-  hostile:    { label: 'Hostile Tribunal', scope: 'any', directive: 'Apply maximum pressure: rapid-fire questioning, set traps, express open skepticism and impatience, and cut off weak or evasive answers. Relentless from the first question.' },
-  mixed:      { label: 'Mixed Bench', scope: 'any', directive: 'Rotate between 2-3 distinct personas (e.g. a procedural stickler, a doctrinal technician, and a hard skeptic), each questioning from their own angle so the advocate must adapt to shifting styles. Vary which member speaks.' }
-};
+// ── JUDGE SELECTION (card picker, forum-gated, single-select) ──
+// The selected judge actually presides: his name shows in the round and his
+// profile (and ONLY his profile) drives the questions. Difficulty = depth.
+export let selectedJudgeId = null;
+window.selectedJudgeId = null;
 
-export let selectedJudgeArchetype = 'auto';
-window.selectedJudgeArchetype = 'auto';
-
-// Build the forum-appropriate option set (courts get judges, tribunals get arbitrators).
-function judgeOptionsForForum() {
+// The roster shown depends on the forum (Justices for courts, Arbitrators for
+// tribunals). The Full Bench card is offered ONLY in Hard mode.
+export function getActiveRoster(mode) {
   const fp = getForumProfile();
-  const universal = ['auto', 'neutral', 'aggressive', 'technical', 'skeptical', 'hostile', 'mixed'];
-  if (fp.isArbitration) {
-    return ['auto', 'arbitrator', 'neutral', 'aggressive', 'technical', 'skeptical', 'hostile', 'mixed'];
+  const base = fp.isArbitration ? JUDGE_ROSTERS.tribunal : JUDGE_ROSTERS.court;
+  const list = base.slice();
+  if ((mode || benchDifficultyMode) === 'hard') list.push(FULL_BENCH);
+  return list;
+}
+
+function findJudge(id) {
+  if (id === FULL_BENCH.id) return FULL_BENCH;
+  const all = [...JUDGE_ROSTERS.court, ...JUDGE_ROSTERS.tribunal];
+  return all.find(j => j.id === id) || null;
+}
+
+export function getPresidingJudge() {
+  const roster = getActiveRoster();
+  let judge = selectedJudgeId ? roster.find(j => j.id === selectedJudgeId) : null;
+  if (!judge) judge = roster[0]; // default to first valid judge for the forum/mode
+  return judge || null;
+}
+
+export function getPresidingJudgeName() {
+  const j = getPresidingJudge();
+  return j ? j.name : 'The Bench';
+}
+
+export function selectJudge(id) {
+  selectedJudgeId = id;
+  window.selectedJudgeId = id;
+  renderJudgeCards();
+  // Reflect the presiding judge in the profile title.
+  const titleEl = document.getElementById('lobby-bench-type-title');
+  const j = getPresidingJudge();
+  if (titleEl && j) titleEl.textContent = `${j.name} · ${j.archetype}`;
+}
+window.selectJudge = selectJudge;
+
+// Render the forum-gated judge cards (single-select). Re-runs on forum/mode change.
+export function renderJudgeCards() {
+  const wrap = document.getElementById('bench-judge-cards');
+  if (!wrap) return;
+  const roster = getActiveRoster();
+  // Ensure a valid default selection for this forum/mode.
+  if (!selectedJudgeId || !roster.some(j => j.id === selectedJudgeId)) {
+    selectedJudgeId = roster[0] ? roster[0].id : null;
+    window.selectedJudgeId = selectedJudgeId;
   }
-  return ['auto', 'friendly', 'neutral', 'aggressive', 'technical', 'procedural', 'skeptical', 'purist', 'hostile', 'mixed'];
+  wrap.innerHTML = roster.map(j => {
+    const on = j.id === selectedJudgeId;
+    const isFull = j.id === FULL_BENCH.id;
+    return `
+      <button type="button" onclick="window.selectJudge('${j.id}')"
+        class="text-left p-3 rounded-xl border transition-all ${on ? 'border-moot-accent bg-moot-accent/10 ring-1 ring-moot-accent/40' : 'border-white/10 bg-white/[0.02] hover:border-white/25'}"
+        style="display:block; width:100%;">
+        <div class="flex items-center justify-between gap-2">
+          <span class="text-xs font-semibold ${on ? 'text-moot-accent' : 'text-white'}">${esc(j.name)}</span>
+          <span class="text-[8px] uppercase tracking-wider px-2 py-0.5 rounded ${isFull ? 'bg-red-500/15 text-red-300 border border-red-500/30' : 'bg-white/5 text-white-muted border border-white/10'}">${esc(j.archetype)}</span>
+        </div>
+        <div class="text-[10px] text-white-muted mt-1 leading-relaxed">${esc(j.temperament)}</div>
+        <div class="text-[9px] text-moot-accent/80 mt-1.5 uppercase tracking-wider">${esc(j.focus)}</div>
+      </button>`;
+  }).join('');
 }
+window.renderJudgeCards = renderJudgeCards;
 
-export function populateJudgeSelector() {
-  const sel = document.getElementById('bench-judge-select');
-  if (!sel) return;
-  const opts = judgeOptionsForForum();
-  // If the current selection is not valid for this forum, reset to auto.
-  if (!opts.includes(selectedJudgeArchetype)) setJudgeArchetype('auto');
-  sel.innerHTML = opts.map(k => `<option value="${k}"${k === selectedJudgeArchetype ? ' selected' : ''}>${JUDGE_ARCHETYPES[k].label}</option>`).join('');
-}
-window.populateJudgeSelector = populateJudgeSelector;
-
-export function setJudgeArchetype(key) {
-  if (!JUDGE_ARCHETYPES[key]) key = 'auto';
-  selectedJudgeArchetype = key;
-  window.selectedJudgeArchetype = key;
-  const sel = document.getElementById('bench-judge-select');
-  if (sel && sel.value !== key) sel.value = key;
-}
-window.setJudgeArchetype = setJudgeArchetype;
-
-// The directive that actually changes bench behaviour for the chosen archetype.
+// Directives injected into the simulate-bench context.
 export function getJudgeDirective() {
-  const arch = JUDGE_ARCHETYPES[selectedJudgeArchetype] || JUDGE_ARCHETYPES.auto;
-  if (!arch.directive) return '';
-  return `[Presiding persona: ${arch.label}. ${arch.directive}]`;
+  const j = getPresidingJudge();
+  if (!j) return '';
+  return `[Presiding: ${j.name} (${j.archetype}). ${j.directive}]`;
+}
+export function getDepthDirective() {
+  const d = DEPTH_PROFILES[benchDifficultyMode] || DEPTH_PROFILES.moderate;
+  return `[${d.directive}]`;
 }
 
 export function setBenchDifficulty(mode) {
@@ -149,111 +177,24 @@ export function setBenchDifficulty(mode) {
     if (el) el.className = `diff-btn${d === mode ? ` active-${d}` : ''}`;
   });
   updateBenchProfileUI(mode);
-  populateJudgeSelector();
+  renderJudgeCards();
 }
 
 export function updateBenchProfileUI(mode) {
   const titleEl = document.getElementById('lobby-bench-type-title');
-  const questionsEl = document.getElementById('lobby-expected-questions');
-  const interruptionEl = document.getElementById('lobby-interruption-freq');
-  const aggressionEl = document.getElementById('lobby-aggression');
+  const depthLabelEl = document.getElementById('lobby-depth-label');
+  const depthDescEl = document.getElementById('lobby-depth-desc');
   const focusEl = document.getElementById('lobby-focus-areas');
-  const durationEl = document.getElementById('lobby-duration');
-  const rosterEl = document.getElementById('lobby-judges-roster');
 
-  if (!rosterEl) return;
+  const depth = DEPTH_PROFILES[mode] || DEPTH_PROFILES.moderate;
+  const fp = getForumProfile();
+  const j = getPresidingJudge();
 
-  const data = {
-    easy: {
-      title: "Lenient Appellate Bench",
-      questions: "5–10",
-      interruption: "Low",
-      aggression: "Low",
-      focus: "Basic Jurisdiction · Core Statutory Definitions · Standard Grounds of Appeal",
-      duration: "10 mins",
-      judges: [
-        {
-          name: "Justice Sen",
-          ideology: "The Mentor",
-          behavior: "Encouraging, focuses on basic maintainability. Wants to see clean framing and understanding of fundamental legal principles."
-        },
-        {
-          name: "Justice Patil",
-          ideology: "Procedural Formalist",
-          behavior: "Patient but expects standard court procedures to be followed. Focuses on the factual timeline and record of the lower courts."
-        }
-      ]
-    },
-    moderate: {
-      title: "Moderate Constitutional Bench",
-      questions: "15–20",
-      interruption: "Medium",
-      aggression: "High",
-      focus: "Privacy · Proportionality · Due Process · Algorithmic Accountability",
-      duration: "20 mins",
-      judges: [
-        {
-          name: "Chief Justice Rao",
-          ideology: "Constitutional Purist",
-          behavior: "Focuses on the letter of the constitution and proportionality. Probes how reading down a clause matches state interest."
-        },
-        {
-          name: "Justice Menon",
-          ideology: "Procedural Hawk",
-          behavior: "Zero tolerance for missed deadlines or incorrect appeal procedures. Queries locus standi and legislative intent."
-        },
-        {
-          name: "Justice Iyer",
-          ideology: "Rights-Oriented",
-          behavior: "Focuses on equity, fairness, and human rights. Interested in public interest impact and natural justice."
-        }
-      ]
-    },
-    hard: {
-      title: "Hostile Full Constitutional Bench",
-      questions: "25–30",
-      interruption: "High",
-      aggression: "Extreme",
-      focus: "Manifest Arbitrariness · Standard of Review · Separation of Powers · Deep Precedential Inconsistencies",
-      duration: "35 mins",
-      judges: [
-        {
-          name: "Chief Justice Rao",
-          ideology: "Constitutional Purist",
-          behavior: "Focuses on separation of powers and judicial restraint. Hostile to arguments suggesting policy decisions should be second-guessed."
-        },
-        {
-          name: "Justice Menon",
-          ideology: "Procedural Hawk",
-          behavior: "Intense, Socratic questioning. Probes jurisdictional boundaries and constitutional maintainability gates."
-        },
-        {
-          name: "Justice Iyer",
-          ideology: "Rights-Oriented",
-          behavior: "Extremely analytical about systemic impacts. Probes proportionate measures and checks whether a lesser-restrictive alternative exists."
-        }
-      ]
-    }
-  };
-
-  const bench = data[mode] || data.moderate;
-
-  if (titleEl) titleEl.textContent = bench.title;
-  if (questionsEl) questionsEl.textContent = bench.questions;
-  if (interruptionEl) interruptionEl.textContent = bench.interruption;
-  if (aggressionEl) aggressionEl.textContent = bench.aggression;
-  if (focusEl) focusEl.textContent = bench.focus;
-  if (durationEl) durationEl.textContent = bench.duration;
-
-  rosterEl.innerHTML = bench.judges.map(j => `
-    <div class="p-3 bg-white/[0.01] border border-white/5 rounded-xl flex items-start gap-3" style="background: rgba(255,255,255,0.01); border: 1px solid rgba(255,255,255,0.05); padding: 10px; border-radius: 8px; display: flex; align-items: start; gap: 12px;">
-      <div class="w-8 h-8 rounded-full bg-moot-accent/10 border border-moot-accent/30 flex items-center justify-center text-xs font-bold text-moot-accent flex-shrink-0 mt-0.5" style="width: 32px; height: 32px; border-radius: 50%; background: rgba(201,168,76,0.1); border: 1px solid rgba(201,168,76,0.3); display: flex; align-items: center; justify-content: center; color: var(--gold); flex-shrink: 0;">⚖️</div>
-      <div>
-        <h5 class="text-xs font-semibold text-white" style="font-size: 12px; font-weight: 600; color: #fff; margin: 0;">${esc(j.name)} <span class="text-[9px] uppercase tracking-wider text-white-muted font-normal ml-2" style="font-size: 9px; color: #a0aec0; text-transform: uppercase; font-weight: normal; margin-left: 8px;">${esc(j.ideology)}</span></h5>
-        <p class="text-[10px] text-white-muted mt-1 leading-relaxed" style="font-size: 10px; color: #cbd5e0; line-height: 1.4; margin: 4px 0 0 0;">${esc(j.behavior)}</p>
-      </div>
-    </div>
-  `).join('');
+  if (titleEl) titleEl.textContent = j ? `${j.name} · ${j.archetype}` : (fp.isArbitration ? 'Arbitral Tribunal' : 'The Bench');
+  if (depthLabelEl) depthLabelEl.textContent = depth.label;
+  if (depthDescEl) depthDescEl.textContent = depth.summary;
+  // Focus areas now follow the SELECTED judge's remit (his profile drives questioning).
+  if (focusEl) focusEl.textContent = j ? j.focus : '—';
 }
 
 export function startBenchSession() {
@@ -320,7 +261,7 @@ export function startBenchSession() {
     `Memorial draft: ${ctxHasMemorial ? 'attached' : 'none'}`,
     `Oral draft: ${ctxHasOral ? 'attached' : 'none'}`,
     `Predicted questions loaded: ${ctxPredicted}`,
-    `Bench persona: ${(JUDGE_ARCHETYPES[selectedJudgeArchetype] || JUDGE_ARCHETYPES.auto).label}`
+    `Presiding: ${getPresidingJudgeName()} · Depth: ${(DEPTH_PROFILES[benchDifficultyMode] || DEPTH_PROFILES.moderate).label}`
   ];
   appendBenchMessage('system', `This ${fp.court} is using your selections — ${ctxParts.join('  ·  ')}`);
 
@@ -329,7 +270,7 @@ export function startBenchSession() {
   if (ctxIssue && ctxIssue !== 'General appellate docket') {
     opening = `Counsel for the ${ctxStance}, we are taking up your issue — "${ctxIssue}". ${opening}`;
   }
-  appendBenchMessage('judge', opening, null, 'Opening the session', 1);
+  appendBenchMessage('judge', opening, null, 'Opening the session', 1, getPresidingJudgeName());
   benchConversation.push({ role: 'judge', content: opening });
 
   const input = document.getElementById('bench-input');
@@ -598,7 +539,8 @@ export async function submitToBench() {
       : '';
 
     const judgeDirective = getJudgeDirective();
-    const contextPrefix = `${forumDirective}${judgeDirective ? '\n' + judgeDirective : ''}\n[Advocate Side: ${String(selectedStance).toUpperCase()}] [Target Issue: ${selectedIssue || 'General'}] [Selected Authorities: ${selectedAuthsText}]${draftBlock}${predictedBlock}${defectBlock}\n\n`;
+    const depthDirective = getDepthDirective();
+    const contextPrefix = `${forumDirective}${judgeDirective ? '\n' + judgeDirective : ''}${depthDirective ? '\n' + depthDirective : ''}\n[Advocate Side: ${String(selectedStance).toUpperCase()}] [Target Issue: ${selectedIssue || 'General'}] [Selected Authorities: ${selectedAuthsText}]${draftBlock}${predictedBlock}${defectBlock}\n\n`;
 
     // Reset judge's text container to clear old judge text
     const judgeTextContainer = document.getElementById('judge-text-container');
@@ -1047,11 +989,8 @@ export function appendTranscript(role, text, isChunk = false) {
       finalJudgeName = tagMatch[1].trim();
       cleanText = tagMatch[2].trim();
     } else {
-      const mode = benchDifficultyMode || 'moderate';
-      const profile = benchProfiles[mode] || benchProfiles.moderate;
-      if (profile && profile.judges && profile.judges.length > 0) {
-        finalJudgeName = profile.judges[0].name; 
-      }
+      // The selected judge presides — use his name in the transcript.
+      finalJudgeName = getPresidingJudgeName();
     }
 
     currentJudgeSpeech = cleanText;

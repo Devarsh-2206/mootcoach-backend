@@ -81,12 +81,23 @@ ISSUE SELECTION — FILTER, DO NOT DUMP
 - MERGE overlapping issues into one well-framed question.
 - ORDER from most to least outcome-determinative (threshold/jurisdiction issues first where relevant).
 - Each issue must be a precise legal question, not a topic label.
+- CAPTURE SUB-LAYERS: most real issues contain explicit sub-questions the proposition raises (e.g., a proportionality issue layers into legitimate aim → necessity → least-restrictive means → procedural safeguards; a jurisdiction issue layers into ratione materiae / personae / temporis). Phrase each issue so its decisive sub-layers are visible, and ensure the arguments below actually engage each sub-layer rather than the issue in the abstract. Do not flatten a multi-layered issue into a one-line topic.
 
 ════════════════════════════════════
 ARGUMENT DEPTH — LAYERED, NOT ONE-LINERS
 ════════════════════════════════════
 
 Each entry in "petitionerArguments" and "respondentArguments" must be a developed contention, not a sentence fragment. Each must contain: (a) the main legal proposition, (b) 2–3 supporting sub-points or auxiliary grounds, and (c) the specific authority or provision relied on. Write each as a substantial argument a mooter could actually deliver. Ensure both sides are genuinely balanced in depth.
+
+════════════════════════════════════
+EVERYTHING INHERITS FROM THE ISSUES — STRICT SCOPING
+════════════════════════════════════
+
+The issues are the spine of the entire analysis. Obey strictly:
+- Every "petitionerArguments" entry, every "respondentArguments" entry, every "argumentDefects" entry, and every "benchQuestions" entry MUST correspond to one of the "legalIssues" you listed, and should engage that issue's sub-layers.
+- Do NOT generate arguments, defects, or bench questions about matters you excluded as irrelevant. If a point does not map to a listed contestable issue, drop it — never pad with off-issue content.
+- Do NOT critique or rate arguments that belong to excluded issues.
+- Cover the listed issues comprehensively: each contestable issue should have arguments for BOTH sides (including auxiliary/alternative grounds), not just the easy ones.
 
 ════════════════════════════════════
 CASES & PRECEDENTS — DEPTH AND JURISDICTION
