@@ -45,6 +45,26 @@ window.benchActive = false;
 // Reads the Stage 1 forumIntelligence (real schema: forumClassification /
 // adjudicatorModel / simulatorDirectives) and produces a normalized profile so
 // the Simulator speaks the correct language (Court+Judges vs Tribunal+Arbitrators).
+// ALWAYS-AVAILABLE FALLBACK: derive forum + jurisdiction from the analysis data
+// (precedent jurisdictions/citations + summary). lastAnalysis is set for every
+// session — old or new — so this makes the roster correct without re-analysis.
+export function deriveForumFromAnalysis() {
+  try {
+    const s = window.lastAnalysis || (typeof lastAnalysis !== 'undefined' ? lastAnalysis : null);
+    if (!s) return null;
+    const data = typeof s === 'string' ? JSON.parse(s) : s;
+    const precs = Array.isArray(data.precedentsNeeded) ? data.precedentsNeeded : [];
+    const precBlob = precs.map(p => `${p.jurisdiction || ''} ${p.citation || ''} ${p.caseName || ''}`).join(' ');
+    const blob = `${precBlob} ${data.summary || ''} ${(data.constitutionalIssues || []).join(' ')}`.toLowerCase();
+    if (!blob.trim()) return null;
+    const isArbitration = /arbitr|tribunal|icsid|uncitral|investment treaty|bilateral investment|\bbit\b|arb\/|seat of arbitration|investor-state/.test(blob);
+    let courtJurisdiction = 'generic';
+    if (/\bindia\b|indian|supreme court of india|article\s*(32|226)|\bscc\b|\bair\s+\d/.test(blob)) courtJurisdiction = 'india';
+    else if (/england|wales|united kingdom|\buk\b|\[\d{4}\]\s*(ac|qb|wlr|ewca|ewhc|exch|ch|all er)/.test(blob)) courtJurisdiction = 'uk';
+    return { isArbitration, courtJurisdiction };
+  } catch (e) { return null; }
+}
+
 export function getForumProfile() {
   const fi = window.forumIntelligence || {};
   const cls = fi.forumClassification || {};
@@ -59,15 +79,29 @@ export function getForumProfile() {
   const df = hasRich ? {} : (window.detectedForum || {});
   if (!hasRich && df.terminology && !term.judge) term = df.terminology;
 
-  const benchType = adj.benchType || cls.broadType || df.adjudicatorType || df.forum || 'Constitutional Bench';
+  let benchType = adj.benchType || cls.broadType || df.adjudicatorType || df.forum || 'Constitutional Bench';
   const blob = `${benchType} ${cls.broadType || ''} ${cls.specificBody || ''} ${df.forum || ''} ${df.jurisdiction || ''} ${df.adjudicatorType || ''} ${term.judge || ''} ${term.court || ''}`.toLowerCase();
-  const isArbitration = /arbitr|tribunal/.test(blob);
+  let isArbitration = /arbitr|tribunal/.test(blob);
 
   // Which national court roster to use (only relevant when NOT arbitration).
   const jurBlob = `${df.jurisdiction || ''} ${cls.specificBody || ''} ${cls.broadType || ''} ${benchType}`.toLowerCase();
   let courtJurisdiction = 'generic';
   if (/india|indian|art(icle)?\.?\s*(32|226)/.test(jurBlob)) courtJurisdiction = 'india';
   else if (/united kingdom|\buk\b|u\.k\.|england|wales|english|house of lords/.test(jurBlob)) courtJurisdiction = 'uk';
+
+  // If there is NO explicit forum signal (older sessions, or engines that failed),
+  // derive everything from the analysis data — which is always present.
+  const hasSignal = hasRich || !!(df.forum || df.adjudicatorType || df.jurisdiction);
+  if (!hasSignal) {
+    const derived = deriveForumFromAnalysis();
+    if (derived) {
+      isArbitration = derived.isArbitration;
+      courtJurisdiction = derived.courtJurisdiction;
+      benchType = isArbitration ? 'Arbitral Tribunal'
+        : (courtJurisdiction === 'uk' ? 'Court of Appeal'
+          : courtJurisdiction === 'india' ? 'Constitutional Bench' : 'Court');
+    }
+  }
 
   const judge = term.judge || (isArbitration ? 'Arbitrator' : 'Judge');
   const court = term.court || (isArbitration ? 'Tribunal' : 'Court');
@@ -152,19 +186,28 @@ export function renderJudgeCards() {
     selectedJudgeId = roster[0] ? roster[0].id : null;
     window.selectedJudgeId = selectedJudgeId;
   }
+  // Clean, uniform roster rows (old MootCoach style): subtle muted cards, a gold
+  // accent ONLY on the selected judge — no gold-flooded multi-colour cards.
+  wrap.style.display = 'flex';
+  wrap.style.flexDirection = 'column';
+  wrap.style.gap = '8px';
   wrap.innerHTML = roster.map(j => {
     const on = j.id === selectedJudgeId;
-    const isFull = j.id === FULL_BENCH.id;
+    const rowStyle = on
+      ? 'border:1px solid rgba(201,168,76,0.5); background:rgba(201,168,76,0.06);'
+      : 'border:1px solid rgba(255,255,255,0.05); background:rgba(255,255,255,0.01);';
     return `
-      <button type="button" onclick="window.selectJudge('${j.id}')"
-        class="text-left p-3 rounded-xl border transition-all ${on ? 'border-moot-accent bg-moot-accent/10 ring-1 ring-moot-accent/40' : 'border-white/10 bg-white/[0.02] hover:border-white/25'}"
-        style="display:block; width:100%;">
-        <div class="flex items-center justify-between gap-2">
-          <span class="text-xs font-semibold ${on ? 'text-moot-accent' : 'text-white'}">${esc(j.name)}</span>
-          <span class="text-[8px] uppercase tracking-wider px-2 py-0.5 rounded ${isFull ? 'bg-red-500/15 text-red-300 border border-red-500/30' : 'bg-white/5 text-white-muted border border-white/10'}">${esc(j.archetype)}</span>
+      <button type="button" onclick="window.selectJudge('${j.id}')" title="${esc(j.focus)}"
+        style="display:flex; align-items:flex-start; gap:12px; width:100%; text-align:left; padding:10px 12px; border-radius:8px; cursor:pointer; transition:all .15s; ${rowStyle}">
+        <div style="width:30px; height:30px; border-radius:50%; background:rgba(201,168,76,0.1); border:1px solid rgba(201,168,76,0.3); display:flex; align-items:center; justify-content:center; color:var(--gold); flex-shrink:0; font-size:13px;">⚖️</div>
+        <div style="flex:1; min-width:0;">
+          <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+            <span style="font-size:12px; font-weight:600; color:#fff;">${esc(j.name)}</span>
+            <span style="font-size:8px; letter-spacing:0.08em; text-transform:uppercase; color:#a0aec0;">${esc(j.archetype)}</span>
+            ${on ? '<span style="font-size:8px; letter-spacing:0.08em; text-transform:uppercase; color:var(--gold); margin-left:auto;">✓ Selected</span>' : ''}
+          </div>
+          <div style="font-size:10px; color:#cbd5e0; line-height:1.4; margin-top:3px;">${esc(j.temperament)}</div>
         </div>
-        <div class="text-[10px] text-white-muted mt-1 leading-relaxed">${esc(j.temperament)}</div>
-        <div class="text-[9px] text-moot-accent/80 mt-1.5 uppercase tracking-wider">${esc(j.focus)}</div>
       </button>`;
   }).join('');
 }
