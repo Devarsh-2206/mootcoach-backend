@@ -379,6 +379,24 @@ p  { color:var(--white-2); }
   pointer-events: auto;
 }
 
+/* ── Premium split-screen card for the auth overlay ── */
+.ao-card { display:flex; width:min(940px,94vw); height:min(580px,90vh); background:#0f141e; border:1px solid #1f2630; border-radius:16px; overflow:hidden; box-shadow:0 30px 80px rgba(0,0,0,.6); position:relative; }
+.ao-brand { flex:0 0 44%; position:relative; overflow:hidden; background:linear-gradient(160deg,#0a0d16 0%,#0e1322 58%,#11152a 100%); border-right:1px solid #1f2630; display:flex; flex-direction:column; justify-content:space-between; padding:40px 38px; box-sizing:border-box; }
+.ao-brand::before { content:''; position:absolute; inset:0; background:radial-gradient(circle at 26% 18%, rgba(201,168,76,.10), transparent 55%); pointer-events:none; }
+.ao-logo { position:relative; z-index:1; font-family:var(--serif); font-size:1.4rem; color:#fff; }
+.ao-logo span { color:var(--gold); }
+.ao-brand-body { position:relative; z-index:1; }
+.ao-brand-head { font-family:var(--serif); font-size:2.05rem; line-height:1.16; font-weight:500; color:#fff; margin:0 0 14px; }
+.ao-brand-sub { font-size:.88rem; line-height:1.65; color:var(--white-muted); margin:0 0 22px; }
+.ao-trust { position:relative; z-index:1; font-size:.64rem; letter-spacing:.14em; text-transform:uppercase; color:#6b6b7b; }
+.ao-form { flex:1; display:flex; flex-direction:column; justify-content:center; padding:40px 44px; box-sizing:border-box; overflow-y:auto; position:relative; }
+.ao-form .auth-overlay-heading { font-family:var(--serif); font-size:1.9rem; font-weight:500; color:#fff; margin:0 0 22px; text-align:left; }
+@media (max-width:820px){
+  .ao-card{ width:min(440px,94vw); height:auto; max-height:92vh; }
+  .ao-brand{ display:none; }
+  .ao-form{ padding:34px 26px; }
+}
+
 #view-login::after {
   content:''; position:fixed; top:-300px; left:50%; transform:translateX(-50%);
   width:900px; height:800px;
@@ -3044,10 +3062,27 @@ p  { color:var(--white-2); }
 
 <!-- PREMIUM AUTH OVERLAY -->
 <div id="auth-overlay" class="opacity-0 pointer-events-none hidden">
-  <div class="w-full max-w-[420px] bg-[#0f141e] border border-gray-800 border-t border-t-moot-accent/30 shadow-2xl shadow-black/80 rounded-xl p-8 relative">
-    <a href="#" id="auth-overlay-back" class="absolute top-4 left-4 text-xs text-moot-muted hover:text-white transition-colors">← Back</a>
-    <h2 class="font-serif text-3xl font-normal tracking-tight text-moot-accent mb-8 mt-2 text-center">MootCoach Chambers</h2>
-    
+  <div class="ao-card">
+    <!-- LEFT: BRAND PANEL -->
+    <aside class="ao-brand">
+      <div class="ao-logo">Moot<span>Coach</span></div>
+      <div class="ao-brand-body">
+        <div class="login-crest">⚖</div>
+        <h2 class="ao-brand-head">Walk in prepared.<br/>Walk out unshakable.</h2>
+        <p class="ao-brand-sub">AI moot-court preparation that adapts to your forum — case analysis, an authority arsenal, and a live adversarial bench that questions your actual submissions.</p>
+        <ul class="login-brand-points">
+          <li>Forum-aware analysis — courts or arbitral tribunals</li>
+          <li>Authorities &amp; arguments that carry into your draft</li>
+          <li>A live AI bench, graded on your performance</li>
+        </ul>
+      </div>
+      <div class="ao-trust">For mooters at NALSAR · NLS · NUJS · GNLU and beyond</div>
+    </aside>
+    <!-- RIGHT: FORM PANEL -->
+    <div class="ao-form">
+    <a href="#" id="auth-overlay-back" class="absolute top-4 right-5 text-xs text-moot-muted hover:text-white transition-colors">← Back</a>
+    <h2 class="auth-overlay-heading">Welcome to <span style="color:var(--gold); font-style:italic;">MootCoach</span></h2>
+
     <!-- Sign In / Sign Up form container -->
     <div id="auth-overlay-form" class="space-y-4 text-left">
       <!-- Fields shown only for signup -->
@@ -3094,10 +3129,11 @@ p  { color:var(--white-2); }
     
     <!-- Switch mode text toggle -->
     <p class="text-center text-xs text-moot-muted mt-6 mb-0">
-      <span id="auth-overlay-toggle-text">Don't have an account?</span> 
+      <span id="auth-overlay-toggle-text">Don't have an account?</span>
       <a href="#" id="auth-overlay-toggle-btn" class="text-moot-accent hover:underline ml-1">Create Account</a>
     </p>
-  </div>
+    </div><!-- /.ao-form -->
+  </div><!-- /.ao-card -->
 </div>
 
 <!-- LOADING OVERLAY -->
