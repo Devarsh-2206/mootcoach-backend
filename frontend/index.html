@@ -397,6 +397,39 @@ p  { color:var(--white-2); }
 }
 .login-nav-back:hover { color:var(--white); }
 
+/* ── SPLIT-SCREEN LOGIN (premium) ── */
+.login-split { display:flex; min-height:100vh; width:100%; }
+.login-brand {
+  flex:1 1 46%; max-width:46%; position:relative; overflow:hidden;
+  background:linear-gradient(160deg,#0a0d16 0%,#0e1322 58%,#11152a 100%);
+  border-right:1px solid var(--glass-b);
+  display:flex; flex-direction:column; justify-content:space-between;
+  padding:46px 4vw; box-sizing:border-box;
+}
+.login-brand::before { content:''; position:absolute; inset:0; background:radial-gradient(circle at 26% 18%, rgba(201,168,76,.10), transparent 55%); pointer-events:none; }
+.login-brand-logo { font-family:var(--serif); font-size:1.5rem; letter-spacing:.02em; position:relative; z-index:1; text-decoration:none; color:var(--white); }
+.login-brand-body { position:relative; z-index:1; max-width:480px; }
+.login-crest { width:54px; height:54px; border-radius:50%; border:1px solid rgba(201,168,76,.4); background:rgba(201,168,76,.08); display:flex; align-items:center; justify-content:center; color:var(--gold); font-size:1.55rem; margin-bottom:26px; }
+.login-brand-head { font-family:var(--serif); font-size:2.5rem; line-height:1.16; font-weight:500; color:var(--white); margin:0 0 16px; }
+.login-brand-sub { font-size:.96rem; line-height:1.7; color:var(--white-muted); margin:0 0 26px; }
+.login-brand-points { list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:12px; }
+.login-brand-points li { font-size:.85rem; color:var(--white-2); display:flex; align-items:flex-start; gap:10px; }
+.login-brand-points li::before { content:'✦'; color:var(--gold); font-size:.78rem; line-height:1.5; }
+.login-brand-trust { position:relative; z-index:1; font-size:.7rem; letter-spacing:.14em; text-transform:uppercase; color:#6b6b7b; }
+.login-form-panel { flex:1 1 54%; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:40px 24px; position:relative; }
+.login-form-panel .login-nav-back { position:absolute; top:30px; right:5vw; }
+.login-form-panel .auth-wrap { max-width:420px; }
+.login-form-panel .login-footer { position:absolute; bottom:18px; left:0; right:0; }
+@media (max-width:880px) {
+  .login-split { flex-direction:column; min-height:100vh; }
+  .login-brand { max-width:none; flex-basis:auto; padding:28px 24px; }
+  .login-brand-head { font-size:1.75rem; }
+  .login-brand-sub, .login-brand-points { display:none; }
+  .login-form-panel { padding:30px 20px 64px; }
+  .login-form-panel .login-nav-back { position:static; align-self:flex-end; margin-bottom:10px; }
+  .login-form-panel .login-footer { position:static; margin-top:24px; }
+}
+
 .login-main {
   flex:1; display:flex; align-items:center; justify-content:center;
   padding:48px 6vw; position:relative; z-index:1;
@@ -2330,14 +2363,28 @@ p  { color:var(--white-2); }
 </div>
 
 
-<!-- ═══ VIEW 2 — LOGIN ═══ -->
+<!-- ═══ VIEW 2 — LOGIN (split-screen) ═══ -->
 <div id="view-login" class="view">
-  <nav class="login-nav">
-    <a class="nav-logo" id="login-nav-logo" style="cursor:pointer">Moot<span>Coach</span></a>
-    <button class="login-nav-back" id="login-nav-back">← Back to Home</button>
-  </nav>
-  <main class="login-main">
-    <div class="auth-wrap">
+  <div class="login-split">
+    <!-- LEFT: BRAND PANEL -->
+    <aside class="login-brand">
+      <a class="login-brand-logo" id="login-nav-logo" style="cursor:pointer">Moot<span style="color:var(--gold)">Coach</span></a>
+      <div class="login-brand-body">
+        <div class="login-crest">⚖</div>
+        <h2 class="login-brand-head">Walk in prepared.<br/>Walk out unshakable.</h2>
+        <p class="login-brand-sub">AI moot-court preparation that adapts to your forum — case analysis, an authority arsenal, and a live adversarial bench that questions your actual submissions.</p>
+        <ul class="login-brand-points">
+          <li>Forum-aware analysis — courts or arbitral tribunals</li>
+          <li>Authorities &amp; arguments that carry into your draft</li>
+          <li>A live AI bench, graded on your performance</li>
+        </ul>
+      </div>
+      <div class="login-brand-trust">For mooters at NALSAR · NLS · NUJS · GNLU and beyond</div>
+    </aside>
+    <!-- RIGHT: FORM PANEL -->
+    <main class="login-form-panel">
+      <a class="login-nav-back" id="login-nav-back" style="cursor:pointer">← Back to Home</a>
+      <div class="auth-wrap">
       <div class="auth-header">
         <h1>Welcome to<br/><em>MootCoach</em></h1>
         <p>Your AI moot preparation workspace.</p>
@@ -2410,9 +2457,10 @@ p  { color:var(--white-2); }
       </div>
       <p class="auth-footer-note" id="note-login">Don't have an account? <a href="#" id="link-goto-signup">Create one free →</a></p>
       <p class="auth-footer-note" id="note-signup" style="display:none">Already have an account? <a href="#" id="link-goto-login">Sign in →</a></p>
-    </div>
-  </main>
-  <footer class="login-footer">© 2026 MootCoach. All rights reserved. Strictly confidential workspace.</footer>
+      </div>
+      <footer class="login-footer">© 2026 MootCoach. All rights reserved. Strictly confidential workspace.</footer>
+    </main>
+  </div>
 </div>
 
 
