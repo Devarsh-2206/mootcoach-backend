@@ -60,8 +60,8 @@ const generateAIResponse = async (prompt, retries = 2) => {
   }
 };
 
-const handleLiveVoiceConnection = async (ws, benchLevel = 'moderate', propositionSummary = '') => {
-  console.log(`🎙️ New voice connection requested by client. Bench: ${benchLevel}`);
+const handleLiveVoiceConnection = async (ws, benchLevel = 'moderate', propositionSummary = '', voiceGender = 'male') => {
+  console.log(`🎙️ New voice connection requested by client. Bench: ${benchLevel} | Voice: ${voiceGender}`);
 
   if (!process.env.GEMINI_API_KEY) {
     console.error("❌ GEMINI_API_KEY is not defined in environment variables.");
@@ -69,6 +69,10 @@ const handleLiveVoiceConnection = async (ws, benchLevel = 'moderate', propositio
     ws.close();
     return;
   }
+
+  // Match the spoken voice to the presiding judge's gender (a "Lady Justice"
+  // must sound female; a "Lord Justice"/male judge must sound male).
+  const voiceName = (String(voiceGender).toLowerCase() === 'female') ? 'Kore' : 'Charon';
 
   let session;
   const liveSystemInstruction = buildLiveJudgePrompt(benchLevel, propositionSummary);
@@ -88,6 +92,11 @@ const handleLiveVoiceConnection = async (ws, benchLevel = 'moderate', propositio
       model: "gemini-3.1-flash-live-preview",
       config: {
         responseModalities: ["AUDIO"],
+        speechConfig: {
+          voiceConfig: {
+            prebuiltVoiceConfig: { voiceName }
+          }
+        },
         systemInstruction: {
           parts: [
             {

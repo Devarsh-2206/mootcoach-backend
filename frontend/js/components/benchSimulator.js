@@ -178,6 +178,13 @@ export function getPresidingJudgeName() {
   return j ? j.name : 'The Bench';
 }
 
+// Gender of the presiding judge — drives the spoken voice (female judge → female voice).
+export function getPresidingJudgeGender() {
+  const j = getPresidingJudge();
+  return (j && j.gender === 'female') ? 'female' : 'male';
+}
+window.getPresidingJudgeGender = getPresidingJudgeGender;
+
 export function selectJudge(id) {
   selectedJudgeId = id;
   window.selectedJudgeId = id;

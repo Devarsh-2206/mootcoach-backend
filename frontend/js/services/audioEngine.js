@@ -27,7 +27,8 @@ function getWsUrl() {
   // Carry the forum + presiding-judge + depth directives so the VOICE bench
   // adapts to the actual forum (English court / arbitral tribunal / Indian court).
   const ctx = (typeof window.getBenchContextString === 'function') ? window.getBenchContextString() : '';
-  const query = `?bench=${encodeURIComponent(mode)}&summary=${encodeURIComponent(summary.slice(0, 1000))}&ctx=${encodeURIComponent(ctx.slice(0, 900))}`;
+  const voice = (typeof window.getPresidingJudgeGender === 'function') ? window.getPresidingJudgeGender() : 'male';
+  const query = `?bench=${encodeURIComponent(mode)}&summary=${encodeURIComponent(summary.slice(0, 1000))}&ctx=${encodeURIComponent(ctx.slice(0, 900))}&voice=${encodeURIComponent(voice)}`;
   
   if (BASE_URL.startsWith('https://')) {
     return BASE_URL.replace('https://', 'wss://') + '/ws/voice' + query;

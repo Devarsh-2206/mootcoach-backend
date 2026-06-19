@@ -842,6 +842,7 @@ wss.on("connection", (ws, req) => {
     let benchLevel = 'moderate';
     let propositionSummary = '';
     let benchContext = '';
+    let voiceGender = 'male';
 
     try {
       // The req.url might look like /ws/voice?bench=hard&summary=...&ctx=...
@@ -849,13 +850,14 @@ wss.on("connection", (ws, req) => {
       benchLevel = url.searchParams.get('bench') || 'moderate';
       propositionSummary = url.searchParams.get('summary') || '';
       benchContext = url.searchParams.get('ctx') || '';
+      voiceGender = url.searchParams.get('voice') || 'male';
     } catch (e) {
       console.error("Error parsing WebSocket URL:", e);
     }
 
     // Prepend the forum/judge/depth directives so the voice judge adapts to the forum.
     const voiceSummary = benchContext ? `${benchContext}\n\n${propositionSummary}` : propositionSummary;
-    handleLiveVoiceConnection(ws, benchLevel, voiceSummary);
+    handleLiveVoiceConnection(ws, benchLevel, voiceSummary, voiceGender);
   } else {
     ws.close();
   }
