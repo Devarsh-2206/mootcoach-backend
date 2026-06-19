@@ -238,6 +238,16 @@ export function getDepthDirective() {
   const d = DEPTH_PROFILES[benchDifficultyMode] || DEPTH_PROFILES.moderate;
   return `[${d.directive}]`;
 }
+export function getForumDirective() {
+  const fp = getForumProfile();
+  return `[Forum: ${fp.benchType}${fp.specificBody ? ' — ' + fp.specificBody : ''}] [You are the ${fp.judgePlural}; refer to yourselves as the ${fp.court}; the advocate addresses you as "${fp.addressing}". Standard of review: ${fp.standardOfReview}.]`;
+}
+// Combined forum + judge + depth directive — carried into the VOICE round so the
+// spoken bench adapts to the forum exactly like the text bench.
+export function getBenchContextString() {
+  return `${getForumDirective()}\n${getJudgeDirective()}\n${getDepthDirective()}`;
+}
+window.getBenchContextString = getBenchContextString;
 
 export function setBenchDifficulty(mode) {
   benchDifficultyMode = mode;

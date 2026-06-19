@@ -224,7 +224,14 @@ const textBenchMemories = new Map();
 
 // Prompts
 const LEGAL_VALIDATION_PROMPT = require("./prompts/legalValidationPrompt");
-const FORUM_DETECTION_PROMPT = require("./prompts/forumDetectionPrompt");
+// Defensive: a missing/broken optional prompt must NEVER crash the whole backend
+// (which would take down CORS, the WebSocket, and every route at once).
+let FORUM_DETECTION_PROMPT = null;
+try {
+  FORUM_DETECTION_PROMPT = require("./prompts/forumDetectionPrompt");
+} catch (e) {
+  console.warn("⚠️ forumDetectionPrompt not found — forum pre-detection disabled, server continues:", e.message);
+}
 const ANALYSIS_SYSTEM_PROMPT = require("./prompts/analysisSystemPrompt");
 const ORAL_EVAL_PROMPT = require("./prompts/oralEvalPrompt");
 const { buildJudgePrompt } = require("./prompts/benchJudgePrompt");
@@ -325,6 +332,7 @@ app.post("/analyze", aiLimiter, upload.single("file"), async (req, res) => {
        Fault-tolerant: on failure we proceed neutrally. */
     let forumContext = null;
     try {
+      if (!FORUM_DETECTION_PROMPT) throw new Error("Forum detection prompt unavailable");
       const forumDetectCall = await getChatCompletion({
         messages: [
           { role: "system", content: FORUM_DETECTION_PROMPT },
@@ -337,7 +345,7 @@ app.post("/analyze", aiLimiter, upload.single("file"), async (req, res) => {
       forumContext = extractAndParseJSON(forumDetectCall.text);
       console.log("[FORUM P0] Detected:", forumContext && forumContext.forum, "|", forumContext && forumContext.jurisdiction);
     } catch (forumErr) {
-      console.error("Forum pre-detection failed (proceeding neutral):", forumErr.message);
+      console.error("Forum pre-detection skipped/failed (proceeding neutral):", forumErr.message);
     }
 
     const forumDirective = (forumContext && forumContext.forum)
@@ -833,18 +841,21 @@ wss.on("connection", (ws, req) => {
   if (req.url === "/ws/voice" || req.url.startsWith("/ws/voice")) {
     let benchLevel = 'moderate';
     let propositionSummary = '';
-    
+    let benchContext = '';
+
     try {
-      // The req.url might look like /ws/voice?bench=hard&mootId=...
-      // Node's req.url starts with / so we can construct a placeholder URL to parse searchParams
+      // The req.url might look like /ws/voice?bench=hard&summary=...&ctx=...
       const url = new URL(req.url, `ws://${req.headers.host || 'localhost'}`);
       benchLevel = url.searchParams.get('bench') || 'moderate';
       propositionSummary = url.searchParams.get('summary') || '';
+      benchContext = url.searchParams.get('ctx') || '';
     } catch (e) {
       console.error("Error parsing WebSocket URL:", e);
     }
 
-    handleLiveVoiceConnection(ws, benchLevel, propositionSummary);
+    // Prepend the forum/judge/depth directives so the voice judge adapts to the forum.
+    const voiceSummary = benchContext ? `${benchContext}\n\n${propositionSummary}` : propositionSummary;
+    handleLiveVoiceConnection(ws, benchLevel, voiceSummary);
   } else {
     ws.close();
   }
