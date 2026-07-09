@@ -37,10 +37,13 @@ export async function evaluateOral(argumentText, contextText, difficultyMode) {
   return data;
 }
 
-export async function logSessionSecurely(payload) {
+export async function logSessionSecurely(payload, idToken) {
   const res = await fetch(`${BASE_URL}/api/log-session`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${idToken}`
+    },
     body: JSON.stringify(payload)
   });
   const data = await res.json();

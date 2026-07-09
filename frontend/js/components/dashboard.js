@@ -212,8 +212,8 @@ export async function runAnalysis() {
       if (currentUser) {
         try {
           const mootName = document.getElementById('ws-moot-name')?.value?.trim() || 'Untitled Moot';
+          const idToken = await currentUser.getIdToken();
           const logRes = await logSessionSecurely({
-            uid: currentUser.uid,
             type: 'analysis',
             mootName: mootName,
             fileName: selectedFile.name,
@@ -226,7 +226,7 @@ export async function runAnalysis() {
             issueIntelligence: data.issueIntelligence || null,
             authorityIntelligence: data.authorityIntelligence || null,
             advocacyIntelligence: data.advocacyIntelligence || null
-          });
+          }, idToken);
           newMootId = logRes.id;
           await loadRecentSessions(); 
         } catch (fbError) {

@@ -1,15 +1,13 @@
-const Groq = require('groq-sdk');
 const FORUM_INTELLIGENCE_PROMPT = require('../prompts/forumIntelligencePrompt');
-
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+const { getChatCompletion } = require("./geminiService");
 
 async function extractForumIntelligence(propositionIntelligenceJSON, proceduralHierarchyJSON) {
   try {
     const startTime = Date.now();
-    console.log("[AI TRACE] [Forum Intelligence Engine] Starting Groq request...");
+    console.log("[AI TRACE] [Forum Intelligence Engine] Starting request...");
     
     const userMessage = `Here is the extracted Proposition Intelligence and Procedural Hierarchy.
-    Determine the exact adjudicatory body, applicable procedural rules, burden of proof, and terminology overrides for this forum:
+    Based strictly on this data, construct the deep Forum Intelligence schema.
     
     === PROPOSITION INTELLIGENCE ===
     ${propositionIntelligenceJSON}
@@ -18,22 +16,22 @@ async function extractForumIntelligence(propositionIntelligenceJSON, proceduralH
     ${proceduralHierarchyJSON}
     `;
 
-    const chatCompletion = await groq.chat.completions.create({
+    const chatCompletion = await getChatCompletion({
       messages: [
         { role: 'system', content: FORUM_INTELLIGENCE_PROMPT },
         { role: 'user', content: userMessage }
       ],
-      model: "llama-3.3-70b-versatile",
       temperature: 0.1,
-      response_format: { type: "json_object" }
+      response_format: { type: "json_object" },
+      requestLabel: "Forum Intelligence Engine"
     });
 
-    const content = chatCompletion.choices[0]?.message?.content || "";
-    console.log(`[AI TRACE] [Forum Intelligence Engine] Groq completed successfully in ${Date.now() - startTime}ms.`);
+    const content = chatCompletion.text || "";
+    console.log(`[AI TRACE] [Forum Intelligence Engine] Request completed successfully in ${Date.now() - startTime}ms.`);
     return content;
 
   } catch (error) {
-    console.error("[AI TRACE] [Forum Intelligence Engine] Groq extraction failed:", error.message);
+    console.error("[AI TRACE] [Forum Intelligence Engine] Extraction failed:", error.message);
     throw error;
   }
 }

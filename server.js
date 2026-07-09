@@ -766,15 +766,26 @@ Generate the full side-aware appellate package strictly based on the proposition
 
 /* ─── /api/log-session (Secure Backend Logging) ─── */
 app.post("/api/log-session", aiLimiter, express.json(), async (req, res) => {
-  const { uid, type, mootName, fileName, score, analysisData, durationSeconds, detectedForum, propositionIntelligence, proceduralHierarchy, forumIntelligence, issueIntelligence, authorityIntelligence, advocacyIntelligence } = req.body;
-
-  if (!uid) {
-    return res.status(400).json({ success: false, error: "uid is required." });
-  }
+  const { type, mootName, fileName, score, analysisData, durationSeconds, detectedForum, propositionIntelligence, proceduralHierarchy, forumIntelligence, issueIntelligence, authorityIntelligence, advocacyIntelligence } = req.body;
 
   if (admin.apps.length === 0) {
     console.error("❌ Firebase Admin has not been initialized. Check FIREBASE_SERVICE_ACCOUNT env var.");
     return res.status(503).json({ success: false, error: "Database service is unconfigured." });
+  }
+
+  const authHeader = req.headers.authorization || '';
+  const idToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  if (!idToken) {
+    return res.status(401).json({ success: false, error: "Missing Authorization bearer token." });
+  }
+
+  let uid;
+  try {
+    const decoded = await admin.auth().verifyIdToken(idToken);
+    uid = decoded.uid;
+  } catch (authErr) {
+    console.error("Failed to verify ID token:", authErr);
+    return res.status(401).json({ success: false, error: "Invalid or expired auth token." });
   }
 
   try {

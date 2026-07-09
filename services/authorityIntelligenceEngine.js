@@ -1,15 +1,13 @@
-const Groq = require('groq-sdk');
 const AUTHORITY_INTELLIGENCE_PROMPT = require('../prompts/authorityIntelligencePrompt');
-
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+const { getChatCompletion } = require("./geminiService");
 
 async function extractAuthorityIntelligence(propositionIntelligenceJSON, proceduralHierarchyJSON, forumIntelligenceJSON, issueIntelligenceJSON) {
   try {
     const startTime = Date.now();
-    console.log("[AI TRACE] [Authority Intelligence Engine] Starting Groq request...");
+    console.log("[AI TRACE] [Authority Intelligence Engine] Starting request...");
     
-    const userMessage = `Here is the extracted Proposition Intelligence, Procedural Hierarchy, Forum Intelligence, and Issue Intelligence.
-    Iterate through the arguments and construct the Authority Roadmap.
+    const userMessage = `Here is the extracted Intelligence stack up to this point.
+    Iterate through the issues and construct the Authority Roadmaps.
     
     === PROPOSITION INTELLIGENCE ===
     ${propositionIntelligenceJSON}
@@ -24,22 +22,22 @@ async function extractAuthorityIntelligence(propositionIntelligenceJSON, procedu
     ${issueIntelligenceJSON}
     `;
 
-    const chatCompletion = await groq.chat.completions.create({
+    const chatCompletion = await getChatCompletion({
       messages: [
         { role: 'system', content: AUTHORITY_INTELLIGENCE_PROMPT },
         { role: 'user', content: userMessage }
       ],
-      model: "llama-3.3-70b-versatile",
       temperature: 0.1,
-      response_format: { type: "json_object" }
+      response_format: { type: "json_object" },
+      requestLabel: "Authority Intelligence Engine"
     });
 
-    const content = chatCompletion.choices[0]?.message?.content || "";
-    console.log(`[AI TRACE] [Authority Intelligence Engine] Groq completed successfully in ${Date.now() - startTime}ms.`);
+    const content = chatCompletion.text || "";
+    console.log(`[AI TRACE] [Authority Intelligence Engine] Request completed successfully in ${Date.now() - startTime}ms.`);
     return content;
 
   } catch (error) {
-    console.error("[AI TRACE] [Authority Intelligence Engine] Groq extraction failed:", error.message);
+    console.error("[AI TRACE] [Authority Intelligence Engine] Extraction failed:", error.message);
     throw error;
   }
 }

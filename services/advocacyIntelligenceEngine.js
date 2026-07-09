@@ -1,12 +1,10 @@
-const Groq = require('groq-sdk');
 const ADVOCACY_INTELLIGENCE_PROMPT = require('../prompts/advocacyIntelligencePrompt');
-
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+const { getChatCompletion } = require("./geminiService");
 
 async function extractAdvocacyIntelligence(propositionIntelligenceJSON, proceduralHierarchyJSON, forumIntelligenceJSON, issueIntelligenceJSON, authorityIntelligenceJSON) {
   try {
     const startTime = Date.now();
-    console.log("[AI TRACE] [Advocacy Intelligence Engine] Starting Groq request...");
+    console.log("[AI TRACE] [Advocacy Intelligence Engine] Starting request...");
     
     const userMessage = `Here is the extracted Intelligence stack.
     Iterate through the issues and construct the Advocacy Roadmap.
@@ -27,22 +25,22 @@ async function extractAdvocacyIntelligence(propositionIntelligenceJSON, procedur
     ${authorityIntelligenceJSON}
     `;
 
-    const chatCompletion = await groq.chat.completions.create({
+    const chatCompletion = await getChatCompletion({
       messages: [
         { role: 'system', content: ADVOCACY_INTELLIGENCE_PROMPT },
         { role: 'user', content: userMessage }
       ],
-      model: "llama-3.3-70b-versatile",
       temperature: 0.1,
-      response_format: { type: "json_object" }
+      response_format: { type: "json_object" },
+      requestLabel: "Advocacy Intelligence Engine"
     });
 
-    const content = chatCompletion.choices[0]?.message?.content || "";
-    console.log(`[AI TRACE] [Advocacy Intelligence Engine] Groq completed successfully in ${Date.now() - startTime}ms.`);
+    const content = chatCompletion.text || "";
+    console.log(`[AI TRACE] [Advocacy Intelligence Engine] Request completed successfully in ${Date.now() - startTime}ms.`);
     return content;
 
   } catch (error) {
-    console.error("[AI TRACE] [Advocacy Intelligence Engine] Groq extraction failed:", error.message);
+    console.error("[AI TRACE] [Advocacy Intelligence Engine] Extraction failed:", error.message);
     throw error;
   }
 }

@@ -991,7 +991,7 @@ export async function startOralRound() {
   }
 }
 
-export function stopOralRound() {
+export async function stopOralRound() {
   if (!voiceSessionActive) return;
   console.log("🎙️ Stopping oral round...");
   voiceSessionActive = false;
@@ -1035,17 +1035,18 @@ export function stopOralRound() {
     const duration = Math.floor((Date.now() - voiceSessionStartTime) / 1000);
     const mootName = document.getElementById('ws-moot-name')?.value?.trim() || 'Untitled Moot';
 
-    logSessionSecurely({
-      uid: currentUser.uid,
-      type: 'voice_session',
-      mootName: mootName,
-      durationSeconds: duration
-    }).then(data => {
+    try {
+      const idToken = await currentUser.getIdToken();
+      await logSessionSecurely({
+        type: 'voice_session',
+        mootName: mootName,
+        durationSeconds: duration
+      }, idToken);
       console.log("💾 Voice session metadata logged to secure backend.");
       showToast("Oral round saved to account.", "ok");
-    }).catch(err => {
+    } catch (err) {
       console.error("Failed to log voice session securely:", err);
-    });
+    }
   }
 }
 
