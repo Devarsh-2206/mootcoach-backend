@@ -134,8 +134,8 @@ window.renderActiveIssueWorkspace = renderActiveIssueWorkspace;
 function applyStanceButtonStyles() {
   const btnPet = document.getElementById('iw-stance-petitioner');
   const btnRes = document.getElementById('iw-stance-respondent');
-  const activeClasses = 'text-[10px] uppercase tracking-widest font-sans font-bold px-5 py-2 rounded shadow-lg border border-[#c9a84c] text-[#0a0d14] bg-[#c9a84c] ring-2 ring-[#c9a84c]/50 transition-all focus:outline-none';
-  const inactiveClasses = 'text-[10px] uppercase tracking-widest font-sans font-semibold px-5 py-2 rounded border border-white/30 text-white bg-white/5 hover:bg-white/15 hover:border-white/50 transition-all cursor-pointer focus:ring-2 focus:ring-[#c9a84c]/50 focus:outline-none';
+  const activeClasses = 'text-[10px] uppercase tracking-widest font-sans font-bold px-5 py-2 rounded shadow-lg border border-[#B0392E] text-[#F6F1E4] bg-[#B0392E] ring-2 ring-[#B0392E]/50 transition-all focus:outline-none';
+  const inactiveClasses = 'text-[10px] uppercase tracking-widest font-sans font-semibold px-5 py-2 rounded border border-black/25 text-[#1C1710] bg-black/5 hover:bg-black/10 hover:border-black/50 transition-all cursor-pointer focus:ring-2 focus:ring-[#B0392E]/50 focus:outline-none';
   if (btnPet && btnRes) {
     if (activeStance === 'petitioner') {
       btnPet.className = activeClasses;
@@ -236,8 +236,8 @@ function renderStrategyPanel() {
       <div class="text-[10px] uppercase tracking-widest text-moot-accent font-semibold">Arguments to run — accept the ones you'll take to the bench</div>
       ${args.map((a, i) => {
         const on = accepted.indexOf(a) >= 0;
-        return `<div class="flex items-start gap-3 p-3 rounded-lg border ${on ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-white/10 bg-white/[0.02]'}">
-          <button onclick="window.toggleAcceptArgument(${i})" class="shrink-0 text-[10px] uppercase tracking-wider font-bold px-3 py-1.5 rounded border ${on ? 'border-emerald-500/40 text-emerald-300 bg-emerald-500/10' : 'border-white/15 text-white-muted bg-white/5 hover:text-white'}">${on ? '✓ Accepted' : '+ Accept'}</button>
+        return `<div class="flex items-start gap-3 p-3 rounded-lg border ${on ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-black/10 bg-black/[0.03]'}">
+          <button onclick="window.toggleAcceptArgument(${i})" class="shrink-0 text-[10px] uppercase tracking-wider font-bold px-3 py-1.5 rounded border ${on ? 'border-emerald-500/40 text-emerald-300 bg-emerald-500/10' : 'border-black/15 text-white-muted bg-black/5 hover:text-[#1C1710]'}">${on ? '✓ Accepted' : '+ Accept'}</button>
           <div class="text-xs text-white-2 leading-relaxed font-sans">${esc(a)}</div>
         </div>`;
       }).join('')}
@@ -249,15 +249,15 @@ function renderStrategyPanel() {
       <div class="flex flex-wrap gap-2">
         ${pool.map(a => {
           const on = pinnedNames.indexOf(a.name) >= 0;
-          return `<button onclick="window.togglePinAuthority('${String(a.name).replace(/'/g, "\\'")}')" title="${esc(a.ratio || '')}" class="text-[11px] px-3 py-1.5 rounded-full border ${on ? 'border-moot-accent text-[#0a0d14] bg-moot-accent font-semibold' : 'border-white/15 text-white-2 bg-white/5 hover:border-white/30'}">${on ? '📌 ' : ''}${esc(a.name)}${a.jurisdiction ? ` · ${esc(a.jurisdiction)}` : ''}</button>`;
+          return `<button onclick="window.togglePinAuthority('${String(a.name).replace(/'/g, "\\'")}')" title="${esc(a.ratio || '')}" class="text-[11px] px-3 py-1.5 rounded-full border ${on ? 'border-moot-accent text-[#F6F1E4] bg-moot-accent font-semibold' : 'border-black/15 text-white-2 bg-black/5 hover:border-black/30'}">${on ? '📌 ' : ''}${esc(a.name)}${a.jurisdiction ? ` · ${esc(a.jurisdiction)}` : ''}</button>`;
         }).join('')}
       </div>
     </div>` : '';
 
   panel.innerHTML = `
-    <div class="bg-white/5 border border-white/10 rounded-xl p-5 backdrop-blur-md flex flex-col gap-2">
+    <div class="bg-black/5 border border-black/10 rounded-xl p-5 backdrop-blur-md flex flex-col gap-2">
       <div class="flex items-center justify-between">
-        <div class="text-xs uppercase tracking-widest text-white font-semibold flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-moot-accent"></span> Your Strategy for this Issue</div>
+        <div class="text-xs uppercase tracking-widest text-[#1C1710] font-semibold flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-moot-accent"></span> Your Strategy for this Issue</div>
         <div class="text-[10px] text-white-muted">${accepted.length} accepted · ${ms.pinnedAuthorities.length} pinned</div>
       </div>
       ${argHtml}
@@ -348,8 +348,8 @@ function renderAdvocacyMatrix(issueId) {
   if (!memorialContainer) return;
 
   const createEmptyState = (reason, required, actionText, actionClick="window.goToStage(3)") => `
-    <div class="p-4 border border-dashed border-white/20 rounded-md bg-white/5 flex flex-col items-center justify-center text-center gap-2">
-      <div class="text-sm font-sans text-white/50 font-semibold uppercase tracking-widest">NEXT STEP</div>
+    <div class="p-4 border border-dashed border-black/20 rounded-md bg-black/5 flex flex-col items-center justify-center text-center gap-2">
+      <div class="text-sm font-sans text-[#1C1710]/50 font-semibold uppercase tracking-widest">NEXT STEP</div>
       <div class="text-xs font-serif text-white-muted italic">"${reason}"</div>
       <div class="text-[11px] font-sans text-moot-accent/80">${required}</div>
       <button onclick="${actionClick}" class="mt-2 text-[10px] uppercase tracking-widest text-navy bg-moot-accent px-4 py-2 rounded hover:bg-moot-accent/90 transition-all font-bold shadow-md ring-2 ring-moot-accent/30 focus:outline-none">${actionText}</button>
@@ -390,28 +390,28 @@ function renderAdvocacyMatrix(issueId) {
         const defeats = mission.strategicPurpose || 'Opponent\'s primary argument';
         authoritySlotHtml = `
           <div class="mt-3 p-4 bg-navy-4 border border-moot-accent/30 rounded-lg flex flex-col gap-3 shadow-lg hover:border-moot-accent hover:bg-navy-3 transition-all group">
-             <div class="flex items-center justify-between border-b border-white/10 pb-2">
+             <div class="flex items-center justify-between border-b border-black/10 pb-2">
                <div class="flex items-center gap-2">
-                 <span class="w-2 h-2 rounded-full bg-moot-accent animate-pulse shadow-[0_0_8px_rgba(201,168,76,0.6)]"></span>
-                 <span class="text-[11px] font-sans text-white uppercase tracking-widest font-bold">Authority Mission</span>
+                 <span class="w-2 h-2 rounded-full bg-moot-accent animate-pulse shadow-[0_0_8px_rgba(176,57,46,0.6)]"></span>
+                 <span class="text-[11px] font-sans text-[#1C1710] uppercase tracking-widest font-bold">Authority Mission</span>
                </div>
-               <div class="text-[10px] font-sans ${priorityColor} uppercase tracking-widest bg-white/5 px-2 py-1 rounded">Priority: ${priority}</div>
+               <div class="text-[10px] font-sans ${priorityColor} uppercase tracking-widest bg-black/5 px-2 py-1 rounded">Priority: ${priority}</div>
              </div>
              <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                <div class="flex flex-col gap-1">
-                 <span class="text-[9px] text-white/50 uppercase tracking-widest">Need</span>
+                 <span class="text-[9px] text-[#1C1710]/50 uppercase tracking-widest">Need</span>
                  <span class="text-xs font-serif text-white-2">${mission.authorityType} from ${mission.jurisdictionIntelligence?.requiredJurisdiction || 'Any Binding Jurisdiction'}</span>
                </div>
                <div class="flex flex-col gap-1">
-                 <span class="text-[9px] text-white/50 uppercase tracking-widest">Defeats</span>
+                 <span class="text-[9px] text-[#1C1710]/50 uppercase tracking-widest">Defeats</span>
                  <span class="text-xs font-serif text-white-2">${defeats}</span>
                </div>
                <div class="flex flex-col gap-1 md:col-span-2">
-                 <span class="text-[9px] text-white/50 uppercase tracking-widest">Required Ratio</span>
+                 <span class="text-[9px] text-[#1C1710]/50 uppercase tracking-widest">Required Ratio</span>
                  <span class="text-xs font-serif text-moot-accent italic">"${mission.ratioIntelligence?.requiredLegalRatio || sub.authorityNeeded}"</span>
                </div>
                <div class="flex flex-col gap-1 md:col-span-2">
-                 <span class="text-[9px] text-white/50 uppercase tracking-widest">Why Needed</span>
+                 <span class="text-[9px] text-[#1C1710]/50 uppercase tracking-widest">Why Needed</span>
                  <span class="text-xs font-serif text-white-muted">${mission.ratioIntelligence?.whyItIsNeeded || 'To substantiate the core legal claim.'}</span>
                </div>
              </div>
@@ -425,7 +425,7 @@ function renderAdvocacyMatrix(issueId) {
           <div class="mt-2 p-3 bg-navy-4 border border-dashed border-moot-accent/30 rounded flex items-center justify-between cursor-pointer hover:border-moot-accent hover:bg-moot-accent/5 transition-all group">
              <div class="flex flex-col gap-1">
                <div class="text-[10px] font-sans text-white-muted uppercase tracking-widest"><span class="text-moot-accent">⚡ Authority Mission:</span> Priority High</div>
-               <div class="text-xs font-serif text-white/80 group-hover:text-white transition-colors">
+               <div class="text-xs font-serif text-[#1C1710]/80 group-hover:text-[#1C1710] transition-colors">
                  ${sub.authorityNeeded || 'Landmark precedent confirming this application'}
                </div>
              </div>
@@ -435,8 +435,8 @@ function renderAdvocacyMatrix(issueId) {
       }
 
       iracHtml += `
-        <div class="border-l-2 border-white/20 pl-4 py-2 flex flex-col gap-2 relative group-hover:border-moot-accent transition-all">
-          <div class="absolute -left-[5px] top-2.5 w-2 h-2 rounded-full bg-moot-accent/50 shadow-[0_0_8px_rgba(201,168,76,0.5)]"></div>
+        <div class="border-l-2 border-black/20 pl-4 py-2 flex flex-col gap-2 relative group-hover:border-moot-accent transition-all">
+          <div class="absolute -left-[5px] top-2.5 w-2 h-2 rounded-full bg-moot-accent/50 shadow-[0_0_8px_rgba(176,57,46,0.5)]"></div>
           <div class="text-[11px] font-sans text-moot-accent font-semibold tracking-wider uppercase">${sub.heading}</div>
           <div class="text-sm font-serif text-white-2">${sub.ruleApplication}</div>
           ${authoritySlotHtml}
@@ -475,8 +475,8 @@ function renderAdvocacyMatrix(issueId) {
           <div class="text-[11px] font-sans text-orange-400 font-semibold uppercase mb-1 tracking-wider flex items-center gap-1">
             <span class="w-1.5 h-1.5 rounded-full bg-orange-500 shadow-[0_0_5px_rgba(249,115,22,0.5)]"></span> Judge Question
           </div>
-          <div class="text-xs font-serif text-white italic mb-2">"${q.question}"</div>
-          <div class="text-[10px] font-sans text-white/50 uppercase bg-black/20 p-2 rounded">Safe Exit: <span class="text-xs font-serif normal-case text-white/90">${q.safeExit}</span></div>
+          <div class="text-xs font-serif text-[#1C1710] italic mb-2">"${q.question}"</div>
+          <div class="text-[10px] font-sans text-[#1C1710]/50 uppercase bg-black/20 p-2 rounded">Safe Exit: <span class="text-xs font-serif normal-case text-[#1C1710]/90">${q.safeExit}</span></div>
         </div>
       `;
     });
@@ -491,13 +491,13 @@ function renderAdvocacyMatrix(issueId) {
     flowHtml += `
       <div class="p-3 bg-indigo-500/5 border border-indigo-500/20 rounded hover:border-indigo-500/40 transition-colors">
         <div class="text-[10px] font-sans text-indigo-400 font-semibold uppercase mb-1 tracking-wider">Opening Hook</div>
-        <div class="text-sm font-serif text-white leading-relaxed italic border-l-2 border-indigo-500/50 pl-2">"${blueprint.oralAdvocacyFlow.openingHook}"</div>
+        <div class="text-sm font-serif text-[#1C1710] leading-relaxed italic border-l-2 border-indigo-500/50 pl-2">"${blueprint.oralAdvocacyFlow.openingHook}"</div>
       </div>
     `;
     if (blueprint.oralAdvocacyFlow.signposting && blueprint.oralAdvocacyFlow.signposting.length > 0) {
        flowHtml += `
-        <div class="p-3 bg-white/5 border border-white/10 rounded mt-2 hover:border-white/20 transition-colors">
-          <div class="text-[10px] font-sans text-white/60 font-semibold uppercase mb-2 tracking-wider">Signposting Roadmap</div>
+        <div class="p-3 bg-black/5 border border-black/10 rounded mt-2 hover:border-black/25 transition-colors">
+          <div class="text-[10px] font-sans text-[#1C1710]/60 font-semibold uppercase mb-2 tracking-wider">Signposting Roadmap</div>
           <ul class="list-none text-xs font-serif text-white-2 space-y-2">
             ${blueprint.oralAdvocacyFlow.signposting.map((s, i) => `<li class="flex items-start gap-2"><span class="text-moot-accent text-[10px] mt-0.5">${i+1}.</span> <span>${s}</span></li>`).join('')}
           </ul>

@@ -295,27 +295,64 @@ app.post("/analyze", aiLimiter, upload.single("file"), async (req, res) => {
     // This handles large moot propositions while staying safely inside Groq's Free Tier limits.
     const fullPropositionText = extractedText.slice(0, 45000);
 
-    /* ── PHASE 1: Legal Domain Validation ── */
+    /* ── PHASE 1 + PHASE 1.5 (run concurrently — mutually independent, both only need raw text) ──
+       Legal Domain Validation and Forum Detection neither depend on nor feed each other,
+       so they're fired together instead of paying two sequential round-trips. */
     let validationResult = { isLegal: true, confidence: 60, documentType: "Unknown" };
+    let forumContext = null;
 
-    try {
-      const validationCall = await getChatCompletion({
-        messages: [
-          { role: "system", content: LEGAL_VALIDATION_PROMPT },
-          { role: "user",   content: `Classify this document. Return ONLY valid JSON:\n\n${fullPropositionText.slice(0, 3000)}` }
-        ],
-        temperature: 0.05,
-        max_tokens: 150,
-        requestLabel: "Legal Domain Validation"
-      });
+    const validationPromise = (async () => {
+      try {
+        const validationCall = await getChatCompletion({
+          messages: [
+            { role: "system", content: LEGAL_VALIDATION_PROMPT },
+            { role: "user",   content: `Classify this document. Return ONLY valid JSON:\n\n${fullPropositionText.slice(0, 3000)}` }
+          ],
+          temperature: 0.05,
+          max_tokens: 150,
+          primaryProvider: "groq",
+          groqTimeoutMs: 15000,
+          geminiTimeoutMs: 20000,
+          geminiMaxAttempts: 1,
+          requestLabel: "Legal Domain Validation"
+        });
 
-      validationResult = extractAndParseJSON(validationCall.text);
-    } catch (valErr) {
-      console.error("Validation error (proceeding):", valErr.message);
-      if (valErr.message.includes("Timeout")) {
-        throw valErr; // Propagate timeout up to the main catch block
+        validationResult = extractAndParseJSON(validationCall.text);
+      } catch (valErr) {
+        console.error("Validation error (proceeding):", valErr.message);
+        if (valErr.message.includes("Timeout")) {
+          throw valErr; // Propagate timeout up to the main catch block
+        }
       }
-    }
+    })();
+
+    /* Detect forum/jurisdiction/governing law BEFORE the main analysis so issues,
+       arguments and authorities are generated under the correct law from the start.
+       Fault-tolerant: on failure we proceed neutrally. */
+    const forumPromise = (async () => {
+      try {
+        if (!FORUM_DETECTION_PROMPT) throw new Error("Forum detection prompt unavailable");
+        const forumDetectCall = await getChatCompletion({
+          messages: [
+            { role: "system", content: FORUM_DETECTION_PROMPT },
+            { role: "user", content: `Detect the forum for this proposition. Return ONLY valid JSON:\n\n${fullPropositionText.slice(0, 4000)}` }
+          ],
+          temperature: 0.0,
+          max_tokens: 350,
+          primaryProvider: "groq",
+          groqTimeoutMs: 15000,
+          geminiTimeoutMs: 20000,
+          geminiMaxAttempts: 1,
+          requestLabel: "Forum Detection (P0)"
+        });
+        forumContext = extractAndParseJSON(forumDetectCall.text);
+        console.log("[FORUM P0] Detected:", forumContext && forumContext.forum, "|", forumContext && forumContext.jurisdiction);
+      } catch (forumErr) {
+        console.error("Forum pre-detection skipped/failed (proceeding neutral):", forumErr.message);
+      }
+    })();
+
+    await Promise.all([validationPromise, forumPromise]);
 
     if (validationResult.isLegal === false && validationResult.confidence >= 75) {
       return res.status(422).json({
@@ -324,28 +361,6 @@ app.post("/analyze", aiLimiter, upload.single("file"), async (req, res) => {
         documentType: validationResult.documentType || "Non-legal document",
         error: `This document does not appear to be a legal proposition. Detected: "${validationResult.documentType}".`
       });
-    }
-
-    /* ── PHASE 1.5: Forum Detection (P0) ──
-       Detect forum/jurisdiction/governing law BEFORE the main analysis so issues,
-       arguments and authorities are generated under the correct law from the start.
-       Fault-tolerant: on failure we proceed neutrally. */
-    let forumContext = null;
-    try {
-      if (!FORUM_DETECTION_PROMPT) throw new Error("Forum detection prompt unavailable");
-      const forumDetectCall = await getChatCompletion({
-        messages: [
-          { role: "system", content: FORUM_DETECTION_PROMPT },
-          { role: "user", content: `Detect the forum for this proposition. Return ONLY valid JSON:\n\n${fullPropositionText.slice(0, 4000)}` }
-        ],
-        temperature: 0.0,
-        max_tokens: 350,
-        requestLabel: "Forum Detection (P0)"
-      });
-      forumContext = extractAndParseJSON(forumDetectCall.text);
-      console.log("[FORUM P0] Detected:", forumContext && forumContext.forum, "|", forumContext && forumContext.jurisdiction);
-    } catch (forumErr) {
-      console.error("Forum pre-detection skipped/failed (proceeding neutral):", forumErr.message);
     }
 
     const forumDirective = (forumContext && forumContext.forum)
@@ -357,19 +372,30 @@ app.post("/analyze", aiLimiter, upload.single("file"), async (req, res) => {
         `You MUST conduct the entire analysis under THIS forum and jurisdiction. Identify issues, frame arguments, and (critically) cite ONLY case law and authorities appropriate to this forum/jurisdiction. Do NOT default to Indian constitutional law unless the detected jurisdiction is India. Use the terminology of this forum (e.g., Tribunal/Arbitrators/Claimant for arbitration; Court/Judges/Petitioner for domestic courts).\n`
       : '';
 
-    /* ── PHASE 2: Full Legal Analysis (forum-aware) ── */
-    const analysisCall = await getChatCompletion({
-      messages: [
-        { role: "system", content: ANALYSIS_SYSTEM_PROMPT },
-        {
-          role: "user",
-          content: `Analyze this legal proposition. Return ONLY a valid JSON object. No markdown:${forumDirective}\n\n${fullPropositionText}`
-        }
-      ],
-      temperature: 0.1,
-      max_tokens: 4000,
-      requestLabel: "Full Legal Analysis"
-    });
+    /* ── PHASE 2 + start of PHASE 5 (run concurrently — mutually independent) ──
+       Full Legal Analysis only needs forumDirective + raw text; Proposition Intelligence
+       extraction needs the same inputs, not each other's output. Fire both together. */
+    let propIntelError = null;
+    const [analysisCall, rawPropIntel] = await Promise.all([
+      getChatCompletion({
+        messages: [
+          { role: "system", content: ANALYSIS_SYSTEM_PROMPT },
+          {
+            role: "user",
+            content: `Analyze this legal proposition. Return ONLY a valid JSON object. No markdown:${forumDirective}\n\n${fullPropositionText}`
+          }
+        ],
+        temperature: 0.1,
+        max_tokens: 4000,
+        primaryProvider: "groq",
+        groqTimeoutMs: 15000,
+        geminiTimeoutMs: 20000,
+        geminiMaxAttempts: 1,
+        requestLabel: "Full Legal Analysis"
+      }),
+      extractPropositionIntelligence(forumDirective ? `${forumDirective}\n\n${fullPropositionText}` : fullPropositionText)
+        .catch(err => { propIntelError = err; return null; })
+    ]);
 
     const rawAnalysis = analysisCall.text;
 
@@ -409,9 +435,9 @@ app.post("/analyze", aiLimiter, upload.single("file"), async (req, res) => {
     let authorityIntelligence = null;
     let advocacyIntelligence = null;
     try {
-      const rawPropIntel = await extractPropositionIntelligence(forumDirective ? `${forumDirective}\n\n${fullPropositionText}` : fullPropositionText);
+      if (propIntelError) throw propIntelError;
       propositionIntelligence = extractAndParseJSON(rawPropIntel);
-      
+
       /* ── PHASE 6: Procedural Hierarchy Intelligence ── */
       try {
         const rawHierarchy = await extractProceduralHierarchy(JSON.stringify(propositionIntelligence));

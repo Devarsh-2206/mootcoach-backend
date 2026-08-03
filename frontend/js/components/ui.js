@@ -494,26 +494,26 @@ export function fmtInline(text) {
 
   // Convert markdown headers to styled HTML headers instead of leaving them raw
   t = t.replace(/^\s*#{5,6}\s*(.+)$/gm, '<h6 style="font-family:var(--font-sans, Arial); font-size:11px; font-weight:bold; letter-spacing:0.04em; color:var(--white-2); margin-top:10px; margin-bottom:4px; text-transform:uppercase;">$1</h6>');
-  t = t.replace(/^\s*####\s*(.+)$/gm, '<h5 style="font-family:var(--font-sans, Arial); font-size:12px; font-weight:bold; letter-spacing:0.06em; color:var(--white); margin-top:14px; margin-bottom:6px; text-transform:uppercase; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:2px;">$1</h5>');
-  t = t.replace(/^\s*###\s*(.+)$/gm, '<h4 style="font-family:var(--font-sans, Arial); font-size:14px; font-weight:bold; letter-spacing:0.08em; color:var(--moot-accent); margin-top:18px; margin-bottom:8px; text-transform:uppercase; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:4px;">$1</h4>');
-  t = t.replace(/^\s*##\s*(.+)$/gm, '<h3 style="font-family:var(--font-serif, Merriweather); font-size:16px; font-weight:normal; letter-spacing:0.1em; color:var(--moot-accent); margin-top:22px; margin-bottom:10px; text-transform:uppercase; border-bottom:2px double rgba(255,255,255,0.15); padding-bottom:6px;">$1</h3>');
+  t = t.replace(/^\s*####\s*(.+)$/gm, '<h5 style="font-family:var(--font-sans, Arial); font-size:12px; font-weight:bold; letter-spacing:0.06em; color:var(--white); margin-top:14px; margin-bottom:6px; text-transform:uppercase; border-bottom:1px solid rgba(28,23,16,0.05); padding-bottom:2px;">$1</h5>');
+  t = t.replace(/^\s*###\s*(.+)$/gm, '<h4 style="font-family:var(--font-sans, Arial); font-size:14px; font-weight:bold; letter-spacing:0.08em; color:var(--moot-accent); margin-top:18px; margin-bottom:8px; text-transform:uppercase; border-bottom:1px solid rgba(28,23,16,0.1); padding-bottom:4px;">$1</h4>');
+  t = t.replace(/^\s*##\s*(.+)$/gm, '<h3 style="font-family:var(--font-serif, Merriweather); font-size:16px; font-weight:normal; letter-spacing:0.1em; color:var(--moot-accent); margin-top:22px; margin-bottom:10px; text-transform:uppercase; border-bottom:2px double rgba(28,23,16,0.15); padding-bottom:6px;">$1</h3>');
 
   // Escape HTML characters (excluding our newly added HTML tags, so do escaping first or be careful)
   let escaped = t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   
   // Re-run the heading replacements on the escaped text to ensure tags work
   escaped = escaped.replace(/^\s*#{5,6}\s*(.+)$/gm, '<h6 style="font-family:var(--font-sans, Arial); font-size:11px; font-weight:bold; letter-spacing:0.04em; color:var(--white-2); margin-top:10px; margin-bottom:4px; text-transform:uppercase;">$1</h6>');
-  escaped = escaped.replace(/^\s*####\s*(.+)$/gm, '<h5 style="font-family:var(--font-sans, Arial); font-size:12px; font-weight:bold; letter-spacing:0.06em; color:var(--white); margin-top:14px; margin-bottom:6px; text-transform:uppercase; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:2px;">$1</h5>');
-  escaped = escaped.replace(/^\s*###\s*(.+)$/gm, '<h4 style="font-family:var(--font-sans, Arial); font-size:14px; font-weight:bold; letter-spacing:0.08em; color:var(--moot-accent); margin-top:18px; margin-bottom:8px; text-transform:uppercase; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:4px;">$1</h4>');
-  escaped = escaped.replace(/^\s*##\s*(.+)$/gm, '<h3 style="font-family:var(--font-serif, Merriweather); font-size:16px; font-weight:normal; letter-spacing:0.1em; color:var(--moot-accent); margin-top:22px; margin-bottom:10px; text-transform:uppercase; border-bottom:2px double rgba(255,255,255,0.15); padding-bottom:6px;">$1</h3>');
+  escaped = escaped.replace(/^\s*####\s*(.+)$/gm, '<h5 style="font-family:var(--font-sans, Arial); font-size:12px; font-weight:bold; letter-spacing:0.06em; color:var(--white); margin-top:14px; margin-bottom:6px; text-transform:uppercase; border-bottom:1px solid rgba(28,23,16,0.05); padding-bottom:2px;">$1</h5>');
+  escaped = escaped.replace(/^\s*###\s*(.+)$/gm, '<h4 style="font-family:var(--font-sans, Arial); font-size:14px; font-weight:bold; letter-spacing:0.08em; color:var(--moot-accent); margin-top:18px; margin-bottom:8px; text-transform:uppercase; border-bottom:1px solid rgba(28,23,16,0.1); padding-bottom:4px;">$1</h4>');
+  escaped = escaped.replace(/^\s*##\s*(.+)$/gm, '<h3 style="font-family:var(--font-serif, Merriweather); font-size:16px; font-weight:normal; letter-spacing:0.1em; color:var(--moot-accent); margin-top:22px; margin-bottom:10px; text-transform:uppercase; border-bottom:2px double rgba(28,23,16,0.15); padding-bottom:6px;">$1</h3>');
 
   // Convert Bold/Italics markdown to HTML
   escaped = escaped.replace(/\*\*([\s\S]+?)\*\*/g, '<strong>$1</strong>');
   escaped = escaped.replace(/\*([\s\S]+?)\*/g, '<em>$1</em>');
-  escaped = escaped.replace(/`([\s\S]+?)`/g, '<code style="background:rgba(255,255,255,.07);padding:1px 5px;border-radius:4px;font-size:.82em;color:var(--gold);">$1</code>');
+  escaped = escaped.replace(/`([\s\S]+?)`/g, '<code style="background:rgba(28,23,16,.07);padding:1px 5px;border-radius:4px;font-size:.82em;color:var(--gold);">$1</code>');
 
   // Clean raw horizontal rules
-  escaped = escaped.replace(/^\s*[-*_]{3,}\s*$/gm, '<hr style="border:none; border-top:1px solid rgba(255,255,255,0.1); margin:12px 0;">');
+  escaped = escaped.replace(/^\s*[-*_]{3,}\s*$/gm, '<hr style="border:none; border-top:1px solid rgba(28,23,16,0.1); margin:12px 0;">');
 
   // Clean robotic transitions and generic ChatGPT phrases
   escaped = escaped.replace(/\bFirstly,\s+/gi, 'First, ');
@@ -565,7 +565,7 @@ export function renderCases(content, rawCasesArray) {
         ? `<span style="font-size:.65rem;color:#fbbf24;background:rgba(251,191,36,.07);border:1px solid rgba(251,191,36,.2);border-radius:4px;padding:2px 7px;margin-top:5px;display:inline-block;">⚠ ${esc(String(c.caveat))}</span>`
         : '';
       const jBadge = c.jurisdiction
-        ? `<span style="font-size:.6rem;color:var(--white-muted);background:rgba(255,255,255,.04);border:1px solid var(--glass-b);border-radius:3px;padding:1px 6px;margin-left:5px;">${esc(c.jurisdiction)}</span>`
+        ? `<span style="font-size:.6rem;color:var(--white-muted);background:rgba(28,23,16,.04);border:1px solid var(--glass-b);border-radius:3px;padding:1px 6px;margin-left:5px;">${esc(c.jurisdiction)}</span>`
         : '';
       const citationHTML = (c.citation && c.citation !== 'Citation unverified')
         ? `<div style="font-size:.7rem;color:var(--gold);opacity:.75;margin-bottom:4px;">${esc(c.citation)}</div>`
@@ -845,12 +845,12 @@ export function renderArgumentDefects(defectsData) {
       const bc   = sevBorder[sev] || sevBorder.minor;
       const bsty = sevStyle[sev]  || sevStyle.minor;
       return `
-        <div style="margin-bottom:11px;padding:14px 16px;background:rgba(255,255,255,.02);border:1px solid var(--glass-b);border-left:3px solid ${bc};border-radius:0 9px 9px 0;">
+        <div style="margin-bottom:11px;padding:14px 16px;background:rgba(28,23,16,.02);border:1px solid var(--glass-b);border-left:3px solid ${bc};border-radius:0 9px 9px 0;">
           <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:8px;flex-wrap:wrap;">
             <div style="font-size:.78rem;font-weight:500;color:var(--white-2);flex:1;font-style:italic;">"${fmtInline(d.argument || '')}"</div>
             <div style="display:flex;gap:5px;flex-shrink:0;">
               <span style="font-size:.56rem;padding:2px 7px;border-radius:4px;letter-spacing:.08em;text-transform:uppercase;font-weight:500;${bsty}">${sev}</span>
-              <span style="font-size:.56rem;padding:2px 7px;border-radius:4px;background:rgba(255,255,255,.04);border:1px solid var(--glass-b);color:var(--white-muted);">${esc(d.defectType || '')}</span>
+              <span style="font-size:.56rem;padding:2px 7px;border-radius:4px;background:rgba(28,23,16,.04);border:1px solid var(--glass-b);color:var(--white-muted);">${esc(d.defectType || '')}</span>
             </div>
           </div>
           <div style="font-size:.79rem;color:var(--white-muted);line-height:1.67;">${fmtInline(d.explanation || '')}</div>
@@ -879,9 +879,9 @@ export function showRejection(msg, documentType) {
           </div>
         </div>
         <div style="font-size:.84rem;color:var(--white-2);line-height:1.82;margin-bottom:18px;">${esc(msg)}</div>
-        ${documentType ? `<div style="display:flex;align-items:center;gap:8px;padding:9px 14px;background:rgba(255,255,255,.03);border:1px solid var(--glass-b);border-radius:8px;margin-bottom:18px;"><span style="font-size:.58rem;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--white-muted);">Detected as:</span><span style="font-size:.82rem;color:var(--white-2);">${esc(documentType)}</span></div>` : ''}
+        ${documentType ? `<div style="display:flex;align-items:center;gap:8px;padding:9px 14px;background:rgba(28,23,16,.03);border:1px solid var(--glass-b);border-radius:8px;margin-bottom:18px;"><span style="font-size:.58rem;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--white-muted);">Detected as:</span><span style="font-size:.82rem;color:var(--white-2);">${esc(documentType)}</span></div>` : ''}
         <div style="font-size:.76rem;color:var(--white-muted);line-height:1.75;margin-bottom:22px;">MootCoach accepts: moot court propositions, legal case problems, constitutional disputes, memorials, statutes, judicial orders, and law-related submissions only.</div>
-        <button onclick="showWsPanel('upload')" style="font-family:var(--sans);font-size:.74rem;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--white-muted);background:rgba(255,255,255,.04);border:1px solid var(--glass-b);border-radius:8px;padding:10px 20px;cursor:pointer;">← Upload a Different Document</button>
+        <button onclick="showWsPanel('upload')" style="font-family:var(--sans);font-size:.74rem;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--white-muted);background:rgba(28,23,16,.04);border:1px solid var(--glass-b);border-radius:8px;padding:10px 20px;cursor:pointer;">← Upload a Different Document</button>
       </div>
     </div>`;
   document.getElementById('res-empty').style.display = 'none';
@@ -1255,7 +1255,7 @@ export function renderStage2Issues() {
 
   if (issues.length === 0) {
     container.innerHTML = `
-      <div class="text-center p-6 border border-dashed border-white/10 rounded-xl bg-white/[0.01]">
+      <div class="text-center p-6 border border-dashed border-black/10 rounded-xl bg-black/[0.02]">
         <div class="text-2xl mb-2">◎</div>
         <p class="text-xs text-white-muted">No legal issues extracted yet. Please upload and analyze a proposition in Stage 1 first.</p>
       </div>
@@ -1278,7 +1278,7 @@ export function renderStage2Issues() {
         let difficulty = "Medium";
         let difficultyCls = "bg-amber-500/10 text-amber-400 border border-amber-500/20";
         let path = "Alternate Path";
-        let pathCls = "bg-slate-500/10 text-slate-400 border border-slate-500/20";
+        let pathCls = "bg-[#8C8270]/12 text-[#6b5f4d] border border-[#8C8270]/30";
         let advice = "Focus on presenting fact-based arguments backed by strong precedents.";
 
         if (selectStr.includes("jurisdiction") || selectStr.includes("maintainability") || selectStr.includes("standing") || selectStr.includes("preliminary")) {
@@ -1291,7 +1291,7 @@ export function renderStage2Issues() {
           advice = "Must be resolved first. Focus on statutory alternative remedies and constitutional writ jurisdiction scope.";
         } else if (selectStr.includes("validity") || selectStr.includes("constitutionality") || selectStr.includes("ultra vires") || selectStr.includes("arbitrary") || selectStr.includes("equality")) {
           importance = "Strategic Pinnacle";
-          importanceCls = "bg-[#c9a84c]/10 text-moot-accent border border-[#c9a84c]/20";
+          importanceCls = "bg-[#B0392E]/10 text-moot-accent border border-[#B0392E]/20";
           difficulty = "High";
           difficultyCls = "bg-red-500/10 text-red-400 border border-red-500/20";
           path = "High Risk / High Reward";
@@ -1311,18 +1311,18 @@ export function renderStage2Issues() {
           difficulty = "Low";
           difficultyCls = "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
           path = "Alternate Path";
-          pathCls = "bg-slate-500/10 text-slate-400 border border-slate-500/20";
+          pathCls = "bg-[#8C8270]/12 text-[#6b5f4d] border border-[#8C8270]/30";
           advice = "Evaluate alternative remedies. Ensure prayer for relief maps directly to substantive violations.";
         }
 
         return `
-          <div class="${cardClass} p-4 bg-white/5 border border-white/10 rounded-xl flex flex-col gap-3 cursor-pointer" onclick="window.selectIssueFromCard(${idx})">
+          <div class="${cardClass} p-4 bg-black/5 border border-black/10 rounded-xl flex flex-col gap-3 cursor-pointer" onclick="window.selectIssueFromCard(${idx})">
             <div class="flex justify-between items-start gap-4">
               <div class="flex items-start gap-3">
                 <span class="w-6 h-6 rounded-full bg-moot-accent/10 border border-moot-accent/20 text-moot-accent text-[11px] font-semibold flex items-center justify-center shrink-0">
                   ${idx + 1}
                 </span>
-                <div class="text-xs font-sans text-white font-medium leading-relaxed">${esc(issue)}</div>
+                <div class="text-xs font-sans text-[#1C1710] font-medium leading-relaxed">${esc(issue)}</div>
               </div>
               <div class="shrink-0 flex items-center justify-center mt-1">
                 ${isSelected ? '<span class="text-moot-accent text-sm">✓</span>' : '<span class="text-white-faint text-sm">○</span>'}
@@ -1335,7 +1335,7 @@ export function renderStage2Issues() {
               <span class="text-[9px] uppercase tracking-wider px-2 py-0.5 rounded font-sans font-semibold ${pathCls}">${path}</span>
             </div>
             
-            <div class="text-[10px] text-white-muted italic leading-relaxed font-sans border-t border-white/5 pt-2">
+            <div class="text-[10px] text-white-muted italic leading-relaxed font-sans border-t border-black/5 pt-2">
               💡 <strong>Strategy:</strong> ${advice}
             </div>
           </div>
@@ -1443,15 +1443,15 @@ export function renderStage4OralNotes() {
       modulesHTML = `
         <div style="display: flex; flex-direction: column; gap: 12px;">
           ${modules.map(mod => `
-            <div class="bg-white/[0.02] border border-white/5 rounded-xl p-4 transition-all duration-200 hover:border-white/10 hover:bg-white/[0.04] flex flex-col justify-between" style="min-height: 120px;">
+            <div class="bg-black/[0.03] border border-black/5 rounded-xl p-4 transition-all duration-200 hover:border-black/10 hover:bg-black/[0.05] flex flex-col justify-between" style="min-height: 120px;">
               <div class="flex items-center justify-between mb-1.5" style="display: flex; justify-content: space-between; align-items: center;">
                 <span class="text-[10px] text-white-muted font-sans font-semibold flex items-center gap-1.5" style="display: flex; align-items: center; gap: 6px;">
                   <span style="font-size: 14px;">${mod.icon}</span> <span style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--white);">${mod.title}</span>
                 </span>
-                <span class="text-[9px] uppercase tracking-wider font-semibold text-moot-accent bg-moot-accent/5 px-2 py-0.5 rounded font-sans" style="border: 1px solid rgba(201,168,76,0.15);">${mod.readTime}</span>
+                <span class="text-[9px] uppercase tracking-wider font-semibold text-moot-accent bg-moot-accent/5 px-2 py-0.5 rounded font-sans" style="border: 1px solid rgba(176,57,46,0.15);">${mod.readTime}</span>
               </div>
-              <p class="text-[11px] text-white-muted leading-relaxed font-sans" style="margin: 4px 0 8px 0; color: #a0aec0;">${mod.description}</p>
-              <button onclick="window.openArsenalModule('${mod.id}')" class="btn-sm text-[10px] py-1.5 bg-white/5 border border-white/10 text-white hover:bg-white/10 rounded cursor-pointer text-center w-full transition-all duration-200" style="width: 100%; text-transform: uppercase; letter-spacing: 0.05em;">
+              <p class="text-[11px] text-white-muted leading-relaxed font-sans" style="margin: 4px 0 8px 0; color: rgba(28,23,16,.55);">${mod.description}</p>
+              <button onclick="window.openArsenalModule('${mod.id}')" class="btn-sm text-[10px] py-1.5 bg-black/5 border border-black/10 text-[#1C1710] hover:bg-black/10 rounded cursor-pointer text-center w-full transition-all duration-200" style="width: 100%; text-transform: uppercase; letter-spacing: 0.05em;">
                 Open Module
               </button>
             </div>
@@ -1460,14 +1460,14 @@ export function renderStage4OralNotes() {
       `;
     } else if (hasContext) {
       modulesHTML = `
-        <div class="text-white-muted italic p-4 bg-white/[0.01] border border-dashed border-white/10 rounded-xl font-sans text-center">
+        <div class="text-white-muted italic p-4 bg-black/[0.02] border border-dashed border-black/10 rounded-xl font-sans text-center">
           <div class="text-lg mb-1">🎙️</div>
           No generated submissions found. Complete Stage 3 first to automatically populate your Chambers Briefing & Battle Plan.
         </div>
       `;
     } else {
       modulesHTML = `
-        <div class="text-white-muted italic p-4 bg-white/[0.01] border border-dashed border-white/10 rounded-xl font-sans text-center">
+        <div class="text-white-muted italic p-4 bg-black/[0.02] border border-dashed border-black/10 rounded-xl font-sans text-center">
           <div class="text-lg mb-1">🎙️</div>
           Draft your submissions in Stage 3 to populate your custom Battle Plan here.
         </div>
@@ -1514,9 +1514,9 @@ export function openArsenalModule(moduleId) {
       content = `
         <div class="space-y-3 font-sans">
           ${(oralAdvocacy.qa || []).map((pair, idx) => `
-            <div class="p-3 bg-white/[0.02] border border-white/5 rounded-lg" style="margin-bottom: 10px;">
-              <strong class="text-[#c9a84c] block mb-1" style="color: var(--gold); font-size: 12px;">Q${idx+1}: ${esc(pair.q)}</strong>
-              <div class="text-gray-300 italic font-serif leading-relaxed mt-1" style="font-size: 11px; line-height: 1.5; color: #cbd5e0; padding-left: 8px; border-left: 2px solid rgba(255,255,255,0.1);">"${esc(pair.a)}"</div>
+            <div class="p-3 bg-black/[0.03] border border-black/5 rounded-lg" style="margin-bottom: 10px;">
+              <strong class="text-[#B0392E] block mb-1" style="color: var(--gold); font-size: 12px;">Q${idx+1}: ${esc(pair.q)}</strong>
+              <div class="text-[#4a4030] italic font-serif leading-relaxed mt-1" style="font-size: 11px; line-height: 1.5; color: rgba(28,23,16,.62); padding-left: 8px; border-left: 2px solid rgba(28,23,16,0.1);">"${esc(pair.a)}"</div>
             </div>
           `).join('') || '<p class="text-white-muted italic">No bench questions generated yet.</p>'}
         </div>
@@ -1527,11 +1527,11 @@ export function openArsenalModule(moduleId) {
       content = `
         <div class="space-y-3 font-sans">
           ${(oralAdvocacy.precedents || []).map(p => `
-            <div class="p-3 bg-white/[0.02] border border-white/5 rounded-lg text-xs" style="margin-bottom: 10px;">
-              <strong class="text-white block mb-1" style="font-size: 12px; color: #fff;">⚖️ ${esc(p.name)} (${esc(p.bench || 'Constitutional Bench')})</strong>
-              <div class="text-white-muted mt-1.5" style="font-size: 11px;"><span class="text-[#c9a84c] font-semibold uppercase text-[9px] tracking-wider" style="color: var(--gold); font-size: 9px; font-weight: bold; margin-right: 4px;">Ratio:</span> ${esc(p.ratio)}</div>
+            <div class="p-3 bg-black/[0.03] border border-black/5 rounded-lg text-xs" style="margin-bottom: 10px;">
+              <strong class="text-[#1C1710] block mb-1" style="font-size: 12px; color: #fff;">⚖️ ${esc(p.name)} (${esc(p.bench || 'Constitutional Bench')})</strong>
+              <div class="text-white-muted mt-1.5" style="font-size: 11px;"><span class="text-[#B0392E] font-semibold uppercase text-[9px] tracking-wider" style="color: var(--gold); font-size: 9px; font-weight: bold; margin-right: 4px;">Ratio:</span> ${esc(p.ratio)}</div>
               <div class="text-white-muted mt-1.5" style="font-size: 11px;"><span class="text-[#4caf82] font-semibold uppercase text-[9px] tracking-wider" style="color: #4caf82; font-size: 9px; font-weight: bold; margin-right: 4px;">Application:</span> ${esc(p.strategicValue || p.why)}</div>
-              <div class="text-white-muted mt-1.5" style="font-size: 11px;"><span class="text-[#c9a84c] font-semibold uppercase text-[9px] tracking-wider" style="color: var(--gold); font-size: 9px; font-weight: bold; margin-right: 4px;">Usage:</span> <span class="italic font-serif" style="color: #e2e8f0;">"${esc(p.usage)}"</span></div>
+              <div class="text-white-muted mt-1.5" style="font-size: 11px;"><span class="text-[#B0392E] font-semibold uppercase text-[9px] tracking-wider" style="color: var(--gold); font-size: 9px; font-weight: bold; margin-right: 4px;">Usage:</span> <span class="italic font-serif" style="color: #e2e8f0;">"${esc(p.usage)}"</span></div>
             </div>
           `).join('') || '<p class="text-white-muted italic">No precedents annotated yet.</p>'}
         </div>
@@ -1542,10 +1542,10 @@ export function openArsenalModule(moduleId) {
       content = `
         <div class="space-y-3 font-sans">
           ${(oralAdvocacy.traps || []).map(trap => `
-            <div class="p-3 bg-red-950/10 border border-red-900/20 rounded-lg text-xs leading-relaxed text-gray-300" style="margin-bottom: 10px; border-left: 3px solid #f87171;">
+            <div class="p-3 bg-red-950/10 border border-red-900/20 rounded-lg text-xs leading-relaxed text-[#4a4030]" style="margin-bottom: 10px; border-left: 3px solid #f87171;">
               <strong class="text-red-400 block mb-1" style="color: #f87171; font-size: 12px;">⚠️ ${esc(trap.title || 'Judicial Trap')}</strong>
               <div class="text-gray-400 mb-1" style="font-size: 11px; margin-top: 4px;"><strong style="color: #e2e8f0;">Danger:</strong> ${esc(trap.description)}</div>
-              <div class="mt-2 italic text-gray-300 font-serif" style="font-size: 11px; color: #cbd5e0; padding-top: 4px; border-t: 1px solid rgba(255,255,255,0.05);">Escape Route: "${esc(trap.escapeResponse)}"</div>
+              <div class="mt-2 italic text-[#4a4030] font-serif" style="font-size: 11px; color: rgba(28,23,16,.62); padding-top: 4px; border-t: 1px solid rgba(28,23,16,0.05);">Escape Route: "${esc(trap.escapeResponse)}"</div>
             </div>
           `).join('') || '<p class="text-white-muted italic">No judicial traps identified yet.</p>'}
         </div>
@@ -1555,15 +1555,15 @@ export function openArsenalModule(moduleId) {
       title = 'Rebuttal Strategy';
       content = `
         <div class="space-y-4 font-sans">
-          <div class="p-3 bg-white/[0.02] border border-white/5 rounded-lg" style="margin-bottom: 10px;">
-            <h4 class="text-[#c9a84c] font-semibold uppercase text-[10px] tracking-wider mb-2" style="color: var(--gold); font-size: 10px;">Opposition Arguments</h4>
-            <ul class="list-disc pl-4 text-gray-300 space-y-1.5" style="font-size: 11px; color: #cbd5e0;">
+          <div class="p-3 bg-black/[0.03] border border-black/5 rounded-lg" style="margin-bottom: 10px;">
+            <h4 class="text-[#B0392E] font-semibold uppercase text-[10px] tracking-wider mb-2" style="color: var(--gold); font-size: 10px;">Opposition Arguments</h4>
+            <ul class="list-disc pl-4 text-[#4a4030] space-y-1.5" style="font-size: 11px; color: rgba(28,23,16,.62);">
               ${(rebuttals.opponentArguments || []).map(arg => `<li>${esc(arg)}</li>`).join('') || '<li class="italic text-gray-500">None identified.</li>'}
             </ul>
           </div>
-          <div class="p-3 bg-white/[0.02] border border-white/5 rounded-lg">
+          <div class="p-3 bg-black/[0.03] border border-black/5 rounded-lg">
             <h4 class="text-emerald-400 font-semibold uppercase text-[10px] tracking-wider mb-2" style="color: #34d399; font-size: 10px;">Demolition Strategy</h4>
-            <div class="text-gray-300 space-y-2" style="font-size: 11px; color: #cbd5e0;">
+            <div class="text-[#4a4030] space-y-2" style="font-size: 11px; color: rgba(28,23,16,.62);">
               ${(rebuttals.demolitionStrategy || []).map((strat, idx) => `<p style="margin-bottom: 6px;"><strong style="color: #fff; margin-right: 4px;">${idx + 1}.</strong> ${esc(strat)}</p>`).join('') || '<p class="italic text-gray-500">No response strategy prepared.</p>'}
             </div>
           </div>
@@ -1577,7 +1577,7 @@ export function openArsenalModule(moduleId) {
         : "Submit that administrative policies enjoy a wide latitude of immunity under public law, and judicial review is restricted to procedural impropriety.");
       content = `
         <div class="p-4 bg-red-950/10 border border-red-900/20 rounded-xl font-sans" style="border-left: 3px solid #ef4444;">
-          <p class="text-gray-300 leading-relaxed font-serif italic" style="font-size: 12px; color: #cbd5e0; line-height: 1.6;">
+          <p class="text-[#4a4030] leading-relaxed font-serif italic" style="font-size: 12px; color: rgba(28,23,16,.62); line-height: 1.6;">
             "${esc(rescueArg)}"
           </p>
         </div>
@@ -1590,7 +1590,7 @@ export function openArsenalModule(moduleId) {
         : "We pray that this Honorable Court dismiss the petition in its entirety with exemplary costs.");
       content = `
         <div class="p-4 bg-indigo-950/10 border border-indigo-900/20 rounded-xl font-sans" style="border-left: 3px solid #6366f1;">
-          <p class="text-gray-300 leading-relaxed font-serif italic" style="font-size: 12px; color: #cbd5e0; line-height: 1.6;">
+          <p class="text-[#4a4030] leading-relaxed font-serif italic" style="font-size: 12px; color: rgba(28,23,16,.62); line-height: 1.6;">
             "${esc(prayerArg)}"
           </p>
         </div>
@@ -1601,9 +1601,9 @@ export function openArsenalModule(moduleId) {
       content = `
         <div class="space-y-3 font-sans">
           ${(rebuttals.followUpQuestions || []).map((pair, idx) => `
-            <div class="p-3 bg-white/[0.02] border border-white/5 rounded-lg" style="margin-bottom: 10px;">
-              <strong class="text-white block mb-1" style="font-size: 12px;">Follow-up ${idx + 1}: "${esc(pair.q)}"</strong>
-              <div class="italic block mt-1 font-serif text-gray-300" style="font-size: 11px; color: #cbd5e0; padding-left: 8px; border-left: 2px solid rgba(255,255,255,0.1);">Answer: "${esc(pair.a)}"</div>
+            <div class="p-3 bg-black/[0.03] border border-black/5 rounded-lg" style="margin-bottom: 10px;">
+              <strong class="text-[#1C1710] block mb-1" style="font-size: 12px;">Follow-up ${idx + 1}: "${esc(pair.q)}"</strong>
+              <div class="italic block mt-1 font-serif text-[#4a4030]" style="font-size: 11px; color: rgba(28,23,16,.62); padding-left: 8px; border-left: 2px solid rgba(28,23,16,0.1);">Answer: "${esc(pair.a)}"</div>
             </div>
           `).join('') || '<p class="text-white-muted italic">No follow-up questions prepared.</p>'}
         </div>
@@ -1616,7 +1616,7 @@ export function openArsenalModule(moduleId) {
         : "In the alternative, submit that if this Court finds a right was infringed, it was a proportional and necessary limitation in a democratic society.");
       content = `
         <div class="p-4 bg-indigo-950/10 border border-indigo-900/20 rounded-xl font-sans" style="border-left: 3px solid #6366f1;">
-          <p class="text-gray-300 leading-relaxed font-serif italic" style="font-size: 12px; color: #cbd5e0; line-height: 1.6;">
+          <p class="text-[#4a4030] leading-relaxed font-serif italic" style="font-size: 12px; color: rgba(28,23,16,.62); line-height: 1.6;">
             "${esc(fallbackArg)}"
           </p>
         </div>

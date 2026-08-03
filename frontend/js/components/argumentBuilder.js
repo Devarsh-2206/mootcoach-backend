@@ -801,13 +801,13 @@ function renderIRAC(iracData) {
 <div class="flex flex-col gap-5 w-full h-full font-sans">
   
   <!-- Quick Actions & Status Toolbar -->
-  <div class="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-4">
+  <div class="flex flex-wrap items-center justify-between gap-3 border-b border-black/10 pb-4">
     <div>
       <div class="text-[10px] font-semibold tracking-wider text-moot-accent uppercase flex items-center gap-1.5 font-sans">
         <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
         Appellate Draft Active
       </div>
-      <h3 class="text-sm font-sans font-semibold text-white mt-1">Appellate Submission Workspace</h3>
+      <h3 class="text-sm font-sans font-semibold text-[#1C1710] mt-1">Appellate Submission Workspace</h3>
     </div>
     <div class="flex flex-wrap gap-2" id="draft-quick-actions">
       <button id="btn-builder-copy" class="btn-sm btn-sm-ghost text-xs tracking-wider flex items-center gap-1.5 font-sans cursor-pointer" onclick="copyBuilderArgument()">
@@ -826,12 +826,12 @@ function renderIRAC(iracData) {
   </div>
 
   <!-- ACTIONABLE INTELLIGENCE WIDGET -->
-  <div class="p-5 bg-white/[0.02] border border-white/10 rounded-xl flex flex-col gap-4 font-sans relative overflow-hidden">
-    <div class="absolute top-0 left-0 w-[4px] h-full bg-[#c9a84c]"></div>
+  <div class="p-5 bg-black/[0.03] border border-black/10 rounded-xl flex flex-col gap-4 font-sans relative overflow-hidden">
+    <div class="absolute top-0 left-0 w-[4px] h-full bg-[#B0392E]"></div>
     <div class="text-xs uppercase tracking-widest text-moot-accent font-semibold flex items-center gap-1.5 font-sans">
       ✦ CHAMBERS INTELLIGENCE BRIEF
     </div>
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-1 border-b border-white/5 pb-4">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-1 border-b border-black/5 pb-4">
       <div class="flex flex-col gap-1">
         <span class="text-[9px] uppercase tracking-wider text-red-400 font-semibold font-sans">Weakest Point</span>
         <div class="text-xs text-white-2 leading-relaxed font-sans" id="intel-weakest-point">${weakestPoint}</div>
@@ -850,23 +850,23 @@ function renderIRAC(iracData) {
     <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 text-xs pt-1">
       <div class="flex flex-col">
         <span class="text-[8px] text-white-muted uppercase tracking-widest font-sans font-semibold">Strongest Argument</span>
-        <span class="text-white mt-0.5 leading-relaxed font-sans">${strongestArg}</span>
+        <span class="text-[#1C1710] mt-0.5 leading-relaxed font-sans">${strongestArg}</span>
       </div>
       <div class="flex flex-col">
         <span class="text-[8px] text-white-muted uppercase tracking-widest font-sans font-semibold">Precedent Leverage</span>
-        <span class="text-white mt-0.5 leading-relaxed font-sans">${precedentLeverage}</span>
+        <span class="text-[#1C1710] mt-0.5 leading-relaxed font-sans">${precedentLeverage}</span>
       </div>
       <div class="flex flex-col">
         <span class="text-[8px] text-white-muted uppercase tracking-widest font-sans font-semibold">Judicial Concern</span>
-        <span class="text-white mt-0.5 leading-relaxed font-sans">${judicialConcern}</span>
+        <span class="text-[#1C1710] mt-0.5 leading-relaxed font-sans">${judicialConcern}</span>
       </div>
       <div class="flex flex-col">
         <span class="text-[8px] text-white-muted uppercase tracking-widest font-sans font-semibold">Missing Authorities</span>
-        <span class="text-white mt-0.5 leading-relaxed font-sans">${missingAuth}</span>
+        <span class="text-[#1C1710] mt-0.5 leading-relaxed font-sans">${missingAuth}</span>
       </div>
       <div class="flex flex-col">
         <span class="text-[8px] text-white-muted uppercase tracking-widest font-sans font-semibold">Strategic Improvement</span>
-        <span class="text-white mt-0.5 leading-relaxed font-sans">${strategicImprovement}</span>
+        <span class="text-[#1C1710] mt-0.5 leading-relaxed font-sans">${strategicImprovement}</span>
       </div>
       <div class="flex flex-col">
         <span class="text-[8px] text-white-muted uppercase tracking-widest font-sans font-semibold">Probability of Challenge</span>
@@ -922,9 +922,9 @@ function renderMemorial(memorialData) {
       
       <!-- Issue -->
       <div>
-        <h4 class="text-xs uppercase tracking-widest text-[#a88220] font-sans font-bold mb-2">ISSUE</h4>
+        <h4 class="text-xs uppercase tracking-widest text-[#B0392E] font-sans font-bold mb-2">ISSUE</h4>
         <div class="h-[1px] bg-[#dcdad5] w-full mb-4"></div>
-        <div class="pl-4 border-l-2 border-[#a88220]/30 italic text-slate-700 font-serif">${fmtInline(cleanIssue)}</div>
+        <div class="pl-4 border-l-2 border-[#B0392E]/30 italic text-[#3a3226] font-serif">${fmtInline(cleanIssue)}</div>
       </div>
       
       <hr class="border-[#e5e3de]">
@@ -987,7 +987,7 @@ function renderFallbackState(error) {
     <div class="p-8 bg-red-950/10 border border-red-900/20 rounded-xl flex flex-col items-center text-center gap-4 mt-2 shadow-xl font-sans">
       <div class="w-12 h-12 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center text-red-400 text-xl font-bold">✕</div>
       <div>
-        <h3 class="text-lg font-sans font-semibold text-white">Workspace Rendering Error</h3>
+        <h3 class="text-lg font-sans font-semibold text-[#1C1710]">Workspace Rendering Error</h3>
         <p class="text-xs text-white-muted mt-1 max-w-sm">An error occurred while compiling the moot round prep workspace. The generated payload remains preserved in memory.</p>
         <p class="text-[10px] text-red-400 mt-2 font-mono">${esc(errorMsg)}</p>
       </div>
@@ -1227,7 +1227,7 @@ export function exportAsPDF(type) {
           .text-white-muted, .text-gray-400, .text-slate-500 {
             color: #666 !important;
           }
-          .text-white, .text-gray-300, .text-slate-800 {
+          .text-[#1C1710], .text-[#4a4030], .text-slate-800 {
             color: #222 !important;
           }
           details summary {
@@ -1428,7 +1428,7 @@ export function renderOralAdvocacySuite(container) {
 
   const tabHeadersHTML = tabs.map(t => {
     const isActive = t.id === activePackTab;
-    const borderCls = isActive ? 'border-b-2 border-moot-accent text-moot-accent' : 'border-b border-white/5 text-[#f5f3ef]/45 hover:text-white';
+    const borderCls = isActive ? 'border-b-2 border-moot-accent text-moot-accent' : 'border-b border-black/5 text-[#f5f3ef]/45 hover:text-[#1C1710]';
     return `<button class="px-3 py-2 text-[10px] font-sans font-semibold uppercase tracking-wider bg-transparent border-0 cursor-pointer transition-all ${borderCls}" onclick="switchPackTab('${t.id}')">${t.label}</button>`;
   }).join('');
 
@@ -1698,8 +1698,8 @@ export function renderOralAdvocacySuite(container) {
     tabContentHTML = `
       <div class="flex flex-col gap-4 font-sans">
         <!-- Card 1: Bench Opening -->
-        <div class="p-5 bg-white/5 border border-white/10 rounded-xl backdrop-blur-md flex flex-col gap-4">
-          <div class="flex items-center gap-2 border-b border-white/5 pb-2">
+        <div class="p-5 bg-black/5 border border-black/10 rounded-xl backdrop-blur-md flex flex-col gap-4">
+          <div class="flex items-center gap-2 border-b border-black/5 pb-2">
             <span class="text-lg">🎙️</span>
             <h4 class="text-xs uppercase tracking-wider text-moot-accent font-bold">1. Bench Opening (Ready to Speak)</h4>
           </div>
@@ -1707,22 +1707,22 @@ export function renderOralAdvocacySuite(container) {
           <div class="space-y-3">
             <div class="p-3 bg-black/20 rounded-lg border-l-2 border-indigo-500/30">
               <span class="text-[9px] uppercase tracking-widest text-indigo-400 block font-semibold mb-1">Exact Opening Line</span>
-              <p class="text-xs text-white/90 italic font-serif leading-relaxed">"${esc(openingLine)}"</p>
+              <p class="text-xs text-[#1C1710]/90 italic font-serif leading-relaxed">"${esc(openingLine)}"</p>
             </div>
             <div class="p-3 bg-black/20 rounded-lg border-l-2 border-indigo-500/30">
               <span class="text-[9px] uppercase tracking-widest text-indigo-400 block font-semibold mb-1">30-Second Opening</span>
-              <p class="text-xs text-white/90 italic font-serif leading-relaxed">"${esc(opening30s)}"</p>
+              <p class="text-xs text-[#1C1710]/90 italic font-serif leading-relaxed">"${esc(opening30s)}"</p>
             </div>
             <div class="p-3 bg-black/20 rounded-lg border-l-2 border-indigo-500/30">
               <span class="text-[9px] uppercase tracking-widest text-indigo-400 block font-semibold mb-1">60-Second Opening</span>
-              <p class="text-xs text-white/90 italic font-serif leading-relaxed">"${esc(opening60s)}"</p>
+              <p class="text-xs text-[#1C1710]/90 italic font-serif leading-relaxed">"${esc(opening60s)}"</p>
             </div>
           </div>
         </div>
 
         <!-- Card 2: Closing Prayer -->
-        <div class="p-5 bg-white/5 border border-white/10 rounded-xl backdrop-blur-md flex flex-col gap-4">
-          <div class="flex items-center gap-2 border-b border-white/5 pb-2">
+        <div class="p-5 bg-black/5 border border-black/10 rounded-xl backdrop-blur-md flex flex-col gap-4">
+          <div class="flex items-center gap-2 border-b border-black/5 pb-2">
             <span class="text-lg">🎯</span>
             <h4 class="text-xs uppercase tracking-wider text-moot-accent font-bold">2. Closing Prayer (Relief sought)</h4>
           </div>
@@ -1730,15 +1730,15 @@ export function renderOralAdvocacySuite(container) {
           <div class="space-y-3">
             <div class="p-3 bg-black/20 rounded-lg border-l-2 border-amber-500/30">
               <span class="text-[9px] uppercase tracking-widest text-amber-400 block font-semibold mb-1">15-Second Closing</span>
-              <p class="text-xs text-white/90 italic font-serif leading-relaxed">"${esc(closing15s)}"</p>
+              <p class="text-xs text-[#1C1710]/90 italic font-serif leading-relaxed">"${esc(closing15s)}"</p>
             </div>
             <div class="p-3 bg-black/20 rounded-lg border-l-2 border-amber-500/30">
               <span class="text-[9px] uppercase tracking-widest text-amber-400 block font-semibold mb-1">30-Second Closing</span>
-              <p class="text-xs text-white/90 italic font-serif leading-relaxed">"${esc(closing30s)}"</p>
+              <p class="text-xs text-[#1C1710]/90 italic font-serif leading-relaxed">"${esc(closing30s)}"</p>
             </div>
             <div class="p-3 bg-black/20 rounded-lg border-l-2 border-amber-500/30">
               <span class="text-[9px] uppercase tracking-widest text-amber-400 block font-semibold mb-1">Full Court Room Prayer</span>
-              <p class="text-xs text-white/90 italic font-serif leading-relaxed">"${esc(closingFull)}"</p>
+              <p class="text-xs text-[#1C1710]/90 italic font-serif leading-relaxed">"${esc(closingFull)}"</p>
             </div>
           </div>
         </div>
@@ -1749,8 +1749,8 @@ export function renderOralAdvocacySuite(container) {
       <div class="flex flex-col gap-5 font-sans">
         ${submissions.map((sub, idx) => `
         <!-- Submission ${idx + 1} Card -->
-        <div class="p-5 bg-white/5 border border-white/10 rounded-xl backdrop-blur-md flex flex-col gap-3">
-          <div class="flex justify-between items-center border-b border-white/5 pb-2 mb-1">
+        <div class="p-5 bg-black/5 border border-black/10 rounded-xl backdrop-blur-md flex flex-col gap-3">
+          <div class="flex justify-between items-center border-b border-black/5 pb-2 mb-1">
             <div class="flex items-center gap-2">
               <span class="text-lg">⚖️</span>
               <h4 class="text-xs uppercase tracking-wider text-moot-accent font-bold">${esc(sub.title || `Submission ${idx + 1}`)}</h4>
@@ -1758,26 +1758,26 @@ export function renderOralAdvocacySuite(container) {
             <span class="px-2 py-0.5 text-[8px] font-sans font-bold bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 rounded uppercase tracking-wider">${idx === 0 ? 'Primary Ground' : 'Procedural Ground'}</span>
           </div>
           
-          <div class="space-y-2 text-xs text-white/80">
+          <div class="space-y-2 text-xs text-[#1C1710]/80">
             <div>
               <span class="font-sans font-bold text-gray-400 block text-[10px] uppercase tracking-wider">Issue</span>
-              <p class="mt-0.5 text-white/95">${esc(sub.issue)}</p>
+              <p class="mt-0.5 text-[#1C1710]/95">${esc(sub.issue)}</p>
             </div>
             <div class="pt-2">
               <span class="font-sans font-bold text-gray-400 block text-[10px] uppercase tracking-wider">Governing Precedent / Authority</span>
-              <p class="mt-0.5 text-white/95 italic font-serif">${esc(sub.precedent)}</p>
+              <p class="mt-0.5 text-[#1C1710]/95 italic font-serif">${esc(sub.precedent)}</p>
             </div>
             <div class="pt-2">
               <span class="font-sans font-bold text-gray-400 block text-[10px] uppercase tracking-wider">Constitutional Rule</span>
-              <p class="mt-0.5 text-white/95">${esc(sub.rule)}</p>
+              <p class="mt-0.5 text-[#1C1710]/95">${esc(sub.rule)}</p>
             </div>
             <div class="pt-2">
               <span class="font-sans font-bold text-gray-400 block text-[10px] uppercase tracking-wider">Application to Facts</span>
-              <p class="mt-0.5 text-white/95">${esc(sub.application)}</p>
+              <p class="mt-0.5 text-[#1C1710]/95">${esc(sub.application)}</p>
             </div>
             <div class="pt-2">
               <span class="font-sans font-bold text-gray-400 block text-[10px] uppercase tracking-wider">Relief Prayed</span>
-              <p class="mt-0.5 text-white/95">${esc(sub.conclusion)}</p>
+              <p class="mt-0.5 text-[#1C1710]/95">${esc(sub.conclusion)}</p>
             </div>
           </div>
         </div>
@@ -1790,19 +1790,19 @@ export function renderOralAdvocacySuite(container) {
         
         <!-- Section 1: Collapsible Questions -->
         <div class="flex flex-col gap-3">
-          <div class="flex items-center gap-2 border-b border-white/5 pb-2">
+          <div class="flex items-center gap-2 border-b border-black/5 pb-2">
             <span class="text-lg">❓</span>
             <h4 class="text-xs uppercase tracking-wider text-moot-accent font-bold">1. Top likely judicial questions</h4>
           </div>
           
           <div class="space-y-2 font-sans">
             ${qaList.map((qa, idx) => `
-              <details class="group bg-white/5 border border-white/10 rounded-lg transition-all duration-300 overflow-hidden">
-                <summary class="flex justify-between items-center p-3 cursor-pointer select-none text-xs font-semibold text-white/90 hover:bg-white/[0.03] font-sans">
+              <details class="group bg-black/5 border border-black/10 rounded-lg transition-all duration-300 overflow-hidden">
+                <summary class="flex justify-between items-center p-3 cursor-pointer select-none text-xs font-semibold text-[#1C1710]/90 hover:bg-black/[0.04] font-sans">
                   <span>Q${idx + 1}: ${esc(qa.q || qa.question)}</span>
                   <span class="text-xs transition-transform duration-300 group-open:rotate-180 text-moot-accent font-sans">▼</span>
                 </summary>
-                <div class="p-3 bg-black/25 text-xs text-gray-300 leading-relaxed font-serif italic border-t border-white/5">
+                <div class="p-3 bg-black/25 text-xs text-[#4a4030] leading-relaxed font-serif italic border-t border-black/5">
                   "${esc(qa.a || qa.answer)}"
                 </div>
               </details>
@@ -1812,7 +1812,7 @@ export function renderOralAdvocacySuite(container) {
 
         <!-- Section 2: Judicial Traps Warning Cards -->
         <div class="flex flex-col gap-3 mt-2">
-          <div class="flex items-center gap-2 border-b border-white/5 pb-2">
+          <div class="flex items-center gap-2 border-b border-black/5 pb-2">
             <span class="text-lg">🔥</span>
             <h4 class="text-xs uppercase tracking-wider text-red-400 font-bold">2. Judicial Traps & Escape Routes</h4>
           </div>
@@ -1825,10 +1825,10 @@ export function renderOralAdvocacySuite(container) {
                 <strong class="text-xs text-red-400 uppercase tracking-wider font-sans">Trap ${idx + 1}: ${esc(trap.title || 'Judicial Trap')}</strong>
                 <span class="px-2 py-0.5 text-[8px] font-bold bg-red-500/20 text-red-300 border border-red-500/30 rounded uppercase tracking-wider font-sans">Danger Level: Critical</span>
               </div>
-              <p class="text-xs text-gray-300 leading-relaxed font-sans font-medium">
-                <strong class="text-white">Why it is dangerous:</strong> ${esc(trap.description)}
+              <p class="text-xs text-[#4a4030] leading-relaxed font-sans font-medium">
+                <strong class="text-[#1C1710]">Why it is dangerous:</strong> ${esc(trap.description)}
               </p>
-              <div class="p-2.5 bg-black/35 rounded border-l-2 border-red-500 text-xs italic text-gray-300 font-serif mt-1">
+              <div class="p-2.5 bg-black/35 rounded border-l-2 border-red-500 text-xs italic text-[#4a4030] font-serif mt-1">
                 "${esc(trap.escapeResponse || trap.response)}"
               </div>
             </div>
@@ -1838,7 +1838,7 @@ export function renderOralAdvocacySuite(container) {
 
         <!-- Section 3: Judge Attack Mode (Hostile Interventions) -->
         <div class="flex flex-col gap-3 mt-2">
-          <div class="flex items-center gap-2 border-b border-white/5 pb-2">
+          <div class="flex items-center gap-2 border-b border-black/5 pb-2">
             <span class="text-lg">🚨</span>
             <h4 class="text-xs uppercase tracking-wider text-red-400 font-bold font-sans">3. Judge Attack Mode (Hostile Interventions)</h4>
           </div>
@@ -1856,10 +1856,10 @@ export function renderOralAdvocacySuite(container) {
                 <strong class="text-xs text-red-400 uppercase tracking-wider font-sans">Intervention ${idx + 1}: ${esc(attack.trapType || 'Hostile Interruption')}</strong>
                 <span class="px-2 py-0.5 text-[8px] font-bold bg-red-500/20 text-red-300 border border-red-500/30 rounded uppercase tracking-wider font-sans">Interruption Risk</span>
               </div>
-              <p class="text-xs text-gray-300 leading-relaxed font-sans font-medium italic">
+              <p class="text-xs text-[#4a4030] leading-relaxed font-sans font-medium italic">
                 <span class="text-red-400 font-bold font-sans">Judge:</span> "${esc(attack.intervention)}"
               </p>
-              <div class="p-2.5 bg-black/35 rounded border-l-2 border-emerald-500 text-xs italic text-gray-300 font-serif mt-1">
+              <div class="p-2.5 bg-black/35 rounded border-l-2 border-emerald-500 text-xs italic text-[#4a4030] font-serif mt-1">
                 <strong class="text-emerald-400 block mb-1 font-sans not-italic text-[9px] uppercase tracking-wider">Advocate Escape Route:</strong>
                 "${esc(attack.advocateEscape || attack.escapeResponse)}"
               </div>
@@ -1872,20 +1872,20 @@ export function renderOralAdvocacySuite(container) {
   } else if (activePackTab === 'rebuttals') {
     tabContentHTML = `
       <div class="flex flex-col gap-5 font-sans">
-        <div class="flex items-center gap-2 border-b border-white/5 pb-2">
+        <div class="flex items-center gap-2 border-b border-black/5 pb-2">
           <span class="text-lg">🛡️</span>
           <h4 class="text-xs uppercase tracking-wider text-moot-accent font-bold">Rebuttal War Room</h4>
         </div>
 
         <div class="space-y-4">
           ${rebuttalsList.map((item, idx) => `
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 p-4 bg-white/5 border border-white/10 rounded-xl">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 p-4 bg-black/5 border border-black/10 rounded-xl">
               <!-- Opponent Argument Card -->
-              <div class="flex flex-col gap-2 border-r border-white/5 pr-3 font-sans">
+              <div class="flex flex-col gap-2 border-r border-black/5 pr-3 font-sans">
                 <div class="flex items-center gap-1.5 text-[9px] uppercase tracking-widest text-red-400 font-bold font-sans">
                   <span>❌</span> Opponent Argument ${idx + 1}
                 </div>
-                <p class="text-xs text-gray-300 leading-relaxed font-serif italic">
+                <p class="text-xs text-[#4a4030] leading-relaxed font-serif italic">
                   "${esc(item.opponent)}"
                 </p>
               </div>
@@ -1895,7 +1895,7 @@ export function renderOralAdvocacySuite(container) {
                 <div class="flex items-center gap-1.5 text-[9px] uppercase tracking-widest text-emerald-400 font-bold font-sans">
                   <span>✔</span> Demolition Rebuttal Strategy
                 </div>
-                <p class="text-xs text-white/95 leading-relaxed font-sans">
+                <p class="text-xs text-[#1C1710]/95 leading-relaxed font-sans">
                   ${esc(item.rebuttal)}
                 </p>
               </div>
@@ -1907,7 +1907,7 @@ export function renderOralAdvocacySuite(container) {
   } else if (activePackTab === 'precedents') {
     tabContentHTML = `
       <div class="flex flex-col gap-5 font-sans">
-        <div class="flex items-center gap-2 border-b border-white/5 pb-2">
+        <div class="flex items-center gap-2 border-b border-black/5 pb-2">
           <span class="text-lg">📖</span>
           <h4 class="text-xs uppercase tracking-wider text-moot-accent font-bold font-sans">Authorities Snapshot</h4>
         </div>
@@ -1919,7 +1919,7 @@ export function renderOralAdvocacySuite(container) {
             ${precedentsList.map((p, idx) => `
               <button 
                 id="precedent-chip-${idx}" 
-                class="px-3 py-1.5 rounded-full text-xs font-medium border border-white/10 hover:border-moot-accent hover:text-white bg-white/5 text-gray-300 transition-all cursor-pointer font-sans"
+                class="px-3 py-1.5 rounded-full text-xs font-medium border border-black/10 hover:border-moot-accent hover:text-[#1C1710] bg-black/5 text-[#4a4030] transition-all cursor-pointer font-sans"
                 onclick="togglePrecedentCard(${idx})"
               >
                 ⚖️ ${esc(p.name)}
@@ -1931,18 +1931,18 @@ export function renderOralAdvocacySuite(container) {
             ${precedentsList.map((p, idx) => `
               <div 
                 id="precedent-card-${idx}" 
-                class="precedent-card-detail hidden p-4 bg-white/5 border border-white/10 rounded-xl transition-all duration-300"
+                class="precedent-card-detail hidden p-4 bg-black/5 border border-black/10 rounded-xl transition-all duration-300"
               >
-                <div class="flex justify-between items-center border-b border-white/5 pb-2 mb-2 font-sans">
-                  <strong class="text-xs text-white font-sans">${esc(p.name)}</strong>
+                <div class="flex justify-between items-center border-b border-black/5 pb-2 mb-2 font-sans">
+                  <strong class="text-xs text-[#1C1710] font-sans">${esc(p.name)}</strong>
                   <span class="text-[9px] font-semibold text-moot-accent uppercase tracking-widest font-sans">${esc(p.bench || 'Constitutional Bench')}</span>
                 </div>
 
                 <!-- Authority Details Grid -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 p-3 bg-black/30 border border-white/5 rounded-lg mb-3 text-xs font-sans">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 p-3 bg-black/30 border border-black/5 rounded-lg mb-3 text-xs font-sans">
                   <div>
                     <span class="text-white-muted uppercase tracking-wider text-[8px] block font-semibold">Bench Strength</span>
-                    <span class="text-white font-medium font-sans">${esc(p.benchStrength || p.bench || 'Constitutional Bench')}</span>
+                    <span class="text-[#1C1710] font-medium font-sans">${esc(p.benchStrength || p.bench || 'Constitutional Bench')}</span>
                   </div>
                   <div>
                     <span class="text-white-muted uppercase tracking-wider text-[8px] block font-semibold">Authority Weight</span>
@@ -1950,22 +1950,22 @@ export function renderOralAdvocacySuite(container) {
                   </div>
                   <div class="md:col-span-2">
                     <span class="text-white-muted uppercase tracking-wider text-[8px] block font-semibold">Constitutional Importance</span>
-                    <span class="text-white font-medium font-sans">${esc(p.constitutionalImportance || 'Critical Landmark')}</span>
+                    <span class="text-[#1C1710] font-medium font-sans">${esc(p.constitutionalImportance || 'Critical Landmark')}</span>
                   </div>
                 </div>
                 
                 <div class="space-y-2 text-xs leading-relaxed font-sans">
                   <div>
                     <span class="text-[9px] uppercase tracking-widest text-gray-400 block font-semibold">Ratio Decidendi</span>
-                    <p class="text-gray-300 mt-0.5">${esc(p.ratio)}</p>
+                    <p class="text-[#4a4030] mt-0.5">${esc(p.ratio)}</p>
                   </div>
                   <div class="pt-1">
                     <span class="text-[9px] uppercase tracking-widest text-[#4caf82] block font-semibold">Strategic Value</span>
-                    <p class="text-gray-300 mt-0.5">${esc(p.strategicValue || p.why)}</p>
+                    <p class="text-[#4a4030] mt-0.5">${esc(p.strategicValue || p.why)}</p>
                   </div>
                   <div class="pt-1">
-                    <span class="text-[9px] uppercase tracking-widest text-[#c9a84c] block font-semibold">Courtroom Usage (One-Liner)</span>
-                    <p class="text-white italic font-serif mt-0.5">"${esc(p.usage || p.courtroomUsage)}"</p>
+                    <span class="text-[9px] uppercase tracking-widest text-[#B0392E] block font-semibold">Courtroom Usage (One-Liner)</span>
+                    <p class="text-[#1C1710] italic font-serif mt-0.5">"${esc(p.usage || p.courtroomUsage)}"</p>
                   </div>
                 </div>
               </div>
@@ -1978,7 +1978,7 @@ export function renderOralAdvocacySuite(container) {
 
   container.innerHTML = `
     <div class="flex flex-col gap-4 font-sans">
-      <div class="flex border-b border-white/10 overflow-x-auto scrollbar-none mb-2 font-sans">
+      <div class="flex border-b border-black/10 overflow-x-auto scrollbar-none mb-2 font-sans">
         ${tabHeadersHTML}
       </div>
       <div class="space-y-4 font-sans">
@@ -2010,15 +2010,15 @@ export function renderOralAdvocacySuite(container) {
       if (i === idx) {
         const isHidden = document.getElementById(`precedent-card-${idx}`).classList.contains('hidden');
         if (isHidden) {
-          chip.classList.remove('bg-indigo-500/20', 'border-indigo-500', 'text-white');
-          chip.classList.add('bg-white/5', 'border-white/10', 'text-gray-300');
+          chip.classList.remove('bg-indigo-500/20', 'border-indigo-500', 'text-[#1C1710]');
+          chip.classList.add('bg-black/5', 'border-black/10', 'text-[#4a4030]');
         } else {
-          chip.classList.add('bg-indigo-500/20', 'border-indigo-500', 'text-white');
-          chip.classList.remove('bg-white/5', 'border-white/10', 'text-gray-300');
+          chip.classList.add('bg-indigo-500/20', 'border-indigo-500', 'text-[#1C1710]');
+          chip.classList.remove('bg-black/5', 'border-black/10', 'text-[#4a4030]');
         }
       } else {
-        chip.classList.remove('bg-indigo-500/20', 'border-indigo-500', 'text-white');
-        chip.classList.add('bg-white/5', 'border-white/10', 'text-gray-300');
+        chip.classList.remove('bg-indigo-500/20', 'border-indigo-500', 'text-[#1C1710]');
+        chip.classList.add('bg-black/5', 'border-black/10', 'text-[#4a4030]');
       }
     });
   };
@@ -2088,7 +2088,7 @@ function getUpgradedOralNotes(oralAdvocacy, stance, issue) {
 
     return `
       <div class="flex flex-col gap-5">
-        <div class="p-4 bg-white/5 border border-white/10 rounded-xl">
+        <div class="p-4 bg-black/5 border border-black/10 rounded-xl">
           <h4 class="text-xs uppercase tracking-wider text-moot-accent font-semibold mb-2 flex items-center gap-1.5 font-sans">
             <span>🎙️</span> 1. Bench Opening (Ready to Speak)
           </h4>
@@ -2104,8 +2104,8 @@ function getUpgradedOralNotes(oralAdvocacy, stance, issue) {
   const closingPrayer = oralAdvocacy.closingPrayer || "We thank this Court.";
 
   const submissionsHTML = (oralAdvocacy.submissions || []).map((sub, idx) => `
-    <div class="p-3 bg-white/[0.02] border border-white/5 rounded-lg mb-2">
-      <strong class="text-white block mb-1">${esc(sub.title || `Contention ${idx + 1}`)}</strong>
+    <div class="p-3 bg-black/[0.03] border border-black/5 rounded-lg mb-2">
+      <strong class="text-[#1C1710] block mb-1">${esc(sub.title || `Contention ${idx + 1}`)}</strong>
       <div class="mb-1"><span class="text-indigo-400 font-semibold uppercase text-[9px]">Precedent:</span> <span class="italic font-serif">${esc(sub.precedent || 'None')}</span></div>
       <div class="mb-1"><span class="text-gray-400 font-semibold uppercase text-[9px]">Rule:</span> ${esc(sub.rule || '')}</div>
       <div class="mb-1"><span class="text-gray-400 font-semibold uppercase text-[9px]">Application:</span> ${esc(sub.application || '')}</div>
@@ -2114,32 +2114,32 @@ function getUpgradedOralNotes(oralAdvocacy, stance, issue) {
   `).join('');
 
   const qaHTML = (oralAdvocacy.qa || []).map((pair, idx) => `
-    <div class="p-3 bg-white/[0.02] border border-white/5 rounded-lg mb-2 font-sans">
-      <strong class="text-[#c9a84c] block mb-1">Q${idx + 1}: ${esc(pair.q)}</strong>
-      <span class="text-gray-300 italic font-serif leading-relaxed block mt-1">"${esc(pair.a)}"</span>
+    <div class="p-3 bg-black/[0.03] border border-black/5 rounded-lg mb-2 font-sans">
+      <strong class="text-[#B0392E] block mb-1">Q${idx + 1}: ${esc(pair.q)}</strong>
+      <span class="text-[#4a4030] italic font-serif leading-relaxed block mt-1">"${esc(pair.a)}"</span>
     </div>
   `).join('');
 
   const precedentsHTML = (oralAdvocacy.precedents || []).map(p => `
-    <div class="p-3 bg-white/[0.02] border border-white/5 rounded-lg text-xs font-sans mb-2">
-      <strong class="text-white block mb-1">⚖️ ${esc(p.name)} (${esc(p.bench || 'Constitutional Bench')})</strong>
-      <div class="text-white-muted mt-1"><span class="text-[#c9a84c] font-semibold uppercase text-[9px] tracking-wider font-sans">Ratio:</span> ${esc(p.ratio)}</div>
+    <div class="p-3 bg-black/[0.03] border border-black/5 rounded-lg text-xs font-sans mb-2">
+      <strong class="text-[#1C1710] block mb-1">⚖️ ${esc(p.name)} (${esc(p.bench || 'Constitutional Bench')})</strong>
+      <div class="text-white-muted mt-1"><span class="text-[#B0392E] font-semibold uppercase text-[9px] tracking-wider font-sans">Ratio:</span> ${esc(p.ratio)}</div>
       <div class="text-white-muted mt-1"><span class="text-[#4caf82] font-semibold uppercase text-[9px] tracking-wider font-sans">Application:</span> ${esc(p.strategicValue || p.why)}</div>
-      <div class="text-white-muted mt-1"><span class="text-[#c9a84c] font-semibold uppercase text-[9px] tracking-wider font-sans">Usage:</span> <span class="italic font-serif">"${esc(p.usage)}"</span></div>
+      <div class="text-white-muted mt-1"><span class="text-[#B0392E] font-semibold uppercase text-[9px] tracking-wider font-sans">Usage:</span> <span class="italic font-serif">"${esc(p.usage)}"</span></div>
     </div>
   `).join('');
 
   const trapsHTML = (oralAdvocacy.traps || []).map(trap => `
-    <div class="p-3 bg-red-950/10 border border-red-900/20 rounded-lg text-xs leading-relaxed text-gray-300 font-sans mb-2">
+    <div class="p-3 bg-red-950/10 border border-red-900/20 rounded-lg text-xs leading-relaxed text-[#4a4030] font-sans mb-2">
       <strong class="text-red-400 block mb-1">⚠️ ${esc(trap.title || 'Judicial Trap')}</strong>
       <span class="block text-gray-400 mb-1"><strong>Danger:</strong> ${esc(trap.description)}</span>
-      <span class="block mt-2 italic text-gray-300 font-serif">Escape Route: "${esc(trap.escapeResponse)}"</span>
+      <span class="block mt-2 italic text-[#4a4030] font-serif">Escape Route: "${esc(trap.escapeResponse)}"</span>
     </div>
   `).join('');
 
   return `
     <div class="flex flex-col gap-5">
-      <div class="p-4 bg-white/5 border border-white/10 rounded-xl">
+      <div class="p-4 bg-black/5 border border-black/10 rounded-xl">
         <h4 class="text-xs uppercase tracking-wider text-moot-accent font-semibold mb-2 flex items-center gap-1.5 font-sans">
           <span>🎙️</span> 1. Bench Opening (Ready to Speak)
         </h4>
@@ -2148,16 +2148,16 @@ function getUpgradedOralNotes(oralAdvocacy, stance, issue) {
         </p>
       </div>
 
-      <div class="p-4 bg-white/5 border border-white/10 rounded-xl">
+      <div class="p-4 bg-black/5 border border-black/10 rounded-xl">
         <h4 class="text-xs uppercase tracking-wider text-moot-accent font-semibold mb-3 flex items-center gap-1.5 font-sans">
           <span>⚖️</span> 2. Core Submissions (Oral Flow)
         </h4>
-        <div class="space-y-3 text-xs leading-relaxed text-gray-300 font-sans">
+        <div class="space-y-3 text-xs leading-relaxed text-[#4a4030] font-sans">
           ${submissionsHTML}
         </div>
       </div>
 
-      <div class="p-4 bg-white/5 border border-white/10 rounded-xl">
+      <div class="p-4 bg-black/5 border border-black/10 rounded-xl">
         <h4 class="text-xs uppercase tracking-wider text-moot-accent font-semibold mb-3 flex items-center gap-1.5 font-sans">
           <span>❓</span> 3. Likely Bench Questions & Answers
         </h4>
@@ -2166,7 +2166,7 @@ function getUpgradedOralNotes(oralAdvocacy, stance, issue) {
         </div>
       </div>
 
-      <div class="p-4 bg-white/5 border border-white/10 rounded-xl">
+      <div class="p-4 bg-black/5 border border-black/10 rounded-xl">
         <h4 class="text-xs uppercase tracking-wider text-moot-accent font-semibold mb-3 flex items-center gap-1.5 font-sans">
           <span>📖</span> 4. Key Precedent Ratios (Memorizer)
         </h4>
@@ -2175,11 +2175,11 @@ function getUpgradedOralNotes(oralAdvocacy, stance, issue) {
         </div>
       </div>
 
-      <div class="p-4 bg-white/5 border border-white/10 rounded-xl">
+      <div class="p-4 bg-black/5 border border-black/10 rounded-xl">
         <h4 class="text-xs uppercase tracking-wider text-moot-accent font-semibold mb-3 flex items-center gap-1.5 font-sans">
           <span>🔥</span> 5. Judicial Traps & 30-Second Rescue
         </h4>
-        <div class="space-y-3 text-xs leading-relaxed text-gray-300 font-sans">
+        <div class="space-y-3 text-xs leading-relaxed text-[#4a4030] font-sans">
           ${trapsHTML}
           <div class="p-3 bg-indigo-950/10 border border-indigo-900/20 rounded-lg">
             <strong class="text-indigo-400 block mb-1">⏱️ Closing Prayer</strong>
@@ -2198,11 +2198,11 @@ function getUpgradedRebuttals(rebuttalsData, stance) {
   if (!rebuttalsData) {
     return `
       <div class="flex flex-col gap-5 font-sans">
-        <div class="p-4 bg-white/5 border border-white/10 rounded-xl font-sans">
+        <div class="p-4 bg-black/5 border border-black/10 rounded-xl font-sans">
           <h4 class="text-xs uppercase tracking-wider text-red-400 font-semibold mb-3 flex items-center gap-1.5 font-sans">
             <span>⚔️</span> Strongest Opposition Arguments
           </h4>
-          <ul class="space-y-2 text-xs text-gray-300 leading-relaxed list-disc pl-4 font-sans">
+          <ul class="space-y-2 text-xs text-[#4a4030] leading-relaxed list-disc pl-4 font-sans">
             <li><strong>Discretionary Privilege:</strong> The State claims administrative policies enjoy a wide latitude of immunity.</li>
           </ul>
         </div>
@@ -2217,8 +2217,8 @@ function getUpgradedRebuttals(rebuttalsData, stance) {
   `).join('');
 
   const followHTML = (rebuttalsData.followUpQuestions || []).map((pair, idx) => `
-    <div class="p-3 bg-white/[0.02] border border-white/5 rounded-lg font-sans mb-2">
-      <strong class="text-white block mb-1">Follow-up ${idx + 1}: "${esc(pair.q)}"</strong>
+    <div class="p-3 bg-black/[0.03] border border-black/5 rounded-lg font-sans mb-2">
+      <strong class="text-[#1C1710] block mb-1">Follow-up ${idx + 1}: "${esc(pair.q)}"</strong>
       <span class="italic block mt-1 font-serif">Answer: "${esc(pair.a)}"</span>
     </div>
   `).join('');
@@ -2228,47 +2228,47 @@ function getUpgradedRebuttals(rebuttalsData, stance) {
 
   return `
     <div class="flex flex-col gap-5 font-sans">
-      <div class="p-4 bg-white/5 border border-white/10 rounded-xl font-sans">
+      <div class="p-4 bg-black/5 border border-black/10 rounded-xl font-sans">
         <h4 class="text-xs uppercase tracking-wider text-red-400 font-semibold mb-3 flex items-center gap-1.5 font-sans">
           <span>⚔️</span> Strongest Opposition Arguments
         </h4>
-        <ul class="space-y-2 text-xs text-gray-300 leading-relaxed list-disc pl-4 font-sans">
+        <ul class="space-y-2 text-xs text-[#4a4030] leading-relaxed list-disc pl-4 font-sans">
           ${oppHTML || '<li class="italic text-gray-500">No opposition arguments identified.</li>'}
         </ul>
       </div>
 
-      <div class="p-4 bg-white/5 border border-white/10 rounded-xl font-sans">
+      <div class="p-4 bg-black/5 border border-black/10 rounded-xl font-sans">
         <h4 class="text-xs uppercase tracking-wider text-emerald-400 font-semibold mb-3 flex items-center gap-1.5 font-sans">
           <span>🛡️</span> Response Strategy & Demolition
         </h4>
-        <div class="space-y-3 text-xs leading-relaxed text-gray-300 font-sans">
+        <div class="space-y-3 text-xs leading-relaxed text-[#4a4030] font-sans">
           ${demoHTML || '<p class="italic text-gray-500">No demolition strategy prepared.</p>'}
         </div>
       </div>
 
-      <div class="p-4 bg-white/5 border border-white/10 rounded-xl font-sans">
-        <h4 class="text-xs uppercase tracking-wider text-[#c9a84c] font-semibold mb-3 flex items-center gap-1.5 font-sans">
+      <div class="p-4 bg-black/5 border border-black/10 rounded-xl font-sans">
+        <h4 class="text-xs uppercase tracking-wider text-[#B0392E] font-semibold mb-3 flex items-center gap-1.5 font-sans">
           <span>🎯</span> Bench Follow-Up Questions
         </h4>
-        <div class="space-y-3 text-xs text-gray-300 font-sans">
+        <div class="space-y-3 text-xs text-[#4a4030] font-sans">
           ${followHTML || '<p class="italic text-gray-500">No follow-up questions prepared.</p>'}
         </div>
       </div>
 
-      <div class="p-4 bg-white/5 border border-white/10 rounded-xl font-sans">
+      <div class="p-4 bg-black/5 border border-black/10 rounded-xl font-sans">
         <h4 class="text-xs uppercase tracking-wider text-indigo-400 font-semibold mb-2 flex items-center gap-1.5 font-sans">
           <span>⚠️</span> Fallback Position (Plan B)
         </h4>
-        <p class="text-xs text-gray-300 leading-relaxed bg-black/20 p-3 rounded-lg border-l-2 border-indigo-500/30 font-serif italic">
+        <p class="text-xs text-[#4a4030] leading-relaxed bg-black/20 p-3 rounded-lg border-l-2 border-indigo-500/30 font-serif italic">
           "${esc(planB)}"
         </p>
       </div>
 
-      <div class="p-4 bg-white/5 border border-white/10 rounded-xl bg-red-950/10 border-red-900/30 font-sans">
+      <div class="p-4 bg-black/5 border border-black/10 rounded-xl bg-red-950/10 border-red-900/30 font-sans">
         <h4 class="text-xs uppercase tracking-wider text-red-400 font-semibold mb-2 flex items-center gap-1.5 font-sans">
           <span>🚨</span> Emergency Rescue Arguments
         </h4>
-        <p class="text-xs text-gray-300 leading-relaxed font-serif italic">
+        <p class="text-xs text-[#4a4030] leading-relaxed font-serif italic">
           "${esc(emergencyRescue)}"
         </p>
       </div>
@@ -2289,17 +2289,17 @@ function getUpgradedCitations(citationsData, notes) {
     const currentStrength = Math.min(95, 40 + (casesCount * 12) + (statutesCount * 8));
     const potentialStrength = Math.min(98, currentStrength + 20);
 
-    const strengthColor = currentStrength >= 75 ? 'text-[#4caf82]' : currentStrength >= 50 ? 'text-[#c9a84c]' : 'text-red-400';
-    const progressColor = currentStrength >= 75 ? 'bg-[#4caf82]' : currentStrength >= 50 ? 'bg-[#c9a84c]' : 'bg-red-500';
+    const strengthColor = currentStrength >= 75 ? 'text-[#4caf82]' : currentStrength >= 50 ? 'text-[#B0392E]' : 'text-red-400';
+    const progressColor = currentStrength >= 75 ? 'bg-[#4caf82]' : currentStrength >= 50 ? 'bg-[#B0392E]' : 'bg-red-500';
 
     return `
       <div class="flex flex-col gap-5 font-sans">
-        <div class="p-4 bg-white/5 border border-white/10 rounded-xl flex flex-col gap-3 font-sans">
+        <div class="p-4 bg-black/5 border border-black/10 rounded-xl flex flex-col gap-3 font-sans">
           <div class="flex justify-between items-center font-sans">
             <span class="text-xs uppercase tracking-wider text-white-2 font-semibold">Citation Strength Assistant</span>
             <span class="text-xs font-bold ${strengthColor}">Current: ${currentStrength}% | Potential: ${potentialStrength}%</span>
           </div>
-          <div class="w-full h-2 bg-navy-5 rounded-full overflow-hidden border border-white/5 font-sans">
+          <div class="w-full h-2 bg-navy-5 rounded-full overflow-hidden border border-black/5 font-sans">
             <div class="h-full ${progressColor} transition-all duration-500" style="width: ${currentStrength}%"></div>
           </div>
         </div>
@@ -2309,28 +2309,28 @@ function getUpgradedCitations(citationsData, notes) {
 
   const currentStrength = citationsData.currentCitationsStrength ?? 50;
   const potentialStrength = citationsData.potentialCitationsStrength ?? 85;
-  const strengthColor = currentStrength >= 75 ? 'text-[#4caf82]' : currentStrength >= 50 ? 'text-[#c9a84c]' : 'text-red-400';
-  const progressColor = currentStrength >= 75 ? 'bg-[#4caf82]' : currentStrength >= 50 ? 'bg-[#c9a84c]' : 'bg-red-500';
+  const strengthColor = currentStrength >= 75 ? 'text-[#4caf82]' : currentStrength >= 50 ? 'text-[#B0392E]' : 'text-red-400';
+  const progressColor = currentStrength >= 75 ? 'bg-[#4caf82]' : currentStrength >= 50 ? 'bg-[#B0392E]' : 'bg-red-500';
 
   const missingHTML = (citationsData.missingAuthorities || []).map(auth => {
     const sg = auth.scoreGains || {};
     const scoreGainText = `+${sg.authorityStrength || 0} Authority Strength, +${sg.constitutionalDepth || 0} Constitutional Depth, +${sg.benchResistance || 0} Bench Resistance | Potential Gain: +${sg.potentialScoreGain || 0}`;
     return `
-      <div class="p-3 bg-white/[0.02] border border-white/5 rounded-lg mb-2 text-left">
+      <div class="p-3 bg-black/[0.03] border border-black/5 rounded-lg mb-2 text-left">
         <strong class="text-red-400 block mb-1">⚖️ ${esc(auth.name)}</strong>
-        <div class="text-xs text-gray-300"><strong>Why Needed:</strong> ${esc(auth.whyNeeded)}</div>
-        <div class="text-xs text-gray-300 mt-1"><strong>Strategic Impact:</strong> ${esc(auth.expectedStrategicImpact)}</div>
+        <div class="text-xs text-[#4a4030]"><strong>Why Needed:</strong> ${esc(auth.whyNeeded)}</div>
+        <div class="text-xs text-[#4a4030] mt-1"><strong>Strategic Impact:</strong> ${esc(auth.expectedStrategicImpact)}</div>
         <div class="text-[10px] text-moot-accent mt-1 uppercase font-semibold">${esc(scoreGainText)}</div>
       </div>
     `;
   }).join('');
 
   const constBenchHTML = (citationsData.constitutionalBenchAuthorities || []).map(p => `
-    <div class="p-3 bg-white/[0.02] border border-white/5 rounded-lg mb-2 text-left">
-      <strong class="text-white block mb-1">⚖️ ${esc(p.name)} (${esc(p.bench || 'Constitutional Bench')})</strong>
-      <div class="text-xs text-gray-300"><strong>Ratio Decidendi:</strong> ${esc(p.ratio)}</div>
-      <div class="text-xs text-gray-300 mt-1"><strong>Strategic Value:</strong> ${esc(p.strategicValue)}</div>
-      <div class="text-xs text-white italic mt-1">Usage: "${esc(p.usage)}"</div>
+    <div class="p-3 bg-black/[0.03] border border-black/5 rounded-lg mb-2 text-left">
+      <strong class="text-[#1C1710] block mb-1">⚖️ ${esc(p.name)} (${esc(p.bench || 'Constitutional Bench')})</strong>
+      <div class="text-xs text-[#4a4030]"><strong>Ratio Decidendi:</strong> ${esc(p.ratio)}</div>
+      <div class="text-xs text-[#4a4030] mt-1"><strong>Strategic Value:</strong> ${esc(p.strategicValue)}</div>
+      <div class="text-xs text-[#1C1710] italic mt-1">Usage: "${esc(p.usage)}"</div>
     </div>
   `).join('');
 
@@ -2344,48 +2344,48 @@ function getUpgradedCitations(citationsData, notes) {
 
   return `
     <div class="flex flex-col gap-5 font-sans text-left">
-      <div class="p-4 bg-white/5 border border-white/10 rounded-xl flex flex-col gap-3 font-sans">
+      <div class="p-4 bg-black/5 border border-black/10 rounded-xl flex flex-col gap-3 font-sans">
         <div class="flex justify-between items-center font-sans">
           <span class="text-xs uppercase tracking-wider text-white-2 font-semibold">Citation Strength Assistant</span>
           <span class="text-xs font-bold ${strengthColor}">Current: ${currentStrength}% | Potential: ${potentialStrength}%</span>
         </div>
-        <div class="w-full h-2 bg-navy-5 rounded-full overflow-hidden border border-white/5 font-sans">
+        <div class="w-full h-2 bg-navy-5 rounded-full overflow-hidden border border-black/5 font-sans">
           <div class="h-full ${progressColor} transition-all duration-500" style="width: ${currentStrength}%"></div>
         </div>
       </div>
 
-      <div class="p-4 bg-white/5 border border-white/10 rounded-xl font-sans">
+      <div class="p-4 bg-black/5 border border-black/10 rounded-xl font-sans">
         <h4 class="text-xs uppercase tracking-wider text-red-400 font-semibold mb-3 flex items-center gap-1.5 font-sans">
           <span>❌</span> Missing Authorities
         </h4>
-        <div class="space-y-2 text-xs text-gray-300 font-sans">
+        <div class="space-y-2 text-xs text-[#4a4030] font-sans">
           ${missingHTML || '<p class="italic text-gray-500">No missing authorities identified.</p>'}
         </div>
       </div>
 
-      <div class="p-4 bg-white/5 border border-white/10 rounded-xl font-sans">
-        <h4 class="text-xs uppercase tracking-wider text-[#c9a84c] font-semibold mb-3 flex items-center gap-1.5 font-sans">
+      <div class="p-4 bg-black/5 border border-black/10 rounded-xl font-sans">
+        <h4 class="text-xs uppercase tracking-wider text-[#B0392E] font-semibold mb-3 flex items-center gap-1.5 font-sans">
           <span>🏛️</span> Constitutional Bench Authorities
         </h4>
-        <div class="space-y-2 text-xs text-gray-300 font-sans">
+        <div class="space-y-2 text-xs text-[#4a4030] font-sans">
           ${constBenchHTML || '<p class="italic text-gray-500">No constitutional bench authorities suggested.</p>'}
         </div>
       </div>
 
-      <div class="p-4 bg-white/5 border border-white/10 rounded-xl font-sans">
+      <div class="p-4 bg-black/5 border border-black/10 rounded-xl font-sans">
         <h4 class="text-xs uppercase tracking-wider text-indigo-400 font-semibold mb-3 flex items-center gap-1.5 font-sans">
           <span>💡</span> Strategic Citations
         </h4>
-        <div class="space-y-2 text-xs text-gray-300 font-sans">
+        <div class="space-y-2 text-xs text-[#4a4030] font-sans">
           ${strategicHTML || '<p class="italic text-gray-500">No strategic citations suggested.</p>'}
         </div>
       </div>
 
-      <div class="p-4 bg-white/5 border border-white/10 rounded-xl bg-amber-950/10 border-amber-900/30 font-sans">
-        <h4 class="text-xs uppercase tracking-wider text-[#c9a84c] font-semibold mb-3 flex items-center gap-1.5 font-sans">
+      <div class="p-4 bg-black/5 border border-black/10 rounded-xl bg-amber-950/10 border-amber-900/30 font-sans">
+        <h4 class="text-xs uppercase tracking-wider text-[#B0392E] font-semibold mb-3 flex items-center gap-1.5 font-sans">
           <span>⚠️</span> Weakly Supported Claims
         </h4>
-        <div class="space-y-2 text-xs text-gray-300 font-sans text-left">
+        <div class="space-y-2 text-xs text-[#4a4030] font-sans text-left">
           ${weaklyHTML || '<p class="italic text-gray-500">No weakly supported claims identified.</p>'}
         </div>
       </div>
@@ -2610,7 +2610,7 @@ export function renderPreDraftAuthorities() {
   const authorities = getAuthoritiesForIssueAndStance(issueVal, stance);
 
   if (authorities.length === 0) {
-    container.innerHTML = `<div class="text-[11px] text-white-muted italic py-1 font-sans text-center bg-white/[0.01] border border-dashed border-white/10 rounded-xl p-4">No key recommended weapons for this issue.</div>`;
+    container.innerHTML = `<div class="text-[11px] text-white-muted italic py-1 font-sans text-center bg-black/[0.02] border border-dashed border-black/10 rounded-xl p-4">No key recommended weapons for this issue.</div>`;
     return;
   }
 
@@ -2618,14 +2618,14 @@ export function renderPreDraftAuthorities() {
     const isSelected = selectedAuthorities.some(a => a.name === auth.name);
 
     return `
-      <div class="authority-arsenal-card bg-white/[0.02] border border-white/10 rounded-xl p-4 flex flex-col gap-3 transition-all hover:border-moot-accent/30 relative">
+      <div class="authority-arsenal-card bg-black/[0.03] border border-black/10 rounded-xl p-4 flex flex-col gap-3 transition-all hover:border-moot-accent/30 relative">
         <div class="flex justify-between items-start gap-2">
           <div>
             <span class="text-[9px] uppercase tracking-wider px-2 py-0.5 rounded bg-moot-accent/10 text-moot-accent border border-moot-accent/20 font-sans font-semibold">${esc(auth.section || 'Constitutional Law')}</span>
-            <h4 class="text-xs font-semibold text-white mt-1.5 leading-snug font-sans">${esc(auth.display || auth.name)}</h4>
+            <h4 class="text-xs font-semibold text-[#1C1710] mt-1.5 leading-snug font-sans">${esc(auth.display || auth.name)}</h4>
           </div>
           <button type="button" onclick="window.toggleAuthority('${auth.name.replace(/'/g, "\\'")}', '${auth.ratio.replace(/'/g, "\\'")}')" class="btn-weapon-toggle text-[10px] font-bold uppercase tracking-wider py-1 px-2.5 rounded border transition-all ${
-            isSelected ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-white/5 border border-white/10 text-white-muted hover:text-white hover:bg-white/10'
+            isSelected ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-black/5 border border-black/10 text-white-muted hover:text-[#1C1710] hover:bg-black/10'
           }">
             ${isSelected ? '✓ Arm' : '+ Weapon'}
           </button>
@@ -2635,11 +2635,11 @@ export function renderPreDraftAuthorities() {
           ${esc(auth.whyItMatters || auth.ratio.substring(0, 120) + '...')}
         </p>
         
-        <div class="flex gap-2 pt-2 border-t border-white/5">
+        <div class="flex gap-2 pt-2 border-t border-black/5">
           <button type="button" onclick="window.openAuthorityModal('${auth.name.replace(/'/g, "\\'")}', 'ratio')" class="text-[10px] font-medium text-moot-accent hover:underline bg-transparent border-none cursor-pointer p-0 flex items-center gap-1">👁️ Ratio</button>
-          <span class="text-white/20 text-[10px]">•</span>
+          <span class="text-[#1C1710]/20 text-[10px]">•</span>
           <button type="button" onclick="window.openAuthorityModal('${auth.name.replace(/'/g, "\\'")}', 'usage')" class="text-[10px] font-medium text-moot-accent hover:underline bg-transparent border-none cursor-pointer p-0 flex items-center gap-1">💡 How To Use</button>
-          <span class="text-white/20 text-[10px]">•</span>
+          <span class="text-[#1C1710]/20 text-[10px]">•</span>
           <button type="button" onclick="window.openAuthorityModal('${auth.name.replace(/'/g, "\\'")}', 'courtroom')" class="text-[10px] font-medium text-moot-accent hover:underline bg-transparent border-none cursor-pointer p-0 flex items-center gap-1">🗣️ Courtroom Usage</button>
         </div>
       </div>
@@ -2688,10 +2688,10 @@ window.selectAdvocacyIssue = function(idx) {
     if (el) {
       if (i === idx) {
         el.classList.add('bg-moot-accent/10', 'border-moot-accent/30');
-        el.classList.remove('bg-white/[0.02]', 'border-white/5');
+        el.classList.remove('bg-black/[0.03]', 'border-black/5');
       } else {
         el.classList.remove('bg-moot-accent/10', 'border-moot-accent/30');
-        el.classList.add('bg-white/[0.02]', 'border-white/5');
+        el.classList.add('bg-black/[0.03]', 'border-black/5');
       }
     }
   });
@@ -2729,11 +2729,11 @@ function renderAdvocacyAuthorities(issue) {
 
   dock.innerHTML = authorities.map(auth => {
     return `
-      <div class="bg-white/[0.02] border border-white/10 rounded-xl p-4 flex flex-col gap-2 transition-all hover:border-moot-accent/30">
+      <div class="bg-black/[0.03] border border-black/10 rounded-xl p-4 flex flex-col gap-2 transition-all hover:border-moot-accent/30">
         <div class="text-[9px] uppercase tracking-wider px-2 py-0.5 rounded bg-moot-accent/10 text-moot-accent border border-moot-accent/20 font-sans font-semibold inline-block self-start">${auth.section || 'Constitutional Law'}</div>
-        <h4 class="text-xs font-semibold text-white leading-snug">${auth.display || auth.name}</h4>
+        <h4 class="text-xs font-semibold text-[#1C1710] leading-snug">${auth.display || auth.name}</h4>
         <p class="text-[11px] text-white-muted leading-relaxed line-clamp-3">${auth.whyItMatters || auth.ratio.substring(0, 100) + '...'}</p>
-        <button class="mt-2 text-[10px] font-bold uppercase tracking-wider py-1.5 px-3 rounded bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-colors w-full flex items-center justify-center gap-2" onclick="window.insertAuthority('${auth.name.replace(/'/g, "\\'")}')">
+        <button class="mt-2 text-[10px] font-bold uppercase tracking-wider py-1.5 px-3 rounded bg-black/5 border border-black/10 text-[#1C1710] hover:bg-black/10 transition-colors w-full flex items-center justify-center gap-2" onclick="window.insertAuthority('${auth.name.replace(/'/g, "\\'")}')">
           <span>+</span> Insert into Draft
         </button>
       </div>
@@ -3051,8 +3051,8 @@ function getImprovementPathwayHTML(notes, casesCount, statutesCount, scoring, fi
   const metCount = checklist.filter(item => item.met).length;
 
   return `
-    <div class="p-4 bg-white/5 border border-white/10 rounded-xl flex flex-col gap-3 font-sans md:col-span-2">
-      <div class="flex justify-between items-center border-b border-white/5 pb-2">
+    <div class="p-4 bg-black/5 border border-black/10 rounded-xl flex flex-col gap-3 font-sans md:col-span-2">
+      <div class="flex justify-between items-center border-b border-black/5 pb-2">
         <span class="text-xs uppercase tracking-wider text-white-2 font-semibold font-sans">📈 Appellate Improvement Pathway</span>
         <span class="text-[10px] font-bold text-moot-accent uppercase tracking-widest font-sans">Progress to Elite Status</span>
       </div>
@@ -3063,14 +3063,14 @@ function getImprovementPathwayHTML(notes, casesCount, statutesCount, scoring, fi
           <span class="text-[9px] uppercase text-white-muted tracking-wider">1. Initial Notes</span>
           <div class="w-6 h-6 rounded-full bg-red-500/20 text-red-400 border border-red-500/30 flex items-center justify-center text-[10px] font-bold">${rawNotesScore}%</div>
         </div>
-        <div class="flex-1 h-[2px] bg-white/10 relative">
+        <div class="flex-1 h-[2px] bg-black/10 relative">
           <div class="absolute top-[-3px] left-0 w-2 h-2 rounded-full bg-indigo-500"></div>
         </div>
         <div class="flex flex-col items-center gap-1 flex-1">
           <span class="text-[9px] uppercase text-white-muted tracking-wider">2. Current Draft</span>
           <div class="w-6 h-6 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center text-[10px] font-bold">${finalReadinessScore}%</div>
         </div>
-        <div class="flex-1 h-[2px] bg-white/10 relative">
+        <div class="flex-1 h-[2px] bg-black/10 relative">
           <div class="absolute top-[-3px] left-0 w-2 h-2 rounded-full bg-moot-accent"></div>
         </div>
         <div class="flex flex-col items-center gap-1 flex-1">
@@ -3296,7 +3296,7 @@ export function switchAuthModalTab(tab, skipRender = false) {
         break;
       case 'courtroom':
         const courtroomText = isAi ? currentModalDetails.courtroomUsageExample : currentModalDetails.courtroomUsage;
-        html = `<div><strong class="text-moot-accent tracking-wider uppercase text-[10px]">Courtroom Usage Example:</strong><p class="mt-3 text-white-2 font-serif italic bg-black/30 p-4 rounded-xl border border-white/5 border-l-2 border-l-moot-accent shadow-inner text-sm leading-relaxed">"${courtroomText}"</p></div>`;
+        html = `<div><strong class="text-moot-accent tracking-wider uppercase text-[10px]">Courtroom Usage Example:</strong><p class="mt-3 text-white-2 font-serif italic bg-black/30 p-4 rounded-xl border border-black/5 border-l-2 border-l-moot-accent shadow-inner text-sm leading-relaxed">"${courtroomText}"</p></div>`;
         break;
       case 'counter':
         const counterText = isAi ? currentModalDetails.opponentAttack : currentModalDetails.counterarguments;
@@ -3384,8 +3384,8 @@ export async function generateBenchForecast() {
       const forecast = data.response;
       
       let html = `
-        <div class="text-[10px] text-gray-300 italic mb-2 border-b border-white/5 pb-2 font-serif">
-          <strong class="font-sans not-italic text-white">Forecast Summary:</strong> ${forecast.forecastSummary || "The bench will heavily scrutinize your stance."}
+        <div class="text-[10px] text-[#4a4030] italic mb-2 border-b border-black/5 pb-2 font-serif">
+          <strong class="font-sans not-italic text-[#1C1710]">Forecast Summary:</strong> ${forecast.forecastSummary || "The bench will heavily scrutinize your stance."}
         </div>
       `;
 
@@ -3396,17 +3396,17 @@ export async function generateBenchForecast() {
                          'text-emerald-400 border-emerald-500/30 bg-emerald-500/10';
 
         html += `
-          <div class="bg-black/20 border border-white/5 rounded-lg p-3 text-xs transition-all hover:border-white/10">
+          <div class="bg-black/20 border border-black/5 rounded-lg p-3 text-xs transition-all hover:border-black/10">
             <div class="flex justify-between items-start mb-1 gap-2">
-              <strong class="text-white leading-snug">Q${idx + 1}: "${q.question}"</strong>
+              <strong class="text-[#1C1710] leading-snug">Q${idx + 1}: "${q.question}"</strong>
               <span class="text-[8px] uppercase tracking-wider font-semibold border ${probColor} px-1.5 py-0.5 rounded whitespace-nowrap mt-0.5">${q.probability}</span>
             </div>
             <div class="text-white-muted text-[10px] mb-2 font-serif italic leading-relaxed">${q.rationale}</div>
             
-            <div class="space-y-1.5 mt-2 text-[10px] border-t border-white/5 pt-2 leading-relaxed">
-              <div><strong class="text-emerald-400 uppercase tracking-wider text-[9px]">Ideal Answer:</strong> <span class="text-gray-300">${q.idealAnswer}</span></div>
-              <div><strong class="text-red-400 uppercase tracking-wider text-[9px]">Dangerous Follow-Up:</strong> <span class="text-gray-300">${q.dangerousFollowUp}</span></div>
-              <div><strong class="text-indigo-400 uppercase tracking-wider text-[9px]">Recovery Route:</strong> <span class="text-gray-300">${q.recoveryRoute}</span></div>
+            <div class="space-y-1.5 mt-2 text-[10px] border-t border-black/5 pt-2 leading-relaxed">
+              <div><strong class="text-emerald-400 uppercase tracking-wider text-[9px]">Ideal Answer:</strong> <span class="text-[#4a4030]">${q.idealAnswer}</span></div>
+              <div><strong class="text-red-400 uppercase tracking-wider text-[9px]">Dangerous Follow-Up:</strong> <span class="text-[#4a4030]">${q.dangerousFollowUp}</span></div>
+              <div><strong class="text-indigo-400 uppercase tracking-wider text-[9px]">Recovery Route:</strong> <span class="text-[#4a4030]">${q.recoveryRoute}</span></div>
             </div>
           </div>
         `;

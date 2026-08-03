@@ -281,30 +281,35 @@ async function getChatCompletion({
   max_tokens = 4000,
   response_format = { type: "json_object" },
   primaryProvider = "gemini",
-  requestLabel = "AI request"
+  requestLabel = "AI request",
+  groqModel = "openai/gpt-oss-120b",
+  groqTimeoutMs = 25000,
+  geminiTimeoutMs = 90000,
+  geminiMaxAttempts = 3,
+  geminiBackoffMs = 1500
 }) {
   const startTime = Date.now();
   console.log(`[AI TRACE] [${requestLabel}] Starting request. Primary provider: ${primaryProvider}`);
 
   const runGroq = async () => {
-    console.log(`[AI TRACE] [${requestLabel}] Attempting Groq (llama-3.3-70b-versatile)...`);
+    console.log(`[AI TRACE] [${requestLabel}] Attempting Groq (${groqModel})...`);
     const response = await Promise.race([
       groq.chat.completions.create({
-        model: "llama-3.3-70b-versatile",
+        model: groqModel,
         messages,
         temperature,
         max_tokens,
         response_format
       }),
       new Promise((_, reject) =>
-        setTimeout(() => reject(new Error("Groq API Timeout")), 25000)
+        setTimeout(() => reject(new Error("Groq API Timeout")), groqTimeoutMs)
       )
     ]);
     const duration = Date.now() - startTime;
     console.log(`[AI TRACE] [${requestLabel}] Groq completed successfully in ${duration}ms.`);
     return {
       provider: "groq",
-      model: "llama-3.3-70b",
+      model: groqModel,
       text: response.choices[0].message.content.trim(),
       duration
     };
@@ -314,11 +319,11 @@ async function getChatCompletion({
     const model = "gemini-2.5-flash";
     let lastError = null;
 
-    for (let attempt = 0; attempt <= 2; attempt++) {
+    for (let attempt = 0; attempt < geminiMaxAttempts; attempt++) {
       try {
         console.log(`[AI TRACE] [${requestLabel}] Attempting Gemini (${model}), attempt ${attempt + 1}...`);
         const { systemInstruction, contents } = convertMessagesToGemini(messages);
-        
+
         const response = await Promise.race([
           ai.models.generateContent({
             model: model,
@@ -330,10 +335,10 @@ async function getChatCompletion({
             }
           }),
           new Promise((_, reject) =>
-            setTimeout(() => reject(new Error(`Gemini Timeout`)), 90000)
+            setTimeout(() => reject(new Error(`Gemini Timeout`)), geminiTimeoutMs)
           )
         ]);
-        
+
         const duration = Date.now() - startTime;
         console.log(`[AI TRACE] [${requestLabel}] Gemini (${model}) completed successfully in ${duration}ms. Raw text length: ${response.text?.length}`);
         console.log(`[AI TRACE] [${requestLabel}] Raw response:`, response.text);
@@ -346,15 +351,14 @@ async function getChatCompletion({
       } catch (err) {
         console.warn(`[AI TRACE] [${requestLabel}] Gemini (${model}) attempt ${attempt + 1} failed: ${err.message}`);
         lastError = err;
-        
+
         // Fatal error (like auth error/API key error), don't retry
         if (err.message.includes("API key") || err.message.includes("403") || err.message.includes("404")) {
           throw err;
         }
-        
-        if (attempt < 2) {
-          // Wait 1.5 seconds, then 3 seconds
-          await new Promise(r => setTimeout(r, 1500 * (attempt + 1)));
+
+        if (attempt < geminiMaxAttempts - 1) {
+          await new Promise(r => setTimeout(r, geminiBackoffMs * (attempt + 1)));
         }
       }
     }

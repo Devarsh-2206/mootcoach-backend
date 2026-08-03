@@ -21,7 +21,7 @@
 <title>MootCoach — AI Moot Operating System</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Merriweather:ital,wght@0,300;0,400;0,700;1,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=Caveat:wght@500;600&display=swap" rel="stylesheet">
 
 <!-- Tailwind CSS CDN & Config to prevent breaking vanilla CSS -->
 <script src="https://cdn.tailwindcss.com"></script>
@@ -33,13 +33,13 @@
     theme: {
       extend: {
         colors: {
-          'moot-border': 'rgba(255, 255, 255, 0.08)',
-          'moot-muted': 'rgba(245, 243, 239, 0.45)',
-          'moot-panel': '#0e1220',
-          'moot-accent': '#c9a84c',
-          'white-muted': 'rgba(245, 243, 239, 0.45)',
+          'moot-border': 'rgba(28, 23, 16, 0.14)',
+          'moot-muted': 'rgba(28, 23, 16, 0.5)',
+          'moot-panel': '#FCF9EF',
+          'moot-accent': '#B0392E',
+          'white-muted': 'rgba(28, 23, 16, 0.5)',
         },
-        fontFamily: { sans: ['Inter', 'sans-serif'], serif: ['Merriweather', 'serif'] }
+        fontFamily: { sans: ['EB Garamond', 'Georgia', 'serif'], serif: ['Cormorant Garamond', 'Georgia', 'serif'], mono: ['IBM Plex Mono', 'ui-monospace', 'monospace'] }
       }
     }
   }
@@ -57,25 +57,35 @@
 *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
 
 :root {
-  --navy:        #0a0d14;
-  --navy-2:      #0e1220;
-  --navy-3:      #141826;
-  --navy-4:      #1c2235;
-  --navy-5:      #222840;
-  --gold:        #c9a84c;
-  --gold-light:  #e2c47a;
-  --gold-muted:  rgba(201,168,76,.12);
-  --gold-border: rgba(201,168,76,.28);
-  --white:       #f5f3ef;
-  --white-2:     rgba(245,243,239,.85);
-  --white-muted: rgba(245,243,239,.45);
-  --white-faint: rgba(245,243,239,.10);
-  --glass:       rgba(255,255,255,.04);
-  --glass-b:     rgba(255,255,255,.08);
-  --success:     #4caf82;
-  --error:       #e05252;
-  --serif: 'Merriweather', Georgia, serif;
-  --sans:  'Inter', system-ui, sans-serif;
+  /* Legal-pad / courtroom-document palette. Names kept from the old dark
+     theme so every existing var(--navy)/var(--gold)/var(--white) usage
+     throughout this stylesheet re-themes automatically. */
+  --navy:        #F6F1E4;   /* paper (was near-black bg) */
+  --navy-2:      #EFE8D6;   /* paper-2, panel/hover bg */
+  --navy-3:      #FCF9EF;   /* sheet, card surfaces */
+  --navy-4:      #F3ECDA;   /* deeper panel (headers/toolbars) */
+  --navy-5:      #EAE1C8;   /* active/avatar bg */
+  --gold:        #B0392E;   /* red accent (was gold) */
+  --gold-light:  #C4564B;   /* red hover */
+  --gold-muted:  rgba(176,57,46,.10);
+  --gold-border: rgba(176,57,46,.28);
+  --white:       #1C1710;   /* ink (was off-white) */
+  --white-2:     rgba(28,23,16,.82);
+  --white-muted: rgba(28,23,16,.52);
+  --white-faint: rgba(28,23,16,.16);
+  --glass:       rgba(28,23,16,.035);
+  --glass-b:     rgba(28,23,16,.14);
+  --success:     #2F7D52;
+  --error:       #A8362A;
+  --ink:         #1C1710;
+  --paper:       #F6F1E4;
+  --sheet:       #FCF9EF;
+  --rule:        #D9CFB8;
+  --faint:       #8C8270;
+  --serif: 'Cormorant Garamond', Georgia, serif;
+  --sans:  'EB Garamond', Georgia, serif;
+  --mono:  'IBM Plex Mono', ui-monospace, monospace;
+  --hand:  'Caveat', cursive;
   --r:  10px;
   --rl: 16px;
 }
@@ -87,21 +97,21 @@ body {
   color: var(--white);
   font-family: var(--sans);
   font-size: 15px;
-  font-weight: 300;
+  font-weight: 400;
   line-height: 1.65;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
 }
 
-/* noise texture */
+/* paper grain texture */
 body::before {
   content:''; position:fixed; inset:0; z-index:0;
-  opacity:.022;
+  opacity:.045;
   background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   pointer-events:none;
 }
 
-h1,h2,h3 { font-family:var(--serif); font-weight:300; line-height:1.15; }
+h1,h2,h3 { font-family:var(--serif); font-weight:600; line-height:1.15; }
 h1 { font-size: clamp(2.2rem,4.5vw,3.6rem); letter-spacing:-.025em; line-height: 1.1; }
 h2 { font-size: clamp(1.8rem,3.5vw,2.8rem); letter-spacing:-.015em; }
 h3 { font-size:1.3rem; }
@@ -111,7 +121,21 @@ p  { color:var(--white-2); }
 ::-webkit-scrollbar { width:4px; height:4px; }
 ::-webkit-scrollbar-track { background:transparent; }
 ::-webkit-scrollbar-thumb { background:var(--glass-b); border-radius:4px; }
-::-webkit-scrollbar-thumb:hover { background:rgba(255,255,255,.16); }
+::-webkit-scrollbar-thumb:hover { background:rgba(28,23,16,.28); }
+
+/* Route uppercase-tracked UI chrome (buttons, eyebrows, labels, badges, tabs)
+   to the mono font, matching the legal-pad theme's typographic system.
+   !important is required: this rule must win over the many later
+   `font-family:var(--sans)` declarations on these same classes. */
+[class*="btn-"], [class*="eyebrow"], [class*="-label"], [class*="badge"],
+[class*="-tab"], [class*="nav-link"], [class*="footer-link"], [class*="-chip"],
+[class*="mono"], [class*="ws-sb-item"], [class*="ws-badge"], [class*="diff-btn"],
+[class*="diff-pill"], [class*="rn-item"], [class*="step-label"], [class*="di-docket"],
+[class*="footer-copy"], [class*="backend-status"], [class*="bm-role"],
+[class*="cr-status-badge"], [class*="cr-msg-role"], [class*="cr-avatar-name"],
+[class*="login-nav-back"] {
+  font-family: var(--mono) !important;
+}
 
 /* ═══════════════════════════════════════════
    VIEWS — only one visible at a time
@@ -143,7 +167,7 @@ p  { color:var(--white-2); }
   border-radius:4px; transition: all 0.2s ease-in-out;
   text-decoration:none; display:inline-block;
 }
-.btn-outline:hover { background:rgba(255, 255, 255, 0.05); border-color:rgba(255, 255, 255, 0.08); transform:translateY(-1px); }
+.btn-outline:hover { background:rgba(28, 23, 16, 0.05); border-color:rgba(28, 23, 16, 0.08); transform:translateY(-1px); }
 
 .btn-ghost {
   font-family:var(--sans); font-size:.85rem; font-weight:500;
@@ -152,7 +176,7 @@ p  { color:var(--white-2); }
   cursor:pointer; padding:8px 12px; transition: all 0.2s ease-in-out;
   text-decoration:none;
 }
-.btn-ghost:hover { color:var(--white); background:rgba(255, 255, 255, 0.05); border-radius:4px; }
+.btn-ghost:hover { color:var(--white); background:rgba(28, 23, 16, 0.05); border-radius:4px; }
 
 .sep {
   width:100%; height:1px;
@@ -164,7 +188,7 @@ p  { color:var(--white-2); }
   position:fixed; top:0; left:0; right:0; z-index:100;
   height:68px; display:flex; align-items:center;
   justify-content:space-between; padding:0 6vw;
-  background:rgba(10,13,20,.8);
+  background:rgba(246,241,228,.85);
   backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
   border-bottom:1px solid var(--glass-b);
 }
@@ -191,7 +215,7 @@ p  { color:var(--white-2); }
 .hero::before {
   content:''; position:absolute; top:-200px; left:50%; transform:translateX(-50%);
   width:900px; height:900px;
-  background:radial-gradient(ellipse at center,rgba(201,168,76,.07) 0%,transparent 65%);
+  background:radial-gradient(ellipse at center,rgba(176,57,46,.07) 0%,transparent 65%);
   pointer-events:none;
 }
 .hero-eyebrow {
@@ -221,7 +245,7 @@ p  { color:var(--white-2); }
 .badge-dot { width:5px; height:5px; border-radius:50%; background:var(--gold); opacity:.7; flex-shrink:0; }
 
 /* ── PREMIUM TRUST BANNER ── */
-.trust-banner { display:flex; align-items:center; justify-content:center; gap:3rem; padding:2rem 6vw; border-top:1px solid var(--glass-b); border-bottom:1px solid var(--glass-b); background:rgba(255,255,255,.01); flex-wrap:wrap; opacity:.7; margin-bottom: 2rem; }
+.trust-banner { display:flex; align-items:center; justify-content:center; gap:3rem; padding:2rem 6vw; border-top:1px solid var(--glass-b); border-bottom:1px solid var(--glass-b); background:rgba(28, 23, 16, .01); flex-wrap:wrap; opacity:.7; margin-bottom: 2rem; }
 .trust-item { font-family:var(--serif); font-size:1.15rem; color:var(--white-muted); display:flex; align-items:center; gap:10px; }
 .trust-item svg { width:22px; height:22px; fill:var(--gold); opacity:.7; }
 
@@ -272,7 +296,7 @@ p  { color:var(--white-2); }
 .proof-section::before {
   content:''; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
   width:700px; height:500px;
-  background:radial-gradient(ellipse at center,rgba(201,168,76,.05) 0%,transparent 70%);
+  background:radial-gradient(ellipse at center,rgba(176,57,46,.05) 0%,transparent 70%);
   pointer-events:none;
 }
 .proof-tagline {
@@ -308,7 +332,7 @@ p  { color:var(--white-2); }
 .soon-card p  { font-size:.82rem; color:var(--white-muted); }
 .soon-card::after {
   content:''; position:absolute; top:0; right:0; width:60px; height:60px;
-  background:radial-gradient(circle at top right,rgba(201,168,76,.08),transparent 60%);
+  background:radial-gradient(circle at top right,rgba(176,57,46,.08),transparent 60%);
   pointer-events:none;
 }
 
@@ -319,7 +343,7 @@ p  { color:var(--white-2); }
 .cta-section::before {
   content:''; position:absolute; bottom:-100px; left:50%; transform:translateX(-50%);
   width:800px; height:600px;
-  background:radial-gradient(ellipse at center,rgba(201,168,76,.06) 0%,transparent 60%);
+  background:radial-gradient(ellipse at center,rgba(176,57,46,.06) 0%,transparent 60%);
   pointer-events:none;
 }
 .cta-section h2 { margin-bottom:1rem; }
@@ -368,7 +392,7 @@ p  { color:var(--white-2); }
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(4, 5, 8, 0.95);
+  background: rgba(28, 23, 16, 0.78);
   backdrop-filter: blur(12px);
   opacity: 0;
   pointer-events: none;
@@ -380,17 +404,17 @@ p  { color:var(--white-2); }
 }
 
 /* ── Premium split-screen card for the auth overlay ── */
-.ao-card { display:flex; width:min(940px,94vw); height:min(580px,90vh); background:#0f141e; border:1px solid #1f2630; border-radius:16px; overflow:hidden; box-shadow:0 30px 80px rgba(0,0,0,.6); position:relative; }
-.ao-brand { flex:0 0 44%; position:relative; overflow:hidden; background:linear-gradient(160deg,#0a0d16 0%,#0e1322 58%,#11152a 100%); border-right:1px solid #1f2630; display:flex; flex-direction:column; justify-content:space-between; padding:40px 38px; box-sizing:border-box; }
-.ao-brand::before { content:''; position:absolute; inset:0; background:radial-gradient(circle at 26% 18%, rgba(201,168,76,.10), transparent 55%); pointer-events:none; }
-.ao-logo { position:relative; z-index:1; font-family:var(--serif); font-size:1.4rem; color:#fff; }
-.ao-logo span { color:var(--gold); }
+.ao-card { display:flex; width:min(940px,94vw); height:min(580px,90vh); background:var(--sheet); border:1px solid var(--rule); border-radius:4px; overflow:hidden; box-shadow:0 30px 80px rgba(28,23,16,.35); position:relative; }
+.ao-brand { flex:0 0 44%; position:relative; overflow:hidden; background:linear-gradient(160deg,#1C1710 0%,#241D14 58%,#2A2118 100%); border-right:1px solid var(--rule); display:flex; flex-direction:column; justify-content:space-between; padding:40px 38px; box-sizing:border-box; }
+.ao-brand::before { content:''; position:absolute; inset:0; background:radial-gradient(circle at 26% 18%, rgba(176,57,46,.18), transparent 55%); pointer-events:none; }
+.ao-logo { position:relative; z-index:1; font-family:var(--serif); font-size:1.4rem; color:var(--paper); }
+.ao-logo span { color:#C4564B; }
 .ao-brand-body { position:relative; z-index:1; }
-.ao-brand-head { font-family:var(--serif); font-size:2.05rem; line-height:1.16; font-weight:500; color:#fff; margin:0 0 14px; }
-.ao-brand-sub { font-size:.88rem; line-height:1.65; color:var(--white-muted); margin:0 0 22px; }
-.ao-trust { position:relative; z-index:1; font-size:.64rem; letter-spacing:.14em; text-transform:uppercase; color:#6b6b7b; }
+.ao-brand-head { font-family:var(--serif); font-size:2.05rem; line-height:1.16; font-weight:500; color:var(--paper); margin:0 0 14px; }
+.ao-brand-sub { font-size:.88rem; line-height:1.65; color:rgba(246,241,228,.62); margin:0 0 22px; }
+.ao-trust { position:relative; z-index:1; font-size:.64rem; letter-spacing:.14em; text-transform:uppercase; color:var(--faint); }
 .ao-form { flex:1; display:flex; flex-direction:column; justify-content:center; padding:40px 44px; box-sizing:border-box; overflow-y:auto; position:relative; }
-.ao-form .auth-overlay-heading { font-family:var(--serif); font-size:1.9rem; font-weight:500; color:#fff; margin:0 0 22px; text-align:left; }
+.ao-form .auth-overlay-heading { font-family:var(--serif); font-size:1.9rem; font-weight:500; color:var(--ink); margin:0 0 22px; text-align:left; }
 @media (max-width:820px){
   .ao-card{ width:min(440px,94vw); height:auto; max-height:92vh; }
   .ao-brand{ display:none; }
@@ -400,7 +424,7 @@ p  { color:var(--white-2); }
 #view-login::after {
   content:''; position:fixed; top:-300px; left:50%; transform:translateX(-50%);
   width:900px; height:800px;
-  background:radial-gradient(ellipse at center,rgba(201,168,76,.06) 0%,transparent 60%);
+  background:radial-gradient(ellipse at center,rgba(176,57,46,.06) 0%,transparent 60%);
   pointer-events:none; z-index:0;
 }
 
@@ -419,21 +443,21 @@ p  { color:var(--white-2); }
 .login-split { display:flex; min-height:100vh; width:100%; }
 .login-brand {
   flex:1 1 46%; max-width:46%; position:relative; overflow:hidden;
-  background:linear-gradient(160deg,#0a0d16 0%,#0e1322 58%,#11152a 100%);
-  border-right:1px solid var(--glass-b);
+  background:linear-gradient(160deg,#1C1710 0%,#241D14 58%,#2A2118 100%);
+  border-right:1px solid var(--rule);
   display:flex; flex-direction:column; justify-content:space-between;
   padding:46px 4vw; box-sizing:border-box;
 }
-.login-brand::before { content:''; position:absolute; inset:0; background:radial-gradient(circle at 26% 18%, rgba(201,168,76,.10), transparent 55%); pointer-events:none; }
-.login-brand-logo { font-family:var(--serif); font-size:1.5rem; letter-spacing:.02em; position:relative; z-index:1; text-decoration:none; color:var(--white); }
+.login-brand::before { content:''; position:absolute; inset:0; background:radial-gradient(circle at 26% 18%, rgba(176,57,46,.18), transparent 55%); pointer-events:none; }
+.login-brand-logo { font-family:var(--serif); font-size:1.5rem; letter-spacing:.02em; position:relative; z-index:1; text-decoration:none; color:var(--paper); }
 .login-brand-body { position:relative; z-index:1; max-width:480px; }
-.login-crest { width:54px; height:54px; border-radius:50%; border:1px solid rgba(201,168,76,.4); background:rgba(201,168,76,.08); display:flex; align-items:center; justify-content:center; color:var(--gold); font-size:1.55rem; margin-bottom:26px; }
-.login-brand-head { font-family:var(--serif); font-size:2.5rem; line-height:1.16; font-weight:500; color:var(--white); margin:0 0 16px; }
-.login-brand-sub { font-size:.96rem; line-height:1.7; color:var(--white-muted); margin:0 0 26px; }
+.login-crest { width:54px; height:54px; border-radius:50%; border:1px solid rgba(176,57,46,.4); background:rgba(176,57,46,.12); display:flex; align-items:center; justify-content:center; color:#C4564B; font-size:1.55rem; margin-bottom:26px; }
+.login-brand-head { font-family:var(--serif); font-size:2.5rem; line-height:1.16; font-weight:500; color:var(--paper); margin:0 0 16px; }
+.login-brand-sub { font-size:.96rem; line-height:1.7; color:rgba(246,241,228,.62); margin:0 0 26px; }
 .login-brand-points { list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:12px; }
-.login-brand-points li { font-size:.85rem; color:var(--white-2); display:flex; align-items:flex-start; gap:10px; }
-.login-brand-points li::before { content:'✦'; color:var(--gold); font-size:.78rem; line-height:1.5; }
-.login-brand-trust { position:relative; z-index:1; font-size:.7rem; letter-spacing:.14em; text-transform:uppercase; color:#6b6b7b; }
+.login-brand-points li { font-size:.85rem; color:rgba(246,241,228,.82); display:flex; align-items:flex-start; gap:10px; }
+.login-brand-points li::before { content:'✦'; color:#C4564B; font-size:.78rem; line-height:1.5; }
+.login-brand-trust { position:relative; z-index:1; font-size:.7rem; letter-spacing:.14em; text-transform:uppercase; color:var(--faint); }
 .login-form-panel { flex:1 1 54%; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:40px 24px; position:relative; }
 .login-form-panel .login-nav-back { position:absolute; top:30px; right:5vw; }
 .login-form-panel .auth-wrap { max-width:420px; }
@@ -520,7 +544,7 @@ p  { color:var(--white-2); }
   border-radius:var(--r); padding:11px; cursor:pointer;
   transition: all 0.2s ease-in-out;
 }
-.btn-google:hover { background:rgba(255, 255, 255, 0.05); border-color:rgba(255, 255, 255, 0.05); transform:translateY(-1px); }
+.btn-google:hover { background:rgba(28, 23, 16, 0.05); border-color:rgba(28, 23, 16, 0.05); transform:translateY(-1px); }
 .btn-google svg { width:17px; height:17px; flex-shrink:0; }
 
 .auth-footer-note { text-align:center; font-size:.78rem; color:var(--white-muted); margin-top:1.4rem; }
@@ -545,7 +569,7 @@ p  { color:var(--white-2); }
 @keyframes spin { to { transform:rotate(360deg); } }
 .spinner {
   display:inline-block; width:14px; height:14px;
-  border:2px solid rgba(10,13,20,.3); border-top-color:var(--navy);
+  border:2px solid rgba(246,241,228,.35); border-top-color:var(--navy);
   border-radius:50%; animation:spin .7s linear infinite;
   vertical-align:middle; margin-right:6px;
 }
@@ -579,7 +603,7 @@ p  { color:var(--white-2); }
 
 /* ── SIDEBAR ── */
 .ws-sidebar {
-  width:255px; background:rgba(14, 18, 32, 0.4); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border-right:1px solid var(--glass-b);
+  width:255px; background:rgba(252, 249, 239, 0.55); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border-right:1px solid var(--glass-b);
   display:flex; flex-direction:column; flex-shrink:0; height:100%;
   overflow:hidden;
 }
@@ -602,7 +626,7 @@ p  { color:var(--white-2); }
   cursor:pointer; transition: all 0.2s ease-in-out;
   background:none; border:none; width:100%; text-align:left;
 }
-.ws-sb-item:hover { background:rgba(255, 255, 255, 0.05); color:var(--white-2); }
+.ws-sb-item:hover { background:rgba(28, 23, 16, 0.05); color:var(--white-2); }
 .ws-sb-item.active { background:var(--gold-muted); color:var(--gold); border:1px solid var(--gold-border); }
 .ws-sb-icon { font-size:.95rem; flex-shrink:0; width:18px; text-align:center; }
 .ws-sb-item.locked { opacity:.35; cursor:not-allowed; }
@@ -616,7 +640,7 @@ p  { color:var(--white-2); }
   padding-right: 4px;
 }
 #ws-recent-list::-webkit-scrollbar { width:4px; height:4px; }
-#ws-recent-list::-webkit-scrollbar-thumb { background:rgba(255,255,255,.2); border-radius:4px; }
+#ws-recent-list::-webkit-scrollbar-thumb { background:rgba(28, 23, 16, .2); border-radius:4px; }
 #ws-recent-list::-webkit-scrollbar-thumb:hover { background:var(--gold); }
 
 .ws-sb-infobox { margin:8px 14px; padding:10px 12px; background:var(--glass); border:1px solid var(--glass-b); border-radius:var(--r); }
@@ -631,7 +655,7 @@ p  { color:var(--white-2); }
   transition: all 0.2s ease-in-out; font-family:var(--sans); font-weight:300; width: 100%; justify-content: center;
   border-radius:4px; padding:6px 0;
 }
-.ws-sb-bottom button:hover { color:var(--white); background:rgba(255, 255, 255, 0.05); }
+.ws-sb-bottom button:hover { color:var(--white); background:rgba(28, 23, 16, 0.05); }
 .ws-sb-bottom button.logout:hover { color:var(--error); } 
 
 /* ── MAIN AREA ── */
@@ -778,7 +802,7 @@ p  { color:var(--white-2); }
   transition: all 0.2s ease-in-out; border:none;
 }
 .btn-sm-ghost { color:var(--white-muted); background:var(--glass); border:1px solid var(--glass-b); }
-.btn-sm-ghost:hover { background:rgba(255, 255, 255, 0.05); border-color:rgba(255, 255, 255, 0.05); color:var(--white); }
+.btn-sm-ghost:hover { background:rgba(28, 23, 16, 0.05); border-color:rgba(28, 23, 16, 0.05); color:var(--white); }
 .btn-sm-gold { color:var(--navy); background:var(--gold); }
 .btn-sm-gold:hover { background:var(--gold-light); transform:translateY(-1px); }
 
@@ -846,25 +870,25 @@ p  { color:var(--white-2); }
 /* ── LOADING OVERLAY ── */
 .loading-overlay {
   display:none; position:fixed; inset:0;
-  background:rgba(10,13,20,.93); backdrop-filter:blur(14px);
+  background:rgba(246,241,228,.93); backdrop-filter:blur(14px);
   z-index:999; flex-direction:column; align-items:center; justify-content:center; gap:0;
 }
 .loading-overlay.show { display:flex; }
 .lo-glow {
   width:110px; height:110px; border-radius:50%;
-  background:radial-gradient(circle,rgba(201,168,76,.16) 0%,transparent 70%);
+  background:radial-gradient(circle,rgba(176,57,46,.16) 0%,transparent 70%);
   display:flex; align-items:center; justify-content:center;
   margin-bottom:1.8rem; position:relative;
 }
 .lo-glow::before {
   content:''; position:absolute; inset:-2px; border-radius:50%;
-  border:1.5px solid transparent; border-top-color:var(--gold); border-right-color:rgba(201,168,76,.3);
+  border:1.5px solid transparent; border-top-color:var(--gold); border-right-color:rgba(176,57,46,.3);
   animation:spin 1.2s linear infinite;
 }
 .lo-symbol { font-family:var(--serif); font-size:2.6rem; color:var(--gold); opacity:.7; animation: pulseGlow 1.5s infinite alternate; }
 @keyframes pulseGlow {
-  0% { transform: scale(0.95); opacity: 0.6; text-shadow: 0 0 10px rgba(201,168,76, 0.2); }
-  100% { transform: scale(1.05); opacity: 1; text-shadow: 0 0 25px rgba(201,168,76, 0.8); }
+  0% { transform: scale(0.95); opacity: 0.6; text-shadow: 0 0 10px rgba(176,57,46, 0.2); }
+  100% { transform: scale(1.05); opacity: 1; text-shadow: 0 0 25px rgba(176,57,46, 0.8); }
 }
 
 .lo-steps { display:flex; flex-direction:column; align-items:center; gap:9px; margin-bottom:1.4rem; }
@@ -877,7 +901,7 @@ p  { color:var(--white-2); }
 .lo-label { font-family:var(--serif); font-size:1.4rem; font-weight:500; color:var(--white-2); }
 
 /* ── LEGAL MODALS ── */
-.legal-modal-overlay { display:none; position:fixed; inset:0; background:rgba(10,13,20,.85); backdrop-filter:blur(8px); z-index:10000; align-items:center; justify-content:center; padding:20px; opacity:0; transition:opacity .3s ease; }
+.legal-modal-overlay { display:none; position:fixed; inset:0; background:rgba(28,23,16,.55); backdrop-filter:blur(8px); z-index:10000; align-items:center; justify-content:center; padding:20px; opacity:0; transition:opacity .3s ease; }
 .legal-modal-overlay.show { display:flex; opacity:1; }
 .legal-modal-content { background:var(--navy-3); border:1px solid var(--gold-border); border-radius:var(--rl); width:100%; max-width:680px; max-height:85vh; display:flex; flex-direction:column; overflow:hidden; transform:translateY(20px); transition:transform .3s cubic-bezier(.22,.68,0,1.2); box-shadow:0 24px 64px rgba(0,0,0,.4); }
 .legal-modal-overlay.show .legal-modal-content { transform:translateY(0); }
@@ -898,13 +922,13 @@ p  { color:var(--white-2); }
 
 /* Dynamic Score Colors */
 .text-green { color: #4caf82 !important; text-shadow: 0 0 20px rgba(76,175,130,0.3); }
-.text-gold { color: var(--gold) !important; text-shadow: 0 0 20px rgba(201,168,76,0.3); }
+.text-gold { color: var(--gold) !important; text-shadow: 0 0 20px rgba(176,57,46,0.3); }
 .text-red { color: #e05252 !important; text-shadow: 0 0 20px rgba(224,82,82,0.3); }
 
 /* Sticky section nav */
 .res-sticky-nav {
   position: sticky; top: 0; z-index: 20;
-  background: rgba(10,13,20,.95);
+  background: rgba(246,241,228,.95);
   backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
   border-bottom: 1px solid var(--glass-b);
   padding: 0 30px;
@@ -934,20 +958,20 @@ p  { color:var(--white-2); }
   display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-bottom: 4px;
 }
 .score-card {
-  background: linear-gradient(135deg, rgba(201,168,76,.09) 0%, rgba(201,168,76,.03) 100%);
+  background: linear-gradient(135deg, rgba(176,57,46,.09) 0%, rgba(176,57,46,.03) 100%);
   border: 1px solid var(--gold-border); border-radius: 14px;
   padding: 20px 22px; position: relative; overflow: hidden;
   transition: transform .3s ease, border-color .3s ease, box-shadow .3s ease;
 }
 .score-card:hover { 
   transform: translateY(-4px); 
-  border-color: rgba(201,168,76,.6); 
-  box-shadow: 0 12px 32px rgba(201,168,76, 0.12);
+  border-color: rgba(176,57,46,.6); 
+  box-shadow: 0 12px 32px rgba(176,57,46, 0.12);
 }
 .score-card::after {
   content: ''; position: absolute; top: -20px; right: -20px;
   width: 80px; height: 80px; border-radius: 50%;
-  background: radial-gradient(circle, rgba(201,168,76,.14), transparent 70%);
+  background: radial-gradient(circle, rgba(176,57,46,.14), transparent 70%);
   pointer-events: none;
 }
 .sc-label {
@@ -958,7 +982,7 @@ p  { color:var(--white-2); }
 .sc-label-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--gold); opacity: .7; }
 .sc-value { font-family: var(--serif); font-size: 2.6rem; font-weight: 500; color: var(--white); line-height: 1; margin-bottom: 5px; transition: color 0.5s ease; }
 .sc-sub { font-size: .72rem; color: var(--gold); }
-.sc-bar { margin-top: 14px; height: 3px; background: rgba(255,255,255,.07); border-radius: 2px; overflow: hidden; }
+.sc-bar { margin-top: 14px; height: 3px; background: rgba(28, 23, 16, .07); border-radius: 2px; overflow: hidden; }
 .sc-bar-fill {
   height: 100%; border-radius: 2px; width: 0%;
   transition: width 1.4s cubic-bezier(.22,.68,0,1.2);
@@ -977,7 +1001,7 @@ p  { color:var(--white-2); }
   animation: secReveal .5s cubic-bezier(.22,.68,0,1.2) both;
 }
 .analysis-section-card:hover { 
-  border-color: rgba(255,255,255,.15); 
+  border-color: rgba(28, 23, 16, .15); 
   transform: translateY(-2px);
   box-shadow: 0 8px 24px rgba(0,0,0,0.4);
 }
@@ -991,7 +1015,7 @@ p  { color:var(--white-2); }
   background: var(--navy-4); border-bottom: 1px solid var(--glass-b);
   transition: background .15s;
 }
-.asc-header:hover { background: rgba(255,255,255,.035); }
+.asc-header:hover { background: rgba(28, 23, 16, .035); }
 .asc-header-left { display: flex; align-items: center; gap: 11px; }
 .asc-icon {
   width: 30px; height: 30px; border-radius: 7px;
@@ -1032,19 +1056,19 @@ p  { color:var(--white-2); }
   transition: opacity .3s ease;
 }
 .asc-body::-webkit-scrollbar { width:4px; height:4px; }
-.asc-body::-webkit-scrollbar-thumb { background:rgba(255,255,255,.2); border-radius:4px; }
+.asc-body::-webkit-scrollbar-thumb { background:rgba(28, 23, 16, .2); border-radius:4px; }
 .asc-body::-webkit-scrollbar-thumb:hover { background:var(--gold); }
 .asc-body.asc-collapsed { display: none; }
 
 /* Summary card */
 .summary-card {
-  background: linear-gradient(135deg, rgba(201,168,76,.07), rgba(255,255,255,.015));
+  background: linear-gradient(135deg, rgba(176,57,46,.07), rgba(28, 23, 16, .015));
   border: 1px solid var(--gold-border); border-radius: 12px; padding: 24px 26px;
   position: relative; overflow: hidden;
 }
 .summary-card::before {
   content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
-  background: linear-gradient(90deg,transparent,rgba(201,168,76,.6),transparent);
+  background: linear-gradient(90deg,transparent,rgba(176,57,46,.6),transparent);
 }
 .summary-quote { font-family: var(--serif); font-size: 3.5rem; color: var(--gold); opacity: .15; line-height: .8; margin-bottom: -10px; }
 .summary-body { font-family: var(--serif); font-size: 1.02rem; line-height: 1.9; color: var(--white-2); font-style: italic; }
@@ -1054,10 +1078,10 @@ p  { color:var(--white-2); }
 .insight-list { display: flex; flex-direction: column; gap: 8px; list-style: none; padding: 0; }
 .insight-item {
   display: flex; gap: 11px; padding: 13px 15px;
-  background: rgba(255,255,255,.02); border: 1px solid var(--glass-b);
+  background: rgba(28, 23, 16, .02); border: 1px solid var(--glass-b);
   border-radius: 9px; transition: background .15s, border-color .15s, transform .15s;
 }
-.insight-item:hover { background: rgba(255,255,255,.04); border-color: rgba(255,255,255,.09); transform: translateX(3px); }
+.insight-item:hover { background: rgba(28, 23, 16, .04); border-color: rgba(28, 23, 16, .09); transform: translateX(3px); }
 .insight-bullet { width: 5px; height: 5px; border-radius: 50%; background: var(--gold); opacity: .65; flex-shrink: 0; margin-top: 8px; }
 .ib-blue   { background: #60a5fa; }
 .ib-green  { background: #4caf82; }
@@ -1071,11 +1095,11 @@ p  { color:var(--white-2); }
 /* Case cards */
 .case-card {
   display: flex; gap: 14px; padding: 15px 16px;
-  background: rgba(255,255,255,.02); border: 1px solid var(--glass-b);
+  background: rgba(28, 23, 16, .02); border: 1px solid var(--glass-b);
   border-radius: 9px; margin-bottom: 9px;
   transition: background .15s, border-color .15s;
 }
-.case-card:hover { background: rgba(255,255,255,.04); border-color: var(--gold-border); }
+.case-card:hover { background: rgba(28, 23, 16, .04); border-color: var(--gold-border); }
 .case-num { font-family: var(--serif); font-size: 1.4rem; color: var(--gold); opacity: .3; flex-shrink: 0; min-width: 26px; line-height: 1.2; padding-top: 1px; }
 .case-name { font-size: .86rem; font-weight: 500; color: var(--white); margin-bottom: 3px; }
 .case-desc { font-size: .78rem; color: var(--white-muted); line-height: 1.6; }
@@ -1084,23 +1108,23 @@ p  { color:var(--white-2); }
 .provision-tags { display: flex; flex-wrap: wrap; gap: 8px; }
 .provision-tag {
   display: inline-flex; align-items: center; gap: 6px;
-  padding: 7px 13px; background: rgba(201,168,76,.07);
-  border: 1px solid rgba(201,168,76,.2); border-radius: 8px;
+  padding: 7px 13px; background: rgba(176,57,46,.07);
+  border: 1px solid rgba(176,57,46,.2); border-radius: 8px;
   font-size: .78rem; color: var(--white-2);
   transition: background .15s, border-color .15s;
 }
-.provision-tag:hover { background: rgba(201,168,76,.13); border-color: rgba(201,168,76,.36); }
+.provision-tag:hover { background: rgba(176,57,46,.13); border-color: rgba(176,57,46,.36); }
 .provision-tag-sym { color: var(--gold); font-size: .8rem; }
 
 /* Strategy items */
 .strategy-item {
   padding: 14px 16px 14px 18px;
   border-left: 2px solid var(--gold); border-radius: 0 9px 9px 0;
-  background: rgba(201,168,76,.04); margin-bottom: 9px;
+  background: rgba(176,57,46,.04); margin-bottom: 9px;
   font-size: .85rem; color: var(--white-2); line-height: 1.72;
   transition: background .15s;
 }
-.strategy-item:hover { background: rgba(201,168,76,.08); }
+.strategy-item:hover { background: rgba(176,57,46,.08); }
 .strategy-item strong { color: var(--white); font-weight: 500; }
 
 /* Difficulty pill */
@@ -1137,7 +1161,7 @@ p  { color:var(--white-2); }
   border:1px solid var(--glass-b); background:var(--glass); color:var(--white-muted);
   transition:background .15s,border-color .15s,color .15s;
 }
-.diff-btn:hover { background:rgba(255,255,255,.06); color:var(--white-2); }
+.diff-btn:hover { background:rgba(28, 23, 16, .06); color:var(--white-2); }
 .diff-btn.active-easy     { background:rgba(76,175,130,.1);  border-color:rgba(76,175,130,.3);  color:#4caf82; }
 .diff-btn.active-moderate { background:rgba(251,191,36,.1);  border-color:rgba(251,191,36,.28); color:#fbbf24; }
 .diff-btn.active-hard     { background:rgba(224,82,82,.1);   border-color:rgba(224,82,82,.3);   color:#e05252; }
@@ -1223,12 +1247,12 @@ p  { color:var(--white-2); }
 }
 .bench-msg-advocate {
   align-self:flex-end;
-  background:rgba(201,168,76,.07); border:1px solid rgba(201,168,76,.14);
+  background:rgba(176,57,46,.07); border:1px solid rgba(176,57,46,.14);
   border-radius:12px 0 12px 12px; padding:13px 15px;
 }
 .bench-msg-system {
   align-self:center; max-width:100%;
-  background:rgba(255,255,255,.03); border:1px solid var(--glass-b);
+  background:rgba(28, 23, 16, .03); border:1px solid var(--glass-b);
   border-radius:8px; padding:9px 16px; text-align:center;
 }
 .bm-role {
@@ -1240,9 +1264,9 @@ p  { color:var(--white-2); }
 .bm-role-system   { color:var(--white-muted); }
 .bm-text { font-size:.84rem; color:var(--white-2); line-height:1.72; }
 .bm-meta { display:flex; align-items:center; gap:8px; margin-top:8px; flex-wrap:wrap; }
-.bm-weakness { font-size:.62rem; color:var(--white-muted); padding:2px 7px; background:rgba(255,255,255,.03); border:1px solid var(--glass-b); border-radius:4px; }
+.bm-weakness { font-size:.62rem; color:var(--white-muted); padding:2px 7px; background:rgba(28, 23, 16, .03); border:1px solid var(--glass-b); border-radius:4px; }
 .pressure-dots { display:flex; gap:3px; }
-.pressure-dot { width:5px; height:5px; border-radius:50%; background:rgba(255,255,255,.1); }
+.pressure-dot { width:5px; height:5px; border-radius:50%; background:rgba(28, 23, 16, .1); }
 .pressure-dot.filled { background:#e05252; }
 
 .bench-empty {
@@ -1265,7 +1289,7 @@ p  { color:var(--white-2); }
 
 .ws-sidebar-overlay {
   display:none; position:fixed; inset:0; z-index:80;
-  background:rgba(10,13,20,.7); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+  background:rgba(28,23,16,.5); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
   opacity:0; transition:opacity .3s ease;
 }
 .ws-sidebar-overlay.show { display:block; opacity:1; }
@@ -1303,35 +1327,35 @@ p  { color:var(--white-2); }
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .ws-sb-item:hover {
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(28, 23, 16, 0.04);
   color: var(--white);
   padding-left: 12px;
 }
 .ws-sb-item.active {
-  background: linear-gradient(90deg, rgba(201, 168, 76, 0.08) 0%, transparent 100%) !important;
+  background: linear-gradient(90deg, rgba(176, 57, 46, 0.08) 0%, transparent 100%) !important;
   color: var(--gold) !important;
   border-left-color: var(--gold) !important;
   border-top: none !important;
   border-right: none !important;
   border-bottom: none !important;
   border-radius: 0 8px 8px 0;
-  box-shadow: inset 1px 0 0 rgba(201, 168, 76, 0.1);
+  box-shadow: inset 1px 0 0 rgba(176, 57, 46, 0.1);
   padding-left: 12px;
 }
 .ws-topbar {
-  background: linear-gradient(180deg, rgba(14, 18, 32, 0.95) 0%, rgba(10, 13, 20, 0.95) 100%);
+  background: linear-gradient(180deg, rgba(243, 236, 218, 0.95) 0%, rgba(246, 241, 228, 0.95) 100%);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
 }
 .ws-sidebar {
-  background: #0b0e17;
+  background: var(--navy-2);
 }
 .dropzone {
-  border: 1.5px dashed rgba(201, 168, 76, 0.2);
+  border: 1.5px dashed rgba(176, 57, 46, 0.2);
   transition: all 0.3s ease;
 }
 .dropzone:hover {
   border-color: var(--gold);
-  background: rgba(201, 168, 76, 0.03);
+  background: rgba(176, 57, 46, 0.03);
 }
 
 /* ═══════════════════════════════════════════
@@ -1343,7 +1367,7 @@ p  { color:var(--white-2); }
   flex: 1;
   min-height: 0;
   overflow: hidden;
-  background: radial-gradient(circle at top, #141b2e 0%, var(--navy) 100%);
+  background: radial-gradient(circle at top, var(--navy-2) 0%, var(--navy) 100%);
   position: relative;
 }
 .courtroom-view.active {
@@ -1353,7 +1377,7 @@ p  { color:var(--white-2); }
 /* Courtroom Header */
 .cr-header {
   padding: 16px 24px;
-  background: rgba(10, 13, 20, 0.4);
+  background: rgba(246, 241, 228, 0.6);
   border-bottom: 1px solid var(--glass-b);
   display: flex;
   justify-content: space-between;
@@ -1406,7 +1430,7 @@ p  { color:var(--white-2); }
   transition: all 0.3s ease;
 }
 .cr-status-badge.connecting {
-  background: rgba(201, 168, 76, 0.1);
+  background: rgba(176, 57, 46, 0.1);
   border-color: var(--gold-border);
   color: var(--gold);
 }
@@ -1437,7 +1461,7 @@ p  { color:var(--white-2); }
   justify-content: space-around;
   align-items: center;
   padding: 30px 20px;
-  background: rgba(255, 255, 255, 0.01);
+  background: rgba(28, 23, 16, 0.01);
   border-bottom: 1px solid var(--glass-b);
   flex-shrink: 0;
   gap: 20px;
@@ -1597,7 +1621,7 @@ p  { color:var(--white-2); }
 .cr-transcript-msg.system {
   align-self: center;
   max-width: 90%;
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(28, 23, 16, 0.02);
   border: 1px solid var(--glass-b);
   border-radius: 8px;
   padding: 8px 16px;
@@ -1625,7 +1649,7 @@ p  { color:var(--white-2); }
 .cr-interim-bubble {
   align-self: flex-end;
   max-width: 85%;
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(28, 23, 16, 0.02);
   border: 1px dashed var(--glass-b);
   border-radius: 12px 12px 0 12px;
   padding: 10px 14px;
@@ -1638,7 +1662,7 @@ p  { color:var(--white-2); }
 /* ── CHAMBERS EMPTY STATE ── */
 .be-card {
   max-width: 540px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.02) 0%, rgba(255, 255, 255, 0.005) 100%);
+  background: linear-gradient(135deg, rgba(28, 23, 16, 0.02) 0%, rgba(28, 23, 16, 0.005) 100%);
   border: 1px solid var(--glass-b);
   border-radius: 16px;
   padding: 40px 32px;
@@ -1816,10 +1840,10 @@ p  { color:var(--white-2); }
   gap: 12px;
   height: 44px;
   padding: 0 16px;
-  background: rgba(10, 13, 20, 0.75);
+  background: rgba(246, 241, 228, 0.9);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(28, 23, 16, 0.08);
   border-radius: 22px;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
   transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
@@ -1828,8 +1852,8 @@ p  { color:var(--white-2); }
 }
 
 .dynamic-island-nav:hover {
-  border-color: rgba(201, 168, 76, 0.3);
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.7), 0 0 20px rgba(201, 168, 76, 0.15);
+  border-color: rgba(176, 57, 46, 0.3);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.7), 0 0 20px rgba(176, 57, 46, 0.15);
 }
 
 .di-branding {
@@ -1852,7 +1876,7 @@ p  { color:var(--white-2); }
 .di-divider {
   width: 1px;
   height: 16px;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(28, 23, 16, 0.1);
 }
 
 .di-stepper {
@@ -1874,7 +1898,7 @@ p  { color:var(--white-2); }
   color: var(--white-muted);
 }
 .di-step:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(28, 23, 16, 0.05);
   color: var(--white);
 }
 
@@ -1900,12 +1924,12 @@ p  { color:var(--white-2); }
 }
 
 .di-step.active {
-  background: rgba(201, 168, 76, 0.08);
+  background: rgba(176, 57, 46, 0.08);
   color: var(--gold);
 }
 .di-step.active .step-icon {
   border-color: var(--gold);
-  background: rgba(201, 168, 76, 0.15);
+  background: rgba(176, 57, 46, 0.15);
   color: var(--gold);
 }
 
@@ -1948,7 +1972,7 @@ p  { color:var(--white-2); }
   height: 24px;
   border-radius: 50%;
   background: var(--navy-5);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(28, 23, 16, 0.08);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1976,13 +2000,13 @@ p  { color:var(--white-2); }
   transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1) !important;
 }
 .issue-card:hover {
-  border-color: rgba(201, 168, 76, 0.3) !important;
+  border-color: rgba(176, 57, 46, 0.3) !important;
   transform: translateY(-2px);
 }
 .issue-card.selected {
   border-color: var(--gold) !important;
-  background: rgba(201, 168, 76, 0.05) !important;
-  box-shadow: 0 0 20px rgba(201, 168, 76, 0.1) !important;
+  background: rgba(176, 57, 46, 0.05) !important;
+  box-shadow: 0 0 20px rgba(176, 57, 46, 0.1) !important;
 }
 
 /* ── AUTHORITY ARSENAL ── */
@@ -2003,19 +2027,19 @@ p  { color:var(--white-2); }
 .auth-modal-tab-active {
   color: var(--gold) !important;
   border-bottom-color: var(--gold) !important;
-  background: rgba(201, 168, 76, 0.05) !important;
+  background: rgba(176, 57, 46, 0.05) !important;
 }
 
 /* ── ADVOCACY ARSENAL MODULES ── */
 .arsenal-module-card {
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(28, 23, 16, 0.02);
+  border: 1px solid rgba(28, 23, 16, 0.06);
   border-radius: 12px;
   transition: all 0.3s ease;
 }
 .arsenal-module-card:hover {
-  border-color: rgba(201, 168, 76, 0.25);
-  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(176, 57, 46, 0.25);
+  background: rgba(28, 23, 16, 0.04);
   transform: translateY(-2px);
 }
 
@@ -2024,15 +2048,15 @@ p  { color:var(--white-2); }
   animation: fadeIn 0.4s ease-out forwards;
 }
 .judge-profile-card {
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(28, 23, 16, 0.02);
+  border: 1px solid rgba(28, 23, 16, 0.06);
   border-radius: 8px;
   padding: 10px 12px;
   transition: all 0.25s ease;
 }
 .judge-profile-card:hover {
-  border-color: rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(28, 23, 16, 0.12);
+  background: rgba(28, 23, 16, 0.04);
 }
 
 #memorial-panel.active #memorial-viewer-canvas > :nth-child(1) { animation-delay: 260ms; } /* Issue */
@@ -2096,14 +2120,14 @@ p  { color:var(--white-2); }
 .step-connector {
   width: 10px;
   height: 1px;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(28, 23, 16, 0.1);
   flex-shrink: 0;
   transition: all 0.3s ease;
 }
 
 /* Active State */
 .step-item.active {
-  background: rgba(201, 168, 76, 0.08);
+  background: rgba(176, 57, 46, 0.08);
 }
 .step-item.active .step-icon {
   background: var(--gold-muted);
@@ -2163,10 +2187,10 @@ p  { color:var(--white-2); }
   right: 24px;
   display: flex;
   align-items: center;
-  background: rgba(14, 18, 32, 0.7);
+  background: rgba(252, 249, 239, 0.85);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(28, 23, 16, 0.08);
   border-radius: 20px;
   padding: 5px;
   gap: 4px;
@@ -2189,7 +2213,7 @@ p  { color:var(--white-2); }
 }
 .ws-floating-nav button:hover {
   color: var(--white);
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(28, 23, 16, 0.06);
 }
 .ws-floating-nav button.primary {
   color: var(--navy);
@@ -2209,7 +2233,7 @@ p  { color:var(--white-2); }
 }
 .issue-card {
   padding: 18px 20px;
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(28, 23, 16, 0.02);
   border: 1.5px solid var(--glass-b);
   border-radius: 12px;
   cursor: pointer;
@@ -2220,17 +2244,17 @@ p  { color:var(--white-2); }
   gap: 16px;
 }
 .issue-card:hover {
-  background: rgba(255, 255, 255, 0.04);
-  border-color: rgba(255, 255, 255, 0.15);
+  background: rgba(28, 23, 16, 0.04);
+  border-color: rgba(28, 23, 16, 0.15);
   transform: translateX(4px);
 }
 @keyframes goldPulse {
-  0% { box-shadow: 0 0 0 0 rgba(201, 168, 76, 0.35); border-color: rgba(201, 168, 76, 0.6); }
-  70% { box-shadow: 0 0 0 8px rgba(201, 168, 76, 0); border-color: rgba(201, 168, 76, 0.3); }
-  100% { box-shadow: 0 0 0 0 rgba(201, 168, 76, 0); border-color: rgba(201, 168, 76, 0.4); }
+  0% { box-shadow: 0 0 0 0 rgba(176, 57, 46, 0.35); border-color: rgba(176, 57, 46, 0.6); }
+  70% { box-shadow: 0 0 0 8px rgba(176, 57, 46, 0); border-color: rgba(176, 57, 46, 0.3); }
+  100% { box-shadow: 0 0 0 0 rgba(176, 57, 46, 0); border-color: rgba(176, 57, 46, 0.4); }
 }
 .issue-card.selected {
-  background: rgba(201, 168, 76, 0.06);
+  background: rgba(176, 57, 46, 0.06);
   border-color: var(--gold);
   animation: goldPulse 2s infinite;
 }
@@ -2247,137 +2271,687 @@ p  { color:var(--white-2); }
     backdrop-filter: none !important;
   }
 }
+
+/* ═══════════════════════════════════════════
+   LANDING PAGE — exact "State your case." legal-pad page.
+   Fully scoped under #view-landing with its own local
+   custom properties, so it is byte-for-byte the supplied
+   design and cannot be affected by (or leak into) the
+   rest of the app's theme.
+═══════════════════════════════════════════ */
+#view-landing{
+  --paper:#F6F1E4;
+  --paper-2:#EFE8D6;
+  --sheet:#FCF9EF;
+  --ink:#1C1710;
+  --ink-soft:#5A5142;
+  --faint:#8C8270;
+  --rule:#D9CFB8;
+  --rule-soft:#E6DEC9;
+  --red:#B0392E;
+  --red-soft:#C4564B;
+  --gold:#9A7B3F;
+  --hl:#F3D96E;
+  --lv-serif:'EB Garamond', Georgia, serif;
+  --lv-display:'Cormorant Garamond', Georgia, serif;
+  --lv-mono:'IBM Plex Mono', ui-monospace, monospace;
+  --lv-hand:'Caveat', cursive;
+  background:var(--paper); color:var(--ink);
+  font-family:var(--lv-serif); font-weight:400; line-height:1.65; font-size:17.5px;
+  overflow-x:hidden; -webkit-font-smoothing:antialiased; position:relative;
+}
+#view-landing h1,#view-landing h2,#view-landing h3,#view-landing .wordmark,#view-landing .cause .parties{font-family:var(--lv-display)}
+#view-landing ::selection{background:var(--hl);color:var(--ink)}
+#view-landing a{color:inherit;text-decoration:none}
+#view-landing a:focus-visible,#view-landing button:focus-visible{outline:2px solid var(--red);outline-offset:3px}
+#view-landing::before{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:1;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.045'/%3E%3C/svg%3E");
+}
+/* legal-pad red margin line */
+#view-landing::after{
+  content:"";position:fixed;top:0;bottom:0;left:92px;width:3px;z-index:1;pointer-events:none;
+  border-left:1px solid rgba(176,57,46,.35);border-right:1px solid rgba(176,57,46,.35);
+}
+@media(max-width:1240px){#view-landing::after{display:none}}
+#view-landing .gutter{
+  position:fixed;top:0;bottom:0;left:0;width:56px;z-index:1;pointer-events:none;
+  font-family:var(--lv-mono);font-size:10px;color:var(--faint);
+  display:flex;flex-direction:column;justify-content:space-between;
+  padding:90px 0 30px;text-align:right;opacity:.55;
+}
+#view-landing .gutter span{padding-right:14px}
+@media(max-width:1240px){#view-landing .gutter{display:none}}
+
+#view-landing .wrap{max-width:1080px;margin:0 auto;padding:0 40px;position:relative;z-index:2}
+#view-landing .progress{position:fixed;top:0;left:0;height:2px;width:0%;z-index:60;background:var(--red)}
+
+/* ---------- nav (document header) ---------- */
+#view-landing nav{position:fixed;top:0;left:0;right:0;z-index:50;background:var(--paper);transition:box-shadow .35s}
+#view-landing nav.scrolled{box-shadow:0 1px 0 var(--rule),0 12px 30px -18px rgba(28,23,16,.25)}
+#view-landing .nav-top{
+  text-align:center;font-family:var(--lv-mono);font-size:9.5px;letter-spacing:.3em;text-transform:uppercase;
+  color:var(--faint);padding:8px 0;border-bottom:1px solid var(--rule-soft);
+  transition:height .3s,padding .3s,opacity .3s;overflow:hidden;
+}
+#view-landing nav.scrolled .nav-top{height:0;padding:0;opacity:0}
+#view-landing .nav-inner{max-width:1080px;margin:0 auto;padding:16px 40px;display:flex;align-items:center;justify-content:space-between}
+#view-landing .wordmark{font-size:21px;font-weight:600;letter-spacing:.1em;display:flex;align-items:center;gap:10px}
+#view-landing .wordmark .seal{color:var(--red);font-size:17px}
+#view-landing .wordmark b{font-weight:700}
+#view-landing .nav-links{display:flex;gap:30px;font-family:var(--lv-mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-soft)}
+#view-landing .nav-links a{border-bottom:1px solid transparent;transition:border-color .25s,color .25s;padding-bottom:2px}
+#view-landing .nav-links a:hover{color:var(--red);border-color:var(--red)}
+#view-landing .nav-cta{
+  font-family:var(--lv-mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--paper);background:var(--ink);padding:10px 18px;border:1px solid var(--ink);
+  transition:background .25s,border-color .25s; cursor:pointer;
+}
+#view-landing .nav-cta:hover{background:var(--red);border-color:var(--red)}
+@media(max-width:860px){#view-landing .nav-links{display:none}}
+
+/* ---------- shared bits ---------- */
+#view-landing .mono-label{font-family:var(--lv-mono);font-size:10.5px;letter-spacing:.28em;text-transform:uppercase;color:var(--faint)}
+#view-landing .stamp{
+  display:inline-block;font-family:var(--lv-mono);font-size:12px;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--red);border:3px double var(--red);padding:9px 16px;
+  transform:rotate(-6deg) scale(1.6);opacity:0;
+}
+#view-landing .stamp.small{font-size:9px;padding:4px 8px;border-width:2px}
+#view-landing .stamp.in{animation:lvSlam .55s cubic-bezier(.2,1.3,.4,1) forwards}
+@keyframes lvSlam{
+  0%{transform:rotate(-6deg) scale(1.7);opacity:0}
+  55%{opacity:1}
+  100%{transform:rotate(-6deg) scale(1);opacity:.9}
+}
+#view-landing .hl{background:linear-gradient(120deg,rgba(243,217,110,.8),rgba(243,217,110,.8)) no-repeat;background-size:0% 82%;background-position:0 64%;transition:background-size .9s cubic-bezier(.22,1,.36,1)}
+#view-landing .hl.on{background-size:100% 82%}
+#view-landing .reveal{opacity:0;transform:translateY(26px);transition:opacity .85s cubic-bezier(.22,1,.36,1),transform .85s cubic-bezier(.22,1,.36,1)}
+#view-landing .reveal.in{opacity:1;transform:none}
+#view-landing section{padding:110px 0}
+#view-landing h2{font-weight:600;font-size:clamp(34px,4vw,52px);line-height:1.15;letter-spacing:-.01em}
+#view-landing h2 em{font-style:italic;font-weight:400;color:var(--red)}
+#view-landing .sec-head{margin-bottom:56px;max-width:680px}
+#view-landing .sec-head .mono-label{display:block;margin-bottom:16px}
+#view-landing .sec-head p{margin-top:16px;color:var(--ink-soft);font-size:17px;max-width:520px}
+
+/* ---------- hero ---------- */
+#view-landing .hero{padding:170px 0 90px;position:relative}
+#view-landing .cause{
+  max-width:640px;margin:0 auto 46px;text-align:center;
+  border-top:2px solid var(--ink);border-bottom:2px solid var(--ink);
+  padding:22px 20px;position:relative;
+  opacity:0;animation:lvFadeup .9s .1s cubic-bezier(.22,1,.36,1) forwards;
+}
+@keyframes lvFadeup{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+#view-landing .cause .court{font-family:var(--lv-mono);font-size:10px;letter-spacing:.3em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:12px}
+#view-landing .cause .parties{font-family:var(--lv-serif);font-size:16px;line-height:1.8}
+#view-landing .cause .parties b{font-weight:700}
+#view-landing .cause .vs{font-style:italic;color:var(--faint);display:block;font-size:14px;margin:2px 0}
+#view-landing .cause .no{font-family:var(--lv-mono);font-size:10px;letter-spacing:.22em;color:var(--faint);margin-top:12px;text-transform:uppercase}
+#view-landing .cause .stamp{position:absolute;right:-26px;top:-20px}
+@media(max-width:700px){#view-landing .cause .stamp{right:-6px}}
+#view-landing .hero h1{
+  font-weight:600;text-align:center;
+  font-size:clamp(58px,9.2vw,124px);line-height:.98;letter-spacing:-.02em;
+}
+#view-landing .hero h1 .wline{display:inline-block;overflow:hidden;vertical-align:bottom}
+#view-landing .hero h1 .wline i{display:inline-block;font-style:normal;transform:translateY(112%);animation:lvWordUp 1s cubic-bezier(.22,1,.36,1) forwards}
+@keyframes lvWordUp{to{transform:translateY(0)}}
+#view-landing .hero h1 .flag{position:relative;white-space:nowrap}
+#view-landing .hero h1 .flag svg{position:absolute;left:-4%;bottom:-14px;width:108%;height:26px;overflow:visible}
+#view-landing .hero h1 .flag svg path{fill:none;stroke:var(--red);stroke-width:3.4;stroke-linecap:round;stroke-dasharray:1;stroke-dashoffset:1}
+#view-landing .hero h1 .flag svg path.go{animation:lvDrawpath 1s 1.15s cubic-bezier(.5,0,.3,1) forwards}
+@keyframes lvDrawpath{to{stroke-dashoffset:0}}
+#view-landing .hero-sub{
+  text-align:center;max-width:560px;margin:30px auto 42px;color:var(--ink-soft);font-size:18px;
+  opacity:0;animation:lvFadeup .9s .8s cubic-bezier(.22,1,.36,1) forwards;
+}
+#view-landing .hero-actions{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;opacity:0;animation:lvFadeup .9s 1s cubic-bezier(.22,1,.36,1) forwards}
+#view-landing .btn{
+  font-family:var(--lv-mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;
+  padding:16px 30px;border:1px solid var(--ink);display:inline-block;
+  transition:background .25s,color .25s,transform .25s,box-shadow .25s;background:var(--paper); cursor:pointer;
+}
+#view-landing .btn:hover{transform:translate(-2px,-2px);box-shadow:3px 3px 0 var(--ink)}
+#view-landing .btn.solid{background:var(--ink);color:var(--paper)}
+#view-landing .btn.solid:hover{background:var(--red);border-color:var(--red);box-shadow:3px 3px 0 rgba(28,23,16,.35)}
+#view-landing .swear{
+  text-align:center;margin-top:56px;font-family:var(--lv-hand);font-size:22px;color:var(--ink-soft);
+  transform:rotate(-1.4deg);opacity:0;animation:lvFadeup 1s 1.5s ease forwards;
+}
+#view-landing .swear b{color:var(--red);font-weight:600}
+
+/* ---------- exhibit A: the living memorial ---------- */
+#view-landing .exhibit-tab{
+  display:inline-block;font-family:var(--lv-mono);font-size:10.5px;letter-spacing:.24em;text-transform:uppercase;
+  background:var(--ink);color:var(--paper);padding:8px 16px;margin-bottom:-1px;position:relative;z-index:3;
+}
+#view-landing .sheet-wrap{position:relative}
+#view-landing .sheet{
+  background:var(--sheet);border:1px solid var(--rule);
+  box-shadow:0 30px 60px -30px rgba(28,23,16,.35),0 2px 0 rgba(28,23,16,.05);
+  padding:54px 60px 46px 84px;position:relative;min-height:520px;
+}
+#view-landing .sheet::before{ /* internal red margin */
+  content:"";position:absolute;top:0;bottom:0;left:60px;width:1px;background:rgba(176,57,46,.4);
+}
+#view-landing .sheet .lines{
+  position:absolute;top:54px;bottom:46px;left:0;width:60px;
+  font-family:var(--lv-mono);font-size:10px;color:var(--faint);
+  display:flex;flex-direction:column;justify-content:space-between;text-align:center;opacity:.7;
+}
+#view-landing .sheet .doc-title{text-align:center;font-weight:700;letter-spacing:.12em;font-size:15px;text-transform:uppercase;margin-bottom:6px;min-height:22px}
+#view-landing .sheet .doc-sub{text-align:center;font-family:var(--lv-mono);font-size:10.5px;letter-spacing:.24em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:34px;min-height:16px}
+#view-landing .sheet .issue{font-weight:700;font-size:15.5px;margin-bottom:16px;min-height:24px}
+#view-landing .sheet .body-txt{font-size:15.5px;line-height:1.9;color:var(--ink);min-height:150px;max-width:640px}
+#view-landing .sheet .body-txt .cite{font-style:italic}
+#view-landing .sheet .caret{display:inline-block;width:8px;height:16px;background:var(--ink);vertical-align:-2px;margin-left:2px;animation:lvBlink 1s infinite}
+@keyframes lvBlink{0%,100%{opacity:1}50%{opacity:0}}
+#view-landing .sheet .fnrule{width:180px;height:1px;background:var(--ink);margin:34px 0 12px;transform-origin:left;transform:scaleX(0);transition:transform .6s ease}
+#view-landing .sheet .fnrule.on{transform:scaleX(1)}
+#view-landing .sheet .footnote{font-size:12.5px;color:var(--ink-soft);display:flex;align-items:center;gap:14px;min-height:30px}
+#view-landing .sheet .footnote .fn-text{opacity:0;transition:opacity .6s}
+#view-landing .sheet .footnote .fn-text.on{opacity:1}
+#view-landing .margin-note{
+  position:absolute;right:-14px;top:200px;width:190px;transform:rotate(2deg);
+  font-family:var(--lv-hand);font-size:19px;line-height:1.35;color:var(--red);
+  opacity:0;transition:opacity .8s ease .2s;
+}
+#view-landing .margin-note.on{opacity:1}
+#view-landing .margin-note svg{width:60px;height:26px;display:block;margin-top:2px}
+#view-landing .margin-note svg path{fill:none;stroke:var(--red);stroke-width:2;stroke-linecap:round;stroke-dasharray:1;stroke-dashoffset:1}
+#view-landing .margin-note.on svg path{animation:lvDrawpath .8s .5s ease forwards}
+@media(max-width:1000px){#view-landing .margin-note{display:none}}
+@media(max-width:700px){#view-landing .sheet{padding:40px 26px 36px 62px}#view-landing .sheet::before{left:46px}#view-landing .sheet .lines{width:46px}}
+
+/* bench strip under sheet */
+#view-landing .bench-strip{
+  margin-top:46px;display:grid;grid-template-columns:auto 1fr;gap:26px;align-items:start;
+  border-top:1px solid var(--rule);padding-top:30px;
+}
+#view-landing .bench-strip .mono-label{padding-top:6px;white-space:nowrap}
+#view-landing .bench-q{font-family:var(--lv-display);font-style:italic;font-size:23px;font-weight:500;line-height:1.6;min-height:64px;max-width:640px}
+#view-landing .bench-q .caret{display:inline-block;width:8px;height:17px;background:var(--red);vertical-align:-2px;margin-left:3px;animation:lvBlink 1s infinite}
+#view-landing .bench-note{
+  display:inline-block;margin-top:14px;font-family:var(--lv-hand);font-size:20px;color:var(--red);transform:rotate(-1deg);
+  opacity:0;transition:opacity .6s,transform .6s;
+}
+#view-landing .bench-note.show{opacity:1}
+@media(max-width:700px){#view-landing .bench-strip{grid-template-columns:1fr;gap:10px}}
+
+/* ---------- exhibits grid ---------- */
+#view-landing .ex-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:26px}
+#view-landing .ex{
+  background:var(--sheet);border:1px solid var(--rule);padding:0;
+  transition:transform .3s,box-shadow .3s;position:relative;
+}
+#view-landing .ex:hover{transform:translate(-3px,-3px);box-shadow:5px 5px 0 var(--rule)}
+#view-landing .ex .tab{
+  font-family:var(--lv-mono);font-size:9.5px;letter-spacing:.22em;text-transform:uppercase;
+  border-bottom:1px solid var(--rule);color:var(--ink-soft);padding:10px 18px;
+  display:flex;justify-content:space-between;align-items:center;
+}
+#view-landing .ex .tab .no{color:var(--red)}
+#view-landing .ex .pad{padding:22px 22px 24px}
+#view-landing .ex h3{font-weight:600;font-size:21px;margin-bottom:14px}
+#view-landing .ex .mini{border:1px solid var(--rule-soft);background:var(--paper);padding:14px 16px;font-family:var(--lv-mono);font-size:11.5px;color:var(--ink-soft);min-height:128px}
+#view-landing .ex .one{margin-top:14px;font-size:14px;color:var(--ink-soft);font-style:italic}
+#view-landing .mini .row{display:flex;justify-content:space-between;align-items:center;padding:4.5px 0}
+#view-landing .mini .box{width:13px;height:13px;border:1.5px solid var(--ink-soft);display:inline-grid;place-items:center;margin-right:9px;font-size:10px;color:var(--red);vertical-align:-2px}
+#view-landing .mini .box i{opacity:0;transform:scale(.4);transition:opacity .3s,transform .3s;font-style:normal}
+#view-landing .mini .box.on i{opacity:1;transform:scale(1)}
+#view-landing .mini .vstamp{font-size:8px;letter-spacing:.14em;color:var(--red);border:1.5px solid var(--red);padding:2px 5px;transform:rotate(-4deg);display:inline-block;opacity:0;transition:opacity .4s}
+#view-landing .mini .vstamp.on{opacity:.9}
+#view-landing .mini .tree div{line-height:1.9}
+#view-landing .mini .tree .l2{padding-left:14px}
+#view-landing .mini .tree .l3{padding-left:28px;color:var(--faint)}
+#view-landing .mini .dots{overflow:hidden;white-space:nowrap;color:var(--faint)}
+#view-landing .mini table{width:100%;border-collapse:collapse}
+#view-landing .mini td{padding:5px 0;border-bottom:1px dotted var(--rule)}
+#view-landing .mini td:last-child{text-align:right}
+#view-landing .mini .hand{font-family:var(--lv-hand);font-size:19px;color:var(--red)}
+#view-landing .mini .circled{position:relative;display:inline-block}
+#view-landing .mini .circled svg{position:absolute;inset:-8px -14px;width:calc(100% + 28px);height:calc(100% + 16px);overflow:visible;pointer-events:none}
+#view-landing .mini .circled svg ellipse{fill:none;stroke:var(--red);stroke-width:1.8;stroke-dasharray:1;stroke-dashoffset:1}
+#view-landing .mini .circled.on svg ellipse{animation:lvDrawpath 1s .3s ease forwards}
+#view-landing .mini svg.spark{display:block;margin-top:8px}
+#view-landing .mini svg.spark path{fill:none;stroke:var(--red);stroke-width:1.8;stroke-linecap:round;stroke-dasharray:1;stroke-dashoffset:1}
+#view-landing .mini svg.spark.on path{animation:lvDrawpath 1.2s .2s ease forwards}
+@media(max-width:960px){#view-landing .ex-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:640px){#view-landing .ex-grid{grid-template-columns:1fr}}
+
+/* ---------- the bench ---------- */
+#view-landing .judges{display:grid;grid-template-columns:repeat(3,1fr);gap:26px}
+#view-landing .jcard{
+  background:var(--sheet);border:1px solid var(--rule);padding:34px 30px;text-align:left;position:relative;
+  transition:transform .3s,box-shadow .3s;
+}
+#view-landing .jcard:hover{transform:translate(-3px,-3px);box-shadow:5px 5px 0 var(--rule)}
+#view-landing .jcard .glyph{
+  width:52px;height:52px;border:1px solid var(--ink);border-radius:50%;
+  display:grid;place-items:center;font-family:var(--lv-serif);font-style:italic;font-size:24px;font-weight:700;
+  margin-bottom:20px;
+}
+#view-landing .jcard:hover .glyph{background:var(--ink);color:var(--paper)}
+#view-landing .jcard .glyph{transition:background .3s,color .3s}
+#view-landing .jcard h3{font-weight:600;font-size:22px;margin-bottom:4px}
+#view-landing .jcard .temper{font-family:var(--lv-mono);font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--red);display:block;margin-bottom:14px}
+#view-landing .jcard p{font-size:14.5px;color:var(--ink-soft)}
+#view-landing .jcard .q{margin-top:20px;padding-top:16px;border-top:1px dotted var(--rule);font-style:italic;font-size:15px;line-height:1.6}
+@media(max-width:900px){#view-landing .judges{grid-template-columns:1fr}}
+
+/* ---------- scoresheet ---------- */
+#view-landing .score-sec{background:var(--paper-2);border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+#view-landing .scoresheet{
+  background:var(--sheet);border:1px solid var(--rule);max-width:760px;margin:0 auto;
+  box-shadow:0 26px 50px -28px rgba(28,23,16,.35);padding:44px 50px;position:relative;
+}
+#view-landing .scoresheet .head{display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid var(--ink);padding-bottom:14px;margin-bottom:6px}
+#view-landing .scoresheet .head h3{font-weight:600;font-size:20px;letter-spacing:.06em;text-transform:uppercase}
+#view-landing .scoresheet table{width:100%;border-collapse:collapse}
+#view-landing .scoresheet td{padding:15px 4px;border-bottom:1px solid var(--rule-soft);font-size:15.5px}
+#view-landing .scoresheet td:last-child{text-align:right;width:110px}
+#view-landing .scoresheet .hand{font-family:var(--lv-hand);font-size:27px;color:var(--red);font-weight:600}
+#view-landing .scoresheet .total td{border-bottom:none;border-top:2px solid var(--ink);font-weight:700;text-transform:uppercase;font-size:13px;letter-spacing:.1em}
+#view-landing .scoresheet .total .hand{font-size:32px}
+#view-landing .scoresheet .remarks{margin-top:26px}
+#view-landing .scoresheet .remarks .mono-label{display:block;margin-bottom:12px}
+#view-landing .scoresheet .remarks p{font-family:var(--lv-hand);font-size:21px;line-height:1.5;color:var(--ink-soft);transform:rotate(-.6deg)}
+#view-landing .scoresheet .remarks p b{color:var(--red);font-weight:600}
+#view-landing .scoresheet .stamp{position:absolute;right:34px;top:30px}
+@media(max-width:700px){#view-landing .scoresheet{padding:32px 24px}#view-landing .scoresheet .stamp{display:none}}
+
+/* ---------- CTA ---------- */
+#view-landing .cta-sec{text-align:center;padding:150px 0 140px}
+#view-landing .cta-sec .stamp.big{font-size:clamp(22px,4vw,40px);padding:18px 34px;border-width:5px;letter-spacing:.24em}
+#view-landing .cta-sec h2{max-width:760px;margin:44px auto 0}
+#view-landing .cta-sec p{color:var(--ink-soft);margin:20px auto 40px;max-width:420px;font-size:17px}
+
+#view-landing footer{border-top:2px solid var(--ink);padding:34px 0;background:var(--paper)}
+#view-landing .foot{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:18px;font-family:var(--lv-mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-soft)}
+#view-landing .foot .links{display:flex;gap:26px}
+#view-landing .foot .links a:hover{color:var(--red)}
+
+@media(max-width:640px){
+  #view-landing .wrap{padding:0 22px}
+  #view-landing .nav-inner{padding:14px 22px}
+  #view-landing section{padding:80px 0}
+  #view-landing .hero{padding-top:150px}
+}
+@media(prefers-reduced-motion:reduce){
+  #view-landing *,#view-landing *::before,#view-landing *::after{animation-duration:.001s!important;animation-delay:0s!important;transition-duration:.001s!important}
+  #view-landing .reveal,#view-landing .cause,#view-landing .hero-sub,#view-landing .hero-actions,#view-landing .swear{opacity:1;transform:none}
+  #view-landing .stamp{opacity:.9;transform:rotate(-6deg) scale(1)}
+}
+
+  /* ===== INTRO OVERTURE ===== */
+  #intro{
+    position:fixed;inset:0;z-index:100;background:var(--paper);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    cursor:pointer;transition:transform .95s cubic-bezier(.7,0,.2,1);
+    animation:iShake .16s 2.32s;
+  }
+  #intro::before{
+    content:"";position:absolute;inset:0;pointer-events:none;
+    background:
+      radial-gradient(ellipse 60% 45% at 50% 48%, rgba(252,249,239,.9), transparent 70%),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.045'/%3E%3C/svg%3E");
+  }
+  #intro::after{ /* the red rule that sweeps the screen as the curtain lifts */
+    content:"";position:absolute;bottom:0;left:0;right:0;height:3px;background:var(--gold);
+  }
+  #intro.done{transform:translateY(-101%)}
+  @keyframes iShake{
+    0%,100%{transform:translate(0,0)}
+    30%{transform:translate(1.5px,2px)}
+    60%{transform:translate(-1.5px,-1px)}
+  }
+  .i-word{
+    display:flex;overflow:hidden;padding:0 6px;
+    letter-spacing:.14em;
+    animation:iTrack 1.6s .5s cubic-bezier(.22,1,.36,1) forwards;
+  }
+  @keyframes iTrack{to{letter-spacing:.015em}}
+  .i-word span{
+    font-family:var(--serif);font-weight:600;font-size:clamp(46px,9vw,100px);
+    line-height:1.08;display:inline-block;
+    transform:translateY(115%) rotate(3deg);
+    animation:iRise .8s cubic-bezier(.22,1,.36,1) forwards;
+  }
+  .i-word span.red{color:var(--gold)}
+  @keyframes iRise{to{transform:translateY(0) rotate(0)}}
+  .i-linewrap{position:relative;width:min(58vw,560px);margin:18px 0 22px;display:flex;justify-content:center}
+  .i-line{
+    width:100%;height:2px;background:var(--ink);
+    transform:scaleX(0);transform-origin:center;
+    animation:iLine .75s .22s cubic-bezier(.65,0,.35,1) forwards;
+  }
+  @keyframes iLine{to{transform:scaleX(1)}}
+  .i-seal{
+    position:absolute;top:50%;left:50%;transform:translate(-50%,-54%) scale(0);
+    font-family:var(--serif);font-size:22px;color:var(--gold);
+    background:var(--paper);padding:0 16px;line-height:1;
+    animation:iSeal .55s .1s cubic-bezier(.2,1.4,.4,1) forwards;
+  }
+  @keyframes iSeal{to{transform:translate(-50%,-54%) scale(1)}}
+  .i-cap{
+    font-family:var(--mono);font-size:11px;letter-spacing:.42em;text-transform:uppercase;
+    color:var(--faint);opacity:0;transform:translateY(10px);
+    animation:iFade .8s 1.6s ease forwards;text-align:center;padding-left:.42em;
+  }
+  @keyframes iFade{to{opacity:1;transform:none}}
+  .i-stamp{
+    position:absolute;margin-top:-4px;
+    font-family:var(--mono);font-size:13px;letter-spacing:.22em;text-transform:uppercase;
+    color:var(--gold);border:3px double var(--gold);padding:9px 18px;
+    transform:translate(150px,-118px) rotate(-7deg) scale(1.7);opacity:0;
+    animation:iSlam .45s 2.15s cubic-bezier(.2,1.3,.4,1) forwards;
+    box-shadow:0 0 0 rgba(176,57,46,0);
+  }
+  @keyframes iSlam{
+    0%{transform:translate(150px,-118px) rotate(-7deg) scale(1.7);opacity:0}
+    55%{opacity:1;box-shadow:0 6px 22px rgba(176,57,46,.28)}
+    100%{transform:translate(150px,-118px) rotate(-7deg) scale(1);opacity:.92;box-shadow:0 1px 3px rgba(176,57,46,.12)}
+  }
+  @media(max-width:700px){.i-stamp{transform:translate(80px,-84px) rotate(-7deg) scale(1.7)}
+    @keyframes iSlam{0%{transform:translate(80px,-84px) rotate(-7deg) scale(1.7);opacity:0}55%{opacity:1;box-shadow:0 6px 22px rgba(176,57,46,.28)}100%{transform:translate(80px,-84px) rotate(-7deg) scale(1);opacity:.92;box-shadow:0 1px 3px rgba(176,57,46,.12)}}}
+  .i-timer{
+    position:absolute;bottom:6px;left:0;height:1.5px;width:100%;background:var(--ink);opacity:.28;
+    transform-origin:left;animation:iTimer 3.1s .1s linear forwards;
+  }
+  @keyframes iTimer{to{transform:scaleX(0)}}
+  .i-skip{
+    position:absolute;bottom:20px;font-family:var(--mono);font-size:9.5px;letter-spacing:.26em;
+    text-transform:uppercase;color:var(--faint);opacity:0;animation:iFade .8s 1.2s ease forwards;
+  }
+  /* hold hero choreography until the curtain lifts */
+  body.intro-hold #view-landing .cause,
+  body.intro-hold #view-landing .hero h1 .wline i,
+  body.intro-hold #view-landing .hero-sub,
+  body.intro-hold #view-landing .hero-actions,
+  body.intro-hold #view-landing .swear{animation-play-state:paused!important}
+  @media(prefers-reduced-motion:reduce){#intro{display:none}}
 </style>
 </head>
-<body>
+<body class="intro-hold">
+
+<div id="intro" aria-hidden="true">
+  <div class="i-word">
+    <span style="animation-delay:.45s">M</span><span style="animation-delay:.51s">O</span><span style="animation-delay:.57s">O</span><span style="animation-delay:.63s">T</span><span class="red" style="animation-delay:.72s">C</span><span class="red" style="animation-delay:.78s">O</span><span class="red" style="animation-delay:.84s">A</span><span class="red" style="animation-delay:.90s">C</span><span class="red" style="animation-delay:.96s">H</span>
+  </div>
+  <div class="i-linewrap">
+    <div class="i-line"></div>
+    <span class="i-seal">§</span>
+  </div>
+  <div class="i-cap">The bench is now in session</div>
+  <span class="i-stamp">In Session</span>
+  <div class="i-timer"></div>
+  <div class="i-skip">Click anywhere to enter</div>
+</div>
 
 <!-- ═══ VIEW 1 — LANDING ═══ -->
 <div id="view-landing" class="view active">
-  <nav class="land-nav">
-    <a class="nav-logo" id="land-nav-logo" style="cursor:pointer">Moot<span>Coach</span></a>
-    <ul class="nav-links">
-      <li><a href="#how">How it Works</a></li>
-      <li><a href="#features">Features</a></li>
-      <li><a href="#pricing">Access</a></li>
-    </ul>
-    <div class="nav-right">
-      <button class="btn-ghost tracking-widest font-medium" id="nav-btn-login">Login</button>
-      <button class="btn-primary btn-login-nav tracking-widest font-medium" id="nav-btn-get-started" data-default="Get Started">Get Started</button>
-    </div>
-  </nav>
 
-  <section class="hero land-section">
-    <div class="hero-eyebrow">The AI Workspace for Elite Mooters</div>
-    <h1 class="font-light tracking-tight text-5xl">Don't just survive the bench.<br/><em>Control the courtroom.</em></h1>
-    <p class="hero-sub font-light text-lg">Upload your proposition, extract the ratio, build unassailable arguments, and face a hostile AI judge before you ever step into the moot hall.</p>
-    <div class="hero-ctas">
-      <button class="btn-primary tracking-widest font-medium" id="hero-btn-start">Start Building Your Case →</button>
-      <a href="#how" class="btn-outline tracking-widest font-medium">Examine the Process</a>
-    </div>
-    <div class="trust-badges">
-      <div class="badge"><span class="badge-dot"></span>Trained on Landmark Precedents</div>
-      <div class="badge"><span class="badge-dot"></span>Strict Legal Logic</div>
-      <div class="badge"><span class="badge-dot"></span>Secure & Confidential</div>
-    </div>
-  </section>
+<div class="progress" id="lv-progress"></div>
+<div class="gutter" id="lv-gutter" aria-hidden="true"></div>
 
-  <div class="trust-banner">
-    <div class="trust-item"><svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg> Built for the ambitious law student</div>
-    <div class="trust-item"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> Save 40+ hours of initial research</div>
-    <div class="trust-item"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> Bank-grade privacy for your strategies</div>
+<nav id="lv-nav">
+  <div class="nav-top">In the matter of moot court preparation · Cause list no. 1 of 2026</div>
+  <div class="nav-inner">
+    <a href="#" class="wordmark" id="land-nav-logo"><span class="seal">§</span><b>MOOTCOACH</b></a>
+    <div class="nav-links">
+      <a href="#exhibit-a">Exhibit A</a>
+      <a href="#exhibits">The Record</a>
+      <a href="#bench">The Bench</a>
+      <a href="#scoresheet">Scoresheet</a>
+    </div>
+    <a href="#start" class="nav-cta" id="nav-btn-get-started">File Appearance</a>
   </div>
+</nav>
 
-  <div class="sep"></div>
-
-  <section class="land-section" id="how">
-    <div class="section-wrap">
-      <div class="section-header">
-        <div class="section-eyebrow">Process</div>
-        <h2>How MootCoach Works</h2>
-        <p>Three steps from raw proposition to confident advocate.</p>
+<!-- ===================== HERO ===================== -->
+<header class="hero">
+  <div class="wrap">
+    <div class="cause">
+      <div class="court">In the court of serious preparation</div>
+      <div class="parties">
+        <b>MOOTCOACH</b> … Applicant
+        <span class="vs">— versus —</span>
+        <b>THE NIGHT BEFORE SUBMISSION</b> … Respondent
       </div>
-      <div class="steps-grid">
-        <div class="step"><div class="step-num">01</div><h3>Create Moot Workspace</h3><p>Upload your moot proposition PDF and set up your workspace. The AI reads it and starts building context immediately.</p></div>
-        <div class="step"><div class="step-num">02</div><h3>Practice with AI</h3><p>Enter the AI Practice Room. Argue your side, face dynamic bench questions, and iterate on your oral submissions in real time.</p></div>
-        <div class="step"><div class="step-num">03</div><h3>Receive Strategic Feedback</h3><p>Get structured critique on argument clarity, counter-argument readiness, precedent use, and oral advocacy — every round.</p></div>
+      <div class="no">Moot Prop. No. 1 of 2026 · For final hearing</div>
+      <span class="stamp small" data-stamp>Listed Today</span>
+    </div>
+    <h1>
+      <span class="wline"><i style="animation-delay:.35s">State</i></span>
+      <span class="wline"><i style="animation-delay:.47s">your</i></span>
+      <span class="flag"><span class="wline"><i style="animation-delay:.59s">case.</i></span>
+        <svg viewBox="0 0 200 24" preserveAspectRatio="none" aria-hidden="true"><path id="lv-underline" pathLength="1" d="M4,16 C50,20 90,8 196,13"/></svg>
+      </span>
+    </h1>
+    <p class="hero-sub">MootCoach reads your proposition, drafts with you, and puts you before a bench that talks back — until arguing feels like reflex.</p>
+    <div class="hero-actions">
+      <a href="#start" class="btn solid" id="hero-btn-start">File your first proposition</a>
+      <a href="#exhibit-a" class="btn">Inspect the evidence ↓</a>
+    </div>
+    <div class="swear">sworn before no one — <b>practised before everyone.</b></div>
+  </div>
+</header>
+
+<!-- ===================== EXHIBIT A ===================== -->
+<section id="exhibit-a" style="padding-top:60px">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="mono-label">Exhibit A · The living memorial</span>
+      <h2>Watch a memorial <em>write itself.</em></h2>
+      <p>This is not a screenshot. The draft below types, cites, verifies, and gets marked — the way every MootCoach session runs.</p>
+    </div>
+    <div class="sheet-wrap reveal" id="lv-sheetwrap">
+      <span class="exhibit-tab">Exhibit A</span>
+      <div class="sheet">
+        <div class="lines" id="lv-sheetlines"></div>
+        <div class="doc-title" id="lv-docTitle"></div>
+        <div class="doc-sub" id="lv-docSub"></div>
+        <div class="issue" id="lv-docIssue"></div>
+        <div class="body-txt" id="lv-docBody"></div>
+        <div class="fnrule" id="lv-fnrule"></div>
+        <div class="footnote">
+          <span class="fn-text" id="lv-fnText">¹ K.S. Puttaswamy v. Union of India, (2017) 10 SCC 1.</span>
+          <span class="stamp small" id="lv-fnStamp">Verified</span>
+        </div>
+        <div class="margin-note" id="lv-marginNote">
+          bench will push here —<br>keep Anuradha Bhasin ready
+          <svg viewBox="0 0 60 26"><path pathLength="1" d="M54,4 C40,20 20,22 4,14 M12,10 L4,14 L10,21"/></svg>
+        </div>
+      </div>
+      <div class="bench-strip">
+        <span class="mono-label">The bench asks</span>
+        <div>
+          <div class="bench-q" id="lv-benchq"></div>
+          <span class="bench-note" id="lv-benchnote"></span>
+        </div>
       </div>
     </div>
-  </section>
+  </div>
+</section>
 
-  <div class="sep"></div>
-
-  <section class="land-section" id="features">
-    <div class="section-wrap">
-      <div class="section-header">
-        <div class="section-eyebrow">Capabilities</div>
-        <h2>Engineered for <em style="font-family:var(--serif);font-style:italic;color:var(--gold)">Outcomes</em></h2>
-        <p>Not features. Results you can carry into the moot hall.</p>
+<!-- ===================== THE RECORD (exhibits) ===================== -->
+<section id="exhibits" style="padding-top:70px">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="mono-label">Exhibits B through G · The record</span>
+      <h2>Everything a mooter files, drills, <em>and survives.</em></h2>
+    </div>
+    <div class="ex-grid">
+      <div class="ex reveal">
+        <div class="tab"><span class="no">Exhibit B</span><span>Analysis</span></div>
+        <div class="pad">
+          <h3>Proposition Analysis</h3>
+          <div class="mini">
+            <div class="row"><span><span class="box" data-tick><i>✓</i></span>Material facts</span><span>14</span></div>
+            <div class="row"><span><span class="box" data-tick><i>✓</i></span>Issues framed</span><span>3</span></div>
+            <div class="row"><span><span class="box" data-tick><i>✓</i></span>Chronology built</span><span>—</span></div>
+            <div class="row"><span><span class="box" data-tick><i>!</i></span>Research gaps</span><span style="color:var(--red)">2</span></div>
+          </div>
+          <p class="one">Facts, issues, gaps — framed for both sides before you read twice.</p>
+        </div>
       </div>
-      <div class="features-grid">
-        <div class="feat-card"><div class="feat-icon">⚖</div><h3>Identify Legal Issues Instantly</h3><p>AI parses your proposition and surfaces every contestable issue, relevant precedent, and constitutional angle before you start drafting.</p></div>
-        <div class="feat-card"><div class="feat-icon">◎</div><h3>Improve Oral Advocacy with Realtime Critique</h3><p>Submit your speech, receive scored feedback on structure, language, and legal precision. Know exactly where you lose the bench.</p></div>
-        <div class="feat-card"><div class="feat-icon">✦</div><h3>Build Unassailable Arguments</h3><p>Construct arguments with proper ratio, precedent chains, and pre-emptive rebuttals — structured for competition judges.</p></div>
-        <div class="feat-card"><div class="feat-icon">◈</div><h3>Memorial Guidance That Wins Marks</h3><p>AI-assisted feedback on your written memorial — structure, research depth, citation style, and persuasive framing.</p></div>
-        <div class="feat-card"><div class="feat-icon">↯</div><h3>Anticipate Every Bench Question</h3><p>Train against an AI bench that targets your weakest arguments. Walk into the moot hall with answers already prepared.</p></div>
-        <div class="feat-card"><div class="feat-icon">▣</div><h3>Track Progress Round by Round</h3><p>Analytics across all your sessions. Watch scores improve, spot recurring weaknesses, and measure growth over time.</p></div>
+      <div class="ex reveal">
+        <div class="tab"><span class="no">Exhibit C</span><span>Authorities</span></div>
+        <div class="pad">
+          <h3>Verified Research</h3>
+          <div class="mini">
+            <div class="row"><span>Kesavananda Bharati</span><span class="vstamp" data-vstamp>Verified</span></div>
+            <div class="row"><span>Puttaswamy (2017)</span><span class="vstamp" data-vstamp>Verified</span></div>
+            <div class="row"><span>Maneka Gandhi</span><span class="vstamp" data-vstamp>Verified</span></div>
+            <div class="row"><span>Confidence gate</span><span>strict</span></div>
+          </div>
+          <p class="one">If a citation can't be verified, you never see it.</p>
+        </div>
+      </div>
+      <div class="ex reveal">
+        <div class="tab"><span class="no">Exhibit D</span><span>Structure</span></div>
+        <div class="pad">
+          <h3>Memorial Architect</h3>
+          <div class="mini tree">
+            <div>I. The tribunal has jurisdiction</div>
+            <div class="l2">A. Consent under Art. 26</div>
+            <div class="l3">1. Ratione materiae satisfied</div>
+            <div class="l2">B. No exhaustion required</div>
+            <div class="dots">. . . . . . . . . . . . . . . . . . . . . .</div>
+          </div>
+          <p class="one">Issue-wise structure with reasoning chains, not assertion.</p>
+        </div>
+      </div>
+      <div class="ex reveal">
+        <div class="tab"><span class="no">Exhibit E</span><span>Cause list</span></div>
+        <div class="pad">
+          <h3>Bench Simulator</h3>
+          <div class="mini">
+            <table>
+              <tr><td>The Textualist</td><td>Ct. 1</td></tr>
+              <tr><td><span class="circled" data-circle>The Interventionist<svg viewBox="0 0 100 30" preserveAspectRatio="none"><ellipse pathLength="1" cx="50" cy="15" rx="48" ry="13"/></svg></span></td><td>Ct. 2</td></tr>
+              <tr><td>The Silent Bench</td><td>Ct. 3</td></tr>
+            </table>
+          </div>
+          <p class="one">Pick your judge. Get interrupted. Hold your structure.</p>
+        </div>
+      </div>
+      <div class="ex reveal">
+        <div class="tab"><span class="no">Exhibit F</span><span>Marks</span></div>
+        <div class="pad">
+          <h3>Round Scoring</h3>
+          <div class="mini">
+            <table>
+              <tr><td>Legal analysis</td><td><span class="hand" data-count="8.2">0.0</span></td></tr>
+              <tr><td>Authorities</td><td><span class="hand" data-count="7.6">0.0</span></td></tr>
+              <tr><td>Responsiveness</td><td><span class="hand" data-count="7.1">0.0</span></td></tr>
+            </table>
+          </div>
+          <p class="one">Six advocacy skills, marked every sitting.</p>
+        </div>
+      </div>
+      <div class="ex reveal">
+        <div class="tab"><span class="no">Exhibit G</span><span>Progress</span></div>
+        <div class="pad">
+          <h3>Between Rounds</h3>
+          <div class="mini">
+            <span class="hand" style="font-size:24px">+0.8</span> responsiveness since Round 2
+            <svg class="spark" data-spark width="100%" height="42" viewBox="0 0 220 42" preserveAspectRatio="none">
+              <path pathLength="1" d="M4,34 C40,30 60,33 84,24 C110,15 130,26 162,14 C185,6 200,8 216,6"/>
+            </svg>
+          </div>
+          <p class="one">Every round compared to your last. Weak grounds get drilled.</p>
+        </div>
       </div>
     </div>
-  </section>
+  </div>
+</section>
 
-  <div class="sep"></div>
-
-  <section class="land-section proof-section" id="pricing">
-    <p class="proof-tagline">Built for the next generation of mooters.<br/><em>Currently in Beta — join early and shape the product.</em></p>
-    <div class="beta-card">
-      <div class="beta-pill">100% Free Beta Access</div>
-      <p class="beta-desc" style="font-size: 1.05rem; margin-bottom: 1.2rem;">MootCoach is actively being built. Early users get complete, unrestricted free access to all features while we build the foundation.</p>
-      <ul style="list-style: none; text-align: left; max-width: 300px; margin: 0 auto 2rem; color: var(--white-2); line-height: 1.8;">
-        <li><span style="color:var(--gold);margin-right:8px;">✓</span>Unlimited Proposition Analysis</li>
-        <li><span style="color:var(--gold);margin-right:8px;">✓</span>Unlimited Bench Simulations</li>
-        <li><span style="color:var(--gold);margin-right:8px;">✓</span>Unlimited Oral Scoring</li>
-        <li><span style="color:var(--gold);margin-right:8px;">✓</span>Cloud Saved Workspaces</li>
-      </ul>
-      <button class="btn-primary btn-login-nav tracking-widest font-medium" id="beta-btn-signup" data-default="Create Free Account →" style="padding:14px 32px;font-size:.88rem; width:100%;">Create Free Account →</button>
+<!-- ===================== THE BENCH ===================== -->
+<section id="bench">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="mono-label">Constitution of the bench</span>
+      <h2>Three temperaments. <em>One is waiting for you.</em></h2>
     </div>
-  </section>
-
-  <div class="sep"></div>
-
-  <section class="land-section">
-    <div class="section-wrap">
-      <div class="section-header">
-        <div class="section-eyebrow">Roadmap</div>
-        <h2>What's Coming Next</h2>
-        <p>MootCoach is ambitious. These features are in active development.</p>
+    <div class="judges reveal">
+      <div class="jcard">
+        <div class="glyph">T</div>
+        <h3>The Textualist</h3>
+        <span class="temper">Precise · Provision-bound</span>
+        <p>Wants the section, the sub-clause, the exact words.</p>
+        <div class="q">"Counsel, take me to the provision. Which limb are you actually invoking?"</div>
       </div>
-      <div class="soon-grid">
-        <div class="soon-card"><div class="soon-tag">Coming Soon</div><h3>Live AI Judge</h3><p>A simulated bench that interrupts, questions, and scores your round in real time.</p></div>
-        <div class="soon-card"><div class="soon-tag">Coming Soon</div><h3>Memorial Analyzer</h3><p>Deep analysis of your written memorial — structure, research depth, citation style.</p></div>
-        <div class="soon-card"><div class="soon-tag">Coming Soon</div><h3>Team Collaboration</h3><p>Co-counsel mode. Build and argue with your partner in one shared workspace.</p></div>
-        <div class="soon-card"><div class="soon-tag">Coming Soon</div><h3>Voice Round Simulation</h3><p>Full voice-based oral practice with pitch, pace, and clarity coaching.</p></div>
+      <div class="jcard">
+        <div class="glyph">I</div>
+        <h3>The Interventionist</h3>
+        <span class="temper">Relentless · Interrupting</span>
+        <p>You won't finish a sentence unchallenged.</p>
+        <div class="q">"Stop there. If I'm against you, what is your second-best argument?"</div>
+      </div>
+      <div class="jcard">
+        <div class="glyph">S</div>
+        <h3>The Silent Bench</h3>
+        <span class="temper">Sparse · Unreadable</span>
+        <p>No questions, no signals — you carry the round alone.</p>
+        <div class="q">"…Proceed, counsel."</div>
       </div>
     </div>
-  </section>
+  </div>
+</section>
 
-  <div class="sep"></div>
+<!-- ===================== SCORESHEET ===================== -->
+<section id="scoresheet" class="score-sec">
+  <div class="wrap">
+    <div class="sec-head reveal" style="text-align:center;max-width:100%">
+      <span class="mono-label">Annexure · Judge's scoresheet</span>
+      <h2 style="margin:0 auto;max-width:640px">Feedback like a <em>judge's notes,</em> not a participation trophy.</h2>
+    </div>
+    <div class="scoresheet reveal" id="lv-scorecard">
+      <span class="stamp" data-stamp>Reviewed</span>
+      <div class="head">
+        <h3>Oral Round · Score Sheet</h3>
+        <span class="mono-label">Speaker No. 1</span>
+      </div>
+      <table>
+        <tr><td>Legal analysis &amp; reasoning</td><td><span class="hand" data-count="8.2">0.0</span></td></tr>
+        <tr><td>Use of authorities</td><td><span class="hand" data-count="7.6">0.0</span></td></tr>
+        <tr><td>Argument structure</td><td><span class="hand" data-count="8.8">0.0</span></td></tr>
+        <tr><td>Responsiveness to the bench</td><td><span class="hand" data-count="7.1">0.0</span></td></tr>
+        <tr class="total"><td>Total</td><td><span class="hand" data-count="31.7">0.0</span></td></tr>
+      </table>
+      <div class="remarks">
+        <span class="mono-label">Remarks</span>
+        <p>Returned to the roadmap after every interruption — good. Authorities placed, not recited. <b>Twice pulled off structure by the bench: drill the bridge-back.</b></p>
+      </div>
+    </div>
+  </div>
+</section>
 
-  <section class="land-section cta-section">
-    <div class="section-eyebrow" style="justify-content:center">Enter the Practice Room</div>
-    <h2>Your next moot starts here.</h2>
-    <p>MootCoach is in early access. Get in now, help shape the product, and prepare smarter than everyone else in the room.</p>
-    <button class="btn-primary btn-login-nav tracking-widest font-medium" id="bottom-btn-practice" data-default="Enter AI Practice Room →">Enter AI Practice Room →</button>
-  </section>
+<!-- ===================== CTA ===================== -->
+<section class="cta-sec" id="start">
+  <div class="wrap reveal">
+    <span class="stamp big" data-stamp>Admitted</span>
+    <h2>Every great advocate rehearsed before an empty room. <em>Yours doesn't have to be empty.</em></h2>
+    <p>Upload a proposition and face the bench tonight.</p>
+    <a href="#" class="btn solid" id="bottom-btn-practice">File your first proposition</a>
+  </div>
+</section>
 
-  <footer class="land-footer">
-    <div class="footer-brand">Moot<span>Coach</span></div>
-    <ul class="footer-links">
-      <li><a href="#how">How it Works</a></li>
-      <li><a href="#features">Features</a></li>
-      <li><a href="#" id="footer-link-terms">Terms</a></li>
-      <li><a href="#" id="footer-link-privacy">Privacy</a></li>
-    </ul>
-    <div class="footer-copy">© 2026 MootCoach. All rights reserved. Strictly confidential workspace.</div>
-  </footer>
+<footer>
+  <div class="wrap foot">
+    <span>Certified true copy · MootCoach</span>
+    <div class="links">
+      <a href="#exhibit-a">Exhibit A</a>
+      <a href="#bench">Bench</a>
+      <a href="#scoresheet">Scoresheet</a>
+    </div>
+    <span>§ 2026 · Built for law students, by one</span>
+  </div>
+</footer>
+
 </div>
 
 
@@ -2654,7 +3228,7 @@ p  { color:var(--white-2); }
             </p>
           </div>
           
-          <div class="bg-white/5 border border-white/10 rounded-xl p-6 backdrop-blur-md space-y-6">
+          <div class="bg-black/5 border border-black/10 rounded-xl p-6 backdrop-blur-md space-y-6">
             <!-- Stance Selector -->
             <div class="ws-field flex flex-col gap-2">
               <label class="tracking-wide text-xs font-semibold uppercase text-white-2">1. Select Side</label>
@@ -2705,7 +3279,7 @@ p  { color:var(--white-2); }
             </div>
             
             <!-- Side Badge Card -->
-            <div class="bg-white/5 border border-white/10 rounded-xl p-4 backdrop-blur-md">
+            <div class="bg-black/5 border border-black/10 rounded-xl p-4 backdrop-blur-md">
               <div class="text-[10px] uppercase tracking-widest text-white-muted font-sans font-semibold mb-2">Selected Stance</div>
               <div id="stage3-side-badge" class="text-xs font-semibold tracking-widest text-center py-2 px-3 rounded-md border">
                 PETITIONER
@@ -2713,15 +3287,15 @@ p  { color:var(--white-2); }
             </div>
 
             <!-- Active Issue Card -->
-            <div class="bg-white/5 border border-white/10 rounded-xl p-4 backdrop-blur-md">
+            <div class="bg-black/5 border border-black/10 rounded-xl p-4 backdrop-blur-md">
               <div class="text-[10px] uppercase tracking-widest text-white-muted font-sans font-semibold mb-2">Selected Legal Issue</div>
-              <div id="stage3-selected-issue-text" class="text-xs font-sans text-white font-medium leading-relaxed font-semibold">
+              <div id="stage3-selected-issue-text" class="text-xs font-sans text-[#1C1710] font-medium leading-relaxed font-semibold">
                 No issue selected yet.
               </div>
             </div>
 
             <!-- Recommended Authorities -->
-            <div class="bg-white/5 border border-white/10 rounded-xl p-4 backdrop-blur-md flex flex-col gap-3">
+            <div class="bg-black/5 border border-black/10 rounded-xl p-4 backdrop-blur-md flex flex-col gap-3">
               <div class="text-xs uppercase tracking-wider text-moot-accent font-semibold flex items-center gap-1.5 font-sans mb-1">
                 <span>💡</span> Authority Armory
               </div>
@@ -2734,7 +3308,7 @@ p  { color:var(--white-2); }
             </div>
 
             <!-- Bench Attack Forecast -->
-            <div class="bg-white/5 border border-white/10 rounded-xl p-4 backdrop-blur-md flex flex-col gap-3">
+            <div class="bg-black/5 border border-black/10 rounded-xl p-4 backdrop-blur-md flex flex-col gap-3">
               <div class="text-xs uppercase tracking-wider text-red-400 font-semibold flex items-center gap-1.5 font-sans mb-1">
                 <span>🎯</span> Bench Attack Forecast
               </div>
@@ -2750,7 +3324,7 @@ p  { color:var(--white-2); }
             </div>
 
             <!-- Case Overview/Context Card -->
-            <div class="bg-white/5 border border-white/10 rounded-xl p-4 backdrop-blur-md">
+            <div class="bg-black/5 border border-black/10 rounded-xl p-4 backdrop-blur-md">
               <div class="text-[10px] uppercase tracking-widest text-white-muted font-sans font-semibold mb-2">Case Summary Context</div>
               <div id="stage3-case-context" class="text-xs text-white-muted font-serif leading-relaxed max-h-[150px] overflow-y-auto pr-1">
                 Upload and analyze a proposition to see summary context here.
@@ -2775,13 +3349,13 @@ p  { color:var(--white-2); }
             </div>
 
             <!-- Input Notes Area -->
-            <div class="bg-white/5 border border-white/10 rounded-xl p-4 backdrop-blur-md mb-2">
+            <div class="bg-black/5 border border-black/10 rounded-xl p-4 backdrop-blur-md mb-2">
               <form id="builder-form" onsubmit="event.preventDefault();" class="flex flex-col space-y-3">
                 <div class="ws-field flex flex-col gap-2 mb-0">
                   <label for="builder-notes-input" class="tracking-wide text-xs font-semibold uppercase text-white-2">Draft Notes & Custom Arguments</label>
                   <textarea id="builder-notes-input" class="oral-textarea w-full min-h-[100px] resize-y mt-1 mb-2" rows="3" placeholder="Enter raw thoughts, facts, or custom arguments. Selected authorities will be automatically included..." style="font-size:.82rem;"></textarea>
                 </div>
-                <button class="btn-analyze w-full py-2.5 text-xs tracking-widest font-medium transition-all duration-300 hover:shadow-[0_0_20px_rgba(201,168,76,0.3)]" id="btn-builder-submit" disabled>
+                <button class="btn-analyze w-full py-2.5 text-xs tracking-widest font-medium transition-all duration-300 hover:shadow-[0_0_20px_rgba(176,57,46,0.3)]" id="btn-builder-submit" disabled>
                   Generate Structured Draft →
                 </button>
               </form>
@@ -2789,11 +3363,11 @@ p  { color:var(--white-2); }
 
             <!-- AI Counsel Output Workspace -->
             <div id="ai-counsel-workspace" class="flex-1 flex flex-col min-h-[400px] relative">
-              <div class="flex-1 bg-white/5 border border-white/10 rounded-xl p-5 flex flex-col transition-all duration-300 hover:border-white/15 overflow-y-auto">
+              <div class="flex-1 bg-black/5 border border-black/10 rounded-xl p-5 flex flex-col transition-all duration-300 hover:border-black/15 overflow-y-auto">
                 <!-- Empty state -->
                 <div id="builder-empty-state" class="flex flex-col items-center justify-center text-center p-6 h-full min-h-[300px]">
                   <div class="text-moot-accent text-4xl mb-4 animate-[pulse_2s_infinite]">⚖️</div>
-                  <h3 class="text-md font-serif text-white font-normal">AI Drafter</h3>
+                  <h3 class="text-md font-serif text-[#1C1710] font-normal">AI Drafter</h3>
                   <p class="text-[11px] text-white-muted mt-2 max-w-sm mb-4">Complete the drafting steps or select recommended authorities, then click Generate Draft.</p>
                 </div>
 
@@ -2807,11 +3381,11 @@ p  { color:var(--white-2); }
                     <span class="animate-cycle-text"></span>
                   </div>
                   <div class="w-full space-y-4 text-left">
-                    <div class="h-3 bg-white/10 rounded w-1/4 mb-4"></div>
+                    <div class="h-3 bg-black/10 rounded w-1/4 mb-4"></div>
                     <div class="space-y-2">
-                      <div class="h-2 bg-white/5 rounded w-full"></div>
-                      <div class="h-2 bg-white/5 rounded w-5/6"></div>
-                      <div class="h-2 bg-white/5 rounded w-full"></div>
+                      <div class="h-2 bg-black/5 rounded w-full"></div>
+                      <div class="h-2 bg-black/5 rounded w-5/6"></div>
+                      <div class="h-2 bg-black/5 rounded w-full"></div>
                     </div>
                   </div>
                 </div>
@@ -2829,15 +3403,15 @@ p  { color:var(--white-2); }
               Oral Coach
             </div>
             
-            <div class="bg-white/5 border border-white/10 rounded-xl p-5 backdrop-blur-md flex flex-col h-full">
+            <div class="bg-black/5 border border-black/10 rounded-xl p-5 backdrop-blur-md flex flex-col h-full">
               <div class="mb-4">
-                <h3 class="text-sm font-serif text-white font-medium mb-1">Evaluate Your Submission</h3>
+                <h3 class="text-sm font-serif text-[#1C1710] font-medium mb-1">Evaluate Your Submission</h3>
                 <p class="text-[10px] text-white-muted leading-relaxed">
                   Paste your oral argument below. MootCoach will stress-test it and evaluate it as a competition judge.
                 </p>
               </div>
 
-              <div id="oral-context-notice" style="display:none;align-items:center;gap:10px;margin-bottom:1rem;padding:8px 12px;background:rgba(201,168,76,.07);border:1px solid var(--gold-border);border-radius:8px;font-size:.7rem;color:var(--white-2);">
+              <div id="oral-context-notice" style="display:none;align-items:center;gap:10px;margin-bottom:1rem;padding:8px 12px;background:rgba(176,57,46,.07);border:1px solid var(--gold-border);border-radius:8px;font-size:.7rem;color:var(--white-2);">
                 <span style="color:var(--gold);">✦</span>
                 <span>Context loaded.</span>
                 <button onclick="clearOralContext()" style="background:none;border:none;color:var(--gold);cursor:pointer;font-size:.7rem;text-decoration:underline;margin-left:auto;">Clear</button>
@@ -2868,13 +3442,13 @@ p  { color:var(--white-2); }
             </div>
 
             <!-- CHAMBER BRIEFING / ADVOCACY ARSENAL -->
-            <div class="bg-white/5 border border-white/10 rounded-xl p-5 backdrop-blur-md flex flex-col mt-4">
+            <div class="bg-black/5 border border-black/10 rounded-xl p-5 backdrop-blur-md flex flex-col mt-4">
               <div class="text-xs uppercase tracking-wider text-moot-accent font-semibold mb-3 flex items-center gap-1.5 font-sans">
                 <span>🎙️</span> CHAMBERS BRIEFING
               </div>
               
               <div id="stage4-chamber-briefing" class="text-xs text-white-2 space-y-4 max-h-[400px] overflow-y-auto pr-2">
-                <div class="text-white-muted italic p-4 bg-white/[0.01] border border-dashed border-white/10 rounded-xl font-sans text-center">
+                <div class="text-white-muted italic p-4 bg-black/[0.02] border border-dashed border-black/10 rounded-xl font-sans text-center">
                   Draft your submissions in the center panel to generate your Battle Plan here.
                 </div>
               </div>
@@ -2916,20 +3490,20 @@ p  { color:var(--white-2); }
           <!-- COURTROOM VIEW -->
           <div class="courtroom-view" id="courtroom-view">
             <!-- Bench Header -->
-            <div class="cr-bench-header flex flex-col items-center justify-center p-6 border-b border-moot-border bg-[#0e1220]/60">
-              <div id="cr-judge-name" class="font-serif text-xl text-white mb-1">⚖️ Presiding Judge</div>
+            <div class="cr-bench-header flex flex-col items-center justify-center p-6 border-b border-moot-border bg-[#F3ECDA]/70">
+              <div id="cr-judge-name" class="font-serif text-xl text-[#1C1710] mb-1">⚖️ Presiding Judge</div>
               <div id="cr-bench-name" class="text-xs text-moot-accent tracking-widest uppercase">Constitutional Bench</div>
               <div id="cr-session-status" class="text-xs text-moot-muted mt-2">Connecting to Bench...</div>
             </div>
 
             <!-- Speech Recognition Diagnostics Panel -->
-            <div id="mic-diagnostics-panel" class="hidden mx-4 my-2 p-3 bg-slate-900/80 border border-slate-700/50 rounded-lg text-xs font-mono space-y-1">
-              <div class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold mb-1">🎙️ Voice Diagnostics (Dev Mode)</div>
-              <div>Browser: <span id="diag-browser" class="text-white">-</span></div>
-              <div>SpeechRecognition Available: <span id="diag-available" class="text-white">-</span></div>
-              <div>Microphone Permission: <span id="diag-permission" class="text-white">-</span></div>
-              <div>Recognition Active: <span id="diag-active" class="text-white">-</span></div>
-              <div>Last Event: <span id="diag-timestamp" class="text-white">-</span></div>
+            <div id="mic-diagnostics-panel" class="hidden mx-4 my-2 p-3 bg-[#F3ECDA] border border-[#D9CFB8] rounded-lg text-xs font-mono space-y-1">
+              <div class="text-[10px] uppercase tracking-wider text-[#8C8270] font-semibold mb-1">🎙️ Voice Diagnostics (Dev Mode)</div>
+              <div>Browser: <span id="diag-browser" class="text-[#1C1710]">-</span></div>
+              <div>SpeechRecognition Available: <span id="diag-available" class="text-[#1C1710]">-</span></div>
+              <div>Microphone Permission: <span id="diag-permission" class="text-[#1C1710]">-</span></div>
+              <div>Recognition Active: <span id="diag-active" class="text-[#1C1710]">-</span></div>
+              <div>Last Event: <span id="diag-timestamp" class="text-[#1C1710]">-</span></div>
               <div id="diag-error-msg" class="text-red-400 font-semibold hidden">Speech Recognition not supported in this browser</div>
             </div>
 
@@ -2940,7 +3514,7 @@ p  { color:var(--white-2); }
             <div class="cr-footer-section p-4 border-t border-moot-border bg-black/10 flex flex-col gap-3 items-center justify-center">
               <div class="flex items-center justify-between w-full max-w-xl gap-4">
                 <div class="flex items-center gap-2">
-                  <div id="cr-indicator-dot" class="w-2.5 h-2.5 rounded-full bg-[#c9a84c] animate-pulse"></div>
+                  <div id="cr-indicator-dot" class="w-2.5 h-2.5 rounded-full bg-[#B0392E] animate-pulse"></div>
                   <span id="cr-indicator-label" class="text-xs tracking-wider uppercase text-moot-muted">Connecting to Bench...</span>
                 </div>
                 
@@ -2959,8 +3533,8 @@ p  { color:var(--white-2); }
                 
                 <div class="flex items-center gap-2 text-xs text-moot-muted">
                   <span class="text-[10px] tracking-widest uppercase">Mic</span>
-                  <div class="w-16 h-1.5 bg-[#1c2235] rounded-full overflow-hidden border border-moot-border">
-                    <div id="cr-mic-level" class="h-full bg-[#4caf82] transition-all duration-100" style="width: 0%"></div>
+                  <div class="w-16 h-1.5 bg-[#E5DCC5] rounded-full overflow-hidden border border-moot-border">
+                    <div id="cr-mic-level" class="h-full bg-[#2F7D52] transition-all duration-100" style="width: 0%"></div>
                   </div>
                 </div>
               </div>
@@ -2978,15 +3552,15 @@ p  { color:var(--white-2); }
             <div class="w-full max-w-[1200px] flex flex-col lg:flex-row gap-6 text-left items-stretch" style="width: 100%;">
               
               <!-- LEFT PANEL: Controls (40%) -->
-              <div class="w-full lg:w-[40%] bg-white/[0.02] border border-white/10 rounded-2xl p-6 flex flex-col justify-between hover:border-white/15 transition-all duration-200" style="display: flex; flex-direction: column; justify-content: space-between;">
+              <div class="w-full lg:w-[40%] bg-black/[0.03] border border-black/10 rounded-2xl p-6 flex flex-col justify-between hover:border-black/15 transition-all duration-200" style="display: flex; flex-direction: column; justify-content: space-between;">
                 <div>
                   <div class="be-icon text-left mb-2" style="font-size: 2.2rem; color: var(--gold); margin-bottom: 12px;">⚖️</div>
-                  <h3 class="font-serif text-2xl text-white font-medium mb-2" style="font-family: var(--serif); font-size: 1.5rem; margin-bottom: 8px;">Courtroom Chambers</h3>
-                  <p class="text-xs text-white-muted leading-relaxed mb-6" style="color: #cbd5e0; font-size: 11px; line-height: 1.5;">Practice appellate advocacy under intense Socratic questioning. Face a simulated AI Bench that probes your argument's logic, precedents, and structure.</p>
+                  <h3 class="font-serif text-2xl text-[#1C1710] font-medium mb-2" style="font-family: var(--serif); font-size: 1.5rem; margin-bottom: 8px;">Courtroom Chambers</h3>
+                  <p class="text-xs text-white-muted leading-relaxed mb-6" style="color: rgba(28,23,16,.6); font-size: 11px; line-height: 1.5;">Practice appellate advocacy under intense Socratic questioning. Face a simulated AI Bench that probes your argument's logic, precedents, and structure.</p>
                 </div>
-                
+
                 <div class="ws-field flex flex-col gap-2 mb-6" style="margin-bottom: 24px;">
-                  <span class="text-[10px] tracking-widest uppercase text-white-muted font-sans font-semibold" style="font-size: 9px; letter-spacing: 0.1em; color: #a0aec0;">Chamber Difficulty</span>
+                  <span class="text-[10px] tracking-widest uppercase text-white-muted font-sans font-semibold" style="font-size: 9px; letter-spacing: 0.1em; color: rgba(28,23,16,.55);">Chamber Difficulty</span>
                   <div class="oral-difficulty-row flex gap-2 w-full" style="display: flex; gap: 8px; width: 100%; margin-top: 6px;">
                     <button class="diff-btn text-[10px] uppercase font-sans tracking-wider py-1.5 px-3 flex-1" id="bench-diff-easy" onclick="setBenchDifficulty('easy')" style="flex: 1; text-align: center;">Easy</button>
                     <button class="diff-btn active-moderate text-[10px] uppercase font-sans tracking-wider py-1.5 px-3 flex-1" id="bench-diff-moderate" onclick="setBenchDifficulty('moderate')" style="flex: 1; text-align: center;">Moderate</button>
@@ -3002,33 +3576,33 @@ p  { color:var(--white-2); }
                     ✍️ Start Text Session
                   </button>
                   
-                  <div id="bench-no-context" class="be-notice mt-4" style="display:none; font-size: 10px; color: #fbbf24; background: rgba(251,191,36,0.05); border: 1px solid rgba(251,191,36,0.2); padding: 10px 14px; border-radius: 8px; margin-top: 16px; line-height: 1.4;">
+                  <div id="bench-no-context" class="be-notice mt-4" style="display:none; font-size: 10px; color: #8a6d1f; background: rgba(251,191,36,0.14); border: 1px solid rgba(180,131,15,0.35); padding: 10px 14px; border-radius: 8px; margin-top: 16px; line-height: 1.4;">
                     <span>⚠ No proposition loaded. The simulator will run with a general constitutional law docket. Upload a PDF first for a custom case briefing.</span>
                   </div>
                 </div>
               </div>
 
               <!-- RIGHT PANEL: Bench Profile (60%) -->
-              <div class="w-full lg:w-[60%] bg-white/[0.02] border border-white/10 rounded-2xl p-6 flex flex-col gap-6 hover:border-white/15 transition-all duration-200 text-left" style="display: flex; flex-direction: column; gap: 20px;">
-                <div class="border-b border-white/5 pb-3" style="border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 10px;">
+              <div class="w-full lg:w-[60%] bg-black/[0.03] border border-black/10 rounded-2xl p-6 flex flex-col gap-6 hover:border-black/15 transition-all duration-200 text-left" style="display: flex; flex-direction: column; gap: 20px;">
+                <div class="border-b border-black/5 pb-3" style="border-bottom: 1px solid rgba(28,23,16,.1); padding-bottom: 10px;">
                   <span class="text-[9px] uppercase tracking-widest text-moot-accent font-semibold" style="color: var(--gold); font-size: 9px; letter-spacing: 0.12em;">Presiding Bench Profile</span>
-                  <h4 class="text-sm font-sans font-semibold text-white mt-0.5" id="lobby-bench-type-title" style="font-size: 14px; color: #fff; margin-top: 2px;">Moderate Constitutional Bench</h4>
+                  <h4 class="text-sm font-sans font-semibold text-[#1C1710] mt-0.5" id="lobby-bench-type-title" style="font-size: 14px; color: #1C1710; margin-top: 2px;">Moderate Constitutional Bench</h4>
                 </div>
-                
+
                 <div class="flex flex-col gap-3" id="lobby-bench-stats" style="display:flex; flex-direction:column; gap:12px;">
-                  <div class="p-3 bg-white/[0.01] border border-white/5 rounded-xl" style="background: rgba(255,255,255,0.01); border: 1px solid rgba(255,255,255,0.05); padding: 12px; border-radius: 8px;">
-                    <div class="text-[9px] text-white-muted uppercase tracking-wider" style="font-size: 9px; color: #a0aec0;">Questioning Depth</div>
+                  <div class="p-3 bg-black/[0.02] border border-black/5 rounded-xl" style="background: rgba(28,23,16,.03); border: 1px solid rgba(28,23,16,.1); padding: 12px; border-radius: 8px;">
+                    <div class="text-[9px] text-white-muted uppercase tracking-wider" style="font-size: 9px; color: rgba(28,23,16,.55);">Questioning Depth</div>
                     <div class="text-xs font-semibold text-moot-accent mt-1" id="lobby-depth-label" style="font-size: 12px; margin-top: 4px; color: var(--gold);">Applied</div>
-                    <div class="text-[11px] text-white-muted mt-1 leading-relaxed" id="lobby-depth-desc" style="font-size: 11px; margin-top: 4px; color: #cbd5e0; line-height: 1.5;">Applied questioning — probes your reasoning and how you apply authority to the facts.</div>
+                    <div class="text-[11px] text-white-muted mt-1 leading-relaxed" id="lobby-depth-desc" style="font-size: 11px; margin-top: 4px; color: rgba(28,23,16,.6); line-height: 1.5;">Applied questioning — probes your reasoning and how you apply authority to the facts.</div>
                   </div>
-                  <div class="p-3 bg-white/[0.01] border border-white/5 rounded-xl" style="background: rgba(255,255,255,0.01); border: 1px solid rgba(255,255,255,0.05); padding: 12px; border-radius: 8px;">
-                    <div class="text-[9px] text-white-muted uppercase tracking-wider" style="font-size: 9px; color: #a0aec0;">Focus Areas — Selected Judge</div>
+                  <div class="p-3 bg-black/[0.02] border border-black/5 rounded-xl" style="background: rgba(28,23,16,.03); border: 1px solid rgba(28,23,16,.1); padding: 12px; border-radius: 8px;">
+                    <div class="text-[9px] text-white-muted uppercase tracking-wider" style="font-size: 9px; color: rgba(28,23,16,.55);">Focus Areas — Selected Judge</div>
                     <div class="text-[10px] text-moot-accent font-sans mt-1" id="lobby-focus-areas" style="font-size: 10px; margin-top: 4px; color: var(--gold);">—</div>
                   </div>
                 </div>
 
                 <div class="flex-1 flex flex-col gap-3" style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">
-                  <span class="text-[9px] uppercase tracking-widest text-white-muted font-semibold" style="font-size: 9px; letter-spacing: 0.1em; color: #a0aec0;">Select Presiding Judge</span>
+                  <span class="text-[9px] uppercase tracking-widest text-white-muted font-semibold" style="font-size: 9px; letter-spacing: 0.1em; color: rgba(28,23,16,.55);">Select Presiding Judge</span>
                   <div class="grid grid-cols-1 sm:grid-cols-2 gap-2" id="bench-judge-cards" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px;">
                     <!-- Judge cards rendered dynamically (forum-gated, single-select) -->
                   </div>
@@ -3080,7 +3654,7 @@ p  { color:var(--white-2); }
     </aside>
     <!-- RIGHT: FORM PANEL -->
     <div class="ao-form">
-    <a href="#" id="auth-overlay-back" class="absolute top-4 right-5 text-xs text-moot-muted hover:text-white transition-colors">← Back</a>
+    <a href="#" id="auth-overlay-back" class="absolute top-4 right-5 text-xs text-moot-muted hover:text-[#1C1710] transition-colors">← Back</a>
     <h2 class="auth-overlay-heading">Welcome to <span style="color:var(--gold); font-style:italic;">MootCoach</span></h2>
 
     <!-- Sign In / Sign Up form container -->
@@ -3090,29 +3664,29 @@ p  { color:var(--white-2); }
         <div class="flex gap-4">
           <div class="flex-1">
             <label class="block text-xs font-semibold tracking-widest uppercase text-gray-500 mb-2">First Name</label>
-            <input type="text" id="auth-fname" placeholder="Arjun" class="w-full bg-transparent border-0 border-b border-gray-700 text-white focus:ring-0 focus:border-moot-accent px-0 py-2 transition-colors duration-200" />
+            <input type="text" id="auth-fname" placeholder="Arjun" class="w-full bg-transparent border-0 border-b border-gray-700 text-[#1C1710] focus:ring-0 focus:border-moot-accent px-0 py-2 transition-colors duration-200" />
             <div class="text-[10px] text-red-400 mt-1 hidden" id="h-auth-fname">First name is required.</div>
           </div>
           <div class="flex-1">
             <label class="block text-xs font-semibold tracking-widest uppercase text-gray-500 mb-2">Last Name</label>
-            <input type="text" id="auth-lname" placeholder="Mehta" class="w-full bg-transparent border-0 border-b border-gray-700 text-white focus:ring-0 focus:border-moot-accent px-0 py-2 transition-colors duration-200" />
+            <input type="text" id="auth-lname" placeholder="Mehta" class="w-full bg-transparent border-0 border-b border-gray-700 text-[#1C1710] focus:ring-0 focus:border-moot-accent px-0 py-2 transition-colors duration-200" />
           </div>
         </div>
         <div>
           <label class="block text-xs font-semibold tracking-widest uppercase text-gray-500 mb-2">Law School / University</label>
-          <input type="text" id="auth-school" placeholder="NALSAR, NLS, NUJS..." class="w-full bg-transparent border-0 border-b border-gray-700 text-white focus:ring-0 focus:border-moot-accent px-0 py-2 transition-colors duration-200" />
+          <input type="text" id="auth-school" placeholder="NALSAR, NLS, NUJS..." class="w-full bg-transparent border-0 border-b border-gray-700 text-[#1C1710] focus:ring-0 focus:border-moot-accent px-0 py-2 transition-colors duration-200" />
         </div>
       </div>
       
       <!-- Always visible Email / Password -->
       <div>
         <label class="block text-xs font-semibold tracking-widest uppercase text-gray-500 mb-2">Email Address</label>
-        <input type="email" id="auth-email" placeholder="you@lawschool.edu" class="w-full bg-transparent border-0 border-b border-gray-700 text-white focus:ring-0 focus:border-moot-accent px-0 py-2 transition-colors duration-200" />
+        <input type="email" id="auth-email" placeholder="you@lawschool.edu" class="w-full bg-transparent border-0 border-b border-gray-700 text-[#1C1710] focus:ring-0 focus:border-moot-accent px-0 py-2 transition-colors duration-200" />
         <div class="text-[10px] text-red-400 mt-1 hidden" id="h-auth-email">Please enter a valid email.</div>
       </div>
       <div>
         <label class="block text-xs font-semibold tracking-widest uppercase text-gray-500 mb-2">Password</label>
-        <input type="password" id="auth-password" placeholder="Your password" class="w-full bg-transparent border-0 border-b border-gray-700 text-white focus:ring-0 focus:border-moot-accent px-0 py-2 transition-colors duration-200" />
+        <input type="password" id="auth-password" placeholder="Your password" class="w-full bg-transparent border-0 border-b border-gray-700 text-[#1C1710] focus:ring-0 focus:border-moot-accent px-0 py-2 transition-colors duration-200" />
         <div class="text-[10px] text-red-400 mt-1 hidden" id="h-auth-password">Password is required.</div>
         <div class="flex justify-end mt-2"><button type="button" id="forgot-password-btn" class="text-xs text-gray-500 hover:text-moot-accent transition-colors">Forgot password?</button></div>
       </div>
@@ -3178,41 +3752,41 @@ p  { color:var(--white-2); }
 
 <!-- AUXILIARY SLIDE-OVER PANEL -->
 <div id="aux-panel-overlay" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 hidden overlay-transition"></div>
-<div id="aux-panel" class="fixed top-1/2 left-1/2 w-[92%] md:w-[80%] lg:w-[70%] xl:w-[60%] max-w-[850px] h-[85vh] md:h-auto md:max-h-[85vh] bg-[#0f1115]/80 border border-white/10 z-50 flex flex-col shadow-2xl shadow-black/80 rounded-2xl panel-transition hidden" role="dialog" aria-modal="true" aria-labelledby="aux-panel-title">
+<div id="aux-panel" class="fixed top-1/2 left-1/2 w-[92%] md:w-[80%] lg:w-[70%] xl:w-[60%] max-w-[850px] h-[85vh] md:h-auto md:max-h-[85vh] bg-[#FCF9EF]/97 border border-black/10 z-50 flex flex-col shadow-2xl shadow-black/80 rounded-2xl panel-transition hidden" role="dialog" aria-modal="true" aria-labelledby="aux-panel-title">
   <!-- Header -->
-  <div class="p-5 border-b border-white/10 flex justify-between items-center bg-black/20">
-    <h3 id="aux-panel-title" class="font-serif text-lg text-white font-medium">Auxiliary View</h3>
-    <button id="aux-panel-close-btn" class="text-white-muted hover:text-white bg-transparent border-none cursor-pointer text-lg font-sans transition-colors p-1" aria-label="Close panel">✕</button>
+  <div class="p-5 border-b border-black/10 flex justify-between items-center bg-black/20">
+    <h3 id="aux-panel-title" class="font-serif text-lg text-[#1C1710] font-medium">Auxiliary View</h3>
+    <button id="aux-panel-close-btn" class="text-white-muted hover:text-[#1C1710] bg-transparent border-none cursor-pointer text-lg font-sans transition-colors p-1" aria-label="Close panel">✕</button>
   </div>
   
   <!-- Toolbar -->
-  <div class="px-5 py-3 border-b border-white/10 bg-black/10 flex gap-2">
-    <button id="btn-aux-copy" class="btn-sm btn-sm-ghost text-xs tracking-wider flex items-center gap-1.5 font-sans border border-white/10 hover:bg-white/5 cursor-pointer">
+  <div class="px-5 py-3 border-b border-black/10 bg-black/10 flex gap-2">
+    <button id="btn-aux-copy" class="btn-sm btn-sm-ghost text-xs tracking-wider flex items-center gap-1.5 font-sans border border-black/10 hover:bg-black/5 cursor-pointer">
       📋 Copy Content
     </button>
-    <button id="btn-aux-print" class="btn-sm btn-sm-ghost text-xs tracking-wider flex items-center gap-1.5 font-sans border border-white/10 hover:bg-white/5 cursor-pointer">
+    <button id="btn-aux-print" class="btn-sm btn-sm-ghost text-xs tracking-wider flex items-center gap-1.5 font-sans border border-black/10 hover:bg-black/5 cursor-pointer">
       📄 Export PDF
     </button>
   </div>
   
   <!-- Body Content -->
-  <div id="aux-panel-content" class="flex-1 overflow-y-auto p-6 text-white/80 space-y-4 font-sans leading-relaxed"></div>
+  <div id="aux-panel-content" class="flex-1 overflow-y-auto p-6 text-[#1C1710]/80 space-y-4 font-sans leading-relaxed"></div>
 </div>
 
 <!-- MEMORIAL SLIDE-OVER PANEL -->
-<div id="memorial-panel" class="fixed top-1/2 left-1/2 w-[92%] md:w-[80%] lg:w-[70%] xl:w-[60%] max-w-[850px] h-[85vh] md:h-auto md:max-h-[85vh] bg-[#0f1115]/80 border border-white/10 z-50 flex flex-col shadow-2xl shadow-black/80 rounded-2xl panel-transition hidden" role="dialog" aria-modal="true" aria-labelledby="memorial-panel-title">
+<div id="memorial-panel" class="fixed top-1/2 left-1/2 w-[92%] md:w-[80%] lg:w-[70%] xl:w-[60%] max-w-[850px] h-[85vh] md:h-auto md:max-h-[85vh] bg-[#FCF9EF]/97 border border-black/10 z-50 flex flex-col shadow-2xl shadow-black/80 rounded-2xl panel-transition hidden" role="dialog" aria-modal="true" aria-labelledby="memorial-panel-title">
   <!-- Header -->
-  <div class="p-5 border-b border-white/10 flex justify-between items-center bg-black/20">
-    <h3 id="memorial-panel-title" class="font-serif text-lg text-white font-medium">Appellate Memorial Viewer</h3>
-    <button id="memorial-panel-close-btn" class="text-white-muted hover:text-white bg-transparent border-none cursor-pointer text-lg font-sans transition-colors p-1" aria-label="Close panel">✕</button>
+  <div class="p-5 border-b border-black/10 flex justify-between items-center bg-black/20">
+    <h3 id="memorial-panel-title" class="font-serif text-lg text-[#1C1710] font-medium">Appellate Memorial Viewer</h3>
+    <button id="memorial-panel-close-btn" class="text-white-muted hover:text-[#1C1710] bg-transparent border-none cursor-pointer text-lg font-sans transition-colors p-1" aria-label="Close panel">✕</button>
   </div>
   
   <!-- Toolbar -->
-  <div class="px-5 py-3 border-b border-white/10 bg-black/10 flex gap-2">
-    <button id="btn-memorial-copy" class="btn-sm btn-sm-ghost text-xs tracking-wider flex items-center gap-1.5 font-sans border border-white/10 hover:bg-white/5 cursor-pointer">
+  <div class="px-5 py-3 border-b border-black/10 bg-black/10 flex gap-2">
+    <button id="btn-memorial-copy" class="btn-sm btn-sm-ghost text-xs tracking-wider flex items-center gap-1.5 font-sans border border-black/10 hover:bg-black/5 cursor-pointer">
       📋 Copy Memorial
     </button>
-    <button id="btn-memorial-print" class="btn-sm btn-sm-ghost text-xs tracking-wider flex items-center gap-1.5 font-sans border border-white/10 hover:bg-white/5 cursor-pointer">
+    <button id="btn-memorial-print" class="btn-sm btn-sm-ghost text-xs tracking-wider flex items-center gap-1.5 font-sans border border-black/10 hover:bg-black/5 cursor-pointer">
       📄 Export PDF
     </button>
   </div>
@@ -3223,18 +3797,18 @@ p  { color:var(--white-2); }
 
 <!-- TABBED OVERLAY MODAL FOR AUTHORITIES -->
 <div id="authority-detail-modal" class="fixed inset-0 bg-black/75 backdrop-blur-md z-[200] hidden flex items-center justify-center p-4" onclick="window.closeAuthorityModal()">
-  <div class="bg-[#0f1220] border border-white/10 rounded-2xl w-full max-w-lg overflow-hidden flex flex-col shadow-2xl animate-fade-in" onclick="event.stopPropagation()">
+  <div class="bg-[#FCF9EF] border border-black/10 rounded-2xl w-full max-w-lg overflow-hidden flex flex-col shadow-2xl animate-fade-in" onclick="event.stopPropagation()">
     <!-- Header -->
-    <div class="p-5 border-b border-white/10 flex justify-between items-center bg-black/20">
+    <div class="p-5 border-b border-black/10 flex justify-between items-center bg-black/20">
       <div>
         <span class="text-[9px] uppercase tracking-wider text-moot-accent font-semibold" id="auth-modal-theme">Theme</span>
-        <h3 class="text-sm font-sans font-semibold text-white mt-1" id="auth-modal-name">Case Name</h3>
+        <h3 class="text-sm font-sans font-semibold text-[#1C1710] mt-1" id="auth-modal-name">Case Name</h3>
       </div>
-      <button onclick="window.closeAuthorityModal()" class="text-white-muted hover:text-white bg-transparent border-none cursor-pointer text-lg">✕</button>
+      <button onclick="window.closeAuthorityModal()" class="text-white-muted hover:text-[#1C1710] bg-transparent border-none cursor-pointer text-lg">✕</button>
     </div>
     
     <!-- Tabs Nav -->
-    <div class="flex border-b border-white/5 bg-black/10 px-4 scrollbar-width-none overflow-x-auto">
+    <div class="flex border-b border-black/5 bg-black/10 px-4 scrollbar-width-none overflow-x-auto">
       <button id="auth-tab-ratio" onclick="window.switchAuthModalTab('ratio')" class="py-2.5 px-3 text-[10px] uppercase tracking-wider font-semibold text-white-muted border-b-2 border-transparent cursor-pointer bg-transparent transition-all whitespace-nowrap">Ratio</button>
       <button id="auth-tab-rationale" onclick="window.switchAuthModalTab('rationale')" class="py-2.5 px-3 text-[10px] uppercase tracking-wider font-semibold text-white-muted border-b-2 border-transparent cursor-pointer bg-transparent transition-all whitespace-nowrap">Why Selected</button>
       <button id="auth-tab-usage" onclick="window.switchAuthModalTab('usage')" class="py-2.5 px-3 text-[10px] uppercase tracking-wider font-semibold text-white-muted border-b-2 border-transparent cursor-pointer bg-transparent transition-all whitespace-nowrap">Application</button>
@@ -3250,23 +3824,23 @@ p  { color:var(--white-2); }
     </div>
     
     <!-- Footer -->
-    <div class="p-4 border-t border-white/5 bg-black/20 flex justify-between items-center">
+    <div class="p-4 border-t border-black/5 bg-black/20 flex justify-between items-center">
       <div class="text-[9px] text-white-muted" id="auth-modal-priority">Priority</div>
-      <button id="auth-modal-select-btn" class="btn-sm text-xs font-semibold px-4 py-1.5 rounded transition-all cursor-pointer bg-white/5 border border-white/10 text-white hover:bg-white/10"></button>
+      <button id="auth-modal-select-btn" class="btn-sm text-xs font-semibold px-4 py-1.5 rounded transition-all cursor-pointer bg-black/5 border border-black/10 text-[#1C1710] hover:bg-black/10"></button>
     </div>
   </div>
 </div>
 
 <!-- ADVOCACY ARSENAL DETAIL MODAL -->
 <div id="advocacy-arsenal-modal" class="fixed inset-0 bg-black/75 backdrop-blur-md z-[200] hidden flex items-center justify-center p-4" onclick="window.closeArsenalModal()">
-  <div class="bg-[#0f1220] border border-white/10 rounded-2xl w-full max-w-lg overflow-hidden flex flex-col shadow-2xl animate-fade-in" onclick="event.stopPropagation()">
+  <div class="bg-[#FCF9EF] border border-black/10 rounded-2xl w-full max-w-lg overflow-hidden flex flex-col shadow-2xl animate-fade-in" onclick="event.stopPropagation()">
     <!-- Header -->
-    <div class="p-5 border-b border-white/10 flex justify-between items-center bg-black/20">
+    <div class="p-5 border-b border-black/10 flex justify-between items-center bg-black/20">
       <div>
         <span class="text-[9px] uppercase tracking-wider text-moot-accent font-semibold">Advocacy Arsenal</span>
-        <h3 class="text-sm font-sans font-semibold text-white mt-1" id="arsenal-modal-title">Module Title</h3>
+        <h3 class="text-sm font-sans font-semibold text-[#1C1710] mt-1" id="arsenal-modal-title">Module Title</h3>
       </div>
-      <button onclick="window.closeArsenalModal()" class="text-white-muted hover:text-white bg-transparent border-none cursor-pointer text-lg">✕</button>
+      <button onclick="window.closeArsenalModal()" class="text-white-muted hover:text-[#1C1710] bg-transparent border-none cursor-pointer text-lg">✕</button>
     </div>
     
     <!-- Content Body -->
@@ -3275,12 +3849,180 @@ p  { color:var(--white-2); }
     </div>
     
     <!-- Footer -->
-    <div class="p-4 border-t border-white/5 bg-black/20 flex justify-end">
-      <button onclick="window.closeArsenalModal()" class="btn-sm px-4 py-1.5 bg-white/5 border border-white/10 text-white hover:bg-white/10 rounded text-xs transition-all cursor-pointer">Close</button>
+    <div class="p-4 border-t border-black/5 bg-black/20 flex justify-end">
+      <button onclick="window.closeArsenalModal()" class="btn-sm px-4 py-1.5 bg-black/5 border border-black/10 text-[#1C1710] hover:bg-black/10 rounded text-xs transition-all cursor-pointer">Close</button>
     </div>
   </div>
 </div>
 
+<script>
+/* ── Landing page: exact port of the supplied "State your case." design.
+   Wrapped in an IIFE and using lv-/#lv- prefixed ids (renamed 1:1 from the
+   original nav/progress/gutter/underline/etc ids) so nothing here can
+   collide with any other id in the SPA document. Behavior, timing and
+   copy are otherwise unchanged from the supplied script. ── */
+(function () {
+  var reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var $ = id => document.getElementById(id);
+
+  /* ===== intro overture ===== */
+  const intro = $('intro');
+  let introDone = false;
+  function endIntro(){
+    if (introDone) return; introDone = true;
+    if (intro) intro.classList.add('done');
+    document.body.classList.remove('intro-hold');
+    if ($('lv-underline')) $('lv-underline').classList.add('go');
+    if (intro) setTimeout(() => intro.remove(), 1000);
+  }
+  if (reduced){ endIntro(); }
+  else if (intro) {
+    intro.addEventListener('click', endIntro);
+    setTimeout(endIntro, 3250);
+  }
+
+  /* progress + nav */
+  var lvNav = $('lv-nav'), lvProgress = $('lv-progress');
+  addEventListener('scroll', () => {
+    if (!lvNav || !lvProgress) return;
+    lvNav.classList.toggle('scrolled', scrollY > 30);
+    const h = document.documentElement;
+    lvProgress.style.width = (scrollY / (h.scrollHeight - h.clientHeight) * 100) + '%';
+  }, {passive:true});
+
+  /* transcript gutter numbers */
+  (function(){
+    const g = $('lv-gutter');
+    if (!g) return;
+    const n = Math.floor((innerHeight - 120) / 34);
+    for (let i = 1; i <= n; i++){
+      const s = document.createElement('span');
+      s.textContent = i;
+      g.appendChild(s);
+    }
+  })();
+
+  /* sheet line numbers */
+  (function(){
+    const l = $('lv-sheetlines');
+    if (!l) return;
+    for (let i = 1; i <= 16; i++){
+      const s = document.createElement('span');
+      s.textContent = i;
+      l.appendChild(s);
+    }
+  })();
+
+  /* typewriter */
+  function typeText(el, html, speed, done){
+    if (!el){ done && done(); return; }
+    /* html-aware typing: types text nodes, inserts tags instantly */
+    if (reduced){ el.innerHTML = html; done && done(); return; }
+    let i = 0, out = '';
+    (function tick(){
+      if (i >= html.length){ el.innerHTML = out; done && done(); return; }
+      if (html[i] === '<'){
+        const j = html.indexOf('>', i);
+        out += html.slice(i, j + 1); i = j + 1;
+      } else { out += html[i]; i++; }
+      el.innerHTML = out + '<span class="caret"></span>';
+      setTimeout(tick, speed);
+    })();
+  }
+
+  /* Exhibit A timeline */
+  let sheetRan = false;
+  function runSheet(){
+    if (sheetRan) return; sheetRan = true;
+    const T = (ms, fn) => setTimeout(fn, reduced ? 0 : ms);
+    T(300,  () => typeText($('lv-docTitle'), 'Memorial on behalf of the Petitioner', 26, () => {
+      typeText($('lv-docSub'), 'Before the Hon’ble Supreme Court of India', 20);
+    }));
+    T(2400, () => typeText($('lv-docIssue'), 'ISSUE I — Whether the Directorate’s surveillance order violates Article 21?', 20));
+    T(4600, () => typeText($('lv-docBody'),
+      '1. The right to privacy is a facet of Article 21. Any intrusion must satisfy the four-fold <span class="hl" id="lv-hlx">proportionality test</span> laid down in <span class="cite">K.S. Puttaswamy v. Union of India</span>¹ — legality, legitimate aim, necessity, and balancing. The impugned order fails at necessity: no less-intrusive alternative was ever considered on the record.',
+      14,
+      () => {
+        $('lv-hlx') && $('lv-hlx').classList.add('on');
+        T(500, () => { $('lv-fnrule') && $('lv-fnrule').classList.add('on'); });
+        T(900, () => { $('lv-fnText') && $('lv-fnText').classList.add('on'); });
+        T(1500, () => { $('lv-fnStamp') && $('lv-fnStamp').classList.add('in'); });
+        T(2100, () => { $('lv-marginNote') && $('lv-marginNote').classList.add('on'); });
+        T(2900, runBench);
+      }
+    ));
+  }
+
+  /* bench questions cycle */
+  const questions = [
+    {q:'Counsel, necessity is your strongest limb — why did you open with legality?', note:'structure 8.8 — but lead with your winner.'},
+    {q:'If I am against you on this issue, what is your second-best argument?', note:'composure 7.9 — hold the roadmap.'},
+    {q:'That authority was distinguished. Why does it still bind this bench?', note:'authorities 8.2 — know how your case survived.'}
+  ];
+  let qi = 0;
+  function runBench(){
+    const bq = $('lv-benchq'), bn = $('lv-benchnote');
+    if (!bq) return;
+    bn && bn.classList.remove('show');
+    const item = questions[qi % questions.length]; qi++;
+    typeText(bq, '“' + item.q + '”', 28, () => {
+      if (bn) {
+        bn.textContent = '— ' + item.note;
+        setTimeout(() => bn.classList.add('show'), 400);
+      }
+      setTimeout(runBench, 7500);
+    });
+  }
+
+  /* handwriting count-up */
+  function countUp(el, target, dur){
+    if (reduced){ el.textContent = target.toFixed(1); return; }
+    const t0 = performance.now();
+    (function step(t){
+      const p = Math.min((t - t0)/dur, 1);
+      const eased = 1 - Math.pow(1 - p, 3);
+      el.textContent = (target * eased).toFixed(1);
+      if (p < 1) requestAnimationFrame(step);
+    })(t0);
+  }
+
+  /* reveal observer */
+  const io = ('IntersectionObserver' in window) ? new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (!e.isIntersecting) return;
+      const el = e.target;
+      el.classList.add('in');
+      /* stamps */
+      el.querySelectorAll('[data-stamp]').forEach((s, i) => setTimeout(() => s.classList.add('in'), 300 + i*150));
+      if (el.hasAttribute && el.hasAttribute('data-stamp')) el.classList.add('in');
+      /* checkboxes */
+      el.querySelectorAll('[data-tick]').forEach((b, i) => setTimeout(() => b.classList.add('on'), 350 + i*220));
+      /* verified mini-stamps */
+      el.querySelectorAll('[data-vstamp]').forEach((v, i) => setTimeout(() => v.classList.add('on'), 400 + i*260));
+      /* red circle */
+      el.querySelectorAll('[data-circle]').forEach(c => c.classList.add('on'));
+      /* sparkline */
+      el.querySelectorAll('[data-spark]').forEach(s => s.classList.add('on'));
+      /* handwriting counts */
+      el.querySelectorAll('[data-count]').forEach((h, i) => setTimeout(() => countUp(h, +h.dataset.count, 1300), 350 + i*180));
+      /* exhibit A start */
+      if (el.id === 'lv-sheetwrap') runSheet();
+      io.unobserve(el);
+    });
+  }, {threshold:.2}) : null;
+
+  const view = document.getElementById('view-landing');
+  if (view) {
+    const revealEls = view.querySelectorAll('.reveal,[data-stamp]');
+    if (io) {
+      revealEls.forEach(el => io.observe(el));
+    } else {
+      revealEls.forEach(el => el.classList.add('in'));
+    }
+  }
+  if (reduced){ runSheet(); }
+})();
+</script>
 <script type="module" src="./js/app.js"></script>
 </body>
 </html>

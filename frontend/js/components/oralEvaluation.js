@@ -96,10 +96,10 @@ export function renderOralResults(data) {
         const sev  = (d.severity || 'minor').toLowerCase();
         const sCol = sev === 'fatal' ? '#e05252' : sev === 'significant' ? '#fbbf24' : '#2dd4bf';
         return `
-          <div style="margin-bottom:10px;padding:13px 15px;background:rgba(255,255,255,.02);border:1px solid var(--glass-b);border-left:3px solid ${sCol};border-radius:0 8px 8px 0;">
+          <div style="margin-bottom:10px;padding:13px 15px;background:rgba(28,23,16,.02);border:1px solid var(--glass-b);border-left:3px solid ${sCol};border-radius:0 8px 8px 0;">
             <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:7px;">
-              <span style="font-size:.58rem;padding:2px 7px;border-radius:3px;background:rgba(255,255,255,.04);color:var(--white-muted);">${esc(d.type || '')}</span>
-              <span style="font-size:.58rem;padding:2px 7px;border-radius:3px;color:${sCol};background:rgba(255,255,255,.03);">${sev}</span>
+              <span style="font-size:.58rem;padding:2px 7px;border-radius:3px;background:rgba(28,23,16,.04);color:var(--white-muted);">${esc(d.type || '')}</span>
+              <span style="font-size:.58rem;padding:2px 7px;border-radius:3px;color:${sCol};background:rgba(28,23,16,.03);">${sev}</span>
             </div>
             ${d.quote ? `<div style="font-size:.76rem;color:var(--gold);font-style:italic;margin-bottom:6px;">"${esc(d.quote)}"</div>` : ''}
             <div style="font-size:.78rem;color:var(--white-muted);line-height:1.65;">${fmtInline(d.issue || '')}</div>

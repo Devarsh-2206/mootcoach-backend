@@ -216,19 +216,19 @@ export function renderJudgeCards() {
   wrap.innerHTML = roster.map(j => {
     const on = j.id === selectedJudgeId;
     const rowStyle = on
-      ? 'border:1px solid rgba(201,168,76,0.5); background:rgba(201,168,76,0.06);'
-      : 'border:1px solid rgba(255,255,255,0.05); background:rgba(255,255,255,0.01);';
+      ? 'border:1px solid rgba(176,57,46,0.5); background:rgba(176,57,46,0.06);'
+      : 'border:1px solid rgba(28,23,16,0.05); background:rgba(28,23,16,0.01);';
     return `
       <button type="button" onclick="window.selectJudge('${j.id}')" title="${esc(j.focus)}"
         style="display:flex; align-items:flex-start; gap:12px; width:100%; text-align:left; padding:10px 12px; border-radius:8px; cursor:pointer; transition:all .15s; ${rowStyle}">
-        <div style="width:30px; height:30px; border-radius:50%; background:rgba(201,168,76,0.1); border:1px solid rgba(201,168,76,0.3); display:flex; align-items:center; justify-content:center; color:var(--gold); flex-shrink:0; font-size:13px;">⚖️</div>
+        <div style="width:30px; height:30px; border-radius:50%; background:rgba(176,57,46,0.1); border:1px solid rgba(176,57,46,0.3); display:flex; align-items:center; justify-content:center; color:var(--gold); flex-shrink:0; font-size:13px;">⚖️</div>
         <div style="flex:1; min-width:0;">
           <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
             <span style="font-size:12px; font-weight:600; color:#fff;">${esc(j.name)}</span>
-            <span style="font-size:8px; letter-spacing:0.08em; text-transform:uppercase; color:#a0aec0;">${esc(j.archetype)}</span>
+            <span style="font-size:8px; letter-spacing:0.08em; text-transform:uppercase; color:rgba(28,23,16,.55);">${esc(j.archetype)}</span>
             ${on ? '<span style="font-size:8px; letter-spacing:0.08em; text-transform:uppercase; color:var(--gold); margin-left:auto;">✓ Selected</span>' : ''}
           </div>
-          <div style="font-size:10px; color:#cbd5e0; line-height:1.4; margin-top:3px;">${esc(j.temperament)}</div>
+          <div style="font-size:10px; color:rgba(28,23,16,.62); line-height:1.4; margin-top:3px;">${esc(j.temperament)}</div>
         </div>
       </button>`;
   }).join('');
@@ -497,7 +497,7 @@ export function appendBenchPerformanceReview(review) {
           "${fmtInline(s_moment.statement || 'N/A')}"
         </div>
         <div style="font-size:.8rem; color:var(--white-muted); line-height:1.5;">
-          <strong style="color:#a0aec0;">Why it worked:</strong> ${fmtInline(s_moment.whyItWorked || 'N/A')}
+          <strong style="color:rgba(28,23,16,.55);">Why it worked:</strong> ${fmtInline(s_moment.whyItWorked || 'N/A')}
         </div>
       </div>
 
@@ -510,7 +510,7 @@ export function appendBenchPerformanceReview(review) {
           "${fmtInline(d_moment.statement || 'N/A')}"
         </div>
         <div style="font-size:.8rem; color:var(--white-muted); line-height:1.5; margin-bottom:8px;">
-          <strong style="color:#a0aec0;">Why it was vulnerable:</strong> ${fmtInline(d_moment.whyVulnerable || 'N/A')}
+          <strong style="color:rgba(28,23,16,.55);">Why it was vulnerable:</strong> ${fmtInline(d_moment.whyVulnerable || 'N/A')}
         </div>
         <div style="font-size:.8rem; color:#4caf82; line-height:1.5; background:rgba(76,175,130,0.05); padding:8px; border-radius:6px;">
           <strong>Better Answer:</strong> "${fmtInline(d_moment.betterAnswer || 'N/A')}"
@@ -522,7 +522,7 @@ export function appendBenchPerformanceReview(review) {
     <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin-bottom: 16px;">
       <!-- Judicial Concerns -->
       <div style="background:var(--navy-4); border:1px solid var(--glass-b); border-radius:10px; padding:16px;">
-        <div style="font-size:.65rem; letter-spacing:.1em; text-transform:uppercase; color:#c9a84c; font-weight:700; margin-bottom:10px; display:flex; align-items:center; gap:6px;">
+        <div style="font-size:.65rem; letter-spacing:.1em; text-transform:uppercase; color:#B0392E; font-weight:700; margin-bottom:10px; display:flex; align-items:center; gap:6px;">
           <span>🏛️</span> Judicial Concerns
         </div>
         <div style="margin-bottom:10px;">${concernsHTML || '<span style="color:var(--white-muted);font-size:.8rem;">None</span>'}</div>
@@ -752,12 +752,12 @@ export function updateBenchState(state) {
   }
 
   let text = '';
-  let dotColor = 'bg-[#c9a84c]'; // Gold
+  let dotColor = 'bg-[#B0392E]'; // Gold
 
   switch (state) {
     case 'connecting':
       text = 'Connecting to Bench...';
-      dotColor = 'bg-[#c9a84c]';
+      dotColor = 'bg-[#B0392E]';
       break;
     case 'mic_ready':
       text = 'Waiting for Microphone Permission...';

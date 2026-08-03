@@ -392,16 +392,20 @@ onAuthChanged(async (user) => {
       authView.classList.add('hidden');
       authView.classList.remove('show');
     }
-    if (dashboardView) {
-      dashboardView.classList.remove('hidden');
-      dashboardView.classList.add('active');
+    
+    // Prevent auto-navigation on initial load so the intro and landing page show first
+    if (!isInitialAuthCheck) {
+      if (dashboardView) {
+        dashboardView.classList.remove('hidden');
+        dashboardView.classList.add('active');
+      }
+      
+      // Automatically navigate to workspace
+      navigate('workspace');
+      
+      // Enforce default routing to Lodge Proposition screen
+      showWsPanel('upload');
     }
-    
-    // Automatically navigate to workspace
-    navigate('workspace');
-    
-    // Enforce default routing to Lodge Proposition screen
-    showWsPanel('upload');
     
     // ONLY fetch moots AFTER the UI is stable and user is set
     await loadRecentSessions(); 
@@ -722,9 +726,9 @@ async function triggerWelcomeEmail(email, fname) {
       message: {
         subject: 'Welcome to MootCoach — Your Premium Legal Advocacy Partner',
         html: `
-<div style="font-family: 'Merriweather', Georgia, serif; line-height: 1.8; color: #1a1a1a; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ecebe7; background-color: #fcfbfa;">
+<div style="font-family: 'Cormorant Garamond', Georgia, serif; line-height: 1.8; color: #1a1a1a; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ecebe7; background-color: #fcfbfa;">
   <div style="text-align: center; border-bottom: 2px double #ddd; padding-bottom: 15px; margin-bottom: 25px;">
-    <h1 style="font-family: Arial, sans-serif; font-size: 22px; letter-spacing: 0.1em; text-transform: uppercase; margin: 0; color: #a88220;">MootCoach AI</h1>
+    <h1 style="font-family: Arial, sans-serif; font-size: 22px; letter-spacing: 0.1em; text-transform: uppercase; margin: 0; color: #B0392E;">MootCoach AI</h1>
     <span style="font-family: Arial, sans-serif; font-size: 9px; color: #888; letter-spacing: 0.15em; text-transform: uppercase;">Appellate Advocacy Suite</span>
   </div>
   
@@ -732,7 +736,7 @@ async function triggerWelcomeEmail(email, fname) {
   
   <p>Welcome to <strong>MootCoach AI</strong>, the premium legal-tech simulator designed to elevate your appellate advocacy and courtroom performance.</p>
   
-  <h3 style="font-family: Arial, sans-serif; font-size: 14px; text-transform: uppercase; color: #a88220; border-bottom: 1px solid #ddd; padding-bottom: 5px; margin-top: 25px;">Platform Overview & Getting Started</h3>
+  <h3 style="font-family: Arial, sans-serif; font-size: 14px; text-transform: uppercase; color: #B0392E; border-bottom: 1px solid #ddd; padding-bottom: 5px; margin-top: 25px;">Platform Overview & Getting Started</h3>
   
   <ol style="padding-left: 20px; font-size: 13px;">
     <li style="margin-bottom: 12px;">
@@ -752,9 +756,9 @@ async function triggerWelcomeEmail(email, fname) {
     </li>
   </ol>
   
-  <h3 style="font-family: Arial, sans-serif; font-size: 14px; text-transform: uppercase; color: #a88220; border-bottom: 1px solid #ddd; padding-bottom: 5px; margin-top: 25px;">Professional Support</h3>
+  <h3 style="font-family: Arial, sans-serif; font-size: 14px; text-transform: uppercase; color: #B0392E; border-bottom: 1px solid #ddd; padding-bottom: 5px; margin-top: 25px;">Professional Support</h3>
   
-  <p style="font-size: 13px;">If you have questions or feedback, please reach out to us at <a href="mailto:support@mootcoach.ai" style="color: #a88220; text-decoration: none;">support@mootcoach.ai</a>.</p>
+  <p style="font-size: 13px;">If you have questions or feedback, please reach out to us at <a href="mailto:support@mootcoach.ai" style="color: #B0392E; text-decoration: none;">support@mootcoach.ai</a>.</p>
   
   <p style="margin-top: 35px; font-size: 13px;">Sincerely,<br><strong>The MootCoach Team</strong></p>
   
