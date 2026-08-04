@@ -301,6 +301,12 @@ export async function loadRecentSessions() {
   if(!sec || !list) return;
 
   try {
+    // Force the ID token to be fully resolved/attached before reading —
+    // right after a fresh sign-in or page load, Firestore's own internal
+    // auth listener can lag slightly behind currentUser being set, and a
+    // read fired in that gap fails with "Missing or insufficient
+    // permissions" even though the rules and uid are correct.
+    await currentUser.getIdToken();
     const snapshot = await db.collection('artifacts').doc('moot.coach')
       .collection('users').doc(currentUser.uid).collection('analyses')
       .orderBy('timestamp', 'desc').limit(6).get();
@@ -356,6 +362,8 @@ export async function loadSavedSession(docId) {
   if (labelEl) labelEl.textContent = 'Loading saved analysis...';
   
   try {
+    // See loadRecentSessions() for why this goes first.
+    await currentUser.getIdToken();
     const doc = await db.collection('artifacts').doc('moot.coach')
       .collection('users').doc(currentUser.uid).collection('analyses').doc(docId).get();
       
