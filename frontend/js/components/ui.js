@@ -157,7 +157,16 @@ export function navigate(view) {
 
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   const targetView = document.getElementById('view-' + view);
-  if (targetView) targetView.classList.add('active');
+  // #view-workspace starts with class="view hidden" in the raw HTML, and
+  // .hidden is `display:none !important` — that always wins over
+  // .view.active{display:flex} until .hidden is explicitly removed. This
+  // used to happen as a side effect of the old auto-navigate-on-login code;
+  // now that that's gone, navigate() itself has to be the one place that
+  // reliably clears it, or the workspace can never become visible again.
+  if (targetView) {
+    targetView.classList.add('active');
+    targetView.classList.remove('hidden');
+  }
   
   document.body.style.overflow = (view === 'workspace') ? 'hidden' : 'auto';
   window.scrollTo(0, 0);
