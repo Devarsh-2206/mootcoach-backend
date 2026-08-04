@@ -2,6 +2,17 @@
 <html lang="en">
 <head>
 <script>
+  // Apply the saved theme choice synchronously, before first paint, so
+  // returning dark-mode users don't see a flash of the light theme.
+  (function () {
+    try {
+      if (localStorage.getItem('mootcoach-theme') === 'dark') {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+    } catch (e) {}
+  })();
+</script>
+<script>
   const _log = console.log;
   console.log = function(...args) {
     _log.apply(console, args);
@@ -82,12 +93,49 @@
   --sheet:       #FCF9EF;
   --rule:        #D9CFB8;
   --faint:       #8C8270;
+  --surface-rgb: 246,241,228;  /* RGB channels of --navy, for rgba() blur-bar backgrounds */
   --serif: 'Cormorant Garamond', Georgia, serif;
   --sans:  'EB Garamond', Georgia, serif;
   --mono:  'IBM Plex Mono', ui-monospace, monospace;
   --hand:  'Caveat', cursive;
   --r:  10px;
   --rl: 16px;
+}
+
+/* ═══════════════════════════════════════════
+   DARK MODE — same legal-pad identity (serif/mono
+   type, red accent), inverted to a dark warm-ink
+   background instead of paper. Applied via
+   data-theme="dark" on <html>, toggled by the
+   floating theme button and persisted to
+   localStorage. Overriding the same token names
+   means every rule that already reads var(--navy)/
+   var(--gold)/var(--white)/etc. re-themes for free.
+═══════════════════════════════════════════ */
+:root[data-theme="dark"] {
+  --navy:        #16120D;
+  --navy-2:      #1E1912;
+  --navy-3:      #241E16;
+  --navy-4:      #2B241A;
+  --navy-5:      #362D20;
+  --gold:        #C4453A;
+  --gold-light:  #DD6656;
+  --gold-muted:  rgba(196,69,58,.16);
+  --gold-border: rgba(196,69,58,.35);
+  --white:       #EFE6D3;
+  --white-2:     rgba(239,230,211,.85);
+  --white-muted: rgba(239,230,211,.55);
+  --white-faint: rgba(239,230,211,.18);
+  --glass:       rgba(239,230,211,.04);
+  --glass-b:     rgba(239,230,211,.13);
+  --success:     #4FAE7C;
+  --error:       #E0665D;
+  --ink:         #EFE6D3;
+  --paper:       #16120D;
+  --sheet:       #241E16;
+  --rule:        rgba(239,230,211,.16);
+  --faint:       rgba(239,230,211,.5);
+  --surface-rgb: 22,18,13;
 }
 
 html { scroll-behavior:smooth; }
@@ -407,12 +455,12 @@ p  { color:var(--white-2); }
 .ao-card { display:flex; width:min(940px,94vw); height:min(580px,90vh); background:var(--sheet); border:1px solid var(--rule); border-radius:4px; overflow:hidden; box-shadow:0 30px 80px rgba(28,23,16,.35); position:relative; }
 .ao-brand { flex:0 0 44%; position:relative; overflow:hidden; background:linear-gradient(160deg,#1C1710 0%,#241D14 58%,#2A2118 100%); border-right:1px solid var(--rule); display:flex; flex-direction:column; justify-content:space-between; padding:40px 38px; box-sizing:border-box; }
 .ao-brand::before { content:''; position:absolute; inset:0; background:radial-gradient(circle at 26% 18%, rgba(176,57,46,.18), transparent 55%); pointer-events:none; }
-.ao-logo { position:relative; z-index:1; font-family:var(--serif); font-size:1.4rem; color:var(--paper); }
+.ao-logo { position:relative; z-index:1; font-family:var(--serif); font-size:1.4rem; color:#F6F1E4; }
 .ao-logo span { color:#C4564B; }
 .ao-brand-body { position:relative; z-index:1; }
-.ao-brand-head { font-family:var(--serif); font-size:2.05rem; line-height:1.16; font-weight:500; color:var(--paper); margin:0 0 14px; }
+.ao-brand-head { font-family:var(--serif); font-size:2.05rem; line-height:1.16; font-weight:500; color:#F6F1E4; margin:0 0 14px; }
 .ao-brand-sub { font-size:.88rem; line-height:1.65; color:rgba(246,241,228,.62); margin:0 0 22px; }
-.ao-trust { position:relative; z-index:1; font-size:.64rem; letter-spacing:.14em; text-transform:uppercase; color:var(--faint); }
+.ao-trust { position:relative; z-index:1; font-size:.64rem; letter-spacing:.14em; text-transform:uppercase; color:#8C8270; }
 .ao-form { flex:1; display:flex; flex-direction:column; justify-content:center; padding:40px 44px; box-sizing:border-box; overflow-y:auto; position:relative; }
 .ao-form .auth-overlay-heading { font-family:var(--serif); font-size:1.9rem; font-weight:500; color:var(--ink); margin:0 0 22px; text-align:left; }
 @media (max-width:820px){
@@ -449,15 +497,15 @@ p  { color:var(--white-2); }
   padding:46px 4vw; box-sizing:border-box;
 }
 .login-brand::before { content:''; position:absolute; inset:0; background:radial-gradient(circle at 26% 18%, rgba(176,57,46,.18), transparent 55%); pointer-events:none; }
-.login-brand-logo { font-family:var(--serif); font-size:1.5rem; letter-spacing:.02em; position:relative; z-index:1; text-decoration:none; color:var(--paper); }
+.login-brand-logo { font-family:var(--serif); font-size:1.5rem; letter-spacing:.02em; position:relative; z-index:1; text-decoration:none; color:#F6F1E4; }
 .login-brand-body { position:relative; z-index:1; max-width:480px; }
 .login-crest { width:54px; height:54px; border-radius:50%; border:1px solid rgba(176,57,46,.4); background:rgba(176,57,46,.12); display:flex; align-items:center; justify-content:center; color:#C4564B; font-size:1.55rem; margin-bottom:26px; }
-.login-brand-head { font-family:var(--serif); font-size:2.5rem; line-height:1.16; font-weight:500; color:var(--paper); margin:0 0 16px; }
+.login-brand-head { font-family:var(--serif); font-size:2.5rem; line-height:1.16; font-weight:500; color:#F6F1E4; margin:0 0 16px; }
 .login-brand-sub { font-size:.96rem; line-height:1.7; color:rgba(246,241,228,.62); margin:0 0 26px; }
 .login-brand-points { list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:12px; }
 .login-brand-points li { font-size:.85rem; color:rgba(246,241,228,.82); display:flex; align-items:flex-start; gap:10px; }
 .login-brand-points li::before { content:'✦'; color:#C4564B; font-size:.78rem; line-height:1.5; }
-.login-brand-trust { position:relative; z-index:1; font-size:.7rem; letter-spacing:.14em; text-transform:uppercase; color:var(--faint); }
+.login-brand-trust { position:relative; z-index:1; font-size:.7rem; letter-spacing:.14em; text-transform:uppercase; color:#8C8270; }
 .login-form-panel { flex:1 1 54%; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:40px 24px; position:relative; }
 .login-form-panel .login-nav-back { position:absolute; top:30px; right:5vw; }
 .login-form-panel .auth-wrap { max-width:420px; }
@@ -603,7 +651,7 @@ p  { color:var(--white-2); }
 
 /* ── SIDEBAR ── */
 .ws-sidebar {
-  width:255px; background:rgba(252, 249, 239, 0.55); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border-right:1px solid var(--glass-b);
+  width:255px; background:rgba(var(--surface-rgb), 0.55); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border-right:1px solid var(--glass-b);
   display:flex; flex-direction:column; flex-shrink:0; height:100%;
   overflow:hidden;
 }
@@ -870,7 +918,7 @@ p  { color:var(--white-2); }
 /* ── LOADING OVERLAY ── */
 .loading-overlay {
   display:none; position:fixed; inset:0;
-  background:rgba(246,241,228,.93); backdrop-filter:blur(14px);
+  background:rgba(var(--surface-rgb),.93); backdrop-filter:blur(14px);
   z-index:999; flex-direction:column; align-items:center; justify-content:center; gap:0;
 }
 .loading-overlay.show { display:flex; }
@@ -928,7 +976,7 @@ p  { color:var(--white-2); }
 /* Sticky section nav */
 .res-sticky-nav {
   position: sticky; top: 0; z-index: 20;
-  background: rgba(246,241,228,.95);
+  background: rgba(var(--surface-rgb),.95);
   backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
   border-bottom: 1px solid var(--glass-b);
   padding: 0 30px;
@@ -1377,7 +1425,7 @@ p  { color:var(--white-2); }
 /* Courtroom Header */
 .cr-header {
   padding: 16px 24px;
-  background: rgba(246, 241, 228, 0.6);
+  background: rgba(var(--surface-rgb), 0.6);
   border-bottom: 1px solid var(--glass-b);
   display: flex;
   justify-content: space-between;
@@ -1840,7 +1888,7 @@ p  { color:var(--white-2); }
   gap: 12px;
   height: 44px;
   padding: 0 16px;
-  background: rgba(246, 241, 228, 0.9);
+  background: rgba(var(--surface-rgb), 0.9);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
   border: 1px solid rgba(28, 23, 16, 0.08);
@@ -2187,7 +2235,7 @@ p  { color:var(--white-2); }
   right: 24px;
   display: flex;
   align-items: center;
-  background: rgba(252, 249, 239, 0.85);
+  background: rgba(var(--surface-rgb), 0.85);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(28, 23, 16, 0.08);
@@ -2299,6 +2347,24 @@ p  { color:var(--white-2); }
   background:var(--paper); color:var(--ink);
   font-family:var(--lv-serif); font-weight:400; line-height:1.65; font-size:17.5px;
   overflow-x:hidden; -webkit-font-smoothing:antialiased; position:relative;
+}
+/* Dark-mode variant of the landing page's own isolated token set — has to
+   be repeated here (rather than relying on the global :root[data-theme]
+   block above) because #view-landing declares these same names locally,
+   which always wins over :root for anything inside it. */
+:root[data-theme="dark"] #view-landing{
+  --paper:#16120D;
+  --paper-2:#1E1912;
+  --sheet:#241E16;
+  --ink:#EFE6D3;
+  --ink-soft:rgba(239,230,211,.72);
+  --faint:rgba(239,230,211,.5);
+  --rule:rgba(239,230,211,.16);
+  --rule-soft:rgba(239,230,211,.1);
+  --red:#C4453A;
+  --red-soft:#DD6656;
+  --gold:#C2A06B;
+  --hl:#8A6D3B;
 }
 #view-landing h1,#view-landing h2,#view-landing h3,#view-landing .wordmark,#view-landing .cause .parties{font-family:var(--lv-display)}
 #view-landing ::selection{background:var(--hl);color:var(--ink)}
@@ -2585,6 +2651,23 @@ p  { color:var(--white-2); }
   #view-landing .stamp{opacity:.9;transform:rotate(-6deg) scale(1)}
 }
 
+/* ===== THEME TOGGLE =====
+   Lives outside every .view container so it's reachable from the landing
+   page, login, and workspace alike without duplicating it three times.
+   Uses the global tokens, so it re-themes for free with everything else. */
+.theme-toggle{
+  position:fixed; top:50%; right:16px; transform:translateY(-50%); z-index:10001;
+  width:44px; height:44px; border-radius:50%;
+  background:var(--navy-3); border:1px solid var(--glass-b); color:var(--white);
+  font-size:18px; line-height:1; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  box-shadow:0 4px 16px rgba(28,23,16,.18);
+  transition:background .25s, border-color .25s, transform .2s;
+}
+.theme-toggle:hover{ transform:translateY(-50%) translateX(-2px); border-color:var(--gold-border); }
+.theme-toggle:focus-visible{ outline:2px solid var(--gold); outline-offset:2px; }
+@media(max-width:640px){ .theme-toggle{ right:10px; width:40px; height:40px; font-size:16px; } }
+
 /* ===== INTRO OVERTURE =====
    Must be a total, exclusive curtain: nothing from the landing page, the
    workspace, or any toast/modal is allowed to show through while this is
@@ -2682,6 +2765,46 @@ body.intro-hold #view-landing .swear{animation-play-state:paused!important}
 </style>
 </head>
 <body class="intro-hold">
+
+<!-- Sits outside every view so it's available from the landing page,
+     login, and workspace alike. Sub-max z-index so the intro (which must
+     stay a total, exclusive curtain) still covers it while playing. -->
+<button id="theme-toggle" class="theme-toggle" type="button" aria-label="Switch to dark mode" title="Switch to dark mode">
+  <span id="theme-toggle-icon" aria-hidden="true">☾</span>
+</button>
+<script>
+(function () {
+  var STORAGE_KEY = 'mootcoach-theme';
+  var root = document.documentElement;
+  var btn = document.getElementById('theme-toggle');
+  var icon = document.getElementById('theme-toggle-icon');
+
+  function sync(theme) {
+    if (icon) icon.textContent = theme === 'dark' ? '☀' : '☾';
+    if (btn) {
+      var label = theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode';
+      btn.setAttribute('aria-label', label);
+      btn.setAttribute('title', label);
+    }
+  }
+
+  // Reflect whatever the pre-paint script in <head> already applied.
+  sync(root.getAttribute('data-theme') === 'dark' ? 'dark' : 'light');
+
+  if (btn) {
+    btn.addEventListener('click', function () {
+      var next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      if (next === 'dark') {
+        root.setAttribute('data-theme', 'dark');
+      } else {
+        root.removeAttribute('data-theme');
+      }
+      try { localStorage.setItem(STORAGE_KEY, next); } catch (e) {}
+      sync(next);
+    });
+  }
+})();
+</script>
 
 <div id="intro" aria-hidden="true">
   <div class="i-word">
