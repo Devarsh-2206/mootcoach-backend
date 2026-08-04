@@ -25,7 +25,7 @@ async function evaluateExchange(currentMemory, exchangeTranscript) {
 
   try {
     const response = await groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
+      model: "openai/gpt-oss-120b",
       messages: [
         { role: "system", content: prompt },
         { role: "user", content: "Extract memory states strictly following the JSON schema." }
@@ -37,7 +37,7 @@ async function evaluateExchange(currentMemory, exchangeTranscript) {
 
     const result = JSON.parse(response.choices[0].message.content);
     console.log("[MEMORY ENGINE] Shadow Evaluator Result:", JSON.stringify(result, null, 2));
-    
+
     return applyMemoryUpdates(currentMemory, result);
   } catch (error) {
     console.error("[MEMORY ENGINE] Error in Shadow Evaluator:", error.message);
@@ -64,7 +64,7 @@ function applyMemoryUpdates(currentMemory, updates) {
     currentMemory.evasions.count += 1;
     currentMemory.evasions.lastEvadedQuestion = updates.evasion.reason;
     currentMemory.evasions.severity = updates.evasion.severity;
-    
+
     if (currentMemory.evasions.count === 1) {
       whisperUpdates.push(`The advocate evaded your question. Severity: ${updates.evasion.severity}. Call them out on it.`);
     } else {
