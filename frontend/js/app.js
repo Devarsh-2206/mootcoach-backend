@@ -393,22 +393,11 @@ onAuthChanged(async (user) => {
       authView.classList.remove('show');
     }
     
-    // Hold off switching into the workspace view until the intro curtain is
-    // actually gone — otherwise the workspace's nav (z-index far above the
-    // intro) renders on top of/alongside the still-playing intro.
-    const enterWorkspace = () => {
-      if (dashboardView) {
-        dashboardView.classList.remove('hidden');
-        dashboardView.classList.add('active');
-      }
-      navigate('workspace');
-      showWsPanel('upload');
-    };
-    if (window.__mootcoachIntroDone) {
-      enterWorkspace();
-    } else {
-      document.addEventListener('mootcoach:introend', enterWorkspace, { once: true });
-    }
+    // Do NOT auto-navigate into the workspace here. Even a logged-in user
+    // should land on the home page after the intro; they enter the
+    // workspace by clicking File Appearance (which routes them there
+    // automatically since they're already authenticated — see navigate()
+    // in ui.js).
 
     // ONLY fetch moots AFTER the UI is stable and user is set
     await loadRecentSessions();
