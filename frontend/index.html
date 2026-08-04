@@ -3883,6 +3883,12 @@ body.intro-hold #view-landing .swear{animation-play-state:paused!important}
     document.body.classList.remove('intro-hold');
     if ($('lv-underline')) $('lv-underline').classList.add('go');
     if (intro) setTimeout(() => intro.remove(), 1000);
+    // Signal completion so app.js can hold off switching a logged-in user
+    // into the workspace view until the curtain is actually out of the way —
+    // otherwise the workspace's own nav (much higher z-index) races the
+    // intro and both render at once.
+    window.__mootcoachIntroDone = true;
+    document.dispatchEvent(new Event('mootcoach:introend'));
   }
   if (reduced || !intro){ endIntro(); }
   else {

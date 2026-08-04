@@ -393,19 +393,25 @@ onAuthChanged(async (user) => {
       authView.classList.remove('show');
     }
     
-    if (dashboardView) {
-      dashboardView.classList.remove('hidden');
-      dashboardView.classList.add('active');
+    // Hold off switching into the workspace view until the intro curtain is
+    // actually gone — otherwise the workspace's nav (z-index far above the
+    // intro) renders on top of/alongside the still-playing intro.
+    const enterWorkspace = () => {
+      if (dashboardView) {
+        dashboardView.classList.remove('hidden');
+        dashboardView.classList.add('active');
+      }
+      navigate('workspace');
+      showWsPanel('upload');
+    };
+    if (window.__mootcoachIntroDone) {
+      enterWorkspace();
+    } else {
+      document.addEventListener('mootcoach:introend', enterWorkspace, { once: true });
     }
 
-    // Automatically navigate to workspace
-    navigate('workspace');
-
-    // Enforce default routing to Lodge Proposition screen
-    showWsPanel('upload');
-
     // ONLY fetch moots AFTER the UI is stable and user is set
-    await loadRecentSessions(); 
+    await loadRecentSessions();
   } else {
     window.currentUser = null;
 

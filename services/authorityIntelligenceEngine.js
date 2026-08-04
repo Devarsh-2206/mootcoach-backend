@@ -31,7 +31,7 @@ async function extractAuthorityIntelligence(propositionIntelligenceJSON, procedu
       response_format: { type: "json_object" },
       primaryProvider: "groq",
       groqTimeoutMs: 15000,
-      geminiTimeoutMs: 30000,
+      geminiTimeoutMs: 45000,
       geminiMaxAttempts: 1,
       requestLabel: "Authority Intelligence Engine"
     });
