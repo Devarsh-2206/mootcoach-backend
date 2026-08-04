@@ -2327,7 +2327,7 @@ p  { color:var(--white-2); }
 #view-landing .progress{position:fixed;top:0;left:0;height:2px;width:0%;z-index:60;background:var(--red)}
 
 /* ---------- nav (document header) ---------- */
-#view-landing nav{position:fixed;top:0;left:0;right:0;z-index:150;background:var(--paper);transition:box-shadow .35s}
+#view-landing nav{position:fixed;top:0;left:0;right:0;z-index:50;background:var(--paper);transition:box-shadow .35s}
 #view-landing nav.scrolled{box-shadow:0 1px 0 var(--rule),0 12px 30px -18px rgba(28,23,16,.25)}
 #view-landing .nav-top{
   text-align:center;font-family:var(--lv-mono);font-size:9.5px;letter-spacing:.3em;text-transform:uppercase;
@@ -2586,13 +2586,14 @@ p  { color:var(--white-2); }
 }
 
 /* ===== INTRO OVERTURE =====
-   The nav bar (z-index:150, set below) deliberately sits ABOVE this overlay
-   (z-index:100) so it stays clickable for the whole intro window instead of
-   swallowing the user's first click — that was the "File Appearance does
-   nothing" bug from before. Their backgrounds match, so there's no visible
-   seam. */
+   Must be a total, exclusive curtain: nothing from the landing page, the
+   workspace, or any toast/modal is allowed to show through while this is
+   up — only the intro's own elements. z-index is set far above anything
+   else in the app (nav, dynamic-island-nav, toasts, modals all sit well
+   under 9999) so nothing can ever render on top of it, regardless of what
+   else happens to fire during the intro window. */
 #intro{
-  position:fixed;inset:0;z-index:100;background:var(--paper);
+  position:fixed;inset:0;z-index:2147483647;background:var(--paper);
   display:flex;flex-direction:column;align-items:center;justify-content:center;
   cursor:pointer;transition:transform .95s cubic-bezier(.7,0,.2,1);
   animation:iShake .16s 2.32s;
