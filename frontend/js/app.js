@@ -393,20 +393,17 @@ onAuthChanged(async (user) => {
       authView.classList.remove('show');
     }
     
-    // Prevent auto-navigation on initial load so the intro and landing page show first
-    if (!isInitialAuthCheck) {
-      if (dashboardView) {
-        dashboardView.classList.remove('hidden');
-        dashboardView.classList.add('active');
-      }
-      
-      // Automatically navigate to workspace
-      navigate('workspace');
-      
-      // Enforce default routing to Lodge Proposition screen
-      showWsPanel('upload');
+    if (dashboardView) {
+      dashboardView.classList.remove('hidden');
+      dashboardView.classList.add('active');
     }
-    
+
+    // Automatically navigate to workspace
+    navigate('workspace');
+
+    // Enforce default routing to Lodge Proposition screen
+    showWsPanel('upload');
+
     // ONLY fetch moots AFTER the UI is stable and user is set
     await loadRecentSessions(); 
   } else {
