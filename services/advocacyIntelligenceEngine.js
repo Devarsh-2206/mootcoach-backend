@@ -34,7 +34,7 @@ async function extractAdvocacyIntelligence(propositionIntelligenceJSON, procedur
       response_format: { type: "json_object" },
       primaryProvider: "groq",
       groqTimeoutMs: 15000,
-      geminiTimeoutMs: 20000,
+      geminiTimeoutMs: 30000,
       geminiMaxAttempts: 1,
       requestLabel: "Advocacy Intelligence Engine"
     });

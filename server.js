@@ -12,6 +12,12 @@ const PORT = process.env.PORT || 10000;
 const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 MootCoach AI running on port ${PORT} (loading dependencies...)`);
 });
+// Long-running AI pipeline requests can take well over a minute; make sure no
+// implicit socket/header timeout on this end cuts them off before our own
+// per-call timeouts (server.js AI routes) get a chance to respond.
+server.requestTimeout = 180000;
+server.headersTimeout = 185000;
+server.keepAliveTimeout = 65000;
 
 const { WebSocketServer } = require("ws");
 const wss = new WebSocketServer({ server });
@@ -312,7 +318,7 @@ app.post("/analyze", aiLimiter, upload.single("file"), async (req, res) => {
           max_tokens: 150,
           primaryProvider: "groq",
           groqTimeoutMs: 15000,
-          geminiTimeoutMs: 20000,
+          geminiTimeoutMs: 30000,
           geminiMaxAttempts: 1,
           requestLabel: "Legal Domain Validation"
         });
@@ -341,7 +347,7 @@ app.post("/analyze", aiLimiter, upload.single("file"), async (req, res) => {
           max_tokens: 350,
           primaryProvider: "groq",
           groqTimeoutMs: 15000,
-          geminiTimeoutMs: 20000,
+          geminiTimeoutMs: 30000,
           geminiMaxAttempts: 1,
           requestLabel: "Forum Detection (P0)"
         });
@@ -387,9 +393,13 @@ app.post("/analyze", aiLimiter, upload.single("file"), async (req, res) => {
         ],
         temperature: 0.1,
         max_tokens: 4000,
-        primaryProvider: "groq",
+        // This call carries the full document (up to 45k chars, ~11-14k tokens) and
+        // reliably exceeds Groq's per-model TPM cap on this account (confirmed: both
+        // llama-3.3-70b-versatile at 12k TPM and openai/gpt-oss-120b at 8k TPM reject
+        // it outright with a 413). Gemini has no such ceiling, so it goes primary here.
+        primaryProvider: "gemini",
         groqTimeoutMs: 15000,
-        geminiTimeoutMs: 20000,
+        geminiTimeoutMs: 45000,
         geminiMaxAttempts: 1,
         requestLabel: "Full Legal Analysis"
       }),
