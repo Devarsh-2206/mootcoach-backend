@@ -4074,20 +4074,20 @@ body.intro-hold #view-landing .swear{animation-play-state:paused!important}
   function runSheet(){
     if (sheetRan) return; sheetRan = true;
     const T = (ms, fn) => setTimeout(fn, reduced ? 0 : ms);
-    T(300,  () => typeText($('lv-docTitle'), 'Memorial on behalf of the Petitioner', 26, () => {
-      typeText($('lv-docSub'), 'Before the Hon’ble Supreme Court of India', 20);
+    T(150,  () => typeText($('lv-docTitle'), 'Memorial on behalf of the Petitioner', 9, () => {
+      typeText($('lv-docSub'), 'Before the Hon’ble Supreme Court of India', 7);
     }));
-    T(2400, () => typeText($('lv-docIssue'), 'ISSUE I — Whether the Directorate’s surveillance order violates Article 21?', 20));
-    T(4600, () => typeText($('lv-docBody'),
+    T(900, () => typeText($('lv-docIssue'), 'ISSUE I — Whether the Directorate’s surveillance order violates Article 21?', 7));
+    T(1700, () => typeText($('lv-docBody'),
       '1. The right to privacy is a facet of Article 21. Any intrusion must satisfy the four-fold <span class="hl" id="lv-hlx">proportionality test</span> laid down in <span class="cite">K.S. Puttaswamy v. Union of India</span>¹ — legality, legitimate aim, necessity, and balancing. The impugned order fails at necessity: no less-intrusive alternative was ever considered on the record.',
-      14,
+      5,
       () => {
         $('lv-hlx') && $('lv-hlx').classList.add('on');
-        T(500, () => { $('lv-fnrule') && $('lv-fnrule').classList.add('on'); });
-        T(900, () => { $('lv-fnText') && $('lv-fnText').classList.add('on'); });
-        T(1500, () => { $('lv-fnStamp') && $('lv-fnStamp').classList.add('in'); });
-        T(2100, () => { $('lv-marginNote') && $('lv-marginNote').classList.add('on'); });
-        T(2900, runBench);
+        T(200, () => { $('lv-fnrule') && $('lv-fnrule').classList.add('on'); });
+        T(380, () => { $('lv-fnText') && $('lv-fnText').classList.add('on'); });
+        T(650, () => { $('lv-fnStamp') && $('lv-fnStamp').classList.add('in'); });
+        T(950, () => { $('lv-marginNote') && $('lv-marginNote').classList.add('on'); });
+        T(1300, runBench);
       }
     ));
   }
@@ -4104,12 +4104,12 @@ body.intro-hold #view-landing .swear{animation-play-state:paused!important}
     if (!bq) return;
     bn && bn.classList.remove('show');
     const item = questions[qi % questions.length]; qi++;
-    typeText(bq, '“' + item.q + '”', 28, () => {
+    typeText(bq, '“' + item.q + '”', 12, () => {
       if (bn) {
         bn.textContent = '— ' + item.note;
-        setTimeout(() => bn.classList.add('show'), 400);
+        setTimeout(() => bn.classList.add('show'), 250);
       }
-      setTimeout(runBench, 7500);
+      setTimeout(runBench, 3200);
     });
   }
 
