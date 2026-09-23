@@ -2406,8 +2406,10 @@ p  { color:var(--white-2); }
 #view-landing .wordmark .seal{color:var(--red);font-size:17px}
 #view-landing .wordmark b{font-weight:700}
 #view-landing .nav-links{display:flex;gap:30px;font-family:var(--lv-mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-soft)}
-#view-landing .nav-links a{border-bottom:1px solid transparent;transition:border-color .25s,color .25s;padding-bottom:2px}
-#view-landing .nav-links a:hover{color:var(--red);border-color:var(--red)}
+#view-landing .nav-links a{transition:color .25s;padding-bottom:3px}
+#view-landing .nav-links a:hover{color:var(--red)}
+/* sk-link--1 underline sits where the old 1px border did, so nav metrics are unchanged */
+#view-landing .nav-links a.sk-link::after{bottom:0;height:1px}
 #view-landing .nav-cta{
   font-family:var(--lv-mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;
   color:var(--paper);background:var(--ink);padding:10px 18px;border:1px solid var(--ink);
@@ -2770,14 +2772,14 @@ body.intro-hold #view-landing .swear{animation-play-state:paused!important}
    the extra markup variants 3 and 4 need.
    Usage: <a class="sk-link sk-link--1" href="…">Text</a>
 ═══════════════════════════════════════════ */
+/* Font, size and colour are inherited from the host element on purpose, so
+   an upgraded link keeps the typography of whatever nav/footer it sits in. */
 .sk-link{
-  --sk-color:var(--white);
   --sk-accent:var(--gold);
   --sk-ease:cubic-bezier(.65,.05,.36,1);
   --sk-dur:.45s;
   position:relative;display:inline-flex;align-items:center;gap:.4em;
-  color:var(--sk-color);text-decoration:none;cursor:pointer;
-  font-family:var(--sans);line-height:1.2;
+  text-decoration:none;cursor:pointer;
 }
 .sk-link:focus-visible{outline:2px solid var(--sk-accent);outline-offset:4px;border-radius:2px}
 
@@ -2896,10 +2898,10 @@ body.intro-hold #view-landing .swear{animation-play-state:paused!important}
   <div class="nav-inner">
     <a href="#" class="wordmark" id="land-nav-logo"><span class="seal">§</span><b>MOOTCOACH</b></a>
     <div class="nav-links">
-      <a href="#exhibit-a">Exhibit A</a>
-      <a href="#exhibits">The Record</a>
-      <a href="#bench">The Bench</a>
-      <a href="#scoresheet">Scoresheet</a>
+      <a href="#exhibit-a" data-sk-link="1">Exhibit A</a>
+      <a href="#exhibits" data-sk-link="1">The Record</a>
+      <a href="#bench" data-sk-link="1">The Bench</a>
+      <a href="#scoresheet" data-sk-link="1">Scoresheet</a>
     </div>
     <a href="#start" class="nav-cta" id="nav-btn-get-started">File Appearance</a>
   </div>
@@ -3139,9 +3141,9 @@ body.intro-hold #view-landing .swear{animation-play-state:paused!important}
   <div class="wrap foot">
     <span>Certified true copy · MootCoach</span>
     <div class="links">
-      <a href="#exhibit-a">Exhibit A</a>
-      <a href="#bench">Bench</a>
-      <a href="#scoresheet">Scoresheet</a>
+      <a href="#exhibit-a" data-sk-link="1">Exhibit A</a>
+      <a href="#bench" data-sk-link="1">Bench</a>
+      <a href="#scoresheet" data-sk-link="1">Scoresheet</a>
     </div>
     <span>§ 2026 · Built for law students, by one</span>
   </div>
@@ -3899,7 +3901,7 @@ body.intro-hold #view-landing .swear{animation-play-state:paused!important}
     <!-- Switch mode text toggle -->
     <p class="text-center text-xs text-moot-muted mt-6 mb-0">
       <span id="auth-overlay-toggle-text">Don't have an account?</span>
-      <a href="#" id="auth-overlay-toggle-btn" class="text-moot-accent hover:underline ml-1">Create Account</a>
+      <a href="#" id="auth-overlay-toggle-btn" class="text-moot-accent ml-1" data-sk-link="2">Create Account</a>
     </p>
     </div><!-- /.ao-form -->
   </div><!-- /.ao-card -->
