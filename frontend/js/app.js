@@ -72,6 +72,7 @@ import {
   getCurrentSelectedSide
 } from './components/argumentBuilder.js';
 import { initClarity, identifyUserInClarity } from './services/clarity.js';
+import { enhanceAnimatedLinks } from './components/animatedLinks.js';
 
 // Auth Overlay State and Handlers
 let isOverlaySignUpMode = false;
@@ -435,6 +436,9 @@ onAuthChanged(async (user) => {
 document.addEventListener('DOMContentLoaded', () => {
   // Initialize Microsoft Clarity
   initClarity();
+
+  // Upgrade any <a data-sk-link="1-5"> into an animated link
+  enhanceAnimatedLinks();
 
   // ─── LANDING & LOGIN PAGE ROUTING LISTENERS ───
   document.getElementById('land-nav-logo')?.addEventListener('click', (e) => {
