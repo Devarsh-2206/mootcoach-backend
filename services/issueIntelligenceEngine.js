@@ -27,7 +27,12 @@ async function extractIssueIntelligence(propositionIntelligenceJSON, proceduralH
       temperature: 0.1,
       response_format: { type: "json_object" },
       primaryProvider: "groq",
-      groqTimeoutMs: 15000,
+      // Measured cost of this stage on Groq is ~32s (see the pipeline
+      // measurement in the G-series work). The previous 15s cap was below
+      // what the call needs, so it timed out on every single request, then
+      // fell through to Gemini and timed out there too — burning ~60s and
+      // silently dropping this payload and every stage nested under it.
+      groqTimeoutMs: 45000,
       geminiTimeoutMs: 45000,
       geminiMaxAttempts: 1,
       requestLabel: "Issue Intelligence Engine"

@@ -269,6 +269,107 @@ const upload = multer({ dest: "uploads/" });
 
 
 
+/**
+ * PHASES 5-10 — the enrichment chain.
+ *
+ * These payloads enrich the Simulator. The core analysis, which is what the
+ * user actually sees, is complete and independent of them, and every one of
+ * these fields is null-tolerant all the way through to the client and to
+ * Firestore.
+ *
+ * They are therefore given a fixed time budget rather than being allowed to
+ * run the request out. Before this, one stage overrunning could push /analyze
+ * past two minutes; with a cold start on top that exceeds the server's own
+ * 180s requestTimeout, which is what a user experiences as "upload failed
+ * with no output".
+ *
+ * Budget is spent in dependency order. A stage that cannot fit in the time
+ * remaining is skipped cleanly rather than started and cut off mid-flight.
+ * Reservations come from measured wall time plus headroom, not guesswork.
+ */
+const ENRICH_BUDGET_MS = Number(process.env.ENRICH_BUDGET_MS || 45000);
+
+async function runEnrichment(rawPropIntel, propIntelError, forumContext) {
+  const out = {
+    propositionIntelligence: null, proceduralHierarchy: null, forumIntelligence: null,
+    issueIntelligence: null, authorityIntelligence: null, advocacyIntelligence: null,
+  };
+
+  const deadline = Date.now() + ENRICH_BUDGET_MS;
+  const left = () => deadline - Date.now();
+  const stage = async (label, needMs, fn) => {
+    const remaining = left();
+    if (remaining < needMs) {
+      console.warn(`[ENRICH] Skipping ${label}: ${Math.round(remaining / 1000)}s left, needs ~${Math.round(needMs / 1000)}s`);
+      return null;
+    }
+    const t = Date.now();
+    try {
+      const v = await fn();
+      console.log(`[ENRICH] ${label} ok in ${Date.now() - t}ms (${Math.round(left() / 1000)}s budget left)`);
+      return v;
+    } catch (e) {
+      console.error(`[ENRICH] ${label} failed after ${Date.now() - t}ms, proceeding:`, e.message);
+      return null;
+    }
+  };
+
+  if (propIntelError || !rawPropIntel) {
+    console.error('[ENRICH] Proposition Intelligence unavailable, skipping chain:',
+      propIntelError && propIntelError.message);
+    return out;
+  }
+  try {
+    out.propositionIntelligence = extractAndParseJSON(rawPropIntel);
+  } catch (e) {
+    console.error('[ENRICH] Proposition Intelligence unparseable, skipping chain:', e.message);
+    return out;
+  }
+
+  out.proceduralHierarchy = await stage('Procedural Hierarchy', 12000, async () =>
+    extractAndParseJSON(await extractProceduralHierarchy(JSON.stringify(out.propositionIntelligence))));
+  if (!out.proceduralHierarchy) return out;
+
+  out.forumIntelligence = await stage('Forum Intelligence', 30000, async () =>
+    extractAndParseJSON(await extractForumIntelligence(
+      JSON.stringify(out.propositionIntelligence), JSON.stringify(out.proceduralHierarchy))));
+  if (!out.forumIntelligence) return out;
+
+  out.issueIntelligence = await stage('Issue Intelligence', 45000, async () =>
+    extractAndParseJSON(await extractIssueIntelligence(
+      JSON.stringify(out.propositionIntelligence),
+      JSON.stringify(out.proceduralHierarchy),
+      JSON.stringify(out.forumIntelligence))));
+  if (!out.issueIntelligence) return out;
+
+  out.authorityIntelligence = await stage('Authority Intelligence', 45000, async () => {
+    const authorityInputProp = { factualMatrix: out.propositionIntelligence?.factualMatrix };
+    const authorityInputIssue = {
+      issues: (out.issueIntelligence?.issues || []).map(i => ({
+        exactLegalQuestion: i.issueDefinition?.exactLegalQuestion,
+        petitionerTheory: i.petitionerFramework?.coreTheory,
+        respondentTheory: i.respondentFramework?.coreTheory,
+        authorityRequirements: i.authorityRequirements
+      }))
+    };
+    return extractAndParseJSON(await extractAuthorityIntelligence(
+      JSON.stringify(authorityInputProp), "{}",
+      JSON.stringify(forumContext || out.forumIntelligence),
+      JSON.stringify(authorityInputIssue)));
+  });
+  if (!out.authorityIntelligence) return out;
+
+  out.advocacyIntelligence = await stage('Advocacy Intelligence', 45000, async () =>
+    extractAndParseJSON(await extractAdvocacyIntelligence(
+      JSON.stringify(out.propositionIntelligence),
+      JSON.stringify(out.proceduralHierarchy),
+      JSON.stringify(out.forumIntelligence),
+      JSON.stringify(out.issueIntelligence),
+      JSON.stringify(out.authorityIntelligence))));
+
+  return out;
+}
+
 /* ─── /analyze (Now fully powered by Groq & Native JSON Mode) ─── */
 app.post("/analyze", aiLimiter, upload.single("file"), async (req, res) => {
   let filePath = null;
@@ -380,9 +481,16 @@ app.post("/analyze", aiLimiter, upload.single("file"), async (req, res) => {
       : '';
 
     /* ── PHASE 2 + start of PHASE 5 (run concurrently — mutually independent) ──
-       Full Legal Analysis only needs forumDirective + raw text; Proposition Intelligence
-       extraction needs the same inputs, not each other's output. Fire both together. */
+       Full Legal Analysis only needs forumDirective + raw text; Proposition
+       Intelligence needs the same inputs, not each other's output.
+
+       The enrichment chain deliberately does NOT start here. Running it
+       concurrently was tried and reverted: the extra in-flight calls on the
+       same provider keys slowed the critical path enough to tip Full Legal
+       Analysis past its timeout and 504 the entire request. Roughly 20s of
+       overlap is not worth failing the upload. */
     let propIntelError = null;
+
     const [analysisCall, rawPropIntel] = await Promise.all([
       getChatCompletion({
         messages: [
@@ -399,8 +507,15 @@ app.post("/analyze", aiLimiter, upload.single("file"), async (req, res) => {
         // llama-3.3-70b-versatile at 12k TPM and openai/gpt-oss-120b at 8k TPM reject
         // it outright with a 413). Gemini has no such ceiling, so it goes primary here.
         primaryProvider: "gemini",
-        groqTimeoutMs: 15000,
-        geminiTimeoutMs: 45000,
+        // Measured at ~41s. The old 45s cap left 9% headroom on the single
+        // call the entire upload depends on, so it timed out under any extra
+        // load. 55s gives real headroom without making the FALLBACK slow:
+        // when Gemini is degraded (observed returning 503 UNAVAILABLE), every
+        // second spent waiting here is added to the Groq attempt that follows.
+        // Groq needs a realistic window too — it has been measured at 84s on
+        // this call when Gemini was unavailable.
+        groqTimeoutMs: 95000,
+        geminiTimeoutMs: 55000,
         geminiMaxAttempts: 1,
         requestLabel: "Full Legal Analysis"
       }),
@@ -438,93 +553,14 @@ app.post("/analyze", aiLimiter, upload.single("file"), async (req, res) => {
     else if (s >= 28) analysisData.scoreVerdict = "Weak";
     else              analysisData.scoreVerdict = "Critically Flawed";
 
-    /* ── PHASE 5: Proposition Intelligence Engine ── */
-    let propositionIntelligence = null;
-    let proceduralHierarchy = null;
-    let forumIntelligence = null;
-    let issueIntelligence = null;
-    let authorityIntelligence = null;
-    let advocacyIntelligence = null;
-    try {
-      if (propIntelError) throw propIntelError;
-      propositionIntelligence = extractAndParseJSON(rawPropIntel);
-
-      /* ── PHASE 6: Procedural Hierarchy Intelligence ── */
-      try {
-        const rawHierarchy = await extractProceduralHierarchy(JSON.stringify(propositionIntelligence));
-        proceduralHierarchy = extractAndParseJSON(rawHierarchy);
-        
-        /* ── PHASE 7: Forum Intelligence ── */
-        try {
-          const rawForum = await extractForumIntelligence(
-            JSON.stringify(propositionIntelligence),
-            JSON.stringify(proceduralHierarchy)
-          );
-          forumIntelligence = extractAndParseJSON(rawForum);
-          
-          /* ── PHASE 8: Issue Intelligence ── */
-          try {
-            const rawIssue = await extractIssueIntelligence(
-              JSON.stringify(propositionIntelligence),
-              JSON.stringify(proceduralHierarchy),
-              JSON.stringify(forumIntelligence)
-            );
-            issueIntelligence = extractAndParseJSON(rawIssue);
-            
-            /* ── PHASE 9: Authority Intelligence ── */
-            try {
-              const authorityInputProp = {
-                factualMatrix: propositionIntelligence?.factualMatrix
-              };
-              
-              const authorityInputIssue = {
-                issues: (issueIntelligence?.issues || []).map(i => ({
-                  exactLegalQuestion: i.issueDefinition?.exactLegalQuestion,
-                  petitionerTheory: i.petitionerFramework?.coreTheory,
-                  respondentTheory: i.respondentFramework?.coreTheory,
-                  authorityRequirements: i.authorityRequirements
-                }))
-              };
-
-              const estimatedTokens = Math.ceil((JSON.stringify(authorityInputProp).length + JSON.stringify(forumContext).length + JSON.stringify(authorityInputIssue).length) / 4);
-              console.log(`[AUTHORITY TOKENS] estimated input tokens: ${estimatedTokens}`);
-
-              const rawAuthority = await extractAuthorityIntelligence(
-                JSON.stringify(authorityInputProp),
-                "{}",
-                JSON.stringify(forumContext || forumIntelligence),
-                JSON.stringify(authorityInputIssue)
-              );
-              authorityIntelligence = extractAndParseJSON(rawAuthority);
-              
-              /* ── PHASE 10: Advocacy Intelligence ── */
-              try {
-                const rawAdvocacy = await extractAdvocacyIntelligence(
-                  JSON.stringify(propositionIntelligence),
-                  JSON.stringify(proceduralHierarchy),
-                  JSON.stringify(forumIntelligence),
-                  JSON.stringify(issueIntelligence),
-                  JSON.stringify(authorityIntelligence)
-                );
-                advocacyIntelligence = extractAndParseJSON(rawAdvocacy);
-              } catch (advErr) {
-                console.error("Advocacy Intelligence failed, but proceeding:", advErr);
-              }
-            } catch (authErr) {
-              console.error("Authority Intelligence failed, but proceeding:", authErr);
-            }
-          } catch (issueErr) {
-            console.error("Issue Intelligence failed, but proceeding:", issueErr);
-          }
-        } catch (forumErr) {
-          console.error("Forum Intelligence failed, but proceeding:", forumErr);
-        }
-      } catch (hierErr) {
-        console.error("Procedural Hierarchy failed, but proceeding:", hierErr);
-      }
-    } catch (propErr) {
-      console.error("Proposition Intelligence failed, but proceeding with legacy data:", propErr);
-    }
+    /* ── PHASES 5-10: enrichment ──
+       Runs after the core analysis so it never competes with it for provider
+       capacity. Bounded by ENRICH_BUDGET_MS; every field is null-tolerant
+       downstream, so a stage that does not fit is simply absent. */
+    const {
+      propositionIntelligence, proceduralHierarchy, forumIntelligence,
+      issueIntelligence, authorityIntelligence, advocacyIntelligence
+    } = await runEnrichment(rawPropIntel, propIntelError, forumContext);
 
     return res.json({
       success: true,
@@ -544,13 +580,34 @@ app.post("/analyze", aiLimiter, upload.single("file"), async (req, res) => {
   } catch (error) {
     console.error("Analyze route error:", error);
     if (filePath) { try { fs.unlinkSync(filePath); } catch (e) {} }
-    const isTimeout = error.message && error.message.includes("Timeout");
-    return res.status(isTimeout ? 504 : 500).json({
-      success: false,
-      error: isTimeout
-        ? "AI analysis request timed out. Please try again."
-        : "Analysis failed. Please try again. If the problem persists, the AI service may be temporarily unavailable."
-    });
+
+    // Say what actually went wrong. A provider quota or rate limit is not a
+    // transient glitch and "please try again" is actively misleading advice
+    // for it — retrying makes it worse. These are distinguishable from the
+    // provider error text, so distinguish them.
+    const msg = String((error && error.message) || '');
+    const quotaExhausted = /RESOURCE_EXHAUSTED|free_tier|quota|exceeded your current quota|PerDay/i.test(msg);
+    const rateLimited = /rate.?limit|tokens per minute|TPM|\b429\b/i.test(msg);
+    const isTimeout = /Timeout/i.test(msg);
+
+    let status = 500;
+    let userError = "Analysis failed. Please try again. If the problem persists, the AI service may be temporarily unavailable.";
+
+    if (quotaExhausted) {
+      status = 429;
+      userError = "The AI provider's daily quota has been used up, so the analysis could not run. "
+        + "This is an account limit, not a problem with your document — retrying now will fail the same way. "
+        + "It resets on the provider's daily cycle.";
+    } else if (rateLimited) {
+      status = 429;
+      userError = "The AI provider is rate-limiting this account right now. "
+        + "Wait about a minute and upload again — this is a per-minute cap, not a problem with your document.";
+    } else if (isTimeout) {
+      status = 504;
+      userError = "The AI provider did not respond in time. This is usually temporary — please try again.";
+    }
+
+    return res.status(status).json({ success: false, error: userError, reason: msg.slice(0, 400) });
   }
 });
 
