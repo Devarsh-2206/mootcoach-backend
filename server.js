@@ -287,13 +287,41 @@ const upload = multer({ dest: "uploads/" });
  * remaining is skipped cleanly rather than started and cut off mid-flight.
  * Reservations come from measured wall time plus headroom, not guesswork.
  */
-const ENRICH_BUDGET_MS = Number(process.env.ENRICH_BUDGET_MS || 70000);
+/**
+ * Default 0 = skipped, because this chain is ~35% of the upload wait and the
+ * user sees none of it. It feeds the Simulator, which already falls back to
+ * the lightweight forum detection from Phase 1.5 when these are absent — and
+ * in production these fields have been null on every request anyway.
+ *
+ * Set ENRICH_BUDGET_MS=70000 to restore it, at roughly +35s on every upload.
+ */
+const ENRICH_BUDGET_MS = Number(process.env.ENRICH_BUDGET_MS ?? 0);
 
 async function runEnrichment(rawPropIntel, propIntelError, forumContext) {
   const out = {
     propositionIntelligence: null, proceduralHierarchy: null, forumIntelligence: null,
     issueIntelligence: null, authorityIntelligence: null, advocacyIntelligence: null,
   };
+
+  // Proposition Intelligence is parsed even when the chain is off: it is
+  // already paid for (it runs in parallel with the main analysis) and the
+  // client persists it.
+  if (propIntelError || !rawPropIntel) {
+    console.error('[ENRICH] Proposition Intelligence unavailable, skipping chain:',
+      propIntelError && propIntelError.message);
+    return out;
+  }
+  try {
+    out.propositionIntelligence = extractAndParseJSON(rawPropIntel);
+  } catch (e) {
+    console.error('[ENRICH] Proposition Intelligence unparseable, skipping chain:', e.message);
+    return out;
+  }
+
+  if (ENRICH_BUDGET_MS <= 0) {
+    console.log('[ENRICH] Chain disabled (ENRICH_BUDGET_MS=0) — responding with the core analysis.');
+    return out;
+  }
 
   const deadline = Date.now() + ENRICH_BUDGET_MS;
   const left = () => deadline - Date.now();
@@ -313,18 +341,6 @@ async function runEnrichment(rawPropIntel, propIntelError, forumContext) {
       return null;
     }
   };
-
-  if (propIntelError || !rawPropIntel) {
-    console.error('[ENRICH] Proposition Intelligence unavailable, skipping chain:',
-      propIntelError && propIntelError.message);
-    return out;
-  }
-  try {
-    out.propositionIntelligence = extractAndParseJSON(rawPropIntel);
-  } catch (e) {
-    console.error('[ENRICH] Proposition Intelligence unparseable, skipping chain:', e.message);
-    return out;
-  }
 
   out.proceduralHierarchy = await stage('Procedural Hierarchy', 12000, async () =>
     extractAndParseJSON(await extractProceduralHierarchy(JSON.stringify(out.propositionIntelligence))));
