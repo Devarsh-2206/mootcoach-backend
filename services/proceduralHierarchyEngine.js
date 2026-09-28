@@ -19,7 +19,7 @@ async function extractProceduralHierarchy(propositionIntelligenceJSON) {
       temperature: 0.1,
       response_format: { type: "json_object" },
       primaryProvider: "groq",
-      groqTimeoutMs: 15000,
+      groqTimeoutMs: 45000,   // was timing out and falling through to Gemini, spending daily quota
       geminiTimeoutMs: 45000,
       geminiMaxAttempts: 1,
       requestLabel: "Procedural Hierarchy Engine"

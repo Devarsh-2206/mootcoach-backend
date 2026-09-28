@@ -21,9 +21,13 @@ async function extractPropositionIntelligence(fullText) {
         }
       ],
       temperature: 0.1, // Very low temperature for highly structured schema adherence
-      max_tokens: 4000,
-      primaryProvider: "gemini",
-      groqTimeoutMs: 15000,
+      // Measured output is ~1,577 tokens; 4,000 was reserving budget that Groq
+      // counts against its per-minute cap.
+      max_tokens: 2200,
+      // Was Gemini-primary, which meant every upload spent TWO of the 20 free
+      // Gemini requests per day. Groq's cap is per-minute and self-clearing.
+      primaryProvider: "groq",
+      groqTimeoutMs: 45000,
       geminiTimeoutMs: 45000,
       geminiMaxAttempts: 1,
       requestLabel: "Proposition Intelligence Extraction"

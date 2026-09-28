@@ -284,6 +284,7 @@ async function getChatCompletion({
   requestLabel = "AI request",
   groqModel = "openai/gpt-oss-120b",
   groqTimeoutMs = 25000,
+  groqMaxAttempts = 3,
   geminiTimeoutMs = 90000,
   geminiMaxAttempts = 3,
   geminiBackoffMs = 1500
@@ -291,28 +292,61 @@ async function getChatCompletion({
   const startTime = Date.now();
   console.log(`[AI TRACE] [${requestLabel}] Starting request. Primary provider: ${primaryProvider}`);
 
+  // Groq's free tier caps TOKENS PER MINUTE and counts reserved output
+  // (max_tokens) against it. Gemini's free tier caps REQUESTS PER DAY. That
+  // asymmetry matters: a Groq limit clears itself in under a minute, a Gemini
+  // limit does not clear until the next day. So it is always worth waiting
+  // for Groq rather than spending one of 20 daily Gemini calls.
+  const GROQ_TPM_BUDGET = Number(process.env.GROQ_TPM_BUDGET || 8000);
+  const estimatedTokens = () =>
+    Math.ceil(JSON.stringify(messages).length / 4) + Number(max_tokens || 0);
+
   const runGroq = async () => {
-    console.log(`[AI TRACE] [${requestLabel}] Attempting Groq (${groqModel})...`);
-    const response = await Promise.race([
-      groq.chat.completions.create({
-        model: groqModel,
-        messages,
-        temperature,
-        max_tokens,
-        response_format
-      }),
-      new Promise((_, reject) =>
-        setTimeout(() => reject(new Error("Groq API Timeout")), groqTimeoutMs)
-      )
-    ]);
-    const duration = Date.now() - startTime;
-    console.log(`[AI TRACE] [${requestLabel}] Groq completed successfully in ${duration}ms.`);
-    return {
-      provider: "groq",
-      model: groqModel,
-      text: response.choices[0].message.content.trim(),
-      duration
-    };
+    // Pre-flight: if this request cannot fit in the per-minute budget, no
+    // amount of waiting helps. Skip straight to the fallback instead of
+    // burning three rate-limited attempts discovering that.
+    const est = estimatedTokens();
+    if (est > GROQ_TPM_BUDGET) {
+      throw new Error(
+        `Groq skipped: request needs ~${est} tokens (input + max_tokens ${max_tokens}) ` +
+        `but the per-minute budget is ${GROQ_TPM_BUDGET}.`
+      );
+    }
+
+    let lastError = null;
+    for (let attempt = 0; attempt < groqMaxAttempts; attempt++) {
+      try {
+        console.log(`[AI TRACE] [${requestLabel}] Attempting Groq (${groqModel}), attempt ${attempt + 1} (~${est} tok)...`);
+        const response = await Promise.race([
+          groq.chat.completions.create({ model: groqModel, messages, temperature, max_tokens, response_format }),
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error("Groq API Timeout")), groqTimeoutMs)
+          )
+        ]);
+        const duration = Date.now() - startTime;
+        console.log(`[AI TRACE] [${requestLabel}] Groq completed successfully in ${duration}ms.`);
+        return {
+          provider: "groq",
+          model: groqModel,
+          text: response.choices[0].message.content.trim(),
+          duration
+        };
+      } catch (err) {
+        lastError = err;
+        const msg = String((err && err.message) || '');
+        const rateLimited = /rate_limit_exceeded|tokens per minute|\bTPM\b|\b429\b/i.test(msg);
+        if (!rateLimited || attempt === groqMaxAttempts - 1) throw err;
+
+        // Groq states the exact wait in the error: "Please try again in 12.6075s".
+        // Honour it — the budget genuinely refills, so this converts a hard
+        // failure into a short pause.
+        const stated = msg.match(/try again in ([\d.]+)\s*s/i);
+        const waitMs = Math.min(Math.ceil((stated ? parseFloat(stated[1]) : 10) * 1000) + 750, 35000);
+        console.warn(`[AI TRACE] [${requestLabel}] Groq rate-limited; waiting ${waitMs}ms then retrying (attempt ${attempt + 2}/${groqMaxAttempts}).`);
+        await delay(waitMs);
+      }
+    }
+    throw lastError;
   };
 
   const runGemini = async () => {

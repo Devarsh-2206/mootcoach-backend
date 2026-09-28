@@ -287,7 +287,7 @@ const upload = multer({ dest: "uploads/" });
  * remaining is skipped cleanly rather than started and cut off mid-flight.
  * Reservations come from measured wall time plus headroom, not guesswork.
  */
-const ENRICH_BUDGET_MS = Number(process.env.ENRICH_BUDGET_MS || 45000);
+const ENRICH_BUDGET_MS = Number(process.env.ENRICH_BUDGET_MS || 70000);
 
 async function runEnrichment(rawPropIntel, propIntelError, forumContext) {
   const out = {
@@ -501,19 +501,23 @@ app.post("/analyze", aiLimiter, upload.single("file"), async (req, res) => {
           }
         ],
         temperature: 0.1,
-        max_tokens: 4000,
+        // Output for this call is genuinely large — measured at 5,240 tokens
+        // (20,960 chars) on a short proposition. Cutting the reservation to
+        // 2,200 made Groq truncate mid-JSON and fail with
+        // json_validate_failed, so it must stay generous. Note max_tokens is
+        // only enforced by Groq; the Gemini path does not pass it.
+        max_tokens: 6000,
         // This call carries the full document (up to 45k chars, ~11-14k tokens) and
         // reliably exceeds Groq's per-model TPM cap on this account (confirmed: both
         // llama-3.3-70b-versatile at 12k TPM and openai/gpt-oss-120b at 8k TPM reject
         // it outright with a 413). Gemini has no such ceiling, so it goes primary here.
+        // This is the ONE call that cannot run on Groq's free tier: it needs
+        // ~3,900 input + ~5,240 output = ~9,140 tokens against an 8,000/min
+        // cap. Measured, not assumed — attempting Groq here just wastes a
+        // rate-limited round trip before falling back anyway. Everything
+        // ELSE in the pipeline is now Groq-primary, so this is the single
+        // Gemini request per upload rather than two.
         primaryProvider: "gemini",
-        // Measured at ~41s. The old 45s cap left 9% headroom on the single
-        // call the entire upload depends on, so it timed out under any extra
-        // load. 55s gives real headroom without making the FALLBACK slow:
-        // when Gemini is degraded (observed returning 503 UNAVAILABLE), every
-        // second spent waiting here is added to the Groq attempt that follows.
-        // Groq needs a realistic window too — it has been measured at 84s on
-        // this call when Gemini was unavailable.
         groqTimeoutMs: 95000,
         geminiTimeoutMs: 55000,
         geminiMaxAttempts: 1,
