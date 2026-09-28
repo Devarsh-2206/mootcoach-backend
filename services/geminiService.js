@@ -283,6 +283,9 @@ async function getChatCompletion({
   primaryProvider = "gemini",
   requestLabel = "AI request",
   groqModel = "openai/gpt-oss-120b",
+  // Lets a caller fit Groq's tighter budget without shrinking Gemini's output.
+  // Gemini is never sent max_tokens at all, so the two ceilings are unrelated.
+  groqMaxTokens = null,
   groqTimeoutMs = 25000,
   groqMaxAttempts = 3,
   geminiTimeoutMs = 90000,
@@ -297,19 +300,26 @@ async function getChatCompletion({
   // asymmetry matters: a Groq limit clears itself in under a minute, a Gemini
   // limit does not clear until the next day. So it is always worth waiting
   // for Groq rather than spending one of 20 daily Gemini calls.
-  const GROQ_TPM_BUDGET = Number(process.env.GROQ_TPM_BUDGET || 8000);
-  const estimatedTokens = () =>
-    Math.ceil(JSON.stringify(messages).length / 4) + Number(max_tokens || 0);
+  const groqBudget = Number(process.env.GROQ_TPM_BUDGET || 8000);
+  const groqMax = Number(groqMaxTokens || max_tokens || 0);
+  const inputTokens = () => Math.ceil(JSON.stringify(messages).length / 4);
+  const estimatedTokens = () => inputTokens() + groqMax;
 
   const runGroq = async () => {
-    // Pre-flight: if this request cannot fit in the per-minute budget, no
-    // amount of waiting helps. Skip straight to the fallback instead of
-    // burning three rate-limited attempts discovering that.
+    // Pre-flight: Groq charges input + the FULL max_tokens reservation, and
+    // rejects a single request over the per-minute budget outright, whatever
+    // the window looks like. Its own error states the arithmetic:
+    //
+    //   "Limit 8000, Requested 9248"   for a 3,248-token prompt + max_tokens 6000
+    //   (returned with x-ratelimit-remaining-tokens: 8000, i.e. an idle window)
+    //
+    // So a request over budget can never succeed and waiting cannot help.
+    // Skip to the fallback rather than burn attempts discovering that.
     const est = estimatedTokens();
-    if (est > GROQ_TPM_BUDGET) {
+    if (est > groqBudget) {
       throw new Error(
-        `Groq skipped: request needs ~${est} tokens (input + max_tokens ${max_tokens}) ` +
-        `but the per-minute budget is ${GROQ_TPM_BUDGET}.`
+        `Groq skipped: request needs ~${est} tokens (input ~${inputTokens()} + max_tokens ${groqMax}) ` +
+        `but the per-minute budget is ${groqBudget}.`
       );
     }
 
@@ -318,7 +328,7 @@ async function getChatCompletion({
       try {
         console.log(`[AI TRACE] [${requestLabel}] Attempting Groq (${groqModel}), attempt ${attempt + 1} (~${est} tok)...`);
         const response = await Promise.race([
-          groq.chat.completions.create({ model: groqModel, messages, temperature, max_tokens, response_format }),
+          groq.chat.completions.create({ model: groqModel, messages, temperature, max_tokens: groqMax, response_format }),
           new Promise((_, reject) =>
             setTimeout(() => reject(new Error("Groq API Timeout")), groqTimeoutMs)
           )

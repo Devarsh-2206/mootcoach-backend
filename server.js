@@ -303,9 +303,13 @@ async function runEnrichment(rawPropIntel, propIntelError, forumContext) {
     issueIntelligence: null, authorityIntelligence: null, advocacyIntelligence: null,
   };
 
-  // Proposition Intelligence is parsed even when the chain is off: it is
-  // already paid for (it runs in parallel with the main analysis) and the
-  // client persists it.
+  if (ENRICH_BUDGET_MS <= 0) {
+    console.log('[ENRICH] Chain disabled (ENRICH_BUDGET_MS=0) — responding with the core analysis.');
+    return out;
+  }
+
+  // Past this point the chain is on, so Proposition Intelligence was actually
+  // requested and every later stage is built from it.
   if (propIntelError || !rawPropIntel) {
     console.error('[ENRICH] Proposition Intelligence unavailable, skipping chain:',
       propIntelError && propIntelError.message);
@@ -315,11 +319,6 @@ async function runEnrichment(rawPropIntel, propIntelError, forumContext) {
     out.propositionIntelligence = extractAndParseJSON(rawPropIntel);
   } catch (e) {
     console.error('[ENRICH] Proposition Intelligence unparseable, skipping chain:', e.message);
-    return out;
-  }
-
-  if (ENRICH_BUDGET_MS <= 0) {
-    console.log('[ENRICH] Chain disabled (ENRICH_BUDGET_MS=0) — responding with the core analysis.');
     return out;
   }
 
@@ -523,24 +522,36 @@ app.post("/analyze", aiLimiter, upload.single("file"), async (req, res) => {
         // json_validate_failed, so it must stay generous. Note max_tokens is
         // only enforced by Groq; the Gemini path does not pass it.
         max_tokens: 6000,
-        // This call carries the full document (up to 45k chars, ~11-14k tokens) and
-        // reliably exceeds Groq's per-model TPM cap on this account (confirmed: both
-        // llama-3.3-70b-versatile at 12k TPM and openai/gpt-oss-120b at 8k TPM reject
-        // it outright with a 413). Gemini has no such ceiling, so it goes primary here.
-        // This is the ONE call that cannot run on Groq's free tier: it needs
-        // ~3,900 input + ~5,240 output = ~9,140 tokens against an 8,000/min
-        // cap. Measured, not assumed — attempting Groq here just wastes a
-        // rate-limited round trip before falling back anyway. Everything
-        // ELSE in the pipeline is now Groq-primary, so this is the single
-        // Gemini request per upload rather than two.
+        // Gemini-primary, and measurement says it has to stay that way.
+        //
+        // Groq was tried as primary and does not hold up. At the max_tokens the
+        // output genuinely needs (5,396 measured) the request is 9,248 tokens
+        // against an 8,000/min cap, and Groq rejects it with a 413 even on an
+        // idle window. Lowered to a max_tokens that does fit, gpt-oss-120b
+        // returns valid JSON with 3 of the 21 schema keys — a complete-looking
+        // but hollow analysis, which is worse than a clear failure.
+        //
+        // There is deliberately no Groq fallback tuning here. To fit Groq's
+        // budget the reservation would have to drop to ~4,000 tokens, and at
+        // that size the model returns the hollow 3-key object described above.
+        // The client renders whatever comes back, so a hollow analysis would
+        // look like a broken results page. When Gemini's quota is spent the
+        // route returns an explicit 429 saying so, which is more useful.
         primaryProvider: "gemini",
-        groqTimeoutMs: 95000,
-        geminiTimeoutMs: 55000,
+        groqMaxAttempts: 1,
+        groqTimeoutMs: 30000,
+        geminiTimeoutMs: 75000,
         geminiMaxAttempts: 1,
         requestLabel: "Full Legal Analysis"
       }),
-      extractPropositionIntelligence(forumDirective ? `${forumDirective}\n\n${fullPropositionText}` : fullPropositionText)
-        .catch(err => { propIntelError = err; return null; })
+      // Proposition Intelligence exists to feed the enrichment chain, and the
+      // client only ever writes it to Firestore — no view reads it back. With
+      // the chain off it is pure latency, and worse, it competes with Full
+      // Legal Analysis for the same 8,000/min Groq window.
+      ENRICH_BUDGET_MS > 0
+        ? extractPropositionIntelligence(forumDirective ? `${forumDirective}\n\n${fullPropositionText}` : fullPropositionText)
+            .catch(err => { propIntelError = err; return null; })
+        : Promise.resolve(null)
     ]);
 
     const rawAnalysis = analysisCall.text;
