@@ -245,6 +245,7 @@ const buildEvaluationPrompt = require("./prompts/benchEvaluationPrompt");
 const { buildJudgeDirective, listJudgeProfiles, listIntensityProfiles } = require("./prompts/judgeProfiles");
 const ARGUMENT_BUILDER_PROMPT = require("./prompts/argumentBuilderPrompt");
 const buildClaimExtractionPrompt = require("./prompts/claimExtractionPrompt");
+const { buildIndianLegalDirective } = require("./prompts/indianLegalFramework");
 
 // const app = express();
 // app.set('trust proxy', 1);
@@ -491,7 +492,11 @@ app.post("/analyze", aiLimiter, upload.single("file"), async (req, res) => {
             { role: "user", content: `Detect the forum for this proposition. Return ONLY valid JSON:\n\n${fullPropositionText.slice(0, 4000)}` }
           ],
           temperature: 0.0,
-          max_tokens: 350,
+          // 350 was sized for the old four-field schema. The classifier now also
+          // returns courtLevel, proceedingType, state and isConstitutionalMatter,
+          // and a criminal matter measured 699 completion tokens — at 350 it
+          // truncated mid-JSON and failed validation outright. 1200 leaves room.
+          max_tokens: 1200,
           primaryProvider: "groq",
           groqTimeoutMs: 15000,
           geminiTimeoutMs: 30000,
@@ -519,10 +524,20 @@ app.post("/analyze", aiLimiter, upload.single("file"), async (req, res) => {
     const forumDirective = (forumContext && forumContext.forum)
       ? `\nDETECTED FORUM CONTEXT (AUTHORITATIVE — this overrides any default jurisdiction assumption):\n` +
         `- Forum: ${forumContext.forum}\n` +
+        `- Court level: ${forumContext.courtLevel || 'Unspecified'}\n` +
+        `- Proceeding type: ${forumContext.proceedingType || 'Unspecified'}\n` +
         `- Jurisdiction: ${forumContext.jurisdiction || 'Unspecified'}\n` +
+        `- State: ${forumContext.state || 'Unspecified'}\n` +
         `- Governing Law: ${forumContext.governingLaw || 'Unspecified'}\n` +
         `- Adjudicator: ${forumContext.adjudicatorType || 'Unspecified'}\n` +
-        `You MUST conduct the entire analysis under THIS forum and jurisdiction. Identify issues, frame arguments, and (critically) cite ONLY case law and authorities appropriate to this forum/jurisdiction. Do NOT default to Indian constitutional law unless the detected jurisdiction is India. Use the terminology of this forum (e.g., Tribunal/Arbitrators/Claimant for arbitration; Court/Judges/Petitioner for domestic courts).\n`
+        `- Constitutional matter: ${forumContext.isConstitutionalMatter === true ? 'YES' : 'NO'}\n` +
+        `- Party labels: ${(forumContext.terminology && forumContext.terminology.parties) || 'Unspecified'}\n` +
+        `You MUST conduct the entire analysis under THIS forum, level and jurisdiction. Identify issues, frame arguments, and (critically) cite ONLY case law and authorities appropriate to it. Do NOT default to Indian constitutional law unless the detected jurisdiction is India AND the matter is genuinely constitutional. A trial-court civil suit is governed by the CPC and the relevant substantive Act — not by Article 14/19/21 or writ doctrine. Use this forum's own terminology and party labels throughout.\n` +
+        // Grounds an Indian matter in the law that actually governs it, and keeps
+        // constitutional doctrine out of ordinary civil and criminal work. Returns
+        // '' for non-Indian matters, so nothing Indian leaks into an English or
+        // arbitral case.
+        `${buildIndianLegalDirective(forumContext)}\n`
       : '';
 
     /* ── PHASE 2 + start of PHASE 5 (run concurrently — mutually independent) ──
@@ -795,9 +810,15 @@ app.post("/simulate-bench", express.json(), async (req, res) => {
   // propositionSummary — the prompt builders already read every bracketed
   // directive in that string, so the two layers simply stack.
   const judgeDirective = (judgeType || intensity) ? buildJudgeDirective(judgeType, validDifficulty) : '';
-  const contextualPropositionSummary = judgeDirective
-    ? `${judgeDirective}\n\n${propositionSummary || ''}`
-    : (propositionSummary || '');
+
+  // Ground an Indian bench in the law that actually governs the matter. The
+  // client embeds [Forum: ...] style directives in propositionSummary; forumHint
+  // lets it also say which level/proceeding/state, so a civil judge asks about
+  // the CPC and the Specific Relief Act rather than about Article 19.
+  const indianDirective = buildIndianLegalDirective(req.body.forumHint || null);
+
+  const contextualPropositionSummary = [judgeDirective, indianDirective, propositionSummary || '']
+    .filter(Boolean).join('\n\n');
   
   // Count advocate turns (previous turns in history + current turn)
   const advocateTurnsCount = history.filter(t => t.role === 'advocate' || t.role === 'user').length + 1;
@@ -815,7 +836,14 @@ app.post("/simulate-bench", express.json(), async (req, res) => {
       const evalCall = await getChatCompletion({
         messages: [{ role: "user", content: evalPrompt }],
         temperature: 0.2,
-        max_tokens: 1500,
+        // Same reasoning-token headroom as the per-turn call.
+        max_tokens: 2500,
+        // Same reasoning as the per-turn call: small enough for Groq, and it
+        // should not cost a scarce Gemini request.
+        primaryProvider: "groq",
+        groqTimeoutMs: 40000,
+        geminiTimeoutMs: 45000,
+        geminiMaxAttempts: 1,
         requestLabel: "Bench Simulation Performance Review"
       });
 
@@ -857,7 +885,24 @@ app.post("/simulate-bench", express.json(), async (req, res) => {
     }
   }
 
-  const judgeSystemPrompt = buildJudgePrompt(validDifficulty, contextualPropositionSummary, claimLedger);
+  // Feed back what the bench has already asked. Without this the model had no
+  // record of its own questions beyond the raw transcript, and would circle the
+  // same point indefinitely — the failure a practising advocate hit in a live
+  // session. `targetWeakness` was already being returned every turn and thrown
+  // away; the client now echoes it back in the history.
+  const askedQuestions = history
+    .filter(t => t.role === 'judge')
+    .map(t => t.content)
+    .filter(Boolean);
+  const coveredWeaknesses = history
+    .filter(t => t.role === 'judge')
+    .map(t => t.targetWeakness)
+    .filter(Boolean);
+
+  const judgeSystemPrompt = buildJudgePrompt(
+    validDifficulty, contextualPropositionSummary, claimLedger,
+    askedQuestions, coveredWeaknesses
+  );
   const messages = [{ role: "system", content: judgeSystemPrompt }];
   const recentHistory = history.slice(-12);
   
@@ -875,7 +920,21 @@ app.post("/simulate-bench", express.json(), async (req, res) => {
     const judgeCall = await getChatCompletion({
       messages,
       temperature: validDifficulty === 'hard' ? 0.7 : validDifficulty === 'easy' ? 0.3 : 0.5,
-      max_tokens: 250,
+      // 250 was enough when the system prompt was small, but gpt-oss-120b is a
+      // reasoning model and its reasoning tokens count against max_tokens. With
+      // the Indian framework in the prompt, 250 was consumed before any JSON was
+      // emitted, and Groq returned json_validate_failed with an empty generation.
+      // The visible answer is still capped at 80 words by the prompt itself.
+      max_tokens: 1200,
+      // Groq-primary. This call is ~3.4k tokens against an 8,000/min budget, so
+      // it fits easily, and the bench is interactive — Groq answers in ~1s where
+      // Gemini takes far longer. It also stops the simulator eating the daily
+      // Gemini allowance: a 5-turn session was spending 5 of the 20 free
+      // requests per day, so four sessions exhausted the whole product.
+      primaryProvider: "groq",
+      groqTimeoutMs: 30000,
+      geminiTimeoutMs: 45000,
+      geminiMaxAttempts: 1,
       requestLabel: "Bench Simulation Next Question"
     });
 

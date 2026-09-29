@@ -92,7 +92,13 @@ export function getForumProfile() {
   const df = hasRich ? {} : (window.detectedForum || {});
   if (!hasRich && df.terminology && !term.judge) term = df.terminology;
 
-  let benchType = adj.benchType || cls.broadType || df.adjudicatorType || df.forum || 'Constitutional Bench';
+  // Was a flat 'Constitutional Bench', which put every unclassified Indian
+  // matter — ordinary civil suits included — before a constitutional bench.
+  const levelDefault = ({
+    trial: 'Trial Court', appellate: 'Appellate Bench', writ: 'Writ Bench',
+    apex: 'Supreme Court Bench', arbitral: 'Arbitral Tribunal',
+  })[String(df.courtLevel || cls.courtLevel || '').toLowerCase()] || 'Court';
+  let benchType = adj.benchType || cls.broadType || df.adjudicatorType || df.forum || levelDefault;
   const blob = `${benchType} ${cls.broadType || ''} ${cls.specificBody || ''} ${df.forum || ''} ${df.jurisdiction || ''} ${df.adjudicatorType || ''} ${term.judge || ''} ${term.court || ''}`.toLowerCase();
   let isArbitration = /arbitr|tribunal/.test(blob);
 
@@ -112,7 +118,7 @@ export function getForumProfile() {
       courtJurisdiction = derived.courtJurisdiction;
       benchType = isArbitration ? 'Arbitral Tribunal'
         : (courtJurisdiction === 'uk' ? 'Court of Appeal'
-          : courtJurisdiction === 'india' ? 'Constitutional Bench' : 'Court');
+          : 'Court');
     }
   }
 
@@ -134,7 +140,14 @@ export function getForumProfile() {
     chambersLabel: isArbitration ? 'Arbitral Chamber' : 'Judicial Chambers',
     lobbyLabel: isArbitration ? 'Tribunal Lobby' : 'Chambers Lobby',
     isArbitration,
-    courtJurisdiction
+    courtJurisdiction,
+    // Decide which bench hears the matter. Sessions saved before forum
+    // detection returned these simply leave them undefined.
+    courtLevel: cls.courtLevel || df.courtLevel || '',
+    proceedingType: cls.proceedingType || df.proceedingType || '',
+    state: cls.state || df.state || '',
+    isConstitutionalMatter: (fi.forumClassification && fi.forumClassification.isConstitutionalMatter)
+      ?? df.isConstitutionalMatter ?? undefined
   };
 }
 window.getForumProfile = getForumProfile;
@@ -149,9 +162,18 @@ window.selectedJudgeId = null;
 // tribunals). The Full Bench card is offered ONLY in Hard mode.
 export function getActiveRoster(mode) {
   const fp = getForumProfile();
+  // An Indian matter at first instance or on civil appeal gets the civil
+  // bench, not the constitutional one.
+  const level = String(fp.courtLevel || '').toLowerCase();
+  const isCivilTrack = fp.courtJurisdiction === 'india'
+    && !fp.isConstitutionalMatter
+    && (level === 'trial' || level === 'appellate');
+
   const base = fp.isArbitration
     ? JUDGE_ROSTERS.tribunal
-    : (COURT_ROSTERS[fp.courtJurisdiction] || COURT_ROSTERS.generic);
+    : isCivilTrack
+      ? COURT_ROSTERS.indiaCivil
+      : (COURT_ROSTERS[fp.courtJurisdiction] || COURT_ROSTERS.generic);
   const list = base.slice();
   if ((mode || benchDifficultyMode) === 'hard') list.push(FULL_BENCH);
   return list;
@@ -160,7 +182,7 @@ export function getActiveRoster(mode) {
 function findJudge(id) {
   if (id === FULL_BENCH.id) return FULL_BENCH;
   const all = [
-    ...COURT_ROSTERS.india, ...COURT_ROSTERS.uk, ...COURT_ROSTERS.generic,
+    ...COURT_ROSTERS.india, ...COURT_ROSTERS.indiaCivil, ...COURT_ROSTERS.uk, ...COURT_ROSTERS.generic,
     ...JUDGE_ROSTERS.tribunal
   ];
   return all.find(j => j.id === id) || null;
@@ -640,6 +662,18 @@ export async function submitToBench() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         conversationHistory: benchConversation.slice(-10),
+        // Lets the backend ground an Indian bench in the law that governs —
+        // the CPC and the substantive Act for a civil suit, not writ doctrine.
+        forumHint: (() => {
+          const fp = getForumProfile();
+          return {
+            jurisdiction: fp.courtJurisdiction === 'india' ? 'India' : fp.courtJurisdiction,
+            courtLevel: fp.courtLevel,
+            proceedingType: fp.proceedingType,
+            state: fp.state,
+            isConstitutionalMatter: fp.isConstitutionalMatter
+          };
+        })(),
         propositionSummary: contextPrefix + (currentPropositionContext || ''),
         difficulty: benchDifficultyMode,
         studentStatement: statement,
@@ -689,7 +723,7 @@ export async function submitToBench() {
         chat.scrollTop = chat.scrollHeight;
       }
     });
-    benchConversation.push({ role: 'judge', content: judgeText });
+    benchConversation.push({ role: 'judge', content: judgeText, targetWeakness: data.targetWeakness });
 
   } catch (err) {
     document.getElementById(typingId)?.remove();
