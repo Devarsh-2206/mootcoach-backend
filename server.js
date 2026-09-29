@@ -540,8 +540,14 @@ app.post("/analyze", aiLimiter, upload.single("file"), async (req, res) => {
         primaryProvider: "gemini",
         groqMaxAttempts: 1,
         groqTimeoutMs: 30000,
-        geminiTimeoutMs: 75000,
-        geminiMaxAttempts: 1,
+        // Two attempts, because Gemini 503s are transient and were observed on
+        // production: the first upload of the day failed on "high demand" and
+        // the identical retry succeeded in 38s. One attempt turned a blip into
+        // a dead upload. Timeout trimmed 75s -> 60s so two attempts still fit
+        // well inside server.requestTimeout (180s); Gemini measures ~37s, so
+        // 60s keeps ~60% headroom.
+        geminiTimeoutMs: 60000,
+        geminiMaxAttempts: 2,
         requestLabel: "Full Legal Analysis"
       }),
       // Proposition Intelligence exists to feed the enrichment chain, and the
@@ -620,6 +626,11 @@ app.post("/analyze", aiLimiter, upload.single("file"), async (req, res) => {
     const quotaExhausted = /RESOURCE_EXHAUSTED|free_tier|quota|exceeded your current quota|PerDay/i.test(msg);
     const rateLimited = /rate.?limit|tokens per minute|TPM|\b429\b/i.test(msg);
     const isTimeout = /Timeout/i.test(msg);
+    // Gemini 503: {"code":503,"message":"This model is currently experiencing
+    // high demand...","status":"UNAVAILABLE"}. Carries no quota or rate-limit
+    // wording, so without this it reads as a generic failure — and unlike a
+    // quota wall, retrying genuinely does work.
+    const overloaded = /UNAVAILABLE|503|high demand|overloaded/i.test(msg);
 
     let status = 500;
     let userError = "Analysis failed. Please try again. If the problem persists, the AI service may be temporarily unavailable.";
@@ -636,6 +647,10 @@ app.post("/analyze", aiLimiter, upload.single("file"), async (req, res) => {
     } else if (isTimeout) {
       status = 504;
       userError = "The AI provider did not respond in time. This is usually temporary — please try again.";
+    } else if (overloaded) {
+      status = 503;
+      userError = "The AI provider is briefly overloaded and turned the request away. "
+        + "Nothing is wrong with your document — wait a few seconds and upload again.";
     }
 
     return res.status(status).json({ success: false, error: userError, reason: msg.slice(0, 400) });
