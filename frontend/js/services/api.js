@@ -61,7 +61,8 @@ export async function buildArgument(stance, issue, notes, propositionContext, fo
     // backend can present them as binding rather than as material to summarise.
     // authorities: their Authority Armory picks, which must appear in the memorial.
     body: JSON.stringify({ stance, issue, notes, propositionContext, forum,
-      instructions: opts.instructions || '', authorities: opts.authorities || [] })
+      instructions: opts.instructions || '', authorities: opts.authorities || [],
+      memorialFocus: !!opts.memorialFocus })
   });
   const data = await res.json();
   if (!res.ok || !data.success) {

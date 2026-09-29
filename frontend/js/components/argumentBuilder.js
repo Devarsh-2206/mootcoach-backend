@@ -1127,6 +1127,46 @@ export function exportAsPDF(type) {
     return;
   }
   
+  /**
+   * Moot memorials carry a colour-coded cover: blue for the Petitioner, red for
+   * the Respondent. It is how the two sides are told apart on the bench's table,
+   * and a memorial exported without it does not look like a memorial. Built from
+   * the structured cover data when the draft has it; skipped entirely otherwise,
+   * so older drafts export exactly as before.
+   */
+  const cover = (type === 'memorial' || !type || type === 'active-aux')
+    ? (lastBuiltArgument && lastBuiltArgument.memorial && lastBuiltArgument.memorial.coverPage)
+    : null;
+  let coverPageHtml = '';
+  if (cover && (cover.court || cover.memorialFor)) {
+    const esc = v => String(v == null ? '' : v)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const stance = (window.mootState && window.mootState.stance) || cover.memorialFor || '';
+    const c = coverColourFor(stance);
+    const row = (v, cls) => v ? `<div class="${cls}">${esc(v)}</div>` : '';
+    coverPageHtml = `
+      <div class="memorial-cover" style="--cover:${c.bg};--cover-ink:${c.ink}">
+        <div class="cover-frame">
+          ${cover.teamCode ? `<div class="cover-team">${esc(cover.teamCode)}</div>` : ''}
+          ${row(cover.competition, 'cover-comp')}
+          ${row(cover.court, 'cover-court')}
+          <hr class="cover-rule">
+          ${row(cover.caseNumber, 'cover-case')}
+          ${row(cover.provision, 'cover-prov')}
+          <hr class="cover-rule">
+          <div class="cover-matter">IN THE MATTER OF :</div>
+          <hr class="cover-rule">
+          <div class="cover-parties">
+            <div class="cover-party"><span>${esc(cover.petitioner)}</span><span>...PETITIONER</span></div>
+            <div class="cover-vs">V/S</div>
+            <div class="cover-party"><span>${esc(cover.respondent)}</span><span>...RESPONDENT</span></div>
+          </div>
+          <hr class="cover-rule">
+          ${row(cover.memorialFor, 'cover-for')}
+        </div>
+      </div>`;
+  }
+
   const printWindow = window.open('', '_blank', 'width=800,height=600');
   printWindow.document.write(`
     <html>
@@ -1245,9 +1285,55 @@ export function exportAsPDF(type) {
           details[open] summary {
             margin-bottom: 4px;
           }
+
+          /* ── COLOUR-CODED COVER PAGE ──
+             Blue for the Petitioner, red for the Respondent. The colour bleeds to
+             the sheet edge, which needs print-color-adjust: browsers strip
+             background colour when printing unless told not to. */
+          .memorial-cover {
+            background: var(--cover);
+            color: var(--cover-ink);
+            margin: -1in -1in 0 -1in;        /* cancel @page margin so it bleeds */
+            padding: 1in 0.9in;
+            min-height: 9in;
+            page-break-after: always;
+            break-after: page;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+            font-family: 'Merriweather', Georgia, serif;
+            text-align: center;
+            font-variant: small-caps;
+          }
+          .cover-frame {
+            border: 1.5pt solid var(--cover-ink);
+            padding: 34pt 26pt;
+            min-height: 8.1in;
+          }
+          .cover-team {
+            border: 1pt solid var(--cover-ink);
+            padding: 4pt 12pt; float: right;
+            font-size: 11pt; letter-spacing: .04em; margin-bottom: 18pt;
+          }
+          .cover-rule {
+            border: none; border-top: 3pt double var(--cover-ink);
+            margin: 20pt 0;
+          }
+          .cover-comp  { clear: both; font-size: 15pt; font-weight: 700; padding-top: 26pt; }
+          .cover-court { font-size: 12.5pt; font-weight: 700; margin-top: 6pt; }
+          .cover-case  { font-size: 12pt; margin-top: 26pt; }
+          .cover-prov  { font-size: 11pt; }
+          .cover-matter{ font-size: 11.5pt; font-weight: 700; }
+          .cover-parties { margin: 8pt 0; }
+          .cover-party {
+            display: flex; justify-content: space-between;
+            font-size: 12pt; font-weight: 700; padding: 3pt 10pt; text-align: left;
+          }
+          .cover-vs { font-size: 11pt; font-weight: 700; margin: 4pt 0; }
+          .cover-for{ font-size: 13pt; font-weight: 700; letter-spacing: .03em; }
         </style>
       </head>
       <body>
+        ${coverPageHtml}
         <div class="header">${headerText}</div>
         ${printContent}
         <div class="footer">Appellate Drafting Studio · MootCoach AI</div>
@@ -2907,103 +2993,201 @@ function seedAdvocacyFromPlan(notesEl, oralEl) {
 }
 
 /**
- * Lays the memorial out in the order competitions expect, starting with the Index
- * of Authorities.
+ * The cover of a moot memorial is colour-coded by side, and the colour is not
+ * decoration — it is how a bailiff and a judge tell the two sides apart on the
+ * table. Petitioner/Appellant/Claimant is blue, Respondent is red. Taken from
+ * memorials filed at NUALS 2025: the Petitioner's cover was blue, the
+ * Respondent's red.
  *
- * This used to emit four sections — ISSUE, RULE, APPLICATION, CONCLUSION — and
- * nothing else, so an Index of Authorities had nowhere to go even when asked for
- * directly. The older four-field shape is still handled, so drafts generated
- * before this change still render.
+ * Competitions occasionally invert or add colours, so this is the default and
+ * not a rule the advocate cannot override.
  */
-function renderMemorialText(m) {
+export const MEMORIAL_COVER_COLOURS = {
+  petitioner: { bg: '#4472C4', ink: '#10233F', label: 'Blue — Petitioner / Appellant / Claimant' },
+  respondent: { bg: '#C00000', ink: '#2B0000', label: 'Red — Respondent / Defendant' },
+};
+
+export function coverColourFor(stance) {
+  const s = String(stance || '').toLowerCase();
+  if (/respondent|defend|defence|defense|opposition/.test(s)) return MEMORIAL_COVER_COLOURS.respondent;
+  return MEMORIAL_COVER_COLOURS.petitioner;
+}
+
+/**
+ * Lays the memorial out in the order competitions actually expect, modelled on
+ * memorials filed at NUALS 2025: cover, abbreviations, authorities grouped by
+ * kind, jurisdiction, facts, issues, summary, numbered arguments, prayer.
+ *
+ * It used to emit four sections — ISSUE, RULE, APPLICATION, CONCLUSION — so an
+ * Index of Authorities had nowhere to go even when asked for directly. Both the
+ * older flat shape and the first structured shape still render, so drafts saved
+ * before each change survive.
+ */
+function renderMemorialText(m, stance) {
   if (!m) return '';
   const out = [];
   const has = v => v !== undefined && v !== null && String(v).trim() !== '';
+  const arr = v => Array.isArray(v) ? v : [];
+
+  // ── COVER PAGE ──
+  const cp = m.coverPage;
+  if (cp && (has(cp.court) || has(cp.memorialFor))) {
+    const c = coverColourFor(stance || cp.memorialFor);
+    const lines = [];
+    if (has(cp.teamCode))    lines.push('[ ' + cp.teamCode + ' ]');
+    if (has(cp.competition)) lines.push(cp.competition);
+    if (has(cp.court))       lines.push(cp.court);
+    lines.push('');
+    if (has(cp.caseNumber))  lines.push(cp.caseNumber);
+    if (has(cp.provision))   lines.push(cp.provision);
+    lines.push('', 'IN THE MATTER OF:', '');
+    if (has(cp.petitioner))  lines.push(cp.petitioner + '  ...PETITIONER');
+    lines.push('V/S');
+    if (has(cp.respondent))  lines.push(cp.respondent + '  ...RESPONDENT');
+    lines.push('');
+    if (has(cp.memorialFor)) lines.push(cp.memorialFor);
+    out.push('COVER PAGE\n' + lines.map(l => '   ' + l).join('\n') +
+      '\n\n   Cover colour on export: ' + c.label);
+  }
+
+  // ── LIST OF ABBREVIATIONS ──
+  const abbr = arr(m.listOfAbbreviations).filter(a => a && has(a.short));
+  if (abbr.length) {
+    const w = Math.min(22, Math.max.apply(null, abbr.map(a => String(a.short).length)) + 2);
+    out.push('LIST OF ABBREVIATIONS\n' +
+      abbr.map(a => '   ' + String(a.short).padEnd(w) + (a.full || '')).join('\n'));
+  }
 
   // ── INDEX OF AUTHORITIES ──
   const ioa = m.indexOfAuthorities;
   if (ioa) {
-    const lines = [];
-    const caseLine = c => {
-      const bits = [c.name, c.citation].filter(has).join(', ');
-      const flag = c.verify ? '   [VERIFY]' : '';
-      const note = has(c.citationNote) ? `\n      Note: ${c.citationNote}` : '';
-      const prop = has(c.proposition) ? `\n      Cited for: ${c.proposition}` : '';
-      const src  = c.source === 'advocate' ? '   (your authority)' : '';
-      return `   ${bits}${src}${flag}${prop}${note}`;
+    const groups = [
+      ['cases', 'CASES'],
+      ['internationalCases', 'INTERNATIONAL CASES'],
+      ['statutes', 'STATUTES'],
+      ['constitutionalProvisions', 'CONSTITUTIONAL PROVISIONS'],
+      ['treatiesAndConventions', 'TREATIES AND CONVENTIONS'],
+      ['rulesAndRegulations', 'RULES, REGULATIONS AND CIRCULARS'],
+      ['booksAndCommentaries', 'BOOKS AND COMMENTARIES'],
+      ['articlesAndReports', 'ARTICLES AND REPORTS'],
+      ['mootProposition', 'MOOT PROPOSITION'],
+      // Older drafts used these names.
+      ['booksAndArticles', 'BOOKS AND ARTICLES'],
+      ['other', 'OTHER AUTHORITIES'],
+    ];
+    const entry = e => {
+      const bits = [e.name, e.citation, e.provisions].filter(has).join(has(e.citation) ? ', ' : ' — ');
+      const src  = e.source === 'advocate' ? '   (your authority)' : '';
+      const flag = e.verify ? '   [VERIFY]' : '';
+      const pin  = has(e.pinpoint) ? '\n      At: ' + e.pinpoint : '';
+      const prop = has(e.proposition) ? '\n      Cited for: ' + e.proposition : '';
+      const note = has(e.citationNote) ? '\n      Note: ' + e.citationNote : '';
+      return '   ' + bits + src + flag + pin + prop + note;
     };
-    const plain = x => {
-      const bits = [x.name, x.provisions].filter(has).join(' — ');
-      const flag = x.verify ? '   [VERIFY]' : '';
-      const prop = has(x.proposition) ? `\n      Cited for: ${x.proposition}` : '';
-      return `   ${bits}${flag}${prop}`;
-    };
-    if (Array.isArray(ioa.cases) && ioa.cases.length) {
-      lines.push('CASES', ...ioa.cases.map(caseLine));
+    const blocks = [];
+    for (const g of groups) {
+      const list = arr(ioa[g[0]]).filter(e => e && has(e.name));
+      if (list.length) blocks.push(g[1], ...list.map(entry), '');
     }
-    if (Array.isArray(ioa.statutes) && ioa.statutes.length) {
-      lines.push('', 'STATUTES AND RULES', ...ioa.statutes.map(plain));
-    }
-    if (Array.isArray(ioa.booksAndArticles) && ioa.booksAndArticles.length) {
-      lines.push('', 'BOOKS AND ARTICLES', ...ioa.booksAndArticles.map(plain));
-    }
-    if (Array.isArray(ioa.other) && ioa.other.length) {
-      lines.push('', 'OTHER AUTHORITIES', ...ioa.other.map(plain));
-    }
-    if (lines.length) {
-      out.push('INDEX OF AUTHORITIES\n' + lines.join('\n'));
-      // [VERIFY] is not decoration. The generator has no access to SCC Online or
-      // Manupatra, so anything it is unsure of has to be checked before filing.
+    if (blocks.length) {
+      out.push('INDEX OF AUTHORITIES\n' + blocks.join('\n').trimEnd());
       if (JSON.stringify(ioa).includes('"verify":true')) {
         out.push('NOTE ON CITATIONS\n   Entries marked [VERIFY] could not be confirmed by MootCoach, which has no\n   access to SCC Online, Manupatra or any law database. Check them against the\n   reporter before you file or cite them in court.');
       }
     }
   }
 
-  if (has(m.statementOfJurisdiction)) out.push(`STATEMENT OF JURISDICTION\n${m.statementOfJurisdiction}`);
-  if (has(m.statementOfFacts))        out.push(`STATEMENT OF FACTS\n${m.statementOfFacts}`);
+  if (has(m.statementOfJurisdiction)) out.push('STATEMENT OF JURISDICTION\n' + m.statementOfJurisdiction);
 
-  if (Array.isArray(m.statementOfIssues) && m.statementOfIssues.length) {
-    out.push('STATEMENT OF ISSUES\n' + m.statementOfIssues.map((s, i) => `   ${i + 1}. ${s}`).join('\n'));
+  // ── STATEMENT OF FACTS (sub-headed; the older flat string still renders) ──
+  if (Array.isArray(m.statementOfFacts) && m.statementOfFacts.length) {
+    out.push('STATEMENT OF FACTS\n\n' + m.statementOfFacts
+      .map(f => (has(f.heading) ? f.heading + '\n' : '') + (f.text || f)).join('\n\n'));
+  } else if (has(m.statementOfFacts)) {
+    out.push('STATEMENT OF FACTS\n' + m.statementOfFacts);
   }
 
-  if (Array.isArray(m.summaryOfArguments) && m.summaryOfArguments.length) {
-    out.push('SUMMARY OF ARGUMENTS\n' + m.summaryOfArguments
-      .map(s => `   ${has(s.issue) ? s.issue + '\n   ' : ''}${s.summary || s}`).join('\n\n'));
+  if (arr(m.statementOfIssues).length) {
+    out.push('ISSUES RAISED\n' + m.statementOfIssues.map((s, i) => '   ' + (i + 1) + '. ' + s).join('\n\n'));
   }
 
-  if (Array.isArray(m.argumentsAdvanced) && m.argumentsAdvanced.length) {
+  if (arr(m.summaryOfArguments).length) {
+    out.push('SUMMARY OF ARGUMENTS\n\n' + m.summaryOfArguments
+      .map(s => (has(s.issue) ? s.issue + '\n' : '') + (s.summary || s)).join('\n\n'));
+  }
+
+  // ── ARGUMENTS ADVANCED ──
+  if (arr(m.argumentsAdvanced).length) {
+    const notes = [];           // footnotes, numbered across the whole memorial
+    const renderParas = paras => arr(paras).map(p => {
+      const body = String(p.text || p).trim();
+      const marks = arr(p.footnotes).map(f => {
+        notes.push(f.citation || '');
+        return notes.length;    // renumber sequentially; the model's own markers drift
+      });
+      const sup = marks.length ? ' [' + marks.join('][') + ']' : '';
+      const n = has(p.number) ? p.number : '';
+      return '   ' + (n ? n + '. ' : '') + body + sup;
+    }).join('\n\n');
+
     const body = m.argumentsAdvanced.map(a => {
       const seg = [];
-      if (has(a.heading))     seg.push(a.heading);
-      if (has(a.issue))       seg.push(`Issue: ${cleanSectionText(a.issue, 'issue')}`);
-      if (has(a.rule))        seg.push(`Rule: ${cleanSectionText(a.rule, 'rule')}`);
-      if (has(a.application)) seg.push(`Application: ${cleanSectionText(a.application, 'application')}`);
-      if (Array.isArray(a.subArguments) && a.subArguments.length) {
-        seg.push(a.subArguments.map(s => `   ${has(s.heading) ? s.heading + '\n   ' : ''}${s.text || ''}`).join('\n\n'));
+      if (has(a.heading))  seg.push(a.heading);
+      if (has(a.roadmap))  seg.push(a.roadmap);
+      if (arr(a.subArguments).length) {
+        seg.push(a.subArguments.map(sa => {
+          const t = [];
+          if (has(sa.heading)) t.push(sa.heading);
+          if (arr(sa.paragraphs).length) t.push(renderParas(sa.paragraphs));
+          else if (has(sa.text)) t.push('   ' + sa.text);
+          return t.join('\n\n');
+        }).join('\n\n\n'));
       }
-      if (has(a.conclusion))  seg.push(`Conclusion: ${cleanSectionText(a.conclusion, 'conclusion')}`);
+      if (arr(a.paragraphs).length) seg.push(renderParas(a.paragraphs));
+      // The first structured shape carried these as plain prose.
+      if (has(a.issue))       seg.push('Issue: ' + cleanSectionText(a.issue, 'issue'));
+      if (has(a.rule))        seg.push('Rule: ' + cleanSectionText(a.rule, 'rule'));
+      if (has(a.application)) seg.push('Application: ' + cleanSectionText(a.application, 'application'));
+      if (has(a.conclusion))  seg.push(cleanSectionText(a.conclusion, 'conclusion'));
       return seg.join('\n\n');
     }).join('\n\n\n');
+
     out.push('ARGUMENTS ADVANCED\n\n' + body);
+    if (notes.length) {
+      out.push('FOOTNOTES\n' + notes.map((c, i) => '   [' + (i + 1) + '] ' + c).join('\n'));
+    }
   }
 
-  if (has(m.prayer)) out.push(`PRAYER\n${m.prayer}`);
+  // ── PRAYER ──
+  const pr = m.prayer;
+  if (pr && typeof pr === 'object') {
+    const seg = [];
+    if (has(pr.opening)) seg.push(pr.opening);
+    if (arr(pr.declarations).length) {
+      seg.push(pr.declarations.map((d, i) => '   ' + (i + 1) + '. ' + d).join('\n\n'));
+    }
+    if (has(pr.closing))   seg.push(pr.closing);
+    if (has(pr.signature)) seg.push(pr.signature);
+    if (seg.length) out.push('PRAYER\n\n' + seg.join('\n\n'));
+  } else if (has(pr)) {
+    out.push('PRAYER\n' + pr);
+  }
 
-  if (Array.isArray(m.instructionsNotFollowed) && m.instructionsNotFollowed.length) {
-    out.push('INSTRUCTIONS NOT FOLLOWED\n' + m.instructionsNotFollowed.map(s => `   - ${s}`).join('\n'));
+  if (arr(m.instructionsNotFollowed).length) {
+    out.push('INSTRUCTIONS NOT FOLLOWED\n' + m.instructionsNotFollowed.map(s => '   - ' + s).join('\n'));
   }
 
   // Older drafts, and any response that falls back to the flat shape.
   if (!out.length) {
-    if (has(m.issue))       out.push(`ISSUE\n${cleanSectionText(m.issue, 'issue')}`);
-    if (has(m.rule))        out.push(`RULE\n${cleanSectionText(m.rule, 'rule')}`);
-    if (has(m.application)) out.push(`APPLICATION\n${cleanSectionText(m.application, 'application')}`);
-    if (has(m.conclusion))  out.push(`CONCLUSION\n${cleanSectionText(m.conclusion, 'conclusion')}`);
+    if (has(m.issue))       out.push('ISSUE\n' + cleanSectionText(m.issue, 'issue'));
+    if (has(m.rule))        out.push('RULE\n' + cleanSectionText(m.rule, 'rule'));
+    if (has(m.application)) out.push('APPLICATION\n' + cleanSectionText(m.application, 'application'));
+    if (has(m.conclusion))  out.push('CONCLUSION\n' + cleanSectionText(m.conclusion, 'conclusion'));
   }
 
   return out.join('\n\n').trim();
 }
+
 
 // Stage 3 "Generate Structured Draft" — turns the advocate's notes + selected
 // authorities into a full memorial via the existing /api/build-argument endpoint,
@@ -3047,16 +3231,31 @@ window.generateAdvocacyDraft = async function() {
 
   if (btn) { btn.disabled = true; btn.dataset.label = btn.textContent; btn.textContent = 'Generating…'; }
   try {
-    const data = await buildArgument(stance, issue, notesToSend, currentPropositionContext, forumPayload, { instructions, authorities: auths });
+    const data = await buildArgument(stance, issue, notesToSend, currentPropositionContext, forumPayload,
+      { instructions, authorities: auths, memorialFocus: true });
     if (data && data.success && data.response) {
       const m = data.response.memorial || data.response;
-      const draft = renderMemorialText(m);
+      // Pass the stance so the cover page is colour-coded by side.
+      const draft = renderMemorialText(m, stance);
       if (memorialEl && draft) {
         memorialEl.value = memorialEl.value.trim() ? (memorialEl.value.trim() + '\n\n' + draft) : draft;
         if (window.mootState) window.mootState.memorialDraft = memorialEl.value;
         if (typeof window.saveAdvocacyDrafts === 'function') window.saveAdvocacyDrafts();
       }
-      lastBuiltArgument = data.response;
+      // memorialFocus deliberately returns thin oral-advocacy, rebuttal and
+      // citation blocks so the whole budget reaches the memorial. Those panels
+      // read lastBuiltArgument, so keep whatever a full Build already produced
+      // instead of overwriting it with the deliberately thin version.
+      const keepRicher = (key) => {
+        const next = data.response[key], prev = lastBuiltArgument && lastBuiltArgument[key];
+        if (!prev) return next;
+        return JSON.stringify(next || {}).length >= JSON.stringify(prev).length ? next : prev;
+      };
+      lastBuiltArgument = Object.assign({}, lastBuiltArgument, data.response, {
+        oralAdvocacy: keepRicher('oralAdvocacy'),
+        rebuttals:    keepRicher('rebuttals'),
+        citations:    keepRicher('citations'),
+      });
       showToast('Structured draft generated into your Memorial.', 'ok');
     } else {
       throw new Error((data && data.error) || 'Generation failed.');

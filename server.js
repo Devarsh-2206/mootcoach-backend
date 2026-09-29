@@ -972,7 +972,22 @@ app.get("/api/judge-profiles", (req, res) => {
 
 /* ─── /api/build-argument ─── */
 app.post("/api/build-argument", aiLimiter, express.json(), async (req, res) => {
-  const { stance, issue, notes, propositionContext, forum, instructions, authorities } = req.body;
+  const { stance, issue, notes, propositionContext, forum, instructions, authorities, memorialFocus } = req.body;
+
+  /**
+   * The "Generate Structured Draft" button uses only the memorial and discards the
+   * oral-advocacy, rebuttal and citation blocks — but those were taking 56% of the
+   * output on a measured request, which is why memorials came back at eleven
+   * numbered paragraphs when a filed one runs to sixty-five. Adding depth targets
+   * to the prompt barely moved it, because the budget is shared. This hands the
+   * whole budget to the memorial for that caller only; the main Build button sends
+   * no flag and still gets the full package.
+   */
+  const focusLine = memorialFocus
+    ? '\nMEMORIAL FOCUS: this caller renders ONLY the memorial. Spend the entire output budget '
+      + 'on it and meet the depth in rule 7d. Emit the other blocks minimally so the response '
+      + 'shape is unchanged, but do not develop them.\n'
+    : '';
 
   /**
    * The advocate's drafting instructions used to be concatenated into `notes` and
@@ -1027,7 +1042,7 @@ ${String(instructions).trim().slice(0, 4000)}\n`
           role: "user",
           content: `PROPOSITION FACTS / CONTEXT:
 ${propositionContext.trim()}
-${forumLine}${instructionBlock}${authorityBlock}
+${forumLine}${focusLine}${instructionBlock}${authorityBlock}
 STANCE / SIDE: ${stance}
 ISSUE SELECTED: ${issue}
 RAW NOTES & AUTHORITIES PROVIDED: ${notes.trim()}
@@ -1039,10 +1054,13 @@ Authorities. Cite nothing you cannot stand behind: mark anything uncertain with
         }
       ],
       temperature: 0.3,
-      // The memorial now carries an Index of Authorities, Statement of Jurisdiction,
-      // Facts, Issues, Summary of Arguments, Arguments Advanced and a Prayer, on top
-      // of the oral-advocacy and citations blocks. 4,000 truncated it mid-JSON.
-      max_tokens: 9000,
+      // The memorial carries a cover page, List of Abbreviations, an Index of
+      // Authorities in nine groups, Jurisdiction, Facts, Issues, Summary,
+      // Arguments Advanced in numbered paragraphs with footnotes, and a Prayer —
+      // on top of the oral-advocacy and citations blocks. 4,000 truncated it
+      // mid-JSON; 9,000 did so again once numbered paragraphs and footnotes
+      // arrived, since a real memorial runs to 30 pages.
+      max_tokens: 14000,
       // Gemini-primary: the request is well past Groq's 8,000/min budget, so the
       // pre-flight guard would skip it anyway.
       primaryProvider: "gemini",
@@ -1114,7 +1132,7 @@ Authorities. Cite nothing you cannot stand behind: mark anything uncertain with
       // "Code of Civil Procedure, 1908 — Section 9" alongside a doubtful Karnataka Law
       // Journal citation would teach advocates to ignore the marker, and then it
       // protects nobody. Statutes and texts keep whatever the model set.
-      for (const key of ['cases']) {
+      for (const key of ['cases', 'internationalCases']) {
         if (!Array.isArray(ioa[key])) continue;
         for (const entry of ioa[key]) {
           if (!entry || typeof entry !== 'object') continue;

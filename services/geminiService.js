@@ -406,6 +406,26 @@ async function getChatCompletion({
         ]);
 
         const duration = Date.now() - startTime;
+
+        /**
+         * An empty body is a FAILURE, even though the SDK did not throw.
+         *
+         * Observed: a long memorial request came back after 53s logged as
+         * "completed successfully" with `Raw text length: undefined`, and the
+         * route then failed downstream with "Empty text provided" — which tells
+         * nobody anything. Gemini returns a candidate with no text when it stops
+         * on MAX_TOKENS, a safety filter or a recitation check, and the finish
+         * reason is the only thing that says which.
+         *
+         * Throwing here puts it on the normal failure path, so it retries and
+         * then falls through to the next model instead of surfacing as a 500.
+         */
+        if (!response || !response.text || !String(response.text).trim()) {
+          const cand = (response && response.candidates && response.candidates[0]) || {};
+          const why = cand.finishReason || (response && response.promptFeedback && response.promptFeedback.blockReason) || 'no finishReason given';
+          throw new Error(`Gemini returned an empty response (${why})`);
+        }
+
         console.log(`[AI TRACE] [${requestLabel}] Gemini (${model}) completed successfully in ${duration}ms. Raw text length: ${response.text?.length}`);
         console.log(`[AI TRACE] [${requestLabel}] Raw response:`, response.text);
         return {
