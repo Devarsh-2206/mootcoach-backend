@@ -209,6 +209,18 @@ export async function runAnalysis() {
       if (data.forumIntelligence) window.forumIntelligence = data.forumIntelligence;
       // Also stash the lightweight P0 forum detection as a reliable fallback.
       if (data.detectedForum) window.detectedForum = data.detectedForum;
+
+      // A truncated analysis reads exactly as confidently as a complete one,
+      // so say so. The backend only sets this when the document genuinely
+      // exceeded the cap.
+      if (data.truncated) {
+        const pages = Math.round(data.truncated.analysedChars / 2600);
+        showToast(
+          `Only the first ~${pages} pages were analysed — roughly ` +
+          `${data.truncated.approxPagesDropped} page(s) at the end were not included.`,
+          'err'
+        );
+      }
       if (currentUser) {
         try {
           const mootName = document.getElementById('ws-moot-name')?.value?.trim() || 'Untitled Moot';

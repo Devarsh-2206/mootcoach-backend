@@ -414,9 +414,39 @@ app.post("/analyze", aiLimiter, upload.single("file"), async (req, res) => {
       });
     }
 
-    // THE FIX: Increased to 45,000 characters (12-15 pages). 
-    // This handles large moot propositions while staying safely inside Groq's Free Tier limits.
-    const fullPropositionText = extractedText.slice(0, 45000);
+    /**
+     * The old cap was 45,000 chars "to stay safely inside Groq's Free Tier
+     * limits". That reasoning no longer applies: at this size the request is
+     * ~11k input tokens against Groq's 8,000/min budget, so the pre-flight
+     * guard sends it to Gemini regardless. The cap was protecting a path that
+     * cannot run, and charging real documents for it.
+     *
+     * Measured on gemini-2.5-flash with a simulated 25-page record:
+     *
+     *   45,000 chars (31% of it discarded)  ->  33.7s, 22,664-char analysis
+     *   65,278 chars (the whole record)     ->  37.4s, 24,533-char analysis
+     *
+     * So the truncation was costing a third of the document to save 3.7s, and
+     * the fuller input produced the better analysis. 120,000 chars is ~46
+     * pages; Gemini's context is 1M tokens, so the real ceiling here is our
+     * 60s per-attempt timeout, which had 22.6s spare at 25 pages.
+     */
+    const PROPOSITION_CHAR_CAP = Number(process.env.PROPOSITION_CHAR_CAP || 120000);
+    const fullPropositionText = extractedText.slice(0, PROPOSITION_CHAR_CAP);
+
+    // Anything still over the cap is reported rather than dropped in silence.
+    // A truncated analysis looks exactly as authoritative as a complete one,
+    // so the user has to be told which one they are reading.
+    const truncated = extractedText.length > PROPOSITION_CHAR_CAP
+      ? {
+          originalChars: extractedText.length,
+          analysedChars: fullPropositionText.length,
+          approxPagesDropped: Math.round((extractedText.length - PROPOSITION_CHAR_CAP) / 2600),
+        }
+      : null;
+    if (truncated) {
+      console.warn('[ANALYZE] Proposition truncated:', JSON.stringify(truncated));
+    }
 
     /* ── PHASE 1 + PHASE 1.5 (run concurrently — mutually independent, both only need raw text) ──
        Legal Domain Validation and Forum Detection neither depend on nor feed each other,
@@ -546,7 +576,11 @@ app.post("/analyze", aiLimiter, upload.single("file"), async (req, res) => {
         // a dead upload. Timeout trimmed 75s -> 60s so two attempts still fit
         // well inside server.requestTimeout (180s); Gemini measures ~37s, so
         // 60s keeps ~60% headroom.
-        geminiTimeoutMs: 60000,
+        // 70s, not 60s: a run measured live took ~57s for the Gemini call
+        // alone, which left almost nothing in hand. Two attempts at 70s plus
+        // backoff and Phase 1 still land near 155s, inside the 180s
+        // server.requestTimeout.
+        geminiTimeoutMs: 70000,
         geminiMaxAttempts: 2,
         requestLabel: "Full Legal Analysis"
       }),
@@ -604,6 +638,7 @@ app.post("/analyze", aiLimiter, upload.single("file"), async (req, res) => {
       isStructured: true,
       modelUsed: analysisCall.model,
       documentType: validationResult.documentType,
+      truncated,
       detectedForum: forumContext,
       response: analysisData,
       propositionIntelligence: propositionIntelligence,
