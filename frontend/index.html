@@ -2762,6 +2762,146 @@ body.intro-hold #view-landing .hero-sub,
 body.intro-hold #view-landing .hero-actions,
 body.intro-hold #view-landing .swear{animation-play-state:paused!important}
 @media(prefers-reduced-motion:reduce){#intro{display:none}}
+
+/* ============================================================================
+   PHONE LAYOUT CORRECTIONS
+   Every rule here answers a fault measured at 390x844, not a guess. Kept in one
+   block at the end so it wins on order without needing !important.
+   ============================================================================ */
+@media (max-width: 640px) {
+
+  /* The score hero was the ONLY multi-column grid in the file with no mobile
+     collapse — .ex-grid, .judges, .steps-grid, .features-grid and .soon-grid
+     all had one. At 390px its three tracks were ~118px each, which clipped
+     "MOOT READINESS" to "MOOT READINES", cut "Moderate" to "Moder", and set
+     the body copy one word per line. That is the "merged" look. */
+  .score-hero { grid-template-columns: 1fr; gap: 10px; }
+  .score-card { min-width: 0; }
+  .sc-value   { font-size: 2.1rem; }
+  .sc-label   { flex-wrap: wrap; }
+
+  /* Grid and flex items default to min-width:auto, so a child whose min-content
+     is wide pushes the item past its track. Measured: .ex rendered 377px wide
+     inside a 346px grid track, spilling 8px off the right edge. */
+  #view-landing .ex,
+  #view-landing .ex > *      { min-width: 0; }
+  #view-landing .ex .tab     { flex-wrap: wrap; gap: 2px 10px; padding: 10px 14px; }
+  #view-landing .ex .pad     { padding: 18px 14px 20px; }
+  #view-landing .ex .mini    { overflow-wrap: anywhere; }
+  #view-landing .ex h3       { font-size: 19px; }
+
+  /* The toggle is pinned to the right edge and vertically centred, so on a
+     phone it sat in the MIDDLE of the content — on the results screen it
+     landed on top of the third score card.
+
+     A bottom corner is no good either: page controls start at x=22 and the
+     primary buttons run full width, so a floating button in any bottom corner
+     clips one of them. The one genuinely free space is the gutter beside the
+     top island nav, which spans x=30..360 of a 390px screen. Park it there,
+     above the content rather than on it. */
+  .theme-toggle {
+    top: 22px; right: 3px; bottom: auto; left: auto;
+    width: 28px; height: 28px; font-size: 13px; transform: none;
+  }
+  .theme-toggle:hover  { transform: none; }
+  .theme-toggle:active { transform: scale(.94); }
+
+  /* The island nav is centred with max-width:95vw, which leaves no room for
+     the toggle — at 320px the two overlapped. Anchor it left and reserve a
+     gutter, so the clearance holds at every phone width instead of only one. */
+  .dynamic-island-nav {
+    left: 8px; right: auto; transform: none;
+    max-width: calc(100vw - 56px);
+  }
+
+  /* The workspace is a fixed-viewport-height flex column and both .ws-main and
+     .ws-panel set overflow:hidden. On a desktop everything fits; on a phone the
+     content is simply CLIPPED, with no way to scroll to it. Measured at 320px:
+     .ws-upload-inner ended at y=829 inside a panel that ended at y=740, so the
+     footer note fell outside its own panel and under the floating nav.
+
+     Let the workspace scroll on phones, and reserve room at the bottom for
+     .ws-floating-nav, which is fixed at the bottom-right. */
+  .ws-main  { overflow: visible; padding-bottom: 104px; }
+  /* The workspace is caged at exactly one screen: #view-workspace is
+     height:100vh with overflow:hidden, and .ws-body / .ws-main / .ws-panel all
+     add overflow:hidden below it. On a desktop everything fits. On a phone the
+     content is simply CLIPPED, with nothing to scroll.
+
+     On top of that, .ws-upload-inner uses `margin: auto 0`, and auto margins in
+     a flex column overflow BOTH edges once the content is taller than the box —
+     which is how the footer note ended up 89px below its own panel, underneath
+     the floating nav.
+
+     Let the page scroll normally on phones instead of nesting scrollers.
+
+     Note the selector: the cage is set by `#view-workspace.active`, which
+     outranks a plain `#view-workspace`, so the override has to match it. */
+  #view-workspace,
+  #view-workspace.active { height: auto; min-height: 100vh; overflow: visible; }
+  .ws-body               { overflow: visible; }
+  .ws-panel        { overflow: visible; flex: 0 0 auto; }
+  /* Clearance under the last element so the fixed bottom-right nav never rests
+     on it. At 320px the footer note ended 19px inside the nav; the page fitted
+     exactly one screen, so there was nothing to scroll it clear either. */
+  .ws-upload-inner { margin: 0; padding-bottom: 72px; }
+
+  /* Removing overflow:hidden above had a side effect: the results sticky nav is
+     a horizontal scroller whose inner row is ~1,845px wide, and that width was
+     previously contained by those hidden ancestors. Without them it stretched
+     .ws-main and everything between. Flex items default to min-width:auto, so
+     pin the chain explicitly and let the nav scroll inside itself as designed. */
+  .ws-body, .ws-main, .ws-stage, .ws-panel,
+  #res-filled, .res-topbar, .res-sticky-nav {
+    min-width: 0; max-width: 100%;
+  }
+  .res-sticky-nav { overflow-x: auto; }
+
+  /* 21px of glyph in an 18px box. It is a <span>, and width does not apply to
+     an inline box, so this needs inline-block to take effect at all. */
+  .ws-sb-icon { display: inline-block; width: auto; min-width: 22px; }
+
+  /* Long case names and file names have no spaces to break on. */
+  .wsib-value, .sc-sub, .asc-badge { overflow-wrap: anywhere; }
+}
+
+/* On the narrowest phones still sold (iPhone SE, 320px) the island nav's own
+   content measured 316px inside a 264px box, pushing the avatar off-screen.
+   Tighten it rather than letting it spill. */
+@media (max-width: 360px) {
+  .dynamic-island-nav { gap: 7px; padding: 0 8px; }
+  .di-avatar          { width: 26px; height: 26px; font-size: 10px; }
+  .di-divider         { display: none; }
+
+  /* The landing nav is fixed at top:0, and its decorative cause-list line wraps
+     to two rows at this width, growing the bar to 150px and pushing it over the
+     "Listed Today" stamp beneath. The line is ornament, so drop it here. */
+  #view-landing .nav-top { display: none; }
+
+  /* That brings the nav's own CTA up level with the theme toggle, which lives
+     in the top-right gutter. The toggle is a preceding sibling of the views in
+     the DOM, so it cannot be re-scoped from here — reserve the gutter instead.
+     Padding alone is not enough: .nav-inner is justify-content:space-between,
+     so once the wordmark and the CTA together exceed the width they simply
+     overflow past it. They have to get smaller too. */
+  #view-landing .nav-inner { padding: 12px 46px 12px 14px; }
+  #view-landing .wordmark  { font-size: 16px; gap: 6px; }
+  #view-landing .wordmark .seal { font-size: 13px; }
+  #view-landing .nav-cta   { font-size: 9px; padding: 8px 10px; letter-spacing: .12em; }
+
+  /* Card headers put the title and the action chips in one non-wrapping row,
+     which jammed "Scoring Breakdown" against the EVALUATION and COPY buttons.
+     Give the title its own line. */
+  .asc-header       { flex-wrap: wrap; gap: 8px; padding: 14px 16px; }
+  .asc-header-left  { min-width: 0; flex: 1 1 100%; }
+  .asc-header-right { flex: 0 0 auto; }
+
+  /* The cause stamp is absolutely placed at right:-26px; top:-20px, which hangs
+     it outside its parent. There is room for that on a laptop; at 320px it
+     collided with the landing nav. Tuck it back inside. */
+  #view-landing .cause .stamp { right: -2px; top: -8px; }
+
+}
 </style>
 </head>
 <body class="intro-hold">
