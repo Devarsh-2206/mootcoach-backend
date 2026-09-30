@@ -1017,7 +1017,7 @@ ${String(instructions).trim().slice(0, 4000)}\n`
   }
 
   try {
-    const responseCall = await getChatCompletion({
+    const callBuilder = (timeoutMs) => getChatCompletion({
       messages: [
         {
           role: "system",
@@ -1046,22 +1046,43 @@ Authorities. Cite nothing you cannot stand behind: mark anything uncertain with
       // Gemini-primary: the request is well past Groq's 8,000/min budget, so the
       // pre-flight guard would skip it anyway.
       primaryProvider: "gemini",
-      // ONE attempt, deliberately, with a long window.
+      // One attempt per call; whether to make a second is decided below, because
+      // the two failure modes cost very different shares of the 180s budget.
       //
       // Two attempts at 90s is 180s against a 180s server.requestTimeout, so the
-      // retry could never finish — production returned 504 after 181.9s. And this
-      // generation is genuinely slow and variable: 45s, 59s and 81s measured
-      // locally on the same input, slower again on Render's free tier, because the
-      // schema carries the memorial plus the oral-advocacy and citations blocks.
-      //
-      // So one attempt gets the whole budget rather than two that each get too
-      // little. A transient 503 is the case this gives up, and that is the right
-      // trade: a 503 comes back in about a second and the route now tells the user
-      // to try again, whereas a timeout costs them three minutes either way.
-      geminiTimeoutMs: 150000,
+      // retry could never finish — production returned 504 after 181.9s. The
+      // generation is also slow and variable: 45s, 59s and 81s measured locally on
+      // the same input, and slower on Render, because the schema carries the
+      // memorial plus the oral-advocacy and citations blocks in one response.
+      geminiTimeoutMs: timeoutMs,
       geminiMaxAttempts: 1,
       requestLabel: "Build Side-Aware Argument Package"
     });
+
+    /**
+     * Retry a provider overload, but never a timeout.
+     *
+     * Measured on production: a Gemini 503 surfaces in 33-40s, and two landed back
+     * to back, so this is not the rare blip an earlier version of this comment
+     * claimed — it said "about a second", which was simply wrong. The user was
+     * waiting 40s for a failure and then clicking Generate again by hand.
+     *
+     * A fast failure leaves room for another go: 40s + 100s is 140s, inside the
+     * 180s budget. A timeout does not, because it has already spent that budget,
+     * so it is surfaced rather than retried.
+     */
+    let responseCall;
+    const startedAt = Date.now();
+    try {
+      responseCall = await callBuilder(150000);
+    } catch (err) {
+      const elapsed = Date.now() - startedAt;
+      const overloaded = /UNAVAILABLE|\b503\b|high demand|overloaded/i.test(String((err && err.message) || ''));
+      if (!overloaded || elapsed > 60000) throw err;
+      console.warn(`[MEMORIAL] Provider overloaded after ${elapsed}ms; one more attempt inside the remaining budget.`);
+      await new Promise(r => setTimeout(r, 2000));
+      responseCall = await callBuilder(100000);
+    }
 
     const data = extractAndParseJSON(responseCall.text, false);
 
