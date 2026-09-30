@@ -1046,8 +1046,20 @@ Authorities. Cite nothing you cannot stand behind: mark anything uncertain with
       // Gemini-primary: the request is well past Groq's 8,000/min budget, so the
       // pre-flight guard would skip it anyway.
       primaryProvider: "gemini",
-      geminiTimeoutMs: 90000,
-      geminiMaxAttempts: 2,
+      // ONE attempt, deliberately, with a long window.
+      //
+      // Two attempts at 90s is 180s against a 180s server.requestTimeout, so the
+      // retry could never finish — production returned 504 after 181.9s. And this
+      // generation is genuinely slow and variable: 45s, 59s and 81s measured
+      // locally on the same input, slower again on Render's free tier, because the
+      // schema carries the memorial plus the oral-advocacy and citations blocks.
+      //
+      // So one attempt gets the whole budget rather than two that each get too
+      // little. A transient 503 is the case this gives up, and that is the right
+      // trade: a 503 comes back in about a second and the route now tells the user
+      // to try again, whereas a timeout costs them three minutes either way.
+      geminiTimeoutMs: 150000,
+      geminiMaxAttempts: 1,
       requestLabel: "Build Side-Aware Argument Package"
     });
 
