@@ -972,7 +972,31 @@ app.get("/api/judge-profiles", (req, res) => {
 
 /* ─── /api/build-argument ─── */
 app.post("/api/build-argument", aiLimiter, express.json(), async (req, res) => {
-  const { stance, issue, notes, propositionContext, forum } = req.body;
+  const { stance, issue, notes, propositionContext, forum, instructions, authorities } = req.body;
+
+  /**
+   * The advocate's drafting instructions used to be concatenated into `notes` and
+   * handed over under the heading "RAW NOTES & AUTHORITIES PROVIDED", so a request
+   * like "put an index of authorities at the start" read as material to summarise
+   * rather than a direction to follow — and was ignored. They are now a separate,
+   * explicitly binding block.
+   */
+  const instructionBlock = (instructions && String(instructions).trim())
+    ? `\nADVOCATE'S DRAFTING INSTRUCTIONS (BINDING — these are directives, not material to summarise.
+Follow them. Keep the fixed section order; everything else bends to what is asked here.
+If any instruction cannot be carried out, do the part you can and record the rest in
+memorial.instructionsNotFollowed):
+${String(instructions).trim().slice(0, 4000)}\n`
+    : '';
+
+  // Authorities the advocate picked in the Authority Armory. These are THEIR chosen
+  // cases and must appear in the memorial, marked source:"advocate".
+  const authorityBlock = (Array.isArray(authorities) && authorities.length)
+    ? `\nAUTHORITIES SELECTED BY THE ADVOCATE (must be used and marked source:"advocate"):\n` +
+      authorities.slice(0, 40).map(a =>
+        `- ${a.name || a.case || 'Unnamed'}${a.citation ? ', ' + a.citation : ''}${a.ratio ? ' — ' + String(a.ratio).slice(0, 300) : ''}`
+      ).join('\n') + '\n'
+    : '';
 
   // Optional forum directive so the builder adapts law + terminology to the
   // actual forum instead of defaulting to Indian constitutional doctrine.
@@ -1003,30 +1027,117 @@ app.post("/api/build-argument", aiLimiter, express.json(), async (req, res) => {
           role: "user",
           content: `PROPOSITION FACTS / CONTEXT:
 ${propositionContext.trim()}
-${forumLine}
+${forumLine}${instructionBlock}${authorityBlock}
 STANCE / SIDE: ${stance}
 ISSUE SELECTED: ${issue}
 RAW NOTES & AUTHORITIES PROVIDED: ${notes.trim()}
 
-Generate the full side-aware appellate package strictly based on the proposition facts.`
+Generate the full side-aware appellate package strictly based on the proposition facts.
+The memorial must carry every section in the fixed order, beginning with the Index of
+Authorities. Cite nothing you cannot stand behind: mark anything uncertain with
+"verify": true rather than inventing a reporter reference.`
         }
       ],
       temperature: 0.3,
-      max_tokens: 4000,
+      // The memorial now carries an Index of Authorities, Statement of Jurisdiction,
+      // Facts, Issues, Summary of Arguments, Arguments Advanced and a Prayer, on top
+      // of the oral-advocacy and citations blocks. 4,000 truncated it mid-JSON.
+      max_tokens: 9000,
+      // Gemini-primary: the request is well past Groq's 8,000/min budget, so the
+      // pre-flight guard would skip it anyway.
+      primaryProvider: "gemini",
+      geminiTimeoutMs: 90000,
+      geminiMaxAttempts: 2,
       requestLabel: "Build Side-Aware Argument Package"
     });
 
     const data = extractAndParseJSON(responseCall.text, false);
+
+    /**
+     * Do not trust the model's own "verify" flag.
+     *
+     * Asked to self-assess, it marked all six authorities in a test memorial as
+     * verify:false — full confidence — including two obscure Karnataka Law Journal
+     * citations that could not be confirmed to exist. That is the same overconfidence
+     * that produced the fabrications this fix exists to stop: an earlier draft cited
+     * "Suryadev Rai v. Ram Chander Rai, (2008) 12 SCC 1" when the case is Surya Dev Rai
+     * v. Ram Chander Rai, (2003) 6 SCC 675, and two other authorities could not be
+     * traced at all.
+     *
+     * So the flag is set here instead, deterministically: anything the advocate did not
+     * supply is marked for verification, whatever the model claims. The advocate's own
+     * authorities are left alone — they chose them.
+     */
+    const norm = s => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+    const advocateNames = (Array.isArray(authorities) ? authorities : [])
+      .map(a => norm(a.name || a.case)).filter(Boolean);
+    const suppliedByAdvocate = name => {
+      const n = norm(name);
+      if (!n) return false;
+      return advocateNames.some(a => a && (n.includes(a) || a.includes(n)));
+    };
+
+    const ioa = data && data.memorial && data.memorial.indexOfAuthorities;
+    if (ioa) {
+      let flagged = 0;
+      // CASES only. Fabrication risk lives in reporter references — volume, year and
+      // page — which is what the model invents. A statute is a named instrument with a
+      // section number, cheap to check and rarely hallucinated wholesale. Flagging
+      // "Code of Civil Procedure, 1908 — Section 9" alongside a doubtful Karnataka Law
+      // Journal citation would teach advocates to ignore the marker, and then it
+      // protects nobody. Statutes and texts keep whatever the model set.
+      for (const key of ['cases']) {
+        if (!Array.isArray(ioa[key])) continue;
+        for (const entry of ioa[key]) {
+          if (!entry || typeof entry !== 'object') continue;
+          if (suppliedByAdvocate(entry.name)) {
+            entry.source = 'advocate';
+            continue;
+          }
+          entry.source = 'suggested';
+          if (entry.verify !== true) {
+            entry.verify = true;
+            entry.citationNote = [entry.citationNote, 'Generated by MootCoach and not verified against any reporter — check before relying on it.']
+              .filter(Boolean).join(' ');
+            flagged++;
+          }
+        }
+      }
+      if (flagged) {
+        console.log(`[MEMORIAL] Forced verify=true on ${flagged} model-supplied authorities.`);
+      }
+    }
+
     return res.json({ success: true, response: data });
   } catch (error) {
     console.error("/api/build-argument error:", error);
-    const isTimeout = error.message && error.message.includes("Timeout");
-    return res.status(isTimeout ? 504 : 500).json({
-      success: false,
-      error: isTimeout
-        ? "Argument builder timed out. Please try again."
-        : "Failed to build argument. Please try again."
-    });
+    // Same classification the upload route uses. A transient provider 503 was
+    // surfacing here as a flat "Failed to build argument", which reads like the
+    // draft was rejected rather than like something worth retrying in a moment.
+    const msg = String((error && error.message) || '');
+    const quotaExhausted = /RESOURCE_EXHAUSTED|free_tier|quota|exceeded your current quota|PerDay/i.test(msg);
+    const rateLimited = /rate.?limit|tokens per minute|\bTPM\b|\b429\b/i.test(msg);
+    const isTimeout = /Timeout/i.test(msg);
+    const overloaded = /UNAVAILABLE|\b503\b|high demand|overloaded/i.test(msg);
+
+    let status = 500;
+    let userError = "Failed to build argument. Please try again.";
+    if (quotaExhausted) {
+      status = 429;
+      userError = "The AI provider's daily quota has been used up, so the memorial could not be drafted. "
+        + "This is an account limit, not a problem with your notes — it resets on the provider's daily cycle.";
+    } else if (rateLimited) {
+      status = 429;
+      userError = "The AI provider is rate-limiting this account. Wait about a minute and try again.";
+    } else if (isTimeout) {
+      status = 504;
+      userError = "The AI provider did not respond in time. This is usually temporary — please try again.";
+    } else if (overloaded) {
+      status = 503;
+      userError = "The AI provider is briefly overloaded and turned the request away. "
+        + "Nothing is wrong with your notes — wait a few seconds and generate again.";
+    }
+    return res.status(status).json({ success: false, error: userError, reason: msg.slice(0, 400) });
   }
 });
 

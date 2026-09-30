@@ -53,11 +53,15 @@ export async function logSessionSecurely(payload, idToken) {
   return data;
 }
 
-export async function buildArgument(stance, issue, notes, propositionContext, forum) {
+export async function buildArgument(stance, issue, notes, propositionContext, forum, opts = {}) {
   const res = await fetch(`${BASE_URL}/api/build-argument`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ stance, issue, notes, propositionContext, forum })
+    // instructions: the advocate's directives, kept separate from notes so the
+    // backend can present them as binding rather than as material to summarise.
+    // authorities: their Authority Armory picks, which must appear in the memorial.
+    body: JSON.stringify({ stance, issue, notes, propositionContext, forum,
+      instructions: opts.instructions || '', authorities: opts.authorities || [] })
   });
   const data = await res.json();
   if (!res.ok || !data.success) {

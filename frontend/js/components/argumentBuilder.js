@@ -1150,13 +1150,21 @@ export function exportAsPDF(type) {
           h4, strong, span, button {
             font-family: 'Inter', sans-serif;
           }
-          p, li, blockquote, hr, div {
+          /* page-break-inside:avoid used to be set on div and p as well. A block
+             taller than one page cannot honour it, so the browser pushed the whole
+             wrapper to a fresh page and left the previous one blank — which is why
+             exported memorials carried an empty page holding only the footer.
+             Keep it to items that genuinely fit on a page. */
+          li, blockquote, tr, figure {
             page-break-inside: avoid;
+            break-inside: avoid;
           }
           h1, h2, h3, h4, h5, h6 {
-            page-break-inside: avoid;
             page-break-after: avoid;
+            break-after: avoid;
           }
+          /* Orphans and widows do the work that page-break-inside was doing badly. */
+          p { orphans: 3; widows: 3; }
           h4 {
             font-size: 11pt;
             letter-spacing: 0.12em;
@@ -2898,8 +2906,107 @@ function seedAdvocacyFromPlan(notesEl, oralEl) {
   }
 }
 
+/**
+ * Lays the memorial out in the order competitions expect, starting with the Index
+ * of Authorities.
+ *
+ * This used to emit four sections — ISSUE, RULE, APPLICATION, CONCLUSION — and
+ * nothing else, so an Index of Authorities had nowhere to go even when asked for
+ * directly. The older four-field shape is still handled, so drafts generated
+ * before this change still render.
+ */
+function renderMemorialText(m) {
+  if (!m) return '';
+  const out = [];
+  const has = v => v !== undefined && v !== null && String(v).trim() !== '';
+
+  // ── INDEX OF AUTHORITIES ──
+  const ioa = m.indexOfAuthorities;
+  if (ioa) {
+    const lines = [];
+    const caseLine = c => {
+      const bits = [c.name, c.citation].filter(has).join(', ');
+      const flag = c.verify ? '   [VERIFY]' : '';
+      const note = has(c.citationNote) ? `\n      Note: ${c.citationNote}` : '';
+      const prop = has(c.proposition) ? `\n      Cited for: ${c.proposition}` : '';
+      const src  = c.source === 'advocate' ? '   (your authority)' : '';
+      return `   ${bits}${src}${flag}${prop}${note}`;
+    };
+    const plain = x => {
+      const bits = [x.name, x.provisions].filter(has).join(' — ');
+      const flag = x.verify ? '   [VERIFY]' : '';
+      const prop = has(x.proposition) ? `\n      Cited for: ${x.proposition}` : '';
+      return `   ${bits}${flag}${prop}`;
+    };
+    if (Array.isArray(ioa.cases) && ioa.cases.length) {
+      lines.push('CASES', ...ioa.cases.map(caseLine));
+    }
+    if (Array.isArray(ioa.statutes) && ioa.statutes.length) {
+      lines.push('', 'STATUTES AND RULES', ...ioa.statutes.map(plain));
+    }
+    if (Array.isArray(ioa.booksAndArticles) && ioa.booksAndArticles.length) {
+      lines.push('', 'BOOKS AND ARTICLES', ...ioa.booksAndArticles.map(plain));
+    }
+    if (Array.isArray(ioa.other) && ioa.other.length) {
+      lines.push('', 'OTHER AUTHORITIES', ...ioa.other.map(plain));
+    }
+    if (lines.length) {
+      out.push('INDEX OF AUTHORITIES\n' + lines.join('\n'));
+      // [VERIFY] is not decoration. The generator has no access to SCC Online or
+      // Manupatra, so anything it is unsure of has to be checked before filing.
+      if (JSON.stringify(ioa).includes('"verify":true')) {
+        out.push('NOTE ON CITATIONS\n   Entries marked [VERIFY] could not be confirmed by MootCoach, which has no\n   access to SCC Online, Manupatra or any law database. Check them against the\n   reporter before you file or cite them in court.');
+      }
+    }
+  }
+
+  if (has(m.statementOfJurisdiction)) out.push(`STATEMENT OF JURISDICTION\n${m.statementOfJurisdiction}`);
+  if (has(m.statementOfFacts))        out.push(`STATEMENT OF FACTS\n${m.statementOfFacts}`);
+
+  if (Array.isArray(m.statementOfIssues) && m.statementOfIssues.length) {
+    out.push('STATEMENT OF ISSUES\n' + m.statementOfIssues.map((s, i) => `   ${i + 1}. ${s}`).join('\n'));
+  }
+
+  if (Array.isArray(m.summaryOfArguments) && m.summaryOfArguments.length) {
+    out.push('SUMMARY OF ARGUMENTS\n' + m.summaryOfArguments
+      .map(s => `   ${has(s.issue) ? s.issue + '\n   ' : ''}${s.summary || s}`).join('\n\n'));
+  }
+
+  if (Array.isArray(m.argumentsAdvanced) && m.argumentsAdvanced.length) {
+    const body = m.argumentsAdvanced.map(a => {
+      const seg = [];
+      if (has(a.heading))     seg.push(a.heading);
+      if (has(a.issue))       seg.push(`Issue: ${cleanSectionText(a.issue, 'issue')}`);
+      if (has(a.rule))        seg.push(`Rule: ${cleanSectionText(a.rule, 'rule')}`);
+      if (has(a.application)) seg.push(`Application: ${cleanSectionText(a.application, 'application')}`);
+      if (Array.isArray(a.subArguments) && a.subArguments.length) {
+        seg.push(a.subArguments.map(s => `   ${has(s.heading) ? s.heading + '\n   ' : ''}${s.text || ''}`).join('\n\n'));
+      }
+      if (has(a.conclusion))  seg.push(`Conclusion: ${cleanSectionText(a.conclusion, 'conclusion')}`);
+      return seg.join('\n\n');
+    }).join('\n\n\n');
+    out.push('ARGUMENTS ADVANCED\n\n' + body);
+  }
+
+  if (has(m.prayer)) out.push(`PRAYER\n${m.prayer}`);
+
+  if (Array.isArray(m.instructionsNotFollowed) && m.instructionsNotFollowed.length) {
+    out.push('INSTRUCTIONS NOT FOLLOWED\n' + m.instructionsNotFollowed.map(s => `   - ${s}`).join('\n'));
+  }
+
+  // Older drafts, and any response that falls back to the flat shape.
+  if (!out.length) {
+    if (has(m.issue))       out.push(`ISSUE\n${cleanSectionText(m.issue, 'issue')}`);
+    if (has(m.rule))        out.push(`RULE\n${cleanSectionText(m.rule, 'rule')}`);
+    if (has(m.application)) out.push(`APPLICATION\n${cleanSectionText(m.application, 'application')}`);
+    if (has(m.conclusion))  out.push(`CONCLUSION\n${cleanSectionText(m.conclusion, 'conclusion')}`);
+  }
+
+  return out.join('\n\n').trim();
+}
+
 // Stage 3 "Generate Structured Draft" — turns the advocate's notes + selected
-// authorities into an IRAC memorial via the existing /api/build-argument endpoint,
+// authorities into a full memorial via the existing /api/build-argument endpoint,
 // writing the result straight into the Written Memorial field. No new endpoint.
 window.generateAdvocacyDraft = async function() {
   const notesEl = document.getElementById('advocacy-issue-notes');
@@ -2910,6 +3017,12 @@ window.generateAdvocacyDraft = async function() {
   const ms = window.mootState || {};
   const stance = ms.stance || (window.getCurrentSelectedSide && window.getCurrentSelectedSide()) || 'Petitioner';
   const issue = ms.issueText || document.getElementById('advocacy-active-issue-title')?.textContent || '';
+
+  // The Draft Notes box is where advocates type instructions ("put an index of
+  // authorities at the start", "use SCC citations"). Those were being folded into
+  // the notes blob and read as material to summarise, so they were ignored. Send
+  // them separately, as directives.
+  const instructions = (notesEl?.value || '').trim();
 
   let notesToSend = [notesEl?.value, oralEl?.value].filter(Boolean).join('\n\n');
   const auths = Array.isArray(ms.authorities) ? ms.authorities : [];
@@ -2934,15 +3047,10 @@ window.generateAdvocacyDraft = async function() {
 
   if (btn) { btn.disabled = true; btn.dataset.label = btn.textContent; btn.textContent = 'Generating…'; }
   try {
-    const data = await buildArgument(stance, issue, notesToSend, currentPropositionContext, forumPayload);
+    const data = await buildArgument(stance, issue, notesToSend, currentPropositionContext, forumPayload, { instructions, authorities: auths });
     if (data && data.success && data.response) {
       const m = data.response.memorial || data.response;
-      const parts = [];
-      if (m.issue)       parts.push(`ISSUE\n${cleanSectionText(m.issue, 'issue')}`);
-      if (m.rule)        parts.push(`RULE\n${cleanSectionText(m.rule, 'rule')}`);
-      if (m.application) parts.push(`APPLICATION\n${cleanSectionText(m.application, 'application')}`);
-      if (m.conclusion)  parts.push(`CONCLUSION\n${cleanSectionText(m.conclusion, 'conclusion')}`);
-      const draft = parts.join('\n\n').trim();
+      const draft = renderMemorialText(m);
       if (memorialEl && draft) {
         memorialEl.value = memorialEl.value.trim() ? (memorialEl.value.trim() + '\n\n' + draft) : draft;
         if (window.mootState) window.mootState.memorialDraft = memorialEl.value;
