@@ -359,8 +359,30 @@ async function getChatCompletion({
     throw lastError;
   };
 
-  const runGemini = async () => {
-    const model = "gemini-2.5-flash";
+  /**
+   * Gemini model fallback.
+   *
+   * Two separate failures made a single hardcoded model untenable, and both are
+   * per-model rather than account-wide:
+   *
+   *   - Overload. gemini-2.5-flash answered a trivial prompt in 2.5s while
+   *     returning 503 "high demand" on the memorial request six times across
+   *     three production runs. gemini-3.6-flash served the same request in 29.7s
+   *     with all seven sections.
+   *   - Daily quota. The free tier's 20 requests/day is counted per model — the
+   *     error says so: "limit: 20, model: gemini-2.5-flash". A second model is a
+   *     second allowance, which is the difference between the product working in
+   *     the afternoon and not.
+   *
+   * So the primary is unchanged and known-good, and the fallback is tried only
+   * when the primary is overloaded or out of quota. A timeout does NOT fall
+   * through: that means the work itself is slow, and a second model would be just
+   * as slow while spending the caller's remaining budget.
+   */
+  const GEMINI_MODELS = (process.env.GEMINI_MODELS || 'gemini-2.5-flash,gemini-3.6-flash')
+    .split(',').map(s => s.trim()).filter(Boolean);
+
+  const runGeminiOn = async (model) => {
     let lastError = null;
 
     for (let attempt = 0; attempt < geminiMaxAttempts; attempt++) {
@@ -407,6 +429,26 @@ async function getChatCompletion({
       }
     }
     throw lastError || new Error("Gemini call failed after all attempts");
+  };
+
+  const runGemini = async () => {
+    let lastError = null;
+    for (let i = 0; i < GEMINI_MODELS.length; i++) {
+      const model = GEMINI_MODELS[i];
+      try {
+        return await runGeminiOn(model);
+      } catch (err) {
+        lastError = err;
+        const msg = String((err && err.message) || '');
+        // Only an overloaded or exhausted model is worth trying elsewhere. A
+        // timeout means the work is slow, and the next model would be too.
+        const worthSwitching = /UNAVAILABLE|\b503\b|high demand|overloaded|RESOURCE_EXHAUSTED|quota|\b429\b/i.test(msg);
+        const more = i < GEMINI_MODELS.length - 1;
+        if (!worthSwitching || !more) throw err;
+        console.warn(`[AI TRACE] [${requestLabel}] ${model} unavailable (${msg.slice(0, 80)}). Trying ${GEMINI_MODELS[i + 1]}...`);
+      }
+    }
+    throw lastError || new Error("Gemini call failed on every model");
   };
 
   if (primaryProvider === "gemini") {

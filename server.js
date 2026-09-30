@@ -1104,11 +1104,6 @@ Authorities. Cite nothing you cannot stand behind: mark anything uncertain with
     const norm = s => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
     const advocateNames = (Array.isArray(authorities) ? authorities : [])
       .map(a => norm(a.name || a.case)).filter(Boolean);
-    const suppliedByAdvocate = name => {
-      const n = norm(name);
-      if (!n) return false;
-      return advocateNames.some(a => a && (n.includes(a) || a.includes(n)));
-    };
 
     const ioa = data && data.memorial && data.memorial.indexOfAuthorities;
     if (ioa) {
@@ -1123,8 +1118,23 @@ Authorities. Cite nothing you cannot stand behind: mark anything uncertain with
         if (!Array.isArray(ioa[key])) continue;
         for (const entry of ioa[key]) {
           if (!entry || typeof entry !== 'object') continue;
-          if (suppliedByAdvocate(entry.name)) {
+          const supplied = (Array.isArray(authorities) ? authorities : [])
+            .find(a => {
+              const n = norm(entry.name), an = norm(a.name || a.case);
+              return n && an && (n.includes(an) || an.includes(n));
+            });
+          if (supplied) {
             entry.source = 'advocate';
+            // Restore the advocate's own citation verbatim. Observed: given
+            // "Surya Dev Rai v. Ram Chander Rai, (2003) 6 SCC 675", the model
+            // returned it as "(1993) 6 SCC 675" — it silently corrupted the year
+            // of a case the advocate had supplied and verified themselves. The
+            // model has no business rewriting a citation it was handed.
+            if (supplied.citation && entry.citation !== supplied.citation) {
+              console.warn(`[MEMORIAL] Restored advocate citation for "${entry.name}": ` +
+                `model returned "${entry.citation}", advocate supplied "${supplied.citation}".`);
+              entry.citation = supplied.citation;
+            }
             continue;
           }
           entry.source = 'suggested';
