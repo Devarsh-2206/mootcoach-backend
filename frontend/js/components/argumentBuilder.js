@@ -1343,9 +1343,147 @@ export function exportAsPDF(type) {
   printWindow.document.close();
   printWindow.focus();
   setTimeout(() => {
+    try { paginateMemorial(printWindow); } catch (e) { console.warn('[EXPORT] Pagination skipped:', e); }
     printWindow.print();
     printWindow.close();
   }, 600);
+}
+
+/**
+ * Builds the Table of Contents, the page references in the Index of Authorities,
+ * and the running header — all of which need to know where things land on the
+ * page, which CSS cannot tell us.
+ *
+ * Chrome does not support @page margin boxes, so `counter(page)` in a header is
+ * not available; and a Table of Contents needs the page number of each heading
+ * before the document is printed, which no stylesheet can produce. So the laid-
+ * out document is measured here: each heading's offsetTop divided by the page
+ * height gives its page, and the numbers are written back in.
+ *
+ * Deliberately best-effort. If anything here throws, the export still prints —
+ * it is wrapped at the call site — because a memorial without a Table of
+ * Contents is far better than no export at all.
+ */
+function paginateMemorial(win) {
+  const doc = win.document;
+  const body = doc.body;
+  if (!body) return;
+
+  // Printable height of one sheet: US Letter at 96dpi, less the 1in margins.
+  const PAGE_H = (11 - 2) * 96;
+
+  const coverEl = doc.querySelector('.memorial-cover');
+  const coverPages = coverEl ? 1 : 0;
+  const originTop = coverEl ? coverEl.offsetHeight : 0;
+
+  const pageOf = el => {
+    const top = el.offsetTop - originTop;
+    return coverPages + Math.max(0, Math.floor(top / PAGE_H)) + 1;
+  };
+
+  // Section headings as the renderer emits them — ALL CAPS on their own line.
+  const SECTION_RE = /^(TABLE OF CONTENTS|LIST OF ABBREVIATIONS|INDEX OF AUTHORITIES|STATEMENT OF JURISDICTION|STATEMENT OF FACTS|ISSUES RAISED|SUMMARY OF ARGUMENTS|ARGUMENTS ADVANCED|PRAYER|NOTE ON CITATIONS)\b/;
+  const headings = [...body.querySelectorAll('h1,h2,h3,h4,h5,h6,p,div,strong,b')]
+    .filter(el => {
+      const t = (el.textContent || '').trim();
+      return t && t.length < 80 && SECTION_RE.test(t) && el.children.length === 0;
+    });
+
+  // Drop duplicates that come from nested elements wrapping the same text.
+  const seen = new Set();
+  const sections = headings.filter(el => {
+    const key = (el.textContent || '').trim().slice(0, 40);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+
+  // ── Running header on every printed page ──
+  // position:fixed repeats on each page in Chrome's print output, which is the
+  // only reliable way to get a running header without @page margin boxes.
+  const forEl = doc.querySelector('.cover-for');
+  const runningText = (forEl && forEl.textContent.trim()) || headerText_forExport(doc);
+  if (runningText) {
+    const hdr = doc.createElement('div');
+    hdr.className = 'running-header';
+    hdr.textContent = runningText;
+    body.appendChild(hdr);
+    const style = doc.createElement('style');
+    style.textContent = `
+      .running-header {
+        position: fixed; top: -0.6in; left: 0; right: 0;
+        font-family: 'Inter', sans-serif; font-size: 8pt; letter-spacing: .12em;
+        text-transform: uppercase; color: #777; border-bottom: .5pt solid #ddd;
+        padding-bottom: 3pt;
+      }
+      @media screen { .running-header { display: none; } }
+      .memorial-cover ~ * .running-header { display: none; }
+      .toc-line { display: flex; align-items: baseline; gap: 6px; font-size: 10.5pt; }
+      .toc-line .toc-label { white-space: nowrap; }
+      .toc-line .toc-dots { flex: 1; border-bottom: 1px dotted #999; transform: translateY(-3px); }
+      .toc-line .toc-page { white-space: nowrap; font-variant-numeric: tabular-nums; }
+    `;
+    doc.head.appendChild(style);
+  }
+
+  // ── Table of Contents, with real page numbers ──
+  const tocHost = sections.find(el => /^TABLE OF CONTENTS/.test((el.textContent || '').trim()));
+  if (tocHost && sections.length > 1) {
+    const list = doc.createElement('div');
+    list.className = 'toc-list';
+    for (const s of sections) {
+      const label = (s.textContent || '').trim();
+      if (/^TABLE OF CONTENTS/.test(label)) continue;
+      const line = doc.createElement('div');
+      line.className = 'toc-line';
+      line.innerHTML = `<span class="toc-label"></span><span class="toc-dots"></span><span class="toc-page"></span>`;
+      line.querySelector('.toc-label').textContent = label;
+      line.querySelector('.toc-page').textContent = String(pageOf(s));
+      list.appendChild(line);
+    }
+    tocHost.insertAdjacentElement('afterend', list);
+  }
+
+  // ── Page references in the Index of Authorities ──
+  // Each authority gets the pages where it is actually cited in the body, which
+  // is what the Index is for: "Vodafone ... 13, 28".
+  const idxHost = sections.find(el => /^INDEX OF AUTHORITIES/.test((el.textContent || '').trim()));
+  const argHost = sections.find(el => /^ARGUMENTS ADVANCED/.test((el.textContent || '').trim()));
+  if (idxHost && argHost) {
+    // Candidate authority lines sit between the Index heading and the next section.
+    const after = [];
+    let n = idxHost.nextElementSibling;
+    while (n && !SECTION_RE.test((n.textContent || '').trim())) { after.push(n); n = n.nextElementSibling; }
+
+    // Index the body by page so a name can be looked up.
+    const bodyBlocks = [];
+    let b = argHost;
+    while (b) { bodyBlocks.push({ el: b, page: pageOf(b), text: (b.textContent || '') }); b = b.nextElementSibling; }
+
+    const firstParty = s => {
+      const m = String(s).split(/\s+v\.?s?\.?\s+/i)[0] || '';
+      return m.replace(/^[\s•-]+/, '').split(/,|\(/)[0].trim();
+    };
+
+    for (const line of after) {
+      const txt = (line.textContent || '').trim();
+      if (!/\sv\.?s?\.?\s/i.test(txt) || txt.length > 200) continue;
+      const party = firstParty(txt);
+      if (party.length < 4) continue;
+      const pages = [...new Set(bodyBlocks.filter(x => x.text.includes(party)).map(x => x.page))].sort((a, c) => a - c);
+      if (!pages.length) continue;
+      const ref = doc.createElement('span');
+      ref.style.cssText = 'float:right;font-variant-numeric:tabular-nums;color:#555;';
+      ref.textContent = pages.join(', ');
+      line.appendChild(ref);
+    }
+  }
+}
+
+/** Falls back to the page title when there is no cover to read the side from. */
+function headerText_forExport(doc) {
+  const t = (doc.title || '').replace(/\s*-\s*MootCoach AI$/i, '').trim();
+  return t || '';
 }
 window.exportAsPDF = exportAsPDF;
 
@@ -3049,6 +3187,12 @@ function renderMemorialText(m, stance) {
     out.push('COVER PAGE\n' + lines.map(l => '   ' + l).join('\n') +
       '\n\n   Cover colour on export: ' + c.label);
   }
+
+  // ── TABLE OF CONTENTS ──
+  // A heading only. The entries need page numbers, and page numbers do not
+  // exist until the document is laid out, so paginateMemorial() fills this in
+  // at export time from the measured positions of each heading.
+  out.push('TABLE OF CONTENTS\n   (page numbers are filled in on export)');
 
   // ── LIST OF ABBREVIATIONS ──
   const abbr = arr(m.listOfAbbreviations).filter(a => a && has(a.short));
