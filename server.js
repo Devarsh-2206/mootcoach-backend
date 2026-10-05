@@ -202,8 +202,41 @@ function parsePdfAsync(buffer) {
       workerData: { buffer: buffer }
     });
     worker.on("message", (msg) => {
-      if (msg.success) resolve(msg.text);
-      else reject(new Error(msg.error));
+      if (msg.success) {
+        // Resolves a STRING, because every existing caller treats it as one.
+        // The page count rides along as a property so the memorial analyser
+        // can check page limits without changing those callers.
+        const out = new String(msg.text);
+        out.numpages = msg.numpages || null;
+        resolve(out);
+      } else {
+        /**
+         * Retry in-process before giving up.
+         *
+         * Some PDFs that parse perfectly in the main thread throw "bad XRef
+         * entry" in the worker — verified on a byte-identical file (same SHA-1),
+         * failing in the worker and succeeding in a fresh main-thread process.
+         * The cause sits inside pdf.js and I could not pin it down; what is
+         * certain is that the worker failing does not mean the file is
+         * unreadable, and the user otherwise sees "this PDF appears to be empty,
+         * image-based or unreadable", which is simply wrong.
+         *
+         * This blocks the event loop, which is the whole reason the worker
+         * exists — so it runs only after the worker has already failed.
+         */
+        console.warn(`[PDF] Worker failed (${msg.error}); retrying in-process.`);
+        try {
+          const pdfParse = require("pdf-parse");
+          pdfParse(Buffer.from(buffer)).then(d => {
+            console.log(`[PDF] In-process retry succeeded: ${(d.text || '').length} chars.`);
+            const out = new String(d.text || "");
+            out.numpages = d.numpages || null;
+            resolve(out);
+          }).catch(() => reject(new Error(msg.error)));
+        } catch (e) {
+          reject(new Error(msg.error));
+        }
+      }
     });
     worker.on("error", reject);
     worker.on("exit", (code) => {
@@ -247,6 +280,8 @@ const ARGUMENT_BUILDER_PROMPT = require("./prompts/argumentBuilderPrompt");
 const buildClaimExtractionPrompt = require("./prompts/claimExtractionPrompt");
 const { buildIndianLegalDirective } = require("./prompts/indianLegalFramework");
 const { applyCitationGuard } = require("./services/citationGuard");
+const { auditMemorial } = require("./services/memorialAudit");
+const MEMORIAL_REVIEW_PROMPT = require("./prompts/memorialReviewPrompt");
 const { buildMemorial } = require("./services/memorialBuilder");
 
 // const app = express();
@@ -1211,6 +1246,110 @@ app.post("/api/build-memorial", aiLimiter, express.json(), async (req, res) => {
       status = 503;
       userError = "The AI provider is briefly overloaded. Nothing is wrong with your notes — wait a few seconds and draft again.";
     }
+    return res.status(status).json({ success: false, error: userError, reason: msg.slice(0, 400) });
+  }
+});
+
+/* ─── /api/analyse-memorial ───
+   Upload a memorial, get it marked. The structural half runs in code
+   (services/memorialAudit.js) because sections, index-vs-body consistency,
+   numbering and limits are countable; asking a model to count them gets an
+   estimate. The model is spent on what code cannot judge — whether the argument
+   works and whether the law is right. */
+app.post("/api/analyse-memorial", aiLimiter, upload.single("file"), async (req, res) => {
+  let filePath = null;
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, error: "No memorial uploaded." });
+    }
+    filePath = req.file.path;
+    const dataBuffer = fs.readFileSync(filePath);
+
+    let parsed = null;
+    try {
+      parsed = await parsePdfAsync(dataBuffer);
+    } catch (err) {
+      console.error("Memorial PDF parse error:", err);
+    }
+    try { fs.unlinkSync(filePath); filePath = null; } catch (e) {}
+
+    const text = String(parsed || "");
+    if (text.trim().length < 400) {
+      return res.status(422).json({
+        success: false,
+        error: "That PDF appears to be empty, image-based or unreadable. Export your memorial as a text-based PDF rather than a scan."
+      });
+    }
+
+    // ── Structural audit, in code ──
+    const audit = auditMemorial(text, {
+      pageCount: (parsed && parsed.numpages) || null,
+      wordLimit: Number(req.body.wordLimit) || null,
+      pageLimit: Number(req.body.pageLimit) || null,
+      side: req.body.side || '',
+    });
+
+    // ── Content review, by the model ──
+    const auditSummary =
+      `STRUCTURAL AUDIT (measured in code — these are facts):\n` +
+      `- Words: ${audit.metrics.words}${audit.metrics.pages ? `, pages: ${audit.metrics.pages}` : ''}\n` +
+      `- Sections present: ${audit.metrics.sectionsPresent}/${audit.metrics.sectionsExpected}` +
+      ` (missing: ${audit.sections.filter(s => !s.present).map(s => s.label).join(', ') || 'none'})\n` +
+      `- Cases in the Index: ${audit.metrics.indexCases}; cases cited in the body: ${audit.metrics.bodyCases}\n` +
+      `- Listed but never cited: ${audit.metrics.authoritiesNotCited}; cited but not indexed: ${audit.metrics.authoritiesNotIndexed}\n` +
+      `- Numbered paragraphs: ${audit.metrics.numberedParagraphs}` +
+      ` (continuous: ${audit.metrics.numbering.continuous ? 'yes' : 'no'})\n` +
+      `- Structural findings already reported to the advocate:\n` +
+      (audit.findings.map(f => `   [${f.severity}] ${f.area}: ${f.finding}`).join('\n') || '   none') +
+      `\nDo not repeat these. Assess the substance.\n`;
+
+    const call = await getChatCompletion({
+      messages: [
+        { role: "system", content: MEMORIAL_REVIEW_PROMPT },
+        {
+          role: "user",
+          content: `${auditSummary}\n` +
+            (req.body.side ? `SIDE: ${req.body.side}\n` : '') +
+            (req.body.propositionContext ? `THE RECORD (use this to check whether facts are invented):\n${String(req.body.propositionContext).slice(0, 8000)}\n\n` : '') +
+            `MEMORIAL TEXT:\n${text.slice(0, 90000)}\n\nMark this memorial now.`
+        }
+      ],
+      temperature: 0.2,
+      max_tokens: 9000,
+      primaryProvider: "gemini",
+      geminiTimeoutMs: 120000,
+      geminiMaxAttempts: 1,
+      requestLabel: "Memorial Review"
+    });
+
+    const review = extractAndParseJSON(call.text);
+
+    // The audit's findings are measured, so they lead. The model's follow.
+    const corrections = [].concat(
+      audit.findings.map(f => ({ severity: f.severity, area: f.area, where: '', problem: f.finding, fix: f.fix, source: 'audit' })),
+      (Array.isArray(review.corrections) ? review.corrections : []).map(c => Object.assign({ source: 'review' }, c)),
+    );
+
+    return res.json({
+      success: true,
+      metrics: audit.metrics,
+      sections: audit.sections,
+      review: Object.assign({}, review, { corrections }),
+    });
+  } catch (error) {
+    console.error("/api/analyse-memorial error:", error);
+    try { if (filePath) fs.unlinkSync(filePath); } catch (e) {}
+    const msg = String((error && error.message) || '');
+    const quota = /RESOURCE_EXHAUSTED|free_tier|quota|exceeded your current quota|PerDay/i.test(msg);
+    const rate = /rate.?limit|tokens per minute|\bTPM\b|\b429\b/i.test(msg);
+    const timeout = /Timeout/i.test(msg);
+    const overloaded = /UNAVAILABLE|\b503\b|high demand|overloaded/i.test(msg);
+    let status = 500;
+    let userError = "The memorial could not be analysed. Please try again.";
+    if (quota) { status = 429; userError = "The AI provider's daily quota has been used up. This is an account limit, not a problem with your memorial — it resets on the provider's daily cycle."; }
+    else if (rate) { status = 429; userError = "The AI provider is rate-limiting this account. Wait about a minute and try again."; }
+    else if (timeout) { status = 504; userError = "The provider did not respond in time. Please try again."; }
+    else if (overloaded) { status = 503; userError = "The AI provider is briefly overloaded. Wait a few seconds and try again."; }
     return res.status(status).json({ success: false, error: userError, reason: msg.slice(0, 400) });
   }
 });
