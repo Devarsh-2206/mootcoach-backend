@@ -71,3 +71,26 @@ export async function buildArgument(stance, issue, notes, propositionContext, fo
   return data;
 }
 
+
+/**
+ * Builds a competition-length memorial in passes. Separate from buildArgument
+ * because that endpoint also produces the oral-advocacy, rebuttal and citation
+ * blocks the other panels read, and one generation cannot do both jobs well:
+ * measured, the memorial was 44% of its output and capped around 13-23 numbered
+ * paragraphs where a filed memorial runs to 65.
+ *
+ * depth 'standard' makes one call per issue (~100s); 'full' makes one per
+ * sub-ground, which roughly doubles the body but takes a few minutes.
+ */
+export async function buildMemorial(payload) {
+  const res = await fetch(`${BASE_URL}/api/build-memorial`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok || !data.success) {
+    throw new Error(data.error || `Memorial drafting failed with status ${res.status}`);
+  }
+  return data;
+}

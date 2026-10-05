@@ -460,9 +460,20 @@ async function getChatCompletion({
       } catch (err) {
         lastError = err;
         const msg = String((err && err.message) || '');
-        // Only an overloaded or exhausted model is worth trying elsewhere. A
-        // timeout means the work is slow, and the next model would be too.
-        const worthSwitching = /UNAVAILABLE|\b503\b|high demand|overloaded|RESOURCE_EXHAUSTED|quota|\b429\b/i.test(msg);
+        /**
+         * Worth trying another model when THIS model refused or could not serve
+         * it — not when the work is simply slow, because the next model would be
+         * just as slow and would spend the caller's remaining budget.
+         *
+         * RECITATION and SAFETY matter here. Observed drafting a memorial:
+         * gemini-2.5-flash returned an empty response with finishReason
+         * RECITATION — it judged its own output too close to memorised text,
+         * which is a live risk when the task is to quote well-known case law.
+         * That is a property of one model's filter, so another model is a real
+         * answer to it; before this it fell straight through to Groq, which
+         * cannot take a request this size, and the whole issue was lost.
+         */
+        const worthSwitching = /UNAVAILABLE|\b503\b|high demand|overloaded|RESOURCE_EXHAUSTED|quota|\b429\b|RECITATION|SAFETY|BLOCKLIST|PROHIBITED|empty response/i.test(msg);
         const more = i < GEMINI_MODELS.length - 1;
         if (!worthSwitching || !more) throw err;
         console.warn(`[AI TRACE] [${requestLabel}] ${model} unavailable (${msg.slice(0, 80)}). Trying ${GEMINI_MODELS[i + 1]}...`);

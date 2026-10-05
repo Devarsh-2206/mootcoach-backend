@@ -1,4 +1,4 @@
-import { buildArgument } from '../services/api.js';
+import { buildArgument, buildMemorial } from '../services/api.js';
 import { 
   currentPropositionContext,
   lastAnalysis, 
@@ -3231,10 +3231,15 @@ window.generateAdvocacyDraft = async function() {
 
   if (btn) { btn.disabled = true; btn.dataset.label = btn.textContent; btn.textContent = 'Generating…'; }
   try {
-    const data = await buildArgument(stance, issue, notesToSend, currentPropositionContext, forumPayload,
-      { instructions, authorities: auths, memorialFocus: true });
-    if (data && data.success && data.response) {
-      const m = data.response.memorial || data.response;
+    // Multi-pass builder. One generation caps around 13-23 numbered paragraphs;
+    // building the memorial in passes reaches 45, against 65 in a filed one.
+    const data = await buildMemorial({
+      stance, propositionContext: currentPropositionContext, notes: notesToSend,
+      instructions, authorities: auths, forum: forumPayload,
+      maxIssues: 3, depth: (window.mootState && window.mootState.memorialDepth) || 'standard',
+    });
+    if (data && data.success && data.memorial) {
+      const m = data.memorial;
       // Pass the stance so the cover page is colour-coded by side.
       const draft = renderMemorialText(m, stance);
       if (memorialEl && draft) {
@@ -3242,21 +3247,19 @@ window.generateAdvocacyDraft = async function() {
         if (window.mootState) window.mootState.memorialDraft = memorialEl.value;
         if (typeof window.saveAdvocacyDrafts === 'function') window.saveAdvocacyDrafts();
       }
-      // memorialFocus deliberately returns thin oral-advocacy, rebuttal and
-      // citation blocks so the whole budget reaches the memorial. Those panels
-      // read lastBuiltArgument, so keep whatever a full Build already produced
-      // instead of overwriting it with the deliberately thin version.
-      const keepRicher = (key) => {
-        const next = data.response[key], prev = lastBuiltArgument && lastBuiltArgument[key];
-        if (!prev) return next;
-        return JSON.stringify(next || {}).length >= JSON.stringify(prev).length ? next : prev;
-      };
-      lastBuiltArgument = Object.assign({}, lastBuiltArgument, data.response, {
-        oralAdvocacy: keepRicher('oralAdvocacy'),
-        rebuttals:    keepRicher('rebuttals'),
-        citations:    keepRicher('citations'),
-      });
-      showToast('Structured draft generated into your Memorial.', 'ok');
+      // /api/build-memorial returns the memorial ONLY — it does not generate the
+      // oral-advocacy, rebuttal or citation blocks at all. Those panels read
+      // lastBuiltArgument, so merge the memorial in and leave the rest of that
+      // object exactly as the main Build left it. (Export also reads the cover
+      // page from here.)
+      lastBuiltArgument = Object.assign({}, lastBuiltArgument, { memorial: m });
+
+      const st = data.stats || {};
+      const gaps = st.issuesFailed
+        ? `, ${st.issuesFailed} issue${st.issuesFailed > 1 ? 's' : ''} incomplete — see the draft`
+        : '';
+      showToast(`Memorial drafted: ${st.paragraphs || 0} paragraphs, ${st.authorities || 0} authorities${gaps}.`,
+        st.issuesFailed ? 'err' : 'ok');
     } else {
       throw new Error((data && data.error) || 'Generation failed.');
     }
