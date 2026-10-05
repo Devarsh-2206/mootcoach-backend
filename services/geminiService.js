@@ -379,7 +379,21 @@ async function getChatCompletion({
    * through: that means the work itself is slow, and a second model would be just
    * as slow while spending the caller's remaining budget.
    */
-  const GEMINI_MODELS = (process.env.GEMINI_MODELS || 'gemini-2.5-flash,gemini-3.6-flash')
+  /**
+   * The free tier allows 20 requests per day PER MODEL, so the chain is the
+   * day's capacity. Two models was 40 — and a single memorial costs 3 to 7 calls
+   * because it is built in passes, so two people trying the product would
+   * exhaust it in minutes and everything after would fail with a quota error.
+   *
+   * Each of these was verified to return valid JSON on a realistic request
+   * (3,000 output tokens; a smaller probe wrongly failed the reasoning models,
+   * which spend their budget thinking before they emit anything).
+   *
+   * 2.5-flash stays first because its output is the known quantity the prompts
+   * were tuned against; the rest are capacity behind it.
+   */
+  const GEMINI_MODELS = (process.env.GEMINI_MODELS ||
+    'gemini-2.5-flash,gemini-3.6-flash,gemini-3.8-flash,gemini-3-flash-preview,gemini-3.1-flash-lite,gemini-3.5-flash-lite')
     .split(',').map(s => s.trim()).filter(Boolean);
 
   const runGeminiOn = async (model) => {

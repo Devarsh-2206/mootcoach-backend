@@ -903,67 +903,219 @@ export function cleanSectionText(text, headerToRemove) {
   return cleaned.trim();
 }
 
+/**
+ * Renders the memorial into the viewer, and into storedMemorialHTML which the
+ * PDF export reads.
+ *
+ * This used to read only memorialData.issue/.rule/.application/.conclusion. When
+ * the memorial schema grew to the competition structure — cover page, Index of
+ * Authorities, numbered paragraphs, prayer — this function was left behind, so
+ * the live Build button would have rendered four empty sections. It now renders
+ * the full structure, and still handles the old four-field shape so memorials
+ * saved before the change open correctly.
+ */
 function renderMemorial(memorialData) {
-  const cleanIssue = cleanSectionText(memorialData.issue || '', 'issue');
-  const cleanRule = cleanSectionText(memorialData.rule || '', 'rule');
-  const cleanApp = cleanSectionText(memorialData.application || '', 'application');
-  const cleanConclusion = cleanSectionText(memorialData.conclusion || '', 'conclusion');
+  const m = memorialData || {};
+  const has = v => v !== undefined && v !== null && String(v).trim() !== '';
+  const arr = v => Array.isArray(v) ? v : [];
+  const esc = v => String(v == null ? '' : v)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+  const H = (title, inner, accent) => `
+      <div>
+        <h4 class="text-xs uppercase tracking-widest font-sans font-bold mb-2" style="color:${accent || '#2c3e50'}">${esc(title)}</h4>
+        <div class="h-[1px] bg-[#dcdad5] w-full mb-4"></div>
+        ${inner}
+      </div>
+      <hr class="border-[#e5e3de]">`;
+
+  const parts = [];
+
+  // ── Cover ──
+  const cp = m.coverPage;
+  if (cp && (has(cp.court) || has(cp.memorialFor))) {
+    parts.push(`
+      <div class="text-center mb-2">
+        ${has(cp.teamCode) ? `<div class="inline-block border border-slate-400 px-3 py-1 text-[11px] tracking-widest mb-4">${esc(cp.teamCode)}</div>` : ''}
+        ${has(cp.competition) ? `<div class="font-bold text-[15px] tracking-wide">${esc(cp.competition)}</div>` : ''}
+        ${has(cp.court) ? `<div class="font-bold text-[13px] mt-1">${esc(cp.court)}</div>` : ''}
+        <hr class="border-t-2 border-double border-slate-400 my-4">
+        ${has(cp.caseNumber) ? `<div class="text-[12px]">${esc(cp.caseNumber)}</div>` : ''}
+        ${has(cp.provision) ? `<div class="text-[11px]">${esc(cp.provision)}</div>` : ''}
+        <hr class="border-t-2 border-double border-slate-400 my-4">
+        <div class="text-[11px] font-bold">IN THE MATTER OF :</div>
+        <div class="flex justify-between text-[12px] font-bold mt-3"><span>${esc(cp.petitioner)}</span><span>...PETITIONER</span></div>
+        <div class="text-[11px] font-bold my-1">V/S</div>
+        <div class="flex justify-between text-[12px] font-bold"><span>${esc(cp.respondent)}</span><span>...RESPONDENT</span></div>
+        <hr class="border-t-2 border-double border-slate-400 my-4">
+        ${has(cp.memorialFor) ? `<div class="font-bold text-[13px] tracking-wide">${esc(cp.memorialFor)}</div>` : ''}
+      </div>
+      <hr class="border-[#e5e3de]">`);
+  }
+
+  // ── Abbreviations ──
+  const abbr = arr(m.listOfAbbreviations).filter(a => a && has(a.short));
+  if (abbr.length) {
+    parts.push(H('List of Abbreviations',
+      `<table class="w-full text-[13px]">${abbr.map(a =>
+        `<tr><td class="py-1 pr-4 font-bold align-top whitespace-nowrap">${esc(a.short)}</td><td class="py-1">${esc(a.full)}</td></tr>`
+      ).join('')}</table>`));
+  }
+
+  // ── Index of Authorities ──
+  const ioa = m.indexOfAuthorities;
+  if (ioa) {
+    const GROUPS = [
+      ['cases', 'Cases'], ['internationalCases', 'International Cases'],
+      ['statutes', 'Statutes'], ['constitutionalProvisions', 'Constitutional Provisions'],
+      ['treatiesAndConventions', 'Treaties and Conventions'],
+      ['rulesAndRegulations', 'Rules, Regulations and Circulars'],
+      ['booksAndCommentaries', 'Books and Commentaries'],
+      ['articlesAndReports', 'Articles and Reports'],
+      ['mootProposition', 'Moot Proposition'],
+      ['booksAndArticles', 'Books and Articles'], ['other', 'Other Authorities'],
+    ];
+    let any = false;
+    const blocks = GROUPS.map(([key, label]) => {
+      const list = arr(ioa[key]).filter(e => e && has(e.name));
+      if (!list.length) return '';
+      any = true;
+      return `<div class="mb-3">
+        <div class="text-[11px] uppercase tracking-widest font-sans font-bold text-slate-500 mb-1">${esc(label)}</div>
+        ${list.map(e => {
+          const bits = [e.name, e.citation, e.provisions].filter(has).map(esc).join(has(e.citation) ? ', ' : ' &mdash; ');
+          const yours = e.source === 'advocate'
+            ? `<span class="text-[10px] font-sans text-emerald-700 ml-2">(your authority)</span>` : '';
+          const verify = e.verify
+            ? `<span class="text-[10px] font-sans font-bold text-amber-700 ml-2">[VERIFY]</span>` : '';
+          const prop = has(e.proposition) ? `<div class="text-[12px] text-slate-500 pl-4">Cited for: ${esc(e.proposition)}</div>` : '';
+          const note = has(e.citationNote) ? `<div class="text-[11px] text-amber-800 pl-4">${esc(e.citationNote)}</div>` : '';
+          return `<div class="mb-1">${bits}${yours}${verify}${prop}${note}</div>`;
+        }).join('')}
+      </div>`;
+    }).join('');
+    if (any) {
+      const anyVerify = JSON.stringify(ioa).includes('"verify":true');
+      parts.push(H('Index of Authorities', blocks + (anyVerify
+        ? `<div class="mt-3 text-[12px] text-amber-800 bg-amber-50 border border-amber-200 rounded p-3 font-sans">
+             Entries marked <b>[VERIFY]</b> could not be confirmed by MootCoach, which has no access to
+             SCC Online, Manupatra or any law database. Check them against the reporter before you file
+             or cite them in court.
+           </div>` : ''), '#B0392E'));
+    }
+  }
+
+  if (has(m.statementOfJurisdiction)) {
+    parts.push(H('Statement of Jurisdiction', `<div class="whitespace-pre-wrap">${fmtInline(esc(m.statementOfJurisdiction))}</div>`));
+  }
+
+  // ── Facts (sub-headed array, or the older flat string) ──
+  if (arr(m.statementOfFacts).length) {
+    parts.push(H('Statement of Facts', arr(m.statementOfFacts).map(f =>
+      `${has(f.heading) ? `<div class="font-bold mb-1">${esc(f.heading)}</div>` : ''}
+       <div class="mb-3 whitespace-pre-wrap">${fmtInline(esc(f.text || f))}</div>`).join('')));
+  } else if (has(m.statementOfFacts)) {
+    parts.push(H('Statement of Facts', `<div class="whitespace-pre-wrap">${fmtInline(esc(m.statementOfFacts))}</div>`));
+  }
+
+  if (arr(m.statementOfIssues).length) {
+    parts.push(H('Issues Raised', `<ol class="list-decimal pl-6 space-y-2">${
+      arr(m.statementOfIssues).map(s => `<li>${fmtInline(esc(s))}</li>`).join('')}</ol>`));
+  }
+
+  if (arr(m.summaryOfArguments).length) {
+    parts.push(H('Summary of Arguments', arr(m.summaryOfArguments).map(s =>
+      `${has(s.issue) ? `<div class="font-bold mb-1">${esc(s.issue)}</div>` : ''}
+       <div class="mb-3 whitespace-pre-wrap">${fmtInline(esc(s.summary || s))}</div>`).join('')));
+  }
+
+  // ── Arguments Advanced, with the footnotes gathered at the end ──
+  if (arr(m.argumentsAdvanced).length) {
+    const notes = [];
+    const renderParas = paras => arr(paras).map(p => {
+      const marks = arr(p.footnotes).map(f => { notes.push(f.citation || ''); return notes.length; });
+      const sup = marks.length ? `<sup class="text-[10px] text-[#B0392E]">[${marks.join('][')}]</sup>` : '';
+      return `<div class="flex gap-3 mb-3">
+          <span class="font-bold text-slate-500 shrink-0">${has(p.number) ? esc(p.number) + '.' : ''}</span>
+          <span>${fmtInline(esc(p.text || p))}${sup}</span>
+        </div>`;
+    }).join('');
+
+    const body = arr(m.argumentsAdvanced).map(a => `
+      ${has(a.heading) ? `<div class="font-bold uppercase text-[13px] tracking-wide mb-2">${esc(a.heading)}</div>` : ''}
+      ${has(a.roadmap) ? `<div class="mb-4 whitespace-pre-wrap">${fmtInline(esc(a.roadmap))}</div>` : ''}
+      ${arr(a.subArguments).map(sa => `
+        ${has(sa.heading) ? `<div class="font-bold text-[12.5px] mt-4 mb-2">${esc(sa.heading)}</div>` : ''}
+        ${arr(sa.paragraphs).length ? renderParas(sa.paragraphs) : (has(sa.text) ? `<div class="mb-3">${fmtInline(esc(sa.text))}</div>` : '')}
+      `).join('')}
+      ${arr(a.paragraphs).length ? renderParas(a.paragraphs) : ''}
+      ${has(a.issue) ? `<div class="mb-2"><b>Issue:</b> ${fmtInline(esc(cleanSectionText(a.issue, 'issue')))}</div>` : ''}
+      ${has(a.rule) ? `<div class="mb-2"><b>Rule:</b> ${fmtInline(esc(cleanSectionText(a.rule, 'rule')))}</div>` : ''}
+      ${has(a.application) ? `<div class="mb-2"><b>Application:</b> ${fmtInline(esc(cleanSectionText(a.application, 'application')))}</div>` : ''}
+      ${has(a.conclusion) ? `<div class="mt-3 italic">${fmtInline(esc(cleanSectionText(a.conclusion, 'conclusion')))}</div>` : ''}
+    `).join('<hr class="border-[#f0efec] my-5">');
+
+    parts.push(H('Arguments Advanced', body, '#B0392E'));
+    if (notes.length) {
+      parts.push(H('Footnotes', `<ol class="list-decimal pl-6 text-[12px] space-y-1">${
+        notes.map(c => `<li>${esc(c)}</li>`).join('')}</ol>`));
+    }
+  }
+
+  // ── Prayer ──
+  const pr = m.prayer;
+  if (pr && typeof pr === 'object') {
+    parts.push(H('Prayer', `
+      ${has(pr.opening) ? `<div class="mb-3">${fmtInline(esc(pr.opening))}</div>` : ''}
+      ${arr(pr.declarations).length ? `<ol class="list-decimal pl-6 space-y-2 mb-3">${
+        arr(pr.declarations).map(d => `<li>${fmtInline(esc(d))}</li>`).join('')}</ol>` : ''}
+      ${has(pr.closing) ? `<div class="italic mb-3">${fmtInline(esc(pr.closing))}</div>` : ''}
+      ${has(pr.signature) ? `<div class="text-right font-bold">${esc(pr.signature)}</div>` : ''}`, '#B0392E'));
+  } else if (has(pr)) {
+    parts.push(H('Prayer', `<div class="whitespace-pre-wrap">${fmtInline(esc(pr))}</div>`));
+  }
+
+  if (arr(m.instructionsNotFollowed).length) {
+    parts.push(H('Instructions Not Followed', `<ul class="list-disc pl-6 text-[12.5px] space-y-1">${
+      arr(m.instructionsNotFollowed).map(s => `<li>${esc(s)}</li>`).join('')}</ul>`, '#9a6b00'));
+  }
+
+  // ── Older four-field memorials ──
+  if (!parts.length) {
+    const four = [
+      ['Issue', cleanSectionText(m.issue || '', 'issue'), '#B0392E'],
+      ['Rule', cleanSectionText(m.rule || '', 'rule'), '#2c3e50'],
+      ['Application', cleanSectionText(m.application || '', 'application'), '#2c3e50'],
+      ['Conclusion', cleanSectionText(m.conclusion || '', 'conclusion'), '#B0392E'],
+    ];
+    for (const [t, v, c] of four) {
+      if (has(v)) parts.push(H(t, `<div class="whitespace-pre-wrap">${fmtInline(esc(v))}</div>`, c));
+    }
+  }
+
+  if (!parts.length) {
+    parts.push(`<div class="text-slate-500 italic">The memorial came back empty. Try generating it again.</div>`);
+  }
+
+  const header = (cp && has(cp.court)) ? esc(cp.court) : 'BEFORE THE SUPREME COURT OF APPRENTICE ADVOCACY';
+  const forLabel = (cp && has(cp.memorialFor)) ? esc(cp.memorialFor) : 'MEMORIAL SUBMISSION';
 
   storedMemorialHTML = `
   <div class="flex-1 bg-[#fcfbfa] border border-[#dcdad5] rounded-xl shadow-xl overflow-hidden min-h-[400px] flex flex-col text-slate-800">
-    <!-- Legal Page Header -->
     <div class="border-b border-[#ecebe7] bg-[#f9f8f4] py-3 px-6 flex justify-between items-center text-[10px] uppercase tracking-widest text-slate-500 font-sans font-medium">
-      <span>BEFORE THE SUPREME COURT OF APPRENTICE ADVOCACY</span>
-      <span>MEMORIAL SUBMISSION</span>
+      <span>${header}</span>
+      <span>${forLabel}</span>
     </div>
-    
-    <!-- Legal Document Content Area -->
     <div class="p-8 md:p-12 flex-1 flex flex-col gap-6 font-serif text-[14px] leading-relaxed text-slate-800" id="memorial-viewer-canvas">
-      
-      <!-- Issue -->
-      <div>
-        <h4 class="text-xs uppercase tracking-widest text-[#B0392E] font-sans font-bold mb-2">ISSUE</h4>
-        <div class="h-[1px] bg-[#dcdad5] w-full mb-4"></div>
-        <div class="pl-4 border-l-2 border-[#B0392E]/30 italic text-[#3a3226] font-serif">${fmtInline(cleanIssue)}</div>
-      </div>
-      
-      <hr class="border-[#e5e3de]">
-
-      <!-- Rule -->
-      <div>
-        <h4 class="text-xs uppercase tracking-widest text-[#2c3e50] font-sans font-bold mb-2">RULE</h4>
-        <div class="h-[1px] bg-[#dcdad5] w-full mb-4"></div>
-        <div class="text-slate-800 whitespace-pre-wrap pl-1">${fmtInline(cleanRule)}</div>
-      </div>
-
-      <hr class="border-[#e5e3de]">
-
-      <!-- Application -->
-      <div>
-        <h4 class="text-xs uppercase tracking-widest text-[#2c3e50] font-sans font-bold mb-2">APPLICATION</h4>
-        <div class="h-[1px] bg-[#dcdad5] w-full mb-4"></div>
-        <div class="text-slate-800 whitespace-pre-wrap pl-1">${fmtInline(cleanApp)}</div>
-      </div>
-
-      <hr class="border-[#e5e3de]">
-
-      <!-- Conclusion -->
-      <div>
-        <h4 class="text-xs uppercase tracking-widest text-[#2c3e50] font-sans font-bold mb-2">CONCLUSION</h4>
-        <div class="h-[1px] bg-[#dcdad5] w-full mb-4"></div>
-        <div class="text-slate-800 whitespace-pre-wrap pl-1">${fmtInline(cleanConclusion)}</div>
-      </div>
-      
+      ${parts.join('\n')}
     </div>
-
-    <!-- Legal Page Footer -->
     <div class="border-t border-[#ecebe7] bg-[#f9f8f4] py-3 px-6 flex justify-between items-center text-[10px] text-slate-500 font-sans">
       <span>Appellate Drafting Studio · MootCoach AI</span>
-      <span>PAGE 1</span>
     </div>
   </div>
   `;
 }
+
 
 function renderOralNotes(oralAdvocacyData, currentStance, currentIssue) {
   storedOralNotes = getUpgradedOralNotes(oralAdvocacyData, currentStance, currentIssue);
