@@ -782,6 +782,13 @@ app.post("/evaluate-oral", aiLimiter, express.json(), async (req, res) => {
       ],
       temperature: 0.2,
       max_tokens: 2000,
+      // Was inheriting the defaults: 3 attempts x 90s = 270s against a 180s
+      // server.requestTimeout, so a slow first attempt could never recover —
+      // the request died before the retries finished. Same trap that broke
+      // upload on a large proposition. One attempt that fits the budget.
+      primaryProvider: "gemini",
+      geminiTimeoutMs: 120000,
+      geminiMaxAttempts: 1,
       requestLabel: "Oral Evaluation"
     });
 
@@ -822,6 +829,13 @@ app.post("/simulate-bench/extract-claims", express.json(), async (req, res) => {
       messages: [{ role: "user", content: prompt }],
       temperature: 0.1,
       max_tokens: 800,
+      // Fire-and-forget from the bench, but it was inheriting 3 x 90s. A small
+      // extraction does not need 270s, and holding a slot that long competes
+      // with the bench turn the advocate is waiting on.
+      primaryProvider: "groq",
+      groqTimeoutMs: 20000,
+      geminiTimeoutMs: 40000,
+      geminiMaxAttempts: 1,
       requestLabel: "Claim Extraction"
     });
 
