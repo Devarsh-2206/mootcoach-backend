@@ -632,8 +632,19 @@ app.post("/analyze", aiLimiter, upload.single("file"), async (req, res) => {
         // alone, which left almost nothing in hand. Two attempts at 70s plus
         // backoff and Phase 1 still land near 155s, inside the 180s
         // server.requestTimeout.
-        geminiTimeoutMs: 70000,
-        geminiMaxAttempts: 2,
+        // ONE long attempt, not two short ones.
+        //
+        // 70s x 2 failed in live user testing on a large proposition: input
+        // ~10,983 tokens (~44k chars), both attempts hit "Gemini Timeout", and
+        // Groq cannot take a request that size so the upload died. The 70s came
+        // from a ~57s measurement on a SHORT proposition; a full-length one on
+        // Render's free tier needs far more than that.
+        //
+        // Two attempts can never both fit anyway: 2 x 70s is 140s, and anything
+        // longer breaks the 180s server.requestTimeout. So spend the budget on
+        // one attempt that can actually finish. 150s + Phase 1 (~15s) = ~165s.
+        geminiTimeoutMs: 150000,
+        geminiMaxAttempts: 1,
         requestLabel: "Full Legal Analysis"
       }),
       // Proposition Intelligence exists to feed the enrichment chain, and the
