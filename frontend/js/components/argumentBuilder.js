@@ -953,6 +953,11 @@ function renderMemorial(memorialData) {
       <hr class="border-[#e5e3de]">`);
   }
 
+  // ── Table of Contents ──
+  // A heading only; paginateMemorial() fills the entries in at export time,
+  // because the page numbers do not exist until the document is laid out.
+  parts.push(H('Table of Contents', '<div class="toc-host text-slate-500 text-[12.5px] italic">Page numbers are generated on export.</div>'));
+
   // ── Abbreviations ──
   const abbr = arr(m.listOfAbbreviations).filter(a => a && has(a.short));
   if (abbr.length) {
@@ -1293,7 +1298,17 @@ export function exportAsPDF(type) {
   if (cover && (cover.court || cover.memorialFor)) {
     const esc = v => String(v == null ? '' : v)
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    const stance = (window.mootState && window.mootState.stance) || cover.memorialFor || '';
+    /**
+     * The colour must follow what the DOCUMENT says, not what the app thinks.
+     *
+     * This read mootState.stance first, and the two can disagree: the stance
+     * selector said Petitioner while mootState held Respondent, producing a red
+     * cover headed "MEMORIAL FOR PETITIONER". A tester notices that instantly,
+     * and on a bench's table a mis-coloured cover is worse than none.
+     *
+     * cover.memorialFor is the line printed on the page, so it decides.
+     */
+    const stance = cover.memorialFor || (window.mootState && window.mootState.stance) || '';
     const c = coverColourFor(stance);
     const row = (v, cls) => v ? `<div class="${cls}">${esc(v)}</div>` : '';
     coverPageHtml = `
@@ -1534,7 +1549,11 @@ function paginateMemorial(win) {
   };
 
   // Section headings as the renderer emits them — ALL CAPS on their own line.
-  const SECTION_RE = /^(TABLE OF CONTENTS|LIST OF ABBREVIATIONS|INDEX OF AUTHORITIES|STATEMENT OF JURISDICTION|STATEMENT OF FACTS|ISSUES RAISED|SUMMARY OF ARGUMENTS|ARGUMENTS ADVANCED|PRAYER|NOTE ON CITATIONS)\b/;
+  // Case-insensitive on purpose: the HTML renderer emits title case and
+  // uppercases it in CSS, so textContent reads "Index of Authorities". An
+  // uppercase-only pattern matched nothing, which silently produced an export
+  // with no Table of Contents and no Index page references.
+  const SECTION_RE = /^(TABLE OF CONTENTS|LIST OF ABBREVIATIONS|INDEX OF AUTHORITIES|STATEMENT OF JURISDICTION|STATEMENT OF FACTS|ISSUES RAISED|SUMMARY OF ARGUMENTS|ARGUMENTS ADVANCED|FOOTNOTES|PRAYER|NOTE ON CITATIONS|INSTRUCTIONS NOT FOLLOWED)\b/i;
   const headings = [...body.querySelectorAll('h1,h2,h3,h4,h5,h6,p,div,strong,b')]
     .filter(el => {
       const t = (el.textContent || '').trim();
@@ -1579,13 +1598,13 @@ function paginateMemorial(win) {
   }
 
   // ── Table of Contents, with real page numbers ──
-  const tocHost = sections.find(el => /^TABLE OF CONTENTS/.test((el.textContent || '').trim()));
+  const tocHost = sections.find(el => /^TABLE OF CONTENTS/i.test((el.textContent || '').trim()));
   if (tocHost && sections.length > 1) {
     const list = doc.createElement('div');
     list.className = 'toc-list';
     for (const s of sections) {
       const label = (s.textContent || '').trim();
-      if (/^TABLE OF CONTENTS/.test(label)) continue;
+      if (/^TABLE OF CONTENTS/i.test(label)) continue;
       const line = doc.createElement('div');
       line.className = 'toc-line';
       line.innerHTML = `<span class="toc-label"></span><span class="toc-dots"></span><span class="toc-page"></span>`;
@@ -1599,8 +1618,8 @@ function paginateMemorial(win) {
   // ── Page references in the Index of Authorities ──
   // Each authority gets the pages where it is actually cited in the body, which
   // is what the Index is for: "Vodafone ... 13, 28".
-  const idxHost = sections.find(el => /^INDEX OF AUTHORITIES/.test((el.textContent || '').trim()));
-  const argHost = sections.find(el => /^ARGUMENTS ADVANCED/.test((el.textContent || '').trim()));
+  const idxHost = sections.find(el => /^INDEX OF AUTHORITIES/i.test((el.textContent || '').trim()));
+  const argHost = sections.find(el => /^ARGUMENTS ADVANCED/i.test((el.textContent || '').trim()));
   if (idxHost && argHost) {
     // Candidate authority lines sit between the Index heading and the next section.
     const after = [];
