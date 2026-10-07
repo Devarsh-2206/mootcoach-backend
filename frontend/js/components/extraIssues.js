@@ -20,6 +20,9 @@
  * the whole analysis to get it back.
  */
 
+import { lastAnalysis, setLastAnalysis } from './ui.js';
+import { currentUser, db } from '../services/firebase.js';
+
 const STATUS = { PENDING: 'pending', ADDED: 'added', DISMISSED: 'dismissed' };
 
 const RISK = {
@@ -37,10 +40,17 @@ function esc(s) {
 }
 
 /* The analysis JSON is the single source of truth, so a decision made here is
-   visible to every consumer without a second store to keep in sync. */
+   visible to every consumer without a second store to keep in sync.
+
+   It lives in ui.js as an exported binding, NOT on window. An earlier version
+   of this file read window.lastAnalysis alone, which nothing in the app ever
+   assigns - so every suggestion silently vanished and this step showed its
+   empty state even with an analysis open. Read it the way the rest of the app
+   does, and write it through the setter so the live binding updates for
+   everyone holding it. */
 function readAnalysis() {
   try {
-    const raw = window.lastAnalysis;
+    const raw = window.lastAnalysis || lastAnalysis;
     return raw ? JSON.parse(raw) : null;
   } catch (e) {
     console.error('[EXTRA ISSUES] Could not parse the analysis:', e);
@@ -48,8 +58,42 @@ function readAnalysis() {
   }
 }
 
+/**
+ * Save the adopt/dismiss decisions onto the stored analysis.
+ *
+ * Without this the choices live only in memory, so reopening the moot from the
+ * sidebar - which an advocate does constantly, one per moot - would silently
+ * put every decision back to undecided and reinstate suggestions they had
+ * already rejected.
+ *
+ * Fire and forget. A failed write must never block the click or lose the
+ * in-memory state, and the advocate can still work the whole session; they
+ * would only lose the decisions on a reload, which is the old behaviour.
+ */
+function persistDecisions(additionalIssues) {
+  const docId = window.currentMootDocId;
+  if (!docId || docId === 'default' || !currentUser || !db) return;
+  try {
+    db.collection('artifacts').doc('moot.coach')
+      .collection('users').doc(currentUser.uid)
+      .collection('analyses').doc(docId)
+      .update({ 'analysisData.additionalIssues': additionalIssues })
+      .catch(err => console.warn('[EXTRA ISSUES] Could not save the decision:', err && err.message));
+  } catch (e) {
+    console.warn('[EXTRA ISSUES] Could not save the decision:', e && e.message);
+  }
+}
+
 function writeAnalysis(data) {
-  window.lastAnalysis = JSON.stringify(data);
+  // Pretty-printed to match what showStructuredResults stores, since Copy All
+  // hands this same string to the clipboard.
+  const json = JSON.stringify(data, null, 2);
+  setLastAnalysis(json);
+  persistDecisions(data.additionalIssues || []);
+  // Only mirror onto window if something had already put it there. Making
+  // window the primary store would outlive the next upload and serve the
+  // previous moot's analysis to every consumer that prefers it.
+  if (window.lastAnalysis) window.lastAnalysis = json;
 }
 
 export function getSuggestions() {
@@ -160,13 +204,28 @@ export function renderExtraIssues() {
   const all = getSuggestions();
 
   if (!all.length) {
-    host.innerHTML = ''
+    // Two different situations here, and telling an advocate to "upload a
+    // proposition" when one is plainly open and analysed is the wrong answer
+    // to both. Say which it actually is.
+    const hasAnalysis = !!d && (framedCount > 0 || !!d.summary);
+    const shell = (icon, title, body) => ''
       + '<div style="text-align:center;padding:48px 24px;border:1px dashed var(--glass-b);border-radius:14px;">'
-      + '<div style="font-size:1.6rem;margin-bottom:10px;opacity:.5;">✛</div>'
-      + '<div style="font-size:.85rem;color:var(--white-muted);line-height:1.7;max-width:420px;margin:0 auto;">'
-      + 'No extra issues to consider yet. Upload and analyse a proposition in the Analysis step '
-      + 'and any issues its facts will carry but it never states will be offered here.'
-      + '</div></div>';
+      + '<div style="font-size:1.6rem;margin-bottom:10px;opacity:.5;">' + icon + '</div>'
+      + '<div style="font-size:.92rem;color:var(--white);margin-bottom:9px;">' + title + '</div>'
+      + '<div style="font-size:.82rem;color:var(--white-muted);line-height:1.72;max-width:470px;margin:0 auto;">'
+      + body + '</div>'
+      + '<button class="btn-sm btn-sm-ghost" style="margin-top:18px;" onclick="window.goToStage(1)">'
+      + '← Back to Analysis</button>'
+      + '</div>';
+
+    host.innerHTML = hasAnalysis
+      ? shell('○', 'No extra issues for this analysis',
+          'The analysis is loaded, but it did not come with any suggested issues. That is '
+          + 'usually because it was run before this step existed — re-upload the proposition '
+          + 'in the Analysis step and the extra issues will be offered here.')
+      : shell('✛', 'Nothing to consider yet',
+          'Upload and analyse a proposition in the Analysis step, and any issues its facts '
+          + 'will carry but it never states will be offered here.');
     return;
   }
 
