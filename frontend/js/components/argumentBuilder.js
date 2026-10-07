@@ -1161,6 +1161,7 @@ export function populateIssuesFromAnalysis() {
     if (analysisStr) {
       const data = JSON.parse(analysisStr);
       const issues = data.legalIssues || [];
+      const suggested = (data.additionalIssues || []).filter(a => a && a.issue);
       if (issues.length > 0) {
         select.innerHTML = '';
         issues.forEach((issue, index) => {
@@ -1169,7 +1170,23 @@ export function populateIssuesFromAnalysis() {
           opt.textContent = `Issue ${index + 1}: ${issue}`;
           select.appendChild(opt);
         });
-        console.log("Loaded issues dynamically from analysis into Argument Builder.");
+        // The suggested issues are the reason this feature exists: an advocate
+        // adds issues to win marks, and they can only do that if the builder
+        // will draft one. Grouped separately so nobody mistakes a suggestion
+        // for something the proposition actually framed, and the risk label
+        // travels with it - they are choosing whether to spend oral time here.
+        if (suggested.length > 0) {
+          const grp = document.createElement('optgroup');
+          grp.label = 'Suggested \u2014 not framed by the proposition';
+          suggested.forEach((a, i) => {
+            const opt = document.createElement('option');
+            opt.value = a.issue;
+            opt.textContent = `Issue ${issues.length + i + 1} (${a.confidence || 'Arguable'}): ${a.issue}`;
+            grp.appendChild(opt);
+          });
+          select.appendChild(grp);
+        }
+        console.log(`Loaded ${issues.length} framed + ${suggested.length} suggested issues into Argument Builder.`);
         renderPreDraftAuthorities();
         return;
       }

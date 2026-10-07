@@ -44,6 +44,19 @@ function buildNormalizedIssues(data) {
       out.push({ title: titleText, raw: iss, source: 'analysis' });
     });
   }
+
+  // The suggested issues belong in the stack as well, or an advocate who
+  // reopens a saved session loses every extra issue they were offered and is
+  // back to only what the proposition framed. They go last so the framed ones
+  // keep the numbering the memorial and the bench expect.
+  const suggested = (data && data.analysisData && data.analysisData.additionalIssues)
+    || (data && data.additionalIssues)
+    || null;
+  if (Array.isArray(suggested)) {
+    suggested.forEach(a => {
+      if (a && a.issue) out.push({ title: a.issue, raw: a, source: 'suggested' });
+    });
+  }
   return out;
 }
 
@@ -73,9 +86,15 @@ export function populateIssueStack(data) {
   let html = '';
   normalizedIssues.forEach((issue, index) => {
     const shortName = String(issue.title).split(':')[0].trim();
+    // A different mark for a suggested issue: the advocate must be able to tell
+    // at a glance which of these the proposition actually framed, because that
+    // changes how they open on it before the bench.
+    const isSuggested = issue.source === 'suggested';
+    const icon = isSuggested ? '✛' : '❖';
+    const titleAttr = isSuggested ? 'Suggested — not framed by the proposition' : 'Framed by the proposition';
     html += `
-      <button class="ws-sb-item text-left" id="btn-issue-${index}" onclick="window.selectIssue(${index})">
-        <span class="ws-sb-icon">❖</span> <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" class="text-xs">${shortName}</span>
+      <button class="ws-sb-item text-left" id="btn-issue-${index}" onclick="window.selectIssue(${index})" title="${titleAttr}">
+        <span class="ws-sb-icon">${icon}</span> <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" class="text-xs">${shortName}</span>
       </button>
     `;
   });

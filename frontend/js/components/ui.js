@@ -418,7 +418,7 @@ export async function loadSavedSession(docId) {
 /* ─── RENDERERS & UTILS ─── */
 export const SECTION_CONFIGS = {
   summary:      { icon:'◈', iconCls:'asc-icon-gold',   badgeTxt:'Overview',   badgeCls:'badge-gold',   title:'Case Summary'                 },
-  legal:        { icon:'⚖', iconCls:'asc-icon-blue',   badgeTxt:'Issues',     badgeCls:'badge-blue',   title:'Legal Issues'                 },
+  legal:        { icon:'⚖', iconCls:'asc-icon-blue',   badgeTxt:'Issues',     badgeCls:'badge-blue',   title:'Issues Framed in the Proposition' },
   petitioner:   { icon:'▲', iconCls:'asc-icon-green',  badgeTxt:'Applicant',  badgeCls:'badge-green',  title:'Petitioner Arguments'         },
   respondent:   { icon:'▼', iconCls:'asc-icon-red',    badgeTxt:'Opposition', badgeCls:'badge-red',    title:'Respondent Arguments'         },
   cases:        { icon:'◉', iconCls:'asc-icon-purple', badgeTxt:'Precedents', badgeCls:'badge-purple', title:'Cases & Precedents'           },
@@ -431,9 +431,7 @@ export const SECTION_CONFIGS = {
   bench:        { icon:'⚑', iconCls:'asc-icon-blue',   badgeTxt:'Bench',      badgeCls:'badge-blue',   title:'Bench Questions'              },
   vulnerability:{ icon:'◬', iconCls:'asc-icon-red',    badgeTxt:'Risk',       badgeCls:'badge-red',    title:'Bench Vulnerabilities'        },
   missing:      { icon:'◌', iconCls:'asc-icon-purple', badgeTxt:'Gaps',       badgeCls:'badge-purple', title:'Missing Legal Angles'         },
-  strengths:    { icon:'▲', iconCls:'asc-icon-green',  badgeTxt:'Strengths',  badgeCls:'badge-green',  title:'Proposition Strengths'        },
-  weaknesses:   { icon:'▼', iconCls:'asc-icon-red',    badgeTxt:'Weaknesses', badgeCls:'badge-red',    title:'Proposition Weaknesses'       },
-  scoring:      { icon:'◎', iconCls:'asc-icon-gold',   badgeTxt:'Evaluation', badgeCls:'badge-gold',   title:'Scoring Breakdown'         },
+  addIssues:    { icon:'✛', iconCls:'asc-icon-green',  badgeTxt:'Extra Marks',badgeCls:'badge-green',  title:'Additional Issues You Can Raise' },
   argDefects:   { icon:'◬', iconCls:'asc-icon-red',    badgeTxt:'Defects',    badgeCls:'badge-red',    title:'Argument Defect Analysis'  },
 };
 
@@ -682,11 +680,65 @@ export function renderSectionBody(type, content, score) {
     case 'bench':        return renderBullets(content,'ib-blue');
     case 'vulnerability':return renderBullets(content,'ib-red');
     case 'missing':      return renderBullets(content,'ib-purple');
-    case 'strengths':    return renderBullets(content,'ib-green');
-    case 'weaknesses':   return renderBullets(content,'ib-red');
+    case 'addIssues':    return renderBullets(content,'ib-green');
     case 'argDefects':   return renderBullets(content,'ib-red');
     default:             return renderBullets(content);
   }
+}
+
+/**
+ * Suggested issues the proposition does not frame.
+ *
+ * Each one shows its anchor in the record, because that is what decides whether
+ * counsel can actually stand up and raise it. The risk label is deliberately
+ * prominent: an "Aggressive" suggestion earns marks only if argued well, and an
+ * advocate choosing where to spend oral time needs to see that before the
+ * wording of the issue seduces them.
+ */
+export function renderAdditionalIssues(list, framedCount) {
+  const items = (list || []).filter(a => a && a.issue);
+  if (!items.length) return '';
+
+  const RISK = {
+    Safe:       { cls: 'badge-green', dot: '#4caf82', note: 'a bench would expect this to be raised' },
+    Arguable:   { cls: 'badge-gold',  dot: '#c9a227', note: 'genuinely open — needs a clean authority' },
+    Aggressive: { cls: 'badge-red',   dot: '#B0392E', note: 'a stretch the bench may reject' },
+  };
+
+  const field = (label, val) => val
+    ? '<div style="display:flex;gap:9px;margin-top:9px;font-size:.78rem;line-height:1.62;">'
+      + '<span style="color:var(--white-muted);flex:0 0 94px;">' + label + '</span>'
+      + '<span style="color:var(--white-2);flex:1;">' + fmtInline(String(val)) + '</span></div>'
+    : '';
+
+  const rows = items.map((a, i) => {
+    const risk = RISK[a.confidence] || RISK.Arguable;
+    const n = (framedCount || 0) + i + 1;
+    return '<div style="border:1px solid var(--glass-b);border-radius:12px;padding:15px 17px;margin-bottom:13px;background:var(--glass);">'
+      + '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">'
+      +   '<div style="font-size:.88rem;line-height:1.6;color:var(--white);font-weight:500;flex:1;">'
+      +     '<span style="color:var(--white-muted);font-weight:400;">Issue ' + n + '.</span> ' + fmtInline(String(a.issue))
+      +   '</div>'
+      +   '<span class="asc-badge ' + risk.cls + '" style="flex:0 0 auto;white-space:nowrap;">' + a.confidence + '</span>'
+      + '</div>'
+      + '<div style="font-size:.72rem;color:var(--white-muted);margin-top:6px;">'
+      +   '<span style="color:' + risk.dot + ';">●</span> ' + risk.note
+      + '</div>'
+      + field('Grounded in', a.groundedIn)
+      + field('Rests on', a.legalBasis)
+      + field('Helps', a.favours)
+      + field('Earns marks', a.whyItEarnsMarks)
+      + '</div>';
+  }).join('');
+
+  const fc = framedCount || 0;
+  const intro = 'The proposition frames ' + fc + ' issue' + (fc === 1 ? '' : 's') + '. These '
+    + items.length + ' are further issues its facts will carry but it never states — the kind a bench '
+    + 'credits counsel for spotting. Each shows what in the record puts it in play; raise only the ones '
+    + 'you can anchor there.';
+
+  return '<div style="font-size:.78rem;color:var(--white-muted);line-height:1.68;margin-bottom:15px;'
+    + 'padding-bottom:13px;border-bottom:1px solid var(--glass-b);">' + intro + '</div>' + rows;
 }
 
 export function buildScoreHero(sections) {
@@ -907,84 +959,52 @@ export function showRejection(msg, documentType) {
   document.getElementById('analyze-submit-btn').disabled = false;
 }
 
-export function renderCategoryScores(categoryScores) {
-  if (!categoryScores) return '';
-  const cats = [
-    { key:'issueIdentification', label:'Issue Identification', max:20 },
-    { key:'legalComplexity',     label:'Legal Complexity',     max:20 },
-    { key:'constitutionalDepth', label:'Constitutional Depth', max:15 },
-    { key:'precedentPotential',  label:'Precedent Potential',  max:15 },
-    { key:'argumentBalance',     label:'Argument Balance',     max:10 },
-    { key:'mootReadiness',       label:'Moot Readiness',       max:10 },
-    { key:'originality',         label:'Originality / Novelty',max:10 },
-  ];
-  const rows = cats.map(cat => {
-    const d = categoryScores[cat.key];
-    if (!d) return '';
-    const sc  = Math.min(cat.max, Math.max(0, Number(d.score) || 0));
-    const pct = Math.round((sc / cat.max) * 100);
-    const bCls = pct >= 74 ? 'sf-green' : pct >= 50 ? 'sf-gold' : 'sf-red';
-    return `
-      <div style="margin-bottom:18px;">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px;">
-          <div style="font-size:.8rem;color:var(--white-2);">${cat.label}</div>
-          <div style="font-size:.8rem;color:var(--white);font-weight:500;">${sc}<span style="color:var(--white-muted);font-weight:300;">/${cat.max}</span></div>
-        </div>
-        <div class="sc-bar" style="height:4px;border-radius:2px;">
-          <div class="sc-bar-fill ${bCls}" data-target="${pct}%" style="width:0%"></div>
-        </div>
-        ${d.justification ? `<div style="font-size:.74rem;color:var(--white-muted);margin-top:7px;line-height:1.65;">${fmtInline(d.justification)}</div>` : ''}
-      </div>`;
-  }).join('');
-  return `
-    <div class="analysis-section-card" id="asc-card-scoring" style="animation-delay:0.04s">
-      <div class="asc-header" id="asc-h-scoring" onclick="toggleSection('scoring')">
-        <div class="asc-header-left">
-          <div class="asc-icon asc-icon-gold">◎</div>
-          <div class="asc-title">Scoring Breakdown</div>
-        </div>
-        <div class="asc-header-right">
-          <span class="asc-badge badge-gold">Evaluation</span>
-          <button class="asc-copy" onclick="event.stopPropagation();copySectionText('scoring',this)">Copy</button>
-          <span class="asc-chevron">▾</span>
-        </div>
-      </div>
-      <div class="asc-body" id="asc-b-scoring" style="padding:22px 24px;">${rows}</div>
-    </div>`;
-}
-
+/**
+ * The three things worth knowing before prep starts.
+ *
+ * The first card used to be a 0-94 grade for the proposition. That is gone on
+ * purpose: the proposition is fixed by the competition, so telling an advocate
+ * their problem is "Weak" costs them confidence and buys them nothing. The
+ * issue count replaces it because it is actionable - it is how many issues they
+ * can carry into the memorial, framed plus suggested.
+ *
+ * Oral Difficulty and Research Load stay. They describe the task rather than
+ * grade the drafter, so they genuinely help budget prep time.
+ */
 export function buildStructuredScoreHero(data) {
-  const score  = Number(data.overallScore) || 0;
-  const oralD  = data.oralDifficulty  || 'medium';
-  const resD   = data.researchDifficulty || 'medium';
-  const verdict = data.scoreVerdict || 'Average';
-  const sPct   = score;
-  const oPct   = oralD === 'high' ? 84 : oralD === 'low' ? 25 : 52;
-  const rPct   = resD  === 'high' ? 88 : resD  === 'low' ? 28 : 56;
-  const sBCls  = score >= 73 ? 'sf-green' : score >= 51 ? 'sf-gold' : 'sf-red';
-  
-  const txtCls = score >= 73 ? 'text-green' : score >= 51 ? 'text-gold' : 'text-red';
-  
-  const dlbl   = { high:'High', medium:'Moderate', low:'Low' };
-  const oReason = data.oralDifficultyReason   ? data.oralDifficultyReason.slice(0,72)   + (data.oralDifficultyReason.length   > 72 ? '…' : '') : '';
-  const rReason = data.researchDifficultyReason ? data.researchDifficultyReason.slice(0,72) + (data.researchDifficultyReason.length > 72 ? '…' : '') : '';
+  const framed = (data.legalIssues || []).length;
+  const extra  = (data.additionalIssues || []).length;
+  const total  = framed + extra;
+  const oralD  = data.oralDifficulty || "medium";
+  const resD   = data.researchDifficulty || "medium";
+  const oPct   = oralD === "high" ? 84 : oralD === "low" ? 25 : 52;
+  const rPct   = resD  === "high" ? 88 : resD  === "low" ? 28 : 56;
+  const iPct   = Math.min(100, total * 11);
+  const dlbl   = { high:"High", medium:"Moderate", low:"Low" };
+  const clip   = (t) => t ? t.slice(0,72) + (t.length > 72 ? "\u2026" : "") : "";
+  const oReason = clip(data.oralDifficultyReason);
+  const rReason = clip(data.researchDifficultyReason);
+  const issueSub = extra
+    ? framed + " framed \u00b7 " + extra + " suggested below"
+    : framed + " framed in the proposition";
+
   return `
     <div class="score-hero">
       <div class="score-card">
-        <div class="sc-label"><span class="sc-label-dot"></span>Moot Readiness</div>
-        <div class="sc-value ${txtCls}" id="animated-main-score">0</div>
-        <div class="sc-sub">${verdict}</div>
-        <div class="sc-bar"><div class="sc-bar-fill ${sBCls}" data-target="${sPct}%" style="width:0%"></div></div>
+        <div class="sc-label"><span class="sc-label-dot"></span>Issues to Argue</div>
+        <div class="sc-value text-green" id="animated-main-score">0</div>
+        <div class="sc-sub">${issueSub}</div>
+        <div class="sc-bar"><div class="sc-bar-fill sf-green" data-target="${iPct}%" style="width:0%"></div></div>
       </div>
       <div class="score-card">
         <div class="sc-label"><span class="sc-label-dot"></span>Oral Difficulty</div>
-        <div class="sc-value" style="font-size:1.5rem;padding-top:8px;">${dlbl[oralD] || 'Moderate'}</div>
+        <div class="sc-value" style="font-size:1.5rem;padding-top:8px;">${dlbl[oralD] || "Moderate"}</div>
         <div class="sc-sub" style="font-size:.68rem;line-height:1.5;">${oReason}</div>
         <div class="sc-bar"><div class="sc-bar-fill sf-blue" data-target="${oPct}%" style="width:0%"></div></div>
       </div>
       <div class="score-card">
         <div class="sc-label"><span class="sc-label-dot"></span>Research Load</div>
-        <div class="sc-value" style="font-size:1.5rem;padding-top:8px;">${dlbl[resD] || 'Moderate'}</div>
+        <div class="sc-value" style="font-size:1.5rem;padding-top:8px;">${dlbl[resD] || "Moderate"}</div>
         <div class="sc-sub" style="font-size:.68rem;line-height:1.5;">${rReason}</div>
         <div class="sc-bar"><div class="sc-bar-fill sf-purple" data-target="${rPct}%" style="width:0%"></div></div>
       </div>
@@ -1011,7 +1031,11 @@ export function showStructuredResults(data) {
 
     const sections = [
       data.summary && { type:'summary', heading:'Case Summary', content: data.summary },
-      (data.legalIssues || []).length          && { type:'legal',         heading:'Legal Issues',              content: toList(data.legalIssues) },
+      (data.legalIssues || []).length          && { type:'legal',         heading:'Issues Framed in the Proposition', content: toList(data.legalIssues) },
+      (data.additionalIssues || []).length     && {
+        type:"addIssues", heading:"Additional Issues You Can Raise", content:"",
+        _rawAddIssues: data.additionalIssues, _framedCount: (data.legalIssues || []).length
+      },
       (data.petitionerArguments || []).length  && { type:'petitioner',    heading:'Petitioner Arguments',      content: toList(data.petitionerArguments) },
       (data.respondentArguments || []).length  && { type:'respondent',    heading:'Respondent Arguments',      content: toList(data.respondentArguments) },
       (data.argumentDefects?.petitioner?.length || data.argumentDefects?.respondent?.length) && {
@@ -1025,20 +1049,14 @@ export function showStructuredResults(data) {
       },
       (data.benchQuestions || []).length       && { type:'bench',         heading:'Bench Questions',           content: toList(data.benchQuestions) },
       (data.benchVulnerabilities || []).length && { type:'vulnerability', heading:'Bench Vulnerabilities',     content: toList(data.benchVulnerabilities) },
-      (data.strengths || []).length            && { type:'strengths',     heading:'Proposition Strengths',     content: toList(data.strengths) },
-      (data.weaknesses || []).length           && { type:'weaknesses',    heading:'Proposition Weaknesses',    content: toList(data.weaknesses) },
       (data.missingAngles || []).length        && { type:'missing',       heading:'Missing Legal Angles',      content: toList(data.missingAngles) },
-      (data.mostContestableIssue || data.finalVerdict) && {
+      data.mostContestableIssue && {
         type:'strategy', heading:'Strategic Insights',
-        content: [
-          data.mostContestableIssue && `**Most Contestable Issue:** ${data.mostContestableIssue}`,
-          data.finalVerdict && `**Final Verdict:** ${data.finalVerdict}`,
-        ].filter(Boolean).join('\n\n')
+        content: `**Most Contestable Issue:** ${data.mostContestableIssue}`
       },
     ].filter(Boolean);
 
     const heroHTML    = buildStructuredScoreHero(data);
-    const scoringHTML = renderCategoryScores(data.categoryScores);
 
     const navHTML = sections.map((s, i) => {
       const cfg = SECTION_CONFIGS[s.type] || SECTION_CONFIGS.default;
@@ -1049,8 +1067,16 @@ export function showStructuredResults(data) {
       const cfg = SECTION_CONFIGS[sec.type] || SECTION_CONFIGS.default;
       let body;
       if (sec.type === 'argDefects')                      body = renderArgumentDefects(sec._raw);
+      else if (sec.type === 'addIssues')                   body = renderAdditionalIssues(sec._rawAddIssues, sec._framedCount);
       else if (sec.type === 'cases' && sec._rawCases)     body = renderCases(sec.content, sec._rawCases);
-      else                                                body = renderSectionBody(sec.type, sec.content, data.overallScore);
+      else                                                body = renderSectionBody(sec.type, sec.content);
+
+      // Every card is capped at 450px with an inner scrollbar. That suits a
+      // bullet list, but a suggested issue carries five lines of grounding, so
+      // four of them run past 1000px and the advocate sees two with no obvious
+      // reason to look for more. This is the one card that sizes to its
+      // content, because a suggestion nobody scrolls to is not a suggestion.
+      const bodyExtra = sec.type === 'addIssues' ? 'max-height:none;' : '';
 
       return `
         <div class="analysis-section-card" id="asc-card-${i}" style="animation-delay:${(i + 2) * 0.055}s">
@@ -1065,14 +1091,13 @@ export function showStructuredResults(data) {
               <span class="asc-chevron">▾</span>
             </div>
           </div>
-          <div class="asc-body" id="asc-b-${i}" style="padding:20px 22px;">${body}</div>
+          <div class="asc-body" id="asc-b-${i}" style="padding:20px 22px;${bodyExtra}">${body}</div>
         </div>`;
     }).join('');
 
     document.getElementById('analysis-output').innerHTML = `
       <div class="result-grid">
         ${heroHTML}
-        ${scoringHTML}
         <div class="result-divider"><span>Detailed Analysis</span></div>
         ${cardsHTML}
       </div>`;
@@ -1090,7 +1115,10 @@ export function showStructuredResults(data) {
     setTimeout(() => { 
       animateBars(); 
       initScrollSpy(); 
-      if (scoreElement) animateValue(scoreElement, 0, data.overallScore || 0, 1500);
+      if (scoreElement) {
+        const issueTotal = (data.legalIssues || []).length + (data.additionalIssues || []).length;
+        animateValue(scoreElement, 0, issueTotal, 1200);
+      }
     }, 180);
   } catch (error) {
     console.error("Rendering Error:", error);
@@ -1255,6 +1283,10 @@ export function renderStage2Issues() {
   if (!container) return;
 
   let issues = [];
+  // Parallel to `issues`: null for a framed issue, the suggestion object for
+  // an added one. Keyed by index so the card renderer can badge them without
+  // changing the shape of `issues`, which the builder reads by value.
+  let issueMeta = [];
   try {
     const analysisStr = window.lastAnalysis || lastAnalysis;
     if (analysisStr) {
@@ -1265,6 +1297,12 @@ export function renderStage2Issues() {
       } else {
         issues = data.legalIssues || [];
       }
+      issueMeta = issues.map(() => null);
+      // Suggested issues come last so the framed ones keep their numbering,
+      // which the memorial and the bench both expect to match the proposition.
+      (data.additionalIssues || []).forEach(a => {
+        if (a && a.issue) { issues.push(a.issue); issueMeta.push(a); }
+      });
     }
   } catch (e) {
     console.error("Error parsing analysis for Stage 2 issues:", e);
@@ -1330,6 +1368,26 @@ export function renderStage2Issues() {
           path = "Alternate Path";
           pathCls = "bg-[#8C8270]/12 text-[#6b5f4d] border border-[#8C8270]/30";
           advice = "Evaluate alternative remedies. Ensure prayer for relief maps directly to substantive violations.";
+        }
+
+        const sugg = issueMeta[idx];
+        if (sugg) {
+          importance = "Suggested \u2014 Extra Marks";
+          importanceCls = "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
+          path = sugg.legalBasis ? String(sugg.legalBasis).slice(0, 44) : "Added Ground";
+          pathCls = "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
+          if (sugg.confidence === "Safe") {
+            difficulty = "Safe to raise";
+            difficultyCls = "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
+          } else if (sugg.confidence === "Aggressive") {
+            difficulty = "Aggressive";
+            difficultyCls = "bg-red-500/10 text-red-400 border border-red-500/20";
+          } else {
+            difficulty = "Arguable";
+            difficultyCls = "bg-amber-500/10 text-amber-400 border border-amber-500/20";
+          }
+          advice = (sugg.groundedIn ? "Anchor it in the record: " + sugg.groundedIn + " " : "")
+                 + (sugg.whyItEarnsMarks || "");
         }
 
         return `

@@ -668,24 +668,60 @@ app.post("/analyze", aiLimiter, upload.single("file"), async (req, res) => {
       return res.status(500).json({ success: false, error: "AI failed to format response correctly." });
     }
 
-    /* ── PHASE 4: Score Normalization ── */
-    const catScores = analysisData.categoryScores || {};
-    const computedSum = Object.values(catScores).reduce((sum, c) => sum + (Number(c.score) || 0), 0);
-    const aiScore = Number(analysisData.overallScore) || 0;
+    /* ── PHASE 4: Additional-issue integrity guard ──
+       Score normalisation used to live here. It is gone with the grading: the
+       proposition is fixed by the competition, so rating its drafting gave the
+       advocate nothing to act on.
 
-    if (computedSum > 0 && aiScore !== computedSum) {
-      analysisData.overallScore = computedSum;
+       What replaces it matters more. "additionalIssues" are suggestions the
+       advocate may take into a real bench, so the model is not trusted to
+       police its own grounding — same reason the citation guard overrides the
+       model's verify flag. An issue with no anchor in the record is exactly
+       the kind that gets counsel shut down, so it is dropped here rather than
+       shown with a caveat. */
+    const normIssue = (t) => String(t || "").toLowerCase().replace(/[^a-z0-9 ]+/g, " ").replace(/s+/g, " ").trim();
+    const framed = (analysisData.legalIssues || []).map(normIssue).filter(Boolean);
+    const framedTokens = framed.map(f => new Set(f.split(" ")));
+    const CONFIDENCES = ["Safe", "Arguable", "Aggressive"];
+    let droppedIssues = 0;
+
+    analysisData.additionalIssues = (Array.isArray(analysisData.additionalIssues) ? analysisData.additionalIssues : [])
+      .filter(a => a && typeof a === "object")
+      // No anchor in the record, no suggestion. groundedIn is the whole
+      // defence against suggesting an issue the facts cannot carry.
+      .filter(a => {
+        const ok = String(a.issue || "").trim().length > 12 && String(a.groundedIn || "").trim().length > 8;
+        if (!ok) droppedIssues++;
+        return ok;
+      })
+      // A rephrased framed issue is not an extra issue. Exact match after
+      // normalising, plus heavy token overlap to catch the rewordings.
+      .filter(a => {
+        const n = normIssue(a.issue);
+        if (framed.includes(n)) { droppedIssues++; return false; }
+        const t = new Set(n.split(" "));
+        const dup = framedTokens.some(f => {
+          let shared = 0;
+          t.forEach(w => { if (f.has(w)) shared++; });
+          const union = new Set([...t, ...f]).size;
+          return union > 0 && shared / union >= 0.72;
+        });
+        if (dup) droppedIssues++;
+        return !dup;
+      })
+      // Drop duplicates among the suggestions themselves.
+      .filter((a, i, arr) => arr.findIndex(b => normIssue(b.issue) === normIssue(a.issue)) === i)
+      .map(a => ({
+        ...a,
+        // An unlabelled or invented risk level defaults to the honest middle,
+        // never to "Safe" — the advocate is deciding whether to risk oral time.
+        confidence: CONFIDENCES.find(c => c.toLowerCase() === String(a.confidence || "").trim().toLowerCase()) || "Arguable",
+        favours: ["Petitioner", "Respondent", "Both"].find(f => f.toLowerCase() === String(a.favours || "").trim().toLowerCase()) || "Both"
+      }));
+
+    if (droppedIssues) {
+      console.log(`[ANALYSIS] Dropped ${droppedIssues} suggested issue(s): ungrounded or a restatement of a framed issue.`);
     }
-
-    // THE FIX: Allow scores to go all the way down to 0 (removed the Math.max(10) safety net)
-    analysisData.overallScore = Math.min(94, Math.max(0, analysisData.overallScore));
-
-    const s = analysisData.overallScore;
-    if      (s >= 88) analysisData.scoreVerdict = "Exceptional";
-    else if (s >= 73) analysisData.scoreVerdict = "Strong";
-    else if (s >= 51) analysisData.scoreVerdict = "Average";
-    else if (s >= 28) analysisData.scoreVerdict = "Weak";
-    else              analysisData.scoreVerdict = "Critically Flawed";
 
     /* ── PHASES 5-10: enrichment ──
        Runs after the core analysis so it never competes with it for provider
