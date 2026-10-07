@@ -645,6 +645,13 @@ app.post("/analyze", aiLimiter, upload.single("file"), async (req, res) => {
         // one attempt that can actually finish. 150s + Phase 1 (~15s) = ~165s.
         geminiTimeoutMs: 150000,
         geminiMaxAttempts: 1,
+        // One model may take the full 150s; the CHAIN may not take six times
+        // that. Measured on production, two uploads reached 174s because a
+        // model refused and the fallthrough landed on a slow one. 135s leaves
+        // the Groq fallback behind it and Phase 1 ahead of it inside the 180s
+        // request ceiling, so a bad run ends in a clear 504 rather than the
+        // socket being cut with nothing to show.
+        totalBudgetMs: 135000,
         requestLabel: "Full Legal Analysis"
       }),
       // Proposition Intelligence exists to feed the enrichment chain, and the
@@ -825,6 +832,7 @@ app.post("/evaluate-oral", aiLimiter, express.json(), async (req, res) => {
       primaryProvider: "gemini",
       geminiTimeoutMs: 120000,
       geminiMaxAttempts: 1,
+      totalBudgetMs: 120000,
       requestLabel: "Oral Evaluation"
     });
 
@@ -1172,6 +1180,10 @@ Authorities. Cite nothing you cannot stand behind: mark anything uncertain with
       // memorial plus the oral-advocacy and citations blocks in one response.
       geminiTimeoutMs: timeoutMs,
       geminiMaxAttempts: 1,
+      // This route already decides whether a second call fits; the chain
+      // inside each call must respect the same figure rather than spending it
+      // six times over.
+      totalBudgetMs: timeoutMs,
       requestLabel: "Build Side-Aware Argument Package"
     });
 
@@ -1380,6 +1392,7 @@ app.post("/api/analyse-memorial", aiLimiter, upload.single("file"), async (req, 
       primaryProvider: "gemini",
       geminiTimeoutMs: 120000,
       geminiMaxAttempts: 1,
+      totalBudgetMs: 120000,
       requestLabel: "Memorial Review"
     });
 

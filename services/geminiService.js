@@ -290,7 +290,24 @@ async function getChatCompletion({
   groqMaxAttempts = 3,
   geminiTimeoutMs = 90000,
   geminiMaxAttempts = 3,
-  geminiBackoffMs = 1500
+  geminiBackoffMs = 1500,
+  // Ceiling for the WHOLE Gemini chain, not one model.
+  //
+  // geminiTimeoutMs is per attempt and the chain walks up to six models, but a
+  // timeout deliberately does not advance it (see worthSwitching below), so the
+  // exposure is not six full timeouts. It is this: several models refuse in a
+  // few seconds each, the chain lands on a slow one, and THAT one still gets
+  // the full geminiTimeoutMs no matter how much of the request has already
+  // gone. Measured on production, two uploads reached 173.8s and 174.1s against
+  // a 180s server.requestTimeout - six seconds from being cut mid-flight with
+  // nothing to show the advocate.
+  //
+  // With a budget, the time spent on refusals comes out of the slow model's
+  // allowance instead of being added to it.
+  //
+  // 0 keeps the old uncapped behaviour for the short calls that cannot get
+  // anywhere near the limit. The long routes set it explicitly.
+  totalBudgetMs = 0
 }) {
   const startTime = Date.now();
   console.log(`[AI TRACE] [${requestLabel}] Starting request. Primary provider: ${primaryProvider}`);
@@ -396,8 +413,9 @@ async function getChatCompletion({
     'gemini-2.5-flash,gemini-3.6-flash,gemini-3.8-flash,gemini-3-flash-preview,gemini-3.1-flash-lite,gemini-3.5-flash-lite')
     .split(',').map(s => s.trim()).filter(Boolean);
 
-  const runGeminiOn = async (model) => {
+  const runGeminiOn = async (model, attemptTimeoutMs) => {
     let lastError = null;
+    const timeoutMs = attemptTimeoutMs || geminiTimeoutMs;
 
     for (let attempt = 0; attempt < geminiMaxAttempts; attempt++) {
       try {
@@ -415,7 +433,7 @@ async function getChatCompletion({
             }
           }),
           new Promise((_, reject) =>
-            setTimeout(() => reject(new Error(`Gemini Timeout`)), geminiTimeoutMs)
+            setTimeout(() => reject(new Error(`Gemini Timeout`)), timeoutMs)
           )
         ]);
 
@@ -467,10 +485,35 @@ async function getChatCompletion({
 
   const runGemini = async () => {
     let lastError = null;
+    const chainStart = Date.now();
+    // Below this there is no point starting another model: it cannot finish,
+    // and the time is better spent failing cleanly than being cut mid-flight.
+    const MIN_USEFUL_MS = 8000;
+
     for (let i = 0; i < GEMINI_MODELS.length; i++) {
       const model = GEMINI_MODELS[i];
+
+      let attemptMs = geminiTimeoutMs;
+      if (totalBudgetMs > 0) {
+        const remaining = totalBudgetMs - (Date.now() - chainStart);
+        // The floor only governs whether to start ANOTHER model. The first one
+        // always runs, clamped to the budget - a caller who sets a small budget
+        // wants a short call, not no call at all.
+        if (i > 0 && remaining < MIN_USEFUL_MS) {
+          console.warn(`[AI TRACE] [${requestLabel}] Chain budget spent after ${i} model(s); not starting ${model}.`);
+          // Always a timeout, never the previous model's refusal. The route
+          // classifies on this text: rethrowing a stale 503 would tell the
+          // advocate the provider is "briefly overloaded, try again" when
+          // what actually happened is that the request ran out of time.
+          const why = lastError ? ` (last: ${String(lastError.message).slice(0, 60)})` : '';
+          throw new Error(`Gemini Timeout: the model chain used its ${Math.round(totalBudgetMs / 1000)}s budget${why}`);
+        }
+        // Never let one model borrow time the chain does not have.
+        attemptMs = Math.min(geminiTimeoutMs, remaining);
+      }
+
       try {
-        return await runGeminiOn(model);
+        return await runGeminiOn(model, attemptMs);
       } catch (err) {
         lastError = err;
         const msg = String((err && err.message) || '');
