@@ -53,9 +53,11 @@ function buildNormalizedIssues(data) {
     || (data && data.additionalIssues)
     || null;
   if (Array.isArray(suggested)) {
-    suggested.forEach(a => {
-      if (a && a.issue) out.push({ title: a.issue, raw: a, source: 'suggested' });
-    });
+    // Adopted only. Reopening a saved session must not quietly reinstate
+    // suggestions the advocate had decided against.
+    suggested
+      .filter(a => a && a.issue && a.status === 'added')
+      .forEach(a => out.push({ title: a.issue, raw: a, source: 'suggested' }));
   }
   return out;
 }

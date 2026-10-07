@@ -686,58 +686,52 @@ export function renderSectionBody(type, content, score) {
 }
 
 /**
- * Suggested issues the proposition does not frame.
+ * Stage 1 summary of the suggested issues.
  *
- * Each one shows its anchor in the record, because that is what decides whether
- * counsel can actually stand up and raise it. The risk label is deliberately
- * prominent: an "Aggressive" suggestion earns marks only if argued well, and an
- * advocate choosing where to spend oral time needs to see that before the
- * wording of the issue seduces them.
+ * Deliberately NOT the place to accept them. The analysis should show what
+ * was found, but choosing which to argue is its own step - mixed in among
+ * nine analysis cards, the decision gets scrolled past, and a suggestion
+ * adopted without thought is one the bench will take apart.
  */
 export function renderAdditionalIssues(list, framedCount) {
   const items = (list || []).filter(a => a && a.issue);
   if (!items.length) return '';
 
-  const RISK = {
-    Safe:       { cls: 'badge-green', dot: '#4caf82', note: 'a bench would expect this to be raised' },
-    Arguable:   { cls: 'badge-gold',  dot: '#c9a227', note: 'genuinely open — needs a clean authority' },
-    Aggressive: { cls: 'badge-red',   dot: '#B0392E', note: 'a stretch the bench may reject' },
-  };
+  const RISK_CLS = { Safe: 'badge-green', Arguable: 'badge-gold', Aggressive: 'badge-red' };
+  const addedCount = items.filter(a => a.status === 'added').length;
 
-  const field = (label, val) => val
-    ? '<div style="display:flex;gap:9px;margin-top:9px;font-size:.78rem;line-height:1.62;">'
-      + '<span style="color:var(--white-muted);flex:0 0 94px;">' + label + '</span>'
-      + '<span style="color:var(--white-2);flex:1;">' + fmtInline(String(val)) + '</span></div>'
-    : '';
-
-  const rows = items.map((a, i) => {
-    const risk = RISK[a.confidence] || RISK.Arguable;
-    const n = (framedCount || 0) + i + 1;
-    return '<div style="border:1px solid var(--glass-b);border-radius:12px;padding:15px 17px;margin-bottom:13px;background:var(--glass);">'
-      + '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">'
-      +   '<div style="font-size:.88rem;line-height:1.6;color:var(--white);font-weight:500;flex:1;">'
-      +     '<span style="color:var(--white-muted);font-weight:400;">Issue ' + n + '.</span> ' + fmtInline(String(a.issue))
-      +   '</div>'
-      +   '<span class="asc-badge ' + risk.cls + '" style="flex:0 0 auto;white-space:nowrap;">' + a.confidence + '</span>'
-      + '</div>'
-      + '<div style="font-size:.72rem;color:var(--white-muted);margin-top:6px;">'
-      +   '<span style="color:' + risk.dot + ';">●</span> ' + risk.note
-      + '</div>'
-      + field('Grounded in', a.groundedIn)
-      + field('Rests on', a.legalBasis)
-      + field('Helps', a.favours)
-      + field('Earns marks', a.whyItEarnsMarks)
+  const rows = items.map(a => {
+    const added = a.status === 'added';
+    const dismissed = a.status === 'dismissed';
+    const cls = RISK_CLS[a.confidence] || 'badge-gold';
+    const mark = added ? '<span style="color:#4caf82;">\u2713</span> '
+               : dismissed ? '<span style="color:var(--white-muted);">\u2014</span> ' : '';
+    return '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;'
+      + 'padding:11px 14px;border:1px solid var(--glass-b);border-radius:9px;margin-bottom:9px;'
+      + 'background:var(--glass);' + (dismissed ? 'opacity:.55;' : '') + '">'
+      + '<div style="font-size:.83rem;line-height:1.6;color:var(--white-2);flex:1;">'
+      + mark + fmtInline(String(a.issue)) + '</div>'
+      + '<span class="asc-badge ' + cls + '" style="flex:0 0 auto;white-space:nowrap;">' + a.confidence + '</span>'
       + '</div>';
   }).join('');
 
   const fc = framedCount || 0;
   const intro = 'The proposition frames ' + fc + ' issue' + (fc === 1 ? '' : 's') + '. These '
-    + items.length + ' are further issues its facts will carry but it never states — the kind a bench '
-    + 'credits counsel for spotting. Each shows what in the record puts it in play; raise only the ones '
-    + 'you can anchor there.';
+    + items.length + ' are further issues its facts will carry but it never states. '
+    + 'None of them is in your memorial or oral prep unless you add it.';
 
-  return '<div style="font-size:.78rem;color:var(--white-muted);line-height:1.68;margin-bottom:15px;'
-    + 'padding-bottom:13px;border-bottom:1px solid var(--glass-b);">' + intro + '</div>' + rows;
+  const status = addedCount
+    ? '<span style="color:#4caf82;">\u2713 ' + addedCount + ' added</span> \u00b7 review the rest in the Extra Issues step'
+    : 'Decide which to argue in the Extra Issues step.';
+
+  return '<div style="font-size:.78rem;color:var(--white-muted);line-height:1.68;margin-bottom:14px;">'
+    + intro + '</div>'
+    + rows
+    + '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;'
+    +   'margin-top:14px;padding-top:13px;border-top:1px solid var(--glass-b);">'
+    + '<div style="font-size:.76rem;color:var(--white-muted);line-height:1.6;">' + status + '</div>'
+    + '<button class="btn-sm btn-sm-gold" onclick="window.goToStage(1.5)">Review extra issues \u2192</button>'
+    + '</div>';
 }
 
 export function buildScoreHero(sections) {
@@ -972,7 +966,12 @@ export function showRejection(msg, documentType) {
  */
 export function buildStructuredScoreHero(data) {
   const framed = (data.legalIssues || []).length;
-  const extra  = (data.additionalIssues || []).length;
+  // What the advocate has actually taken on. A suggestion they have not
+  // accepted is not yet one of their issues, so counting it here would
+  // overstate the memorial they are about to write.
+  const suggested = (data.additionalIssues || []).filter(a => a && a.issue);
+  const extra  = suggested.filter(a => a.status === 'added').length;
+  const undecided = suggested.length - extra;
   const total  = framed + extra;
   const oralD  = data.oralDifficulty || "medium";
   const resD   = data.researchDifficulty || "medium";
@@ -984,8 +983,10 @@ export function buildStructuredScoreHero(data) {
   const oReason = clip(data.oralDifficultyReason);
   const rReason = clip(data.researchDifficultyReason);
   const issueSub = extra
-    ? framed + " framed \u00b7 " + extra + " suggested below"
-    : framed + " framed in the proposition";
+    ? framed + " framed \u00b7 " + extra + " added by you"
+    : undecided
+      ? framed + " framed · " + undecided + " more to consider"
+      : framed + " framed in the proposition";
 
   return `
     <div class="score-hero">
@@ -1008,6 +1009,31 @@ export function buildStructuredScoreHero(data) {
         <div class="sc-bar"><div class="sc-bar-fill sf-purple" data-target="${rPct}%" style="width:0%"></div></div>
       </div>
     </div>`;
+}
+
+/**
+ * Re-render only the suggested-issues card in the Stage 1 analysis.
+ *
+ * Called when a suggestion is adopted or dismissed elsewhere. Rebuilding the
+ * whole analysis would be simpler but would also reset the reader's scroll
+ * position and collapse state, which is a poor trade for refreshing one line.
+ */
+export function refreshAdditionalIssuesCard() {
+  const card = [...document.querySelectorAll('.analysis-section-card')].find(
+    c => /Additional Issues/i.test((c.querySelector('.asc-title') || {}).textContent || '')
+  );
+  if (!card) return;
+  const body = card.querySelector('.asc-body');
+  if (!body) return;
+  try {
+    const data = JSON.parse(window.lastAnalysis || lastAnalysis || '{}');
+    body.innerHTML = renderAdditionalIssues(
+      data.additionalIssues || [],
+      (data.legalIssues || []).length
+    );
+  } catch (e) {
+    console.error('[ANALYSIS] Could not refresh the suggested-issues card:', e);
+  }
 }
 
 export function showStructuredResults(data) {
@@ -1115,7 +1141,8 @@ export function showStructuredResults(data) {
       animateBars(); 
       initScrollSpy(); 
       if (scoreElement) {
-        const issueTotal = (data.legalIssues || []).length + (data.additionalIssues || []).length;
+        const issueTotal = (data.legalIssues || []).length
+          + (data.additionalIssues || []).filter(a => a && a.status === 'added').length;
         animateValue(scoreElement, 0, issueTotal, 1200);
       }
     }, 180);
@@ -1180,6 +1207,10 @@ export function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt
 export let currentStage = 1;
 
 export function goToStage(stageNum) {
+  // 1.5 is the Consider Extra Issues step. A fractional number rather than a
+  // renumbering of stages 2-4, whose element ids are referenced in dozens of
+  // places; every "i < currentStage" comparison below already behaves
+  // correctly for it.
   if (stageNum < 1 || stageNum > 4) return;
   if (!currentUser) return;
 
@@ -1217,6 +1248,14 @@ export function goToStage(stageNum) {
     }
   }
 
+  const extraStepEl = document.getElementById('step-extra');
+  if (extraStepEl) {
+    extraStepEl.classList.remove('active', 'completed', 'upcoming');
+    extraStepEl.classList.add(
+      currentStage === 1.5 ? 'active' : currentStage > 1.5 ? 'completed' : 'upcoming'
+    );
+  }
+
   // Toggle active stage containers
   for (let i = 1; i <= 4; i++) {
     const stageEl = document.getElementById('stage-' + i + '-container');
@@ -1231,6 +1270,13 @@ export function goToStage(stageNum) {
     }
   }
 
+  const extraEl = document.getElementById('stage-extra-container');
+  if (extraEl) {
+    const on = currentStage === 1.5;
+    extraEl.classList.toggle('active', on);
+    extraEl.style.display = on ? 'flex' : 'none';
+  }
+
   // Update footer button states
   const prevBtn = document.getElementById('wizard-prev-btn');
   const nextBtn = document.getElementById('wizard-next-btn');
@@ -1242,7 +1288,9 @@ export function goToStage(stageNum) {
   }
 
   // Stage-specific renderings
-  if (currentStage === 2) {
+  if (currentStage === 1.5) {
+    if (typeof window.renderExtraIssues === 'function') window.renderExtraIssues();
+  } else if (currentStage === 2) {
     renderStage2Issues();
   } else if (currentStage === 3) {
     if (typeof window.renderStage3Workspace === 'function') {
@@ -1265,16 +1313,16 @@ export function goToStage(stageNum) {
   }
 }
 
+const STAGE_ORDER = [1, 1.5, 2, 3, 4];
+
 export function wizardNext() {
-  if (currentStage < 4) {
-    goToStage(currentStage + 1);
-  }
+  const i = STAGE_ORDER.indexOf(currentStage);
+  if (i > -1 && i < STAGE_ORDER.length - 1) goToStage(STAGE_ORDER[i + 1]);
 }
 
 export function wizardPrev() {
-  if (currentStage > 1) {
-    goToStage(currentStage - 1);
-  }
+  const i = STAGE_ORDER.indexOf(currentStage);
+  if (i > 0) goToStage(STAGE_ORDER[i - 1]);
 }
 
 export function renderStage2Issues() {
@@ -1297,11 +1345,13 @@ export function renderStage2Issues() {
         issues = data.legalIssues || [];
       }
       issueMeta = issues.map(() => null);
-      // Suggested issues come last so the framed ones keep their numbering,
-      // which the memorial and the bench both expect to match the proposition.
-      (data.additionalIssues || []).forEach(a => {
-        if (a && a.issue) { issues.push(a.issue); issueMeta.push(a); }
-      });
+      // Only the suggestions the advocate actually adopted in the Extra Issues
+      // step. A suggestion they have not accepted is not one of their issues,
+      // and showing it here would decide for them. They stay last so the framed
+      // ones keep the numbering the memorial and the bench expect.
+      (data.additionalIssues || [])
+        .filter(a => a && a.issue && a.status === 'added')
+        .forEach(a => { issues.push(a.issue); issueMeta.push(a); });
     }
   } catch (e) {
     console.error("Error parsing analysis for Stage 2 issues:", e);

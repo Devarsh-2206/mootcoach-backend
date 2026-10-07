@@ -40,7 +40,9 @@ import {
   wizardPrev,
   switchStage5Tab,
   renderStage4OralNotes,
-  selectIssueFromCard
+  selectIssueFromCard,
+  renderStage2Issues,
+  refreshAdditionalIssuesCard
 } from './components/ui.js';
 
 import {
@@ -74,6 +76,11 @@ import {
   renderStage3Workspace,
   getCurrentSelectedSide
 } from './components/argumentBuilder.js';
+import {
+  renderExtraIssues,
+  setIssueStatus,
+  toggleDismissedIssues
+} from './components/extraIssues.js';
 import { initClarity, identifyUserInClarity } from './services/clarity.js';
 
 // Auth Overlay State and Handlers
@@ -705,6 +712,15 @@ window.populateIssuesFromAnalysis = populateIssuesFromAnalysis;
 window.toggleAuthority = toggleAuthority;
 window.renderStage3Workspace = renderStage3Workspace;
 window.getCurrentSelectedSide = getCurrentSelectedSide;
+
+// The Extra Issues step and the inline onclick handlers on its cards.
+// renderStage2Issues goes up too: adding an issue has to refresh the issue
+// workspace immediately, or the advocate adds one and sees nothing happen.
+window.renderExtraIssues = renderExtraIssues;
+window.setIssueStatus = setIssueStatus;
+window.toggleDismissedIssues = toggleDismissedIssues;
+window.renderStage2Issues = renderStage2Issues;
+window.refreshAdditionalIssuesCard = refreshAdditionalIssuesCard;
 
 window.goToStage = goToStage;
 window.wizardNext = wizardNext;

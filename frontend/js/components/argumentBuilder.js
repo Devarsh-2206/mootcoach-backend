@@ -1161,7 +1161,9 @@ export function populateIssuesFromAnalysis() {
     if (analysisStr) {
       const data = JSON.parse(analysisStr);
       const issues = data.legalIssues || [];
-      const suggested = (data.additionalIssues || []).filter(a => a && a.issue);
+      // Only what the advocate adopted in the Extra Issues step - an
+      // un-adopted suggestion is not one of their issues to draft.
+      const suggested = (data.additionalIssues || []).filter(a => a && a.issue && a.status === 'added');
       if (issues.length > 0) {
         select.innerHTML = '';
         issues.forEach((issue, index) => {
@@ -1177,7 +1179,7 @@ export function populateIssuesFromAnalysis() {
         // travels with it - they are choosing whether to spend oral time here.
         if (suggested.length > 0) {
           const grp = document.createElement('optgroup');
-          grp.label = 'Suggested \u2014 not framed by the proposition';
+          grp.label = 'Added by you \u2014 not framed by the proposition';
           suggested.forEach((a, i) => {
             const opt = document.createElement('option');
             opt.value = a.issue;
