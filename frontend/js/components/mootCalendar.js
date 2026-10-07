@@ -124,7 +124,15 @@ export async function loadCompetitions() {
     return rows;
   } catch (e) {
     console.error('[CALENDAR] Could not load competitions:', e && e.message);
-    loadError = (e && e.message) || 'unknown';
+    // A rules denial and a dropped connection look identical to the user but
+    // need opposite responses: one needs the Firestore rules deployed, the
+    // other genuinely does clear up on its own. Telling someone to "try again
+    // in a moment" when the rule is missing sends them round in circles.
+    const code = String((e && e.code) || '');
+    const msg = String((e && e.message) || '');
+    loadError = (code === 'permission-denied' || /insufficient permissions|PERMISSION_DENIED/i.test(msg))
+      ? 'denied'
+      : 'network';
     return [];
   }
 }
@@ -555,11 +563,15 @@ function renderBody() {
       <div style="padding:52px 24px;text-align:center;">
         <div style="font-size:1.6rem;opacity:.45;margin-bottom:10px;">▦</div>
         <div style="font-size:.95rem;color:var(--white);margin-bottom:8px;">
-          ${loadError ? 'Could not load the calendar' : 'No competitions listed yet'}</div>
+          ${loadError === 'denied' ? 'The calendar is not readable yet'
+            : loadError ? 'Could not load the calendar'
+            : 'No competitions listed yet'}</div>
         <div style="font-size:.84rem;color:var(--white-muted);line-height:1.72;max-width:440px;margin:0 auto;">
-          ${loadError
-            ? 'The competition list could not be read just now. This is usually a connection problem — try again in a moment.'
-            : 'Competitions are read from the shared list. Once one is added it appears here for every user, with its deadlines and a prep plan.'}
+          ${loadError === 'denied'
+            ? 'This account is not allowed to read the competition list. The Firestore rule for it has not been deployed yet \u2014 <code style="font-size:.85em;">firebase deploy --only firestore:rules</code> fixes it. Retrying will not.'
+            : loadError
+              ? 'The competition list could not be read just now. That is usually a connection problem \u2014 try again in a moment.'
+              : 'Competitions are read from the shared list. Once one is added it appears here for every user, with its deadlines and a prep plan.'}
         </div>
       </div>`;
     return;
