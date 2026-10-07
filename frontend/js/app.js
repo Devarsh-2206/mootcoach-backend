@@ -14,6 +14,7 @@ import { BASE_URL } from './config.js';
 // Registers window.openMemorialReview for the sidebar button. Self-contained:
 // it owns its own overlay and cannot affect the other workspace flows.
 import './components/memorialReview.js';
+import './components/mootCalendar.js';
 import { 
   showToast,
   getFriendlyError,
