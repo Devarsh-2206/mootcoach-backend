@@ -3340,10 +3340,6 @@ body.intro-hold #view-landing .swear{animation-play-state:paused!important}
         <div class="step-icon">1</div>
         <span class="step-label">Analysis</span>
       </button>
-      <button class="di-step upcoming" id="step-extra" onclick="window.goToStage(1.5)" title="Consider Extra Issues">
-        <div class="step-icon">✛</div>
-        <span class="step-label">Extra Issues</span>
-      </button>
       <button class="di-step upcoming" id="step-2" onclick="window.goToStage(2)" title="Issue Workspace">
         <div class="step-icon">2</div>
         <span class="step-label">Issues</span>
@@ -3478,24 +3474,6 @@ body.intro-hold #view-landing .swear{animation-play-state:paused!important}
         </div>
       </div>
 
-      <!-- STAGE 1.5: CONSIDER EXTRA ISSUES -->
-      <div class="ws-stage" id="stage-extra-container" style="display:none; overflow-y:auto; padding:40px 32px;">
-        <div class="max-w-[800px] mx-auto w-full flex flex-col gap-6">
-          <div class="ws-up-eyebrow flex items-center gap-1.5 text-xs text-moot-accent font-semibold tracking-widest uppercase">
-            <span class="w-1.5 h-1.5 rounded-full bg-moot-accent"></span>
-            Extra Issues
-          </div>
-          <div>
-            <h2 style="font-family:var(--serif); font-size:2rem; font-weight:500; line-height:1.15; margin-bottom:.4rem;">Consider Extra Issues</h2>
-            <p style="font-size:.86rem; color:var(--white-muted); line-height:1.7;">
-              Marks are won for the issues a proposition implies but never frames. Decide which of these you can stand behind — the rest stay out of your way.
-              <span id="extra-issues-count" style="display:block;margin-top:6px;color:var(--white-2);"></span>
-            </p>
-          </div>
-          <div id="extra-issues-body"></div>
-        </div>
-      </div>
-
       <!-- STAGE 2: ISSUE WORKSPACE -->
       <div class="ws-stage" id="stage-2-container" style="display:none; overflow-y:auto; padding:40px 32px;">
         <div class="max-w-[800px] mx-auto w-full flex flex-col gap-6">
@@ -3544,6 +3522,17 @@ body.intro-hold #view-landing .swear{animation-play-state:paused!important}
               <div id="stage-2-extracted-issues-list" class="mt-1">
                 <!-- Populated dynamically via JS -->
               </div>
+            </div>
+
+            <!-- Recommended extra issues. Sits under the list it feeds: adding
+                 one puts a card in "Select Legal Issue" above. Hidden entirely
+                 when there is nothing to recommend. -->
+            <div class="ws-field flex flex-col gap-2" id="extra-issues-field" style="display:none;">
+              <label class="tracking-wide text-xs font-semibold uppercase text-white-2">
+                3. Consider Recommended Issues
+                <span id="extra-issues-count" style="text-transform:none;letter-spacing:normal;font-weight:400;color:var(--white-muted);margin-left:8px;"></span>
+              </label>
+              <div id="extra-issues-body" class="mt-1"></div>
             </div>
           </div>
         </div>

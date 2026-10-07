@@ -197,37 +197,22 @@ export function toggleDismissedIssues() {
 
 export function renderExtraIssues() {
   const host = document.getElementById('extra-issues-body');
+  const field = document.getElementById('extra-issues-field');
   if (!host) return;
 
   const d = readAnalysis();
-  const framedCount = (d && d.legalIssues || []).length;
+  const framedCount = ((d && d.legalIssues) || []).length;
   const all = getSuggestions();
 
+  // Nothing to recommend: hide the whole field rather than show an empty box.
+  // This sits among the other controls in the Issue Workspace, and an older
+  // analysis that carries no suggestions should be quiet, not apologetic.
   if (!all.length) {
-    // Two different situations here, and telling an advocate to "upload a
-    // proposition" when one is plainly open and analysed is the wrong answer
-    // to both. Say which it actually is.
-    const hasAnalysis = !!d && (framedCount > 0 || !!d.summary);
-    const shell = (icon, title, body) => ''
-      + '<div style="text-align:center;padding:48px 24px;border:1px dashed var(--glass-b);border-radius:14px;">'
-      + '<div style="font-size:1.6rem;margin-bottom:10px;opacity:.5;">' + icon + '</div>'
-      + '<div style="font-size:.92rem;color:var(--white);margin-bottom:9px;">' + title + '</div>'
-      + '<div style="font-size:.82rem;color:var(--white-muted);line-height:1.72;max-width:470px;margin:0 auto;">'
-      + body + '</div>'
-      + '<button class="btn-sm btn-sm-ghost" style="margin-top:18px;" onclick="window.goToStage(1)">'
-      + '← Back to Analysis</button>'
-      + '</div>';
-
-    host.innerHTML = hasAnalysis
-      ? shell('○', 'No extra issues for this analysis',
-          'The analysis is loaded, but it did not come with any suggested issues. That is '
-          + 'usually because it was run before this step existed — re-upload the proposition '
-          + 'in the Analysis step and the extra issues will be offered here.')
-      : shell('✛', 'Nothing to consider yet',
-          'Upload and analyse a proposition in the Analysis step, and any issues its facts '
-          + 'will carry but it never states will be offered here.');
+    if (field) field.style.display = 'none';
+    host.innerHTML = '';
     return;
   }
+  if (field) field.style.display = 'flex';
 
   const pending = [], added = [], dismissed = [];
   all.forEach((a, i) => {
@@ -238,42 +223,32 @@ export function renderExtraIssues() {
     else pending.push(entry);
   });
 
-  const section = (title, sub) => ''
-    + '<div style="margin:26px 0 13px;">'
-    + '<div style="font-size:.7rem;letter-spacing:.09em;text-transform:uppercase;color:var(--white-muted);">' + title + '</div>'
-    + (sub ? '<div style="font-size:.76rem;color:var(--white-muted);opacity:.8;margin-top:4px;">' + sub + '</div>' : '')
-    + '</div>';
+  const section = (title) => '<div style="font-size:.68rem;letter-spacing:.09em;text-transform:uppercase;'
+    + 'color:var(--white-muted);margin:18px 0 10px;">' + title + '</div>';
 
-  let html = ''
-    + '<div style="font-size:.82rem;color:var(--white-2);line-height:1.72;margin-bottom:6px;">'
-    +   'The proposition frames <strong>' + framedCount + '</strong> issue' + (framedCount === 1 ? '' : 's') + '. '
-    +   'These <strong>' + all.length + '</strong> are further issues its facts will carry but it never states — '
-    +   'the kind a bench credits counsel for spotting.'
-    + '</div>'
-    + '<div style="font-size:.78rem;color:var(--white-muted);line-height:1.7;margin-bottom:4px;">'
-    +   'Nothing here is added to your memorial or your oral prep until you add it. '
-    +   'Take only the ones you can anchor in the record — an issue the facts will not carry costs you more than it wins.'
+  let html = '<div style="font-size:.78rem;color:var(--white-muted);line-height:1.68;margin-bottom:4px;">'
+    + 'The proposition frames ' + framedCount + ' issue' + (framedCount === 1 ? '' : 's') + '. These '
+    + all.length + ' are further issues its facts will carry but it never states \u2014 the kind a bench '
+    + 'credits counsel for spotting. Add one and it joins your issues above; leave it and nothing changes. '
+    + 'Take only what you can anchor in the record.'
     + '</div>';
 
   if (added.length) {
-    html += section('Added to my issues · ' + added.length,
-      'These now sit alongside the framed issues in the Issue Workspace, the Argument Builder and the memorial.');
+    html += section('Added to your issues \u00b7 ' + added.length);
     html += added.map((e, n) => card(e.a, e.i, framedCount, n + 1)).join('');
   }
-
   if (pending.length) {
-    html += section('Still deciding · ' + pending.length, '');
+    html += section('Still deciding \u00b7 ' + pending.length);
     html += pending.map(e => card(e.a, e.i, framedCount, 0)).join('');
   }
-
   if (dismissed.length) {
-    html += '<div style="margin-top:24px;padding-top:16px;border-top:1px solid var(--glass-b);">'
+    html += '<div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--glass-b);">'
       + '<button class="btn-sm btn-sm-ghost" onclick="window.toggleDismissedIssues()">'
-      + (showDismissed ? '▾' : '▸') + ' Dismissed · ' + dismissed.length
-      + (showDismissed ? '' : ' — show') + '</button>'
+      + (showDismissed ? '\u25be' : '\u25b8') + ' Dismissed \u00b7 ' + dismissed.length
+      + (showDismissed ? '' : ' \u2014 show') + '</button>'
       + (showDismissed
-          ? '<div style="margin-top:13px;">'
-            + '<div style="font-size:.76rem;color:var(--white-muted);margin-bottom:10px;line-height:1.65;">'
+          ? '<div style="margin-top:12px;">'
+            + '<div style="font-size:.74rem;color:var(--white-muted);margin-bottom:9px;line-height:1.6;">'
             + 'Kept in case research changes your mind.</div>'
             + dismissed.map(e => dismissedRow(e.a, e.i)).join('')
             + '</div>'
@@ -286,7 +261,7 @@ export function renderExtraIssues() {
   const countEl = document.getElementById('extra-issues-count');
   if (countEl) {
     countEl.textContent = added.length
-      ? added.length + ' of ' + all.length + ' added'
-      : all.length + ' to consider';
+      ? '(' + added.length + ' of ' + all.length + ' added)'
+      : '(' + all.length + ' recommended)';
   }
 }

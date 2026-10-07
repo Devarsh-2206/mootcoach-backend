@@ -721,8 +721,8 @@ export function renderAdditionalIssues(list, framedCount) {
     + 'None of them is in your memorial or oral prep unless you add it.';
 
   const status = addedCount
-    ? '<span style="color:#4caf82;">\u2713 ' + addedCount + ' added</span> \u00b7 review the rest in the Extra Issues step'
-    : 'Decide which to argue in the Extra Issues step.';
+    ? '<span style="color:#4caf82;">\u2713 ' + addedCount + ' added</span> \u00b7 review the rest in the Issue Workspace'
+    : 'Decide which to argue in the Issue Workspace.';
 
   return '<div style="font-size:.78rem;color:var(--white-muted);line-height:1.68;margin-bottom:14px;">'
     + intro + '</div>'
@@ -730,7 +730,7 @@ export function renderAdditionalIssues(list, framedCount) {
     + '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;'
     +   'margin-top:14px;padding-top:13px;border-top:1px solid var(--glass-b);">'
     + '<div style="font-size:.76rem;color:var(--white-muted);line-height:1.6;">' + status + '</div>'
-    + '<button class="btn-sm btn-sm-gold" onclick="window.goToStage(1.5)">Review extra issues \u2192</button>'
+    + '<button class="btn-sm btn-sm-gold" onclick="window.goToStage(2)">Review in the Issue Workspace \u2192</button>'
     + '</div>';
 }
 
@@ -1207,10 +1207,6 @@ export function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt
 export let currentStage = 1;
 
 export function goToStage(stageNum) {
-  // 1.5 is the Consider Extra Issues step. A fractional number rather than a
-  // renumbering of stages 2-4, whose element ids are referenced in dozens of
-  // places; every "i < currentStage" comparison below already behaves
-  // correctly for it.
   if (stageNum < 1 || stageNum > 4) return;
   if (!currentUser) return;
 
@@ -1248,13 +1244,6 @@ export function goToStage(stageNum) {
     }
   }
 
-  const extraStepEl = document.getElementById('step-extra');
-  if (extraStepEl) {
-    extraStepEl.classList.remove('active', 'completed', 'upcoming');
-    extraStepEl.classList.add(
-      currentStage === 1.5 ? 'active' : currentStage > 1.5 ? 'completed' : 'upcoming'
-    );
-  }
 
   // Toggle active stage containers
   for (let i = 1; i <= 4; i++) {
@@ -1270,12 +1259,6 @@ export function goToStage(stageNum) {
     }
   }
 
-  const extraEl = document.getElementById('stage-extra-container');
-  if (extraEl) {
-    const on = currentStage === 1.5;
-    extraEl.classList.toggle('active', on);
-    extraEl.style.display = on ? 'flex' : 'none';
-  }
 
   // Update footer button states
   const prevBtn = document.getElementById('wizard-prev-btn');
@@ -1288,10 +1271,10 @@ export function goToStage(stageNum) {
   }
 
   // Stage-specific renderings
-  if (currentStage === 1.5) {
-    if (typeof window.renderExtraIssues === 'function') window.renderExtraIssues();
-  } else if (currentStage === 2) {
+  if (currentStage === 2) {
     renderStage2Issues();
+    // The recommendations live in this stage now, under the issue list.
+    if (typeof window.renderExtraIssues === 'function') window.renderExtraIssues();
   } else if (currentStage === 3) {
     if (typeof window.renderStage3Workspace === 'function') {
       window.renderStage3Workspace();
@@ -1313,16 +1296,12 @@ export function goToStage(stageNum) {
   }
 }
 
-const STAGE_ORDER = [1, 1.5, 2, 3, 4];
-
 export function wizardNext() {
-  const i = STAGE_ORDER.indexOf(currentStage);
-  if (i > -1 && i < STAGE_ORDER.length - 1) goToStage(STAGE_ORDER[i + 1]);
+  if (currentStage < 4) goToStage(currentStage + 1);
 }
 
 export function wizardPrev() {
-  const i = STAGE_ORDER.indexOf(currentStage);
-  if (i > 0) goToStage(STAGE_ORDER[i - 1]);
+  if (currentStage > 1) goToStage(currentStage - 1);
 }
 
 export function renderStage2Issues() {
