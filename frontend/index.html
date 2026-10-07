@@ -838,7 +838,7 @@ p  { color:var(--white-2); }
 .ws-results-panel { flex-direction:column; }
 
 .res-topbar {
-  padding:22px 30px 0;
+  padding:22px 30px 16px;
   display:flex; align-items:flex-start; justify-content:space-between; gap:16px; flex-wrap:wrap;
 }
 .res-eyebrow { font-size:.68rem; font-weight:500; letter-spacing:.16em; text-transform:uppercase; color:var(--gold); margin-bottom:.4rem; }
@@ -853,10 +853,6 @@ p  { color:var(--white-2); }
 .btn-sm-ghost:hover { background:rgba(28, 23, 16, 0.05); border-color:rgba(28, 23, 16, 0.05); color:var(--white); }
 .btn-sm-gold { color:var(--navy); background:var(--gold); }
 .btn-sm-gold:hover { background:var(--gold-light); transform:translateY(-1px); }
-
-.res-meta { display:flex; align-items:center; gap:14px; padding:10px 30px; flex-wrap:wrap; }
-.res-chip { display:flex; align-items:center; gap:5px; font-size:.7rem; color:var(--white-muted); letter-spacing:.04em; }
-.res-chip-dot { width:5px; height:5px; border-radius:50%; background:var(--success); }
 
 .res-body { flex:1; padding:18px 30px 40px; overflow-y:auto; }
 
@@ -1352,8 +1348,7 @@ p  { color:var(--white-2); }
   }
   .ws-sidebar.show { transform:translateX(0); }
   
-  .res-topbar { padding:16px 16px 0; }
-  .res-meta { padding:8px 16px; }
+  .res-topbar { padding:16px 16px 12px; }
   .res-body { padding:16px 16px 32px; }
   .ws-upload-panel { padding:24px 16px; }
   .auth-card { padding:26px 18px; }
@@ -3444,7 +3439,7 @@ body.intro-hold #view-landing .swear{animation-play-state:paused!important}
             <button class="btn-analyze tracking-widest font-medium" id="analyze-submit-btn" disabled>
               File Submission
             </button>
-            <p class="upload-note">Analysis powered by Groq · llama3-70b-8192 · Automatically saved to your account.</p>
+            <p class="upload-note">Automatically saved to your account.</p>
           </div>
         </div>
 
@@ -3466,11 +3461,6 @@ body.intro-hold #view-landing .swear{animation-play-state:paused!important}
                 <button class="btn-sm btn-sm-ghost" onclick="showWsPanel('upload')">New Analysis</button>
                 <button class="btn-sm btn-sm-gold" onclick="copyAnalysis()">Copy All</button>
               </div>
-            </div>
-            <div class="res-meta">
-              <div class="res-chip"><div class="res-chip-dot"></div> Saved to Cloud</div>
-              <div class="res-chip">· Groq · llama-3.3-70b</div>
-              <div class="res-chip" id="res-file-chip">·</div>
             </div>
             <!-- sticky section nav -->
             <div class="res-sticky-nav" id="res-sticky-nav">
@@ -4000,9 +3990,9 @@ body.intro-hold #view-landing .swear{animation-play-state:paused!important}
     <div class="lo-steps" style="display: none;">
       <div class="lo-step" id="ls-1"><div class="lo-dot"></div>Reading PDF</div>
       <div class="lo-step" id="ls-2"><div class="lo-dot"></div>Extracting text</div>
-      <div class="lo-step" id="ls-3"><div class="lo-dot"></div>Sending to Groq AI</div>
+      <div class="lo-step" id="ls-3"><div class="lo-dot"></div>Sending for analysis</div>
       <div class="lo-step" id="ls-4"><div class="lo-dot"></div>Generating analysis</div>
-      <div class="lo-step" id="ls-5"><div class="lo-dot"></div>Saving to Cloud</div>
+      <div class="lo-step" id="ls-5"><div class="lo-dot"></div>Saving your analysis</div>
     </div>
     
     <div class="lo-label" id="lo-label" style="text-align: center; font-family: var(--serif); font-size: 1.25rem; color: var(--white-2);">Analyzing your proposition…</div>

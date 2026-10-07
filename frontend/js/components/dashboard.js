@@ -89,7 +89,6 @@ export function handleFileSelect(fileOrEvent) {
   const fpName = document.getElementById('fp-name');
   const fpSize = document.getElementById('fp-size');
   const wsibFile = document.getElementById('wsib-file');
-  const resFileChip = document.getElementById('res-file-chip');
   const filePill = document.getElementById('ws-file-pill');
   const dropzone = document.getElementById('ws-dropzone');
   const analyzeBtn = document.getElementById('analyze-submit-btn');
@@ -100,7 +99,6 @@ export function handleFileSelect(fileOrEvent) {
     wsibFile.textContent = file.name;
     wsibFile.className = 'wsib-value';
   }
-  if (resFileChip) resFileChip.textContent = `· ${file.name}`;
   if (filePill) filePill.classList.add('show');
   if (dropzone) dropzone.style.display = 'none';
   if (analyzeBtn) analyzeBtn.disabled = false;
@@ -125,7 +123,11 @@ export function removeFile() {
   }
 }
 
-const STEP_MSGS = ['Reading your PDF…','Extracting text content…','Sending to Groq AI…','Generating analysis…','Saving securely to Cloud…'];
+// Shown on the loading overlay during every upload. These named Groq, which
+// has not served the analysis for some time - it runs on the Gemini chain -
+// so the provider is left out rather than named wrongly again next time it
+// changes.
+const STEP_MSGS = ['Reading your PDF…','Extracting text content…','Sending for analysis…','Generating analysis…','Saving your analysis…'];
 let stepTimer = null, currentStep = 0;
 
 function startSteps() {

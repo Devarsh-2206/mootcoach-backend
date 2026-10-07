@@ -371,7 +371,6 @@ export async function loadSavedSession(docId) {
     
     const data = doc.data();
     updateWsMootName(data.mootName || '');
-    document.getElementById('res-file-chip').textContent = `· ${data.fileName || 'Saved Document'}`;
     
     const wsibFile = document.getElementById('wsib-file');
     if (wsibFile) {
