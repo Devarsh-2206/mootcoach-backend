@@ -859,6 +859,75 @@ app.post("/evaluate-oral", aiLimiter, express.json(), async (req, res) => {
   }
 });
 
+/* ─── /simulate-bench/oral-review ───
+   The spoken round had no report at all. It ended, said "Oral round saved to
+   account", and left the advocate with nothing to work from — which is the one
+   thing a practice round exists to produce.
+
+   Separate from /simulate-bench because that route ends a session on a turn
+   count; a live round ends when the advocate stops talking, and the transcript
+   arrives in one piece at the end rather than a turn at a time. */
+app.post("/simulate-bench/oral-review", express.json(), async (req, res) => {
+  const { transcript, propositionSummary, difficulty, intensity, claimLedger, durationSeconds } = req.body;
+
+  const turns = (Array.isArray(transcript) ? transcript : [])
+    .filter(t => t && typeof t.content === 'string' && t.content.trim())
+    .map(t => ({ role: t.role === 'judge' ? 'judge' : 'advocate', content: t.content.trim() }));
+
+  const advocateTurns = turns.filter(t => t.role === 'advocate');
+  const spoken = advocateTurns.reduce((n, t) => n + t.content.length, 0);
+
+  // Below this there is nothing to mark, and a confident-looking scorecard off
+  // two sentences would be worse than saying so.
+  if (advocateTurns.length < 2 || spoken < 200) {
+    return res.status(422).json({
+      success: false,
+      tooShort: true,
+      error: "That round was too short to mark. Argue for a few exchanges and the bench will have something to assess."
+    });
+  }
+
+  const level = ['easy', 'moderate', 'hard'].includes(intensity) ? intensity
+    : (['easy', 'moderate', 'hard'].includes(difficulty) ? difficulty : 'moderate');
+
+  try {
+    const prompt = buildEvaluationPrompt(
+      level,
+      propositionSummary || '',
+      turns,
+      Array.isArray(claimLedger) ? claimLedger : [],
+      { mode: 'oral', durationSeconds: Number(durationSeconds) || 0 }
+    );
+
+    const call = await getChatCompletion({
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.2,
+      max_tokens: 2500,
+      // Same reasoning as the text bench review: it fits Groq comfortably and
+      // should not spend one of the scarce daily Gemini requests.
+      primaryProvider: "groq",
+      groqTimeoutMs: 40000,
+      geminiTimeoutMs: 45000,
+      geminiMaxAttempts: 1,
+      totalBudgetMs: 45000,
+      requestLabel: "Oral Round Review"
+    });
+
+    const review = normaliseScorecard(extractAndParseJSON(call.text));
+    return res.json({ success: true, performanceReview: review });
+  } catch (err) {
+    console.error("/simulate-bench/oral-review error:", err);
+    const msg = String((err && err.message) || '');
+    const isTimeout = /Timeout/i.test(msg);
+    return res.status(isTimeout ? 504 : 500).json({
+      success: false,
+      error: isTimeout
+        ? "The review did not come back in time. Your transcript is still on screen — try again."
+        : "Could not produce a report for that round."
+    });
+  }
+});
+
 /* ─── /simulate-bench/extract-claims ─── */
 app.post("/simulate-bench/extract-claims", express.json(), async (req, res) => {
   const { studentStatement } = req.body;
@@ -892,6 +961,50 @@ app.post("/simulate-bench/extract-claims", express.json(), async (req, res) => {
 });
 
 /* ─── /simulate-bench ─── */
+/**
+ * Make the scorecard add up, and keep it inside its own bounds.
+ *
+ * The model is asked for an overallScore equal to the sum of the five
+ * criteria. It will not always oblige, and a report whose parts do not add to
+ * its total is the fastest way to lose an advocate's trust in the mark. The
+ * arithmetic is done here rather than hoped for.
+ */
+const SCORE_MAXES = {
+  knowledgeOfLaw: 25, applicationToFacts: 25, responseToQuestions: 25,
+  courtCraft: 15, structureAndTime: 10,
+};
+
+function normaliseScorecard(review) {
+  if (!review || typeof review !== 'object') return review;
+  const card = review.scorecard;
+  if (!card || typeof card !== 'object') return review;
+
+  let sum = 0, counted = 0;
+  Object.keys(SCORE_MAXES).forEach(k => {
+    const max = SCORE_MAXES[k];
+    const row = card[k];
+    if (!row || typeof row !== 'object') { delete card[k]; return; }
+    // Clamp into range: a model that returns 30/25 is reporting a number the
+    // advocate cannot compare against anything.
+    const n = Math.round(Number(row.score));
+    row.score = Number.isFinite(n) ? Math.min(max, Math.max(0, n)) : 0;
+    row.max = max;
+    sum += row.score;
+    counted++;
+  });
+
+  if (!counted) { delete review.scorecard; return review; }
+
+  const claimed = Math.round(Number(review.overallScore));
+  if (!Number.isFinite(claimed) || claimed !== sum) {
+    if (Number.isFinite(claimed)) {
+      console.log(`[BENCH REVIEW] overallScore was ${claimed}, criteria sum to ${sum}. Using the sum.`);
+    }
+    review.overallScore = sum;
+  }
+  return review;
+}
+
 app.post("/simulate-bench", express.json(), async (req, res) => {
   const { conversationHistory, propositionSummary, difficulty, intensity, judgeType, studentStatement, claimLedger } = req.body;
 
@@ -953,7 +1066,7 @@ app.post("/simulate-bench", express.json(), async (req, res) => {
         requestLabel: "Bench Simulation Performance Review"
       });
 
-      const reviewData = extractAndParseJSON(evalCall.text);
+      const reviewData = normaliseScorecard(extractAndParseJSON(evalCall.text));
 
       return res.json({
         success: true,

@@ -247,7 +247,7 @@ export function renderJudgeCards() {
         <div style="flex:1; min-width:0;">
           <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
             <span style="font-size:12px; font-weight:600; color:#fff;">${esc(j.name)}</span>
-            <span style="font-size:8px; letter-spacing:0.08em; text-transform:uppercase; color:rgba(28,23,16,.55);">${esc(j.archetype)}</span>
+            <span style="font-size:8px; letter-spacing:0.08em; text-transform:uppercase; color:var(--white-muted);">${esc(j.archetype)}</span>
             ${on ? '<span style="font-size:8px; letter-spacing:0.08em; text-transform:uppercase; color:var(--gold); margin-left:auto;">✓ Selected</span>' : ''}
           </div>
           <div style="font-size:10px; color:rgba(28,23,16,.62); line-height:1.4; margin-top:3px;">${esc(j.temperament)}</div>
@@ -471,6 +471,76 @@ export function appendBenchMessage(role, text, pressureLevel, targetWeakness, di
   chat.scrollTo({ top: chat.scrollHeight, behavior: 'smooth' });
 }
 
+/**
+ * The marked scorecard.
+ *
+ * Five criteria in the proportions a moot bench actually uses, with response
+ * to questions carrying the most, because that is what separates oralists once
+ * everyone has read the same authorities. Each row carries the judge's reason,
+ * since a number nobody can account for teaches nothing.
+ */
+const SCORE_ROWS = [
+  ['knowledgeOfLaw', 'Knowledge of law', 25],
+  ['applicationToFacts', 'Application to facts', 25],
+  ['responseToQuestions', 'Response to questions', 25],
+  ['courtCraft', 'Court craft', 15],
+  ['structureAndTime', 'Structure &amp; time', 10],
+];
+
+function bandFor(pct) {
+  if (pct >= 75) return { c: '#4caf82', label: 'Strong' };
+  if (pct >= 60) return { c: '#c9a227', label: 'Competent' };
+  if (pct >= 45) return { c: '#d08a3e', label: 'Needs work' };
+  return { c: '#e05252', label: 'Weak' };
+}
+
+function renderScorecard(review) {
+  const card = review && review.scorecard;
+  if (!card || typeof card !== 'object') return '';
+
+  const rows = SCORE_ROWS.filter(([k]) => card[k] && typeof card[k] === 'object');
+  if (!rows.length) return '';
+
+  const total = Number(review.overallScore);
+  const totalBand = bandFor(Number.isFinite(total) ? total : 0);
+
+  const rowsHTML = rows.map(([k, label, max]) => {
+    const r = card[k];
+    const sc = Math.min(max, Math.max(0, Number(r.score) || 0));
+    const pct = Math.round((sc / max) * 100);
+    const band = bandFor(pct);
+    // Response to questions decides most rounds, so it is marked as the one to
+    // read first rather than being one row of five.
+    const key = k === 'responseToQuestions';
+    return `
+      <div style="margin-bottom:14px;">
+        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:5px;">
+          <span style="font-size:.82rem;color:var(--white-2);">${label}${key ? ' <span style="font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;color:var(--white-muted);">decides most rounds</span>' : ''}</span>
+          <span style="font-family:var(--mono),monospace;font-size:.8rem;color:var(--white);">${sc}<span style="color:var(--white-muted);">/${max}</span></span>
+        </div>
+        <div style="height:4px;border-radius:2px;background:var(--glass);overflow:hidden;">
+          <div style="height:100%;width:${pct}%;background:${band.c};"></div>
+        </div>
+        ${r.comment ? `<div style="font-size:.76rem;color:var(--white-muted);line-height:1.6;margin-top:6px;">${fmtInline(String(r.comment))}</div>` : ''}
+      </div>`;
+  }).join('');
+
+  return `
+    <div style="display:grid;grid-template-columns:minmax(150px,auto) 1fr;gap:22px;align-items:start;
+         background:var(--navy-4);border:1px solid var(--glass-b);border-radius:10px;padding:18px;margin-bottom:16px;">
+      <div style="text-align:center;">
+        <div style="font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:var(--white-muted);">Round score</div>
+        <div style="font-family:var(--serif),Georgia,serif;font-size:3rem;line-height:1.1;color:${totalBand.c};">${Number.isFinite(total) ? total : '—'}</div>
+        <div style="font-size:.7rem;color:var(--white-muted);">out of 100</div>
+        <div style="display:inline-block;margin-top:7px;font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;
+             color:${totalBand.c};border:1px solid ${totalBand.c};padding:2px 9px;">${totalBand.label}</div>
+      </div>
+      <div>${rowsHTML}</div>
+    </div>
+    ${review.verdict ? `<div style="border-left:2px solid var(--gold);padding:2px 0 2px 13px;margin-bottom:18px;
+        font-family:var(--serif),Georgia,serif;font-size:.98rem;line-height:1.6;color:var(--white-2);">${fmtInline(String(review.verdict))}</div>` : ''}`;
+}
+
 export function appendBenchPerformanceReview(review) {
   const chat = document.getElementById('bench-chat');
   if (!chat) return;
@@ -509,6 +579,8 @@ export function appendBenchPerformanceReview(review) {
       <button class="btn-sm btn-sm-ghost" onclick="startBenchSession()">Restart Session</button>
     </div>
 
+    ${renderScorecard(review)}
+
     <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin-bottom: 16px;">
       <!-- Strongest Moment -->
       <div style="background:var(--navy-4); border:1px solid var(--glass-b); border-radius:10px; padding:16px;">
@@ -519,7 +591,7 @@ export function appendBenchPerformanceReview(review) {
           "${fmtInline(s_moment.statement || 'N/A')}"
         </div>
         <div style="font-size:.8rem; color:var(--white-muted); line-height:1.5;">
-          <strong style="color:rgba(28,23,16,.55);">Why it worked:</strong> ${fmtInline(s_moment.whyItWorked || 'N/A')}
+          <strong style="color:var(--white-muted);">Why it worked:</strong> ${fmtInline(s_moment.whyItWorked || 'N/A')}
         </div>
       </div>
 
@@ -532,7 +604,7 @@ export function appendBenchPerformanceReview(review) {
           "${fmtInline(d_moment.statement || 'N/A')}"
         </div>
         <div style="font-size:.8rem; color:var(--white-muted); line-height:1.5; margin-bottom:8px;">
-          <strong style="color:rgba(28,23,16,.55);">Why it was vulnerable:</strong> ${fmtInline(d_moment.whyVulnerable || 'N/A')}
+          <strong style="color:var(--white-muted);">Why it was vulnerable:</strong> ${fmtInline(d_moment.whyVulnerable || 'N/A')}
         </div>
         <div style="font-size:.8rem; color:#4caf82; line-height:1.5; background:rgba(76,175,130,0.05); padding:8px; border-radius:6px;">
           <strong>Better Answer:</strong> "${fmtInline(d_moment.betterAnswer || 'N/A')}"
@@ -865,6 +937,7 @@ export function updateBenchState(state) {
 }
 
 export async function startOralRound() {
+  resetOralTranscript();
   if (voiceSessionActive) {
     stopOralRound();
     return;
@@ -1065,6 +1138,14 @@ export async function stopOralRound() {
   if (timerEl) timerEl.style.display = 'none';
   if (voiceStatusEl) voiceStatusEl.style.display = 'none';
 
+  const roundSeconds = voiceSessionStartTime
+    ? Math.floor((Date.now() - voiceSessionStartTime) / 1000)
+    : Number(durationSec) || 0;
+
+  // The report is the point of the exercise, so it is requested before the
+  // bookkeeping below and never gated on being signed in.
+  requestOralReview(roundSeconds);
+
   if (currentUser && voiceSessionStartTime) {
     const duration = Math.floor((Date.now() - voiceSessionStartTime) / 1000);
     const mootName = document.getElementById('ws-moot-name')?.value?.trim() || 'Untitled Moot';
@@ -1084,10 +1165,113 @@ export async function stopOralRound() {
   }
 }
 
+/**
+ * Mark the round that just finished.
+ *
+ * Renders into the same place the text bench puts its report, so an advocate
+ * who does both formats reads one thing in one shape.
+ */
+async function requestOralReview(durationSeconds) {
+  const turns = getOralTranscript();
+  const advocateTurns = turns.filter(t => t.role === 'advocate');
+  const chat = document.getElementById('bench-chat');
+  if (!chat) return;
+
+  // Nothing was said. Saying so beats a scorecard invented from silence.
+  if (advocateTurns.length < 2 || advocateTurns.reduce((n, t) => n + t.content.length, 0) < 200) {
+    appendBenchSystemNote('That round was too short to mark. Argue for a few exchanges and the bench will have something to assess.');
+    return;
+  }
+
+  const pending = document.createElement('div');
+  pending.id = 'oral-review-pending';
+  pending.className = 'bench-msg bench-msg-system';
+  pending.style.cssText = 'max-width:100%;width:100%;text-align:center;padding:18px;color:var(--white-muted);font-size:.85rem;';
+  pending.textContent = 'Marking the round…';
+  chat.appendChild(pending);
+  chat.scrollTo({ top: chat.scrollHeight, behavior: 'smooth' });
+
+  try {
+    const res = await fetch(`${BASE_URL}/simulate-bench/oral-review`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        transcript: turns,
+        propositionSummary: getBenchContextString(),
+        intensity: benchDifficultyMode,
+        claimLedger: claimLedger,
+        durationSeconds,
+      }),
+    });
+    const data = await res.json().catch(() => null);
+    const el = document.getElementById('oral-review-pending');
+    if (el) el.remove();
+
+    if (data && data.success && data.performanceReview) {
+      appendBenchPerformanceReview(data.performanceReview);
+    } else {
+      appendBenchSystemNote((data && data.error) || 'Could not produce a report for that round.');
+    }
+  } catch (err) {
+    console.error('[ORAL REVIEW] failed:', err);
+    const el = document.getElementById('oral-review-pending');
+    if (el) el.remove();
+    appendBenchSystemNote('Could not reach the server to mark that round. Your transcript is still on screen.');
+  }
+}
+
+function appendBenchSystemNote(text) {
+  const chat = document.getElementById('bench-chat');
+  if (!chat) return;
+  const d = document.createElement('div');
+  d.className = 'bench-msg bench-msg-system';
+  d.style.cssText = 'max-width:100%;width:100%;text-align:center;padding:16px;color:var(--white-muted);font-size:.85rem;line-height:1.6;';
+  d.textContent = text;
+  chat.appendChild(d);
+  chat.scrollTo({ top: chat.scrollHeight, behavior: 'smooth' });
+}
+
 /* ─── VIRTUAL COURTROOM HELPERS ─── */
+/**
+ * The spoken round's transcript.
+ *
+ * It was only ever painted into the DOM, so when the round ended there was
+ * nothing left to assess — which is why the oral round produced no report.
+ * Judge speech arrives in chunks, so chunks are merged into the open turn
+ * rather than stored as separate ones.
+ */
+let oralTranscript = [];
+export function getOralTranscript() { return oralTranscript.slice(); }
+export function resetOralTranscript() { oralTranscript = []; }
+
+function recordTurn(role, text, isChunk) {
+  const raw = String(text || '');
+  const t = raw.trim();
+  if (!t) return;
+  const last = oralTranscript[oralTranscript.length - 1];
+  if (isChunk && last && last.role === role) {
+    // Append the chunk EXACTLY as the transcript panel does. Trimming each
+    // one welds words together ("maintainableunder"), which reads fine
+    // nowhere and would be marked as garbled speech.
+    last.content = (last.content + raw).replace(/s+/g, ' ').trim();
+    return;
+  }
+  // Speech recognition can fire the same final result twice; a duplicated turn
+  // would read to the marker as the advocate repeating themselves.
+  if (last && last.role === role && last.content === t) return;
+  oralTranscript.push({ role, content: t });
+}
+
 export function appendTranscript(role, text, isChunk = false) {
   const panel = document.getElementById('bench-transcript-panel');
   if (!panel) return;
+
+  // Recorded before any DOM work, so a rendering problem cannot cost the
+  // advocate their report.
+  if (role === 'judge' || role === 'advocate') {
+    const tagged = String(text || '').replace(/^\[(.*?)\]\s*/, '');
+    recordTurn(role, tagged, isChunk);
+  }
 
   const interim = document.getElementById('cr-interim-bubble');
   if (interim) interim.remove();
