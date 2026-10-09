@@ -460,8 +460,16 @@ function renderPicker() {
 function renderDetail() {
   const mo = COMPS.find(c => c.id === state.sel);
   if (!mo) {
-    return renderPicker() + `<div style="padding:24px 10px;text-align:center;color:var(--white-muted);font-size:.86rem;line-height:1.7;">
-      Pick a competition to see its dates and a prep plan built back from the memorial deadline.</div>`;
+    // Nothing listed at all reads differently from "pick one from the list".
+    const none = !COMPS.length;
+    return renderPicker() + `<div style="padding:24px 10px;text-align:center;color:var(--white-muted);font-size:.86rem;line-height:1.7;">`
+      + (none
+        ? `<div style="font-size:1.4rem;opacity:.4;margin-bottom:8px;">\u271b</div>
+           <div style="color:var(--white);margin-bottom:7px;">No competitions added yet</div>
+           Competitions are kept in one shared list, so adding a moot puts it in front of every
+           user \u2014 with its deadlines on the grid and a prep plan worked back from the memorial date.`
+        : 'Pick a competition to see its dates and a prep plan built back from the memorial deadline.')
+      + `</div>`;
   }
   const t = today();
 
@@ -558,20 +566,20 @@ function renderBody() {
   const body = document.getElementById('cal-body');
   if (!body) return;
 
-  if (!COMPS.length) {
+  // Only a failure to LOAD replaces the calendar, because then there is
+  // genuinely nothing to show and something needs explaining. An empty list
+  // is not a failure: the grid, the filters and the month navigation all
+  // still work, and hiding them made the whole feature look broken.
+  if (loadError) {
     body.innerHTML = `
       <div style="padding:52px 24px;text-align:center;">
         <div style="font-size:1.6rem;opacity:.45;margin-bottom:10px;">▦</div>
         <div style="font-size:.95rem;color:var(--white);margin-bottom:8px;">
-          ${loadError === 'denied' ? 'The calendar is not readable yet'
-            : loadError ? 'Could not load the calendar'
-            : 'No competitions listed yet'}</div>
+          ${loadError === 'denied' ? 'The calendar is not readable yet' : 'Could not load the calendar'}</div>
         <div style="font-size:.84rem;color:var(--white-muted);line-height:1.72;max-width:440px;margin:0 auto;">
           ${loadError === 'denied'
             ? 'This account is not allowed to read the competition list. The Firestore rule for it has not been deployed yet \u2014 <code style="font-size:.85em;">firebase deploy --only firestore:rules</code> fixes it. Retrying will not.'
-            : loadError
-              ? 'The competition list could not be read just now. That is usually a connection problem \u2014 try again in a moment.'
-              : 'Competitions are read from the shared list. Once one is added it appears here for every user, with its deadlines and a prep plan.'}
+            : 'The competition list could not be read just now. That is usually a connection problem \u2014 try again in a moment.'}
         </div>
       </div>`;
     return;
@@ -587,7 +595,11 @@ function renderBody() {
   body.innerHTML = `
     <div style="display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;">
       <div style="flex:1 1 560px;min-width:0;">
-        ${renderBanner()}
+        ${COMPS.length ? renderBanner() : `
+          <div style="border:1px dashed var(--glass-b);padding:11px 14px;margin-bottom:16px;
+               font-size:.8rem;color:var(--white-muted);line-height:1.6;">
+            Nothing is scheduled yet. Deadlines will appear on this grid as competitions are added.
+          </div>`}
         <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;flex-wrap:wrap;">
           <div style="display:flex;align-items:center;gap:8px;">
             <button type="button" id="cal-prev" aria-label="Previous month"
