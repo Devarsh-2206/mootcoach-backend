@@ -99,16 +99,57 @@ check or draft entries, prepare them, dry-run them, and report — leave the
 write to the person. Competition data is shared: every user sees it immediately,
 and a wrong entry misleads all of them at once.
 
-## Researching a competition
+## Confirming a competition against its official source
 
-You may search for brochures and organiser pages. When you do:
+Every date you record is confirmed on the organiser's own channel. Nothing else
+counts as confirmation.
 
-- Prefer the organiser's own page or PDF brochure over an aggregator, a blog or
-  a listing site. Aggregators copy each other and go stale.
-- Note which source each date came from, and put the brochure in `link`.
-- A date on a page with no year, or a page you cannot date, is not a verified
-  date. Treat it as unconfirmed.
-- Last year's brochure is not this year's dates. Check the edition.
+In order of preference:
+
+1. The PDF brochure or rules booklet published by the organising institution.
+2. The competition's page on the institution's own domain (the law school's own
+   site, usually `*.ac.in` or `*.edu.in`) or its dedicated microsite.
+3. The organiser's official registration form or verified social post — a Google
+   Form header often carries the closing date when nothing else does.
+
+**Not confirmation on their own:** Lawctopus, LawBhoomi, Legal Bites, Latest
+Laws, MyLawman, blog round-ups, opportunity-listing sites, Instagram reposts,
+LinkedIn summaries, WhatsApp forwards. Use these to *discover* that a
+competition exists, then go to the organiser to confirm it. They copy each
+other, they rarely correct a date after it moves, and they are the single
+biggest source of wrong moot dates on the internet.
+
+For each competition:
+
+- Find the official page or brochure and fetch it.
+- Confirm the **edition and year on the page itself**. A law school often leaves
+  last year's brochure at the same URL. If the page does not say which edition
+  it is, you have not confirmed anything.
+- Record, for every date, the URL it came from.
+- Where the organiser and an aggregator disagree, the organiser wins — and you
+  say in your report that they disagreed.
+- Where you only have an aggregator, either mark that milestone `tent: true` and
+  name the source in your report, or leave it out. Never let it read as settled.
+- Set `verified` to the date you fetched the official source. Only entries you
+  actually confirmed today get today's date.
+
+### Keep a source log
+
+Maintain `docs/competition-sources.md`: one section per competition, listing
+each milestone, the URL that confirmed it, and the date you fetched it. Note
+anything you could not confirm, and anything the organiser has said is still to
+be announced.
+
+This is what makes re-checking possible. Dates move — a memorial deadline
+slipping by a week is routine — and the next person to re-check needs to know
+where you looked, not just what you concluded.
+
+### Re-checking
+
+When asked to re-check the list, re-fetch each official source rather than
+trusting the log, update any date that moved, update `verified`, and report what
+changed. A competition whose official page has gone quiet close to its dates is
+worth flagging: it may have been postponed.
 
 ## Conventions worth keeping
 
