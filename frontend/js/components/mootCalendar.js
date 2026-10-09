@@ -502,10 +502,19 @@ function renderDetail() {
              ${on ? 'background:var(--ink);color:var(--paper);' : 'background:transparent;color:var(--white-2);'}">${h} hrs/wk</button>`;
   }).join('');
 
+  // A plan can be absent for two different reasons, and they need different
+  // wording: we may not hold a memorial deadline, or we may hold one that has
+  // already passed. Telling someone a date is "not recorded" when it is sitting
+  // right above them in the list makes the whole entry look untrustworthy.
+  const memoMs = mo.ms.find(x => x.type === 'memo');
+  const memoGone = memoMs && memoMs.d < today();
+
   const planHTML = !plan
-    ? `<div style="font-size:.82rem;color:var(--white-muted);line-height:1.7;padding:10px 0;">
-         A prep plan needs a memorial submission date to work back from. This competition has
-         none recorded yet, so only the dates above are shown.</div>`
+    ? `<div style="font-size:.82rem;color:var(--white-muted);line-height:1.7;padding:10px 0;">${memoGone
+         ? `The memorial deadline for this edition passed on ${esc(fmt(memoMs.d))}, so there is no
+            prep plan left to build. The dates above still apply — the oral rounds are what is ahead.`
+         : `A prep plan needs a memorial submission date to work back from. This competition has
+            none recorded yet, so only the dates above are shown.`}</div>`
     : plan.map(p => {
         const open = state.open === p.id;
         return `
