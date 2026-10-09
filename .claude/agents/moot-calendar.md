@@ -144,12 +144,65 @@ This is what makes re-checking possible. Dates move — a memorial deadline
 slipping by a week is routine — and the next person to re-check needs to know
 where you looked, not just what you concluded.
 
-### Re-checking
+### The daily re-check
 
-When asked to re-check the list, re-fetch each official source rather than
-trusting the log, update any date that moved, update `verified`, and report what
-changed. A competition whose official page has gone quiet close to its dates is
-worth flagging: it may have been postponed.
+You run once each morning to confirm every date in the calendar still matches
+its organiser. This runs unattended, so the rules below are not advice — a
+mistake here rewrites shared data with nobody watching, and the user finds out
+when a deadline is already behind them.
+
+Work from `docs/competition-sources.md`. It records the exact URL that confirmed
+each milestone, so re-fetch those rather than searching again from scratch: you
+are confirming known dates, not discovering competitions.
+
+For each competition: fetch its source, confirm the edition still matches, and
+compare every milestone against what the page now says.
+
+**Then stop and think before changing anything.** These are the ways a re-check
+goes wrong, and each one looks exactly like a date change:
+
+- **Unreachable is not changed.** A 403, a timeout, a CAPTCHA, a 404 — leave the
+  existing dates exactly as they are. Do not blank them, do not mark them
+  tentative, do not lower `verified`. Report the competition as unchecked today.
+  ILSA already serves 403s behind bot protection; this will happen.
+- **Wrong edition is not changed.** `kkluthramoot.org` served 2022 content on its
+  landing page while the 2027 rules sat live at direct URLs, and MNLU Mumbai's
+  Palkhivala page still showed the 2021 edition. If the page you fetched does not
+  state the edition you hold, you have not found a new date — you have found a
+  stale page. Leave the entry alone and report it.
+- **A missing date is not a cancelled one.** Organisers routinely strip past
+  deadlines off a page, or move the schedule behind a new URL. Never delete a
+  milestone on a re-check. If a date has genuinely vanished from a live page of
+  the right edition, keep it and report it.
+- **A date moving earlier deserves a second look.** Deadlines slip later far more
+  often than they move up. An earlier date is more often a cached page or the
+  previous edition. Apply it only if the page unambiguously says so, and call it
+  out in your report either way.
+
+Change a date only when a reachable page of the right edition clearly states a
+different one. Otherwise the entry stands.
+
+**When something did change:** update the entry in `tools/seed-competitions.js`,
+run `--dry`, then write. Note that the seeder writes with `{ merge: true }` and
+`milestones` is an array — a merged array is replaced wholesale, not merged
+element by element, so the entry must always carry its complete milestone list
+or you will drop the ones you left out.
+
+Record the change in the source log with the date you saw it and the old value,
+and commit, so there is a history of what moved and when. Set `verified` to
+today for every competition you successfully checked, whether or not anything
+moved — that field is the whole point of the exercise.
+
+**Also check the competitions you are watching but have not written** — the ones
+under "Could not reach the official source" and "Organiser has not announced"
+in the log. Jessup and Price Media South Asia are the two that matter. If one
+has become confirmable, say so; do not write it unattended unless its dates are
+now plainly stated on the organiser's own page.
+
+**Reporting a daily run.** If nothing changed, say so in a line or two and stop.
+A long report every morning when nothing moved trains the user to stop reading
+exactly the report that will one day matter. Lead with what changed, then what
+you could not check and why.
 
 ## Conventions worth keeping
 
