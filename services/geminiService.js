@@ -1,4 +1,5 @@
 const { GoogleGenAI } = require("@google/genai");
+const usage = require("./usageMeter");
 const { buildLiveJudgePrompt } = require("../prompts/benchJudgePrompt");
 const { createEmptyMemory, evaluateExchange } = require("./memoryEngine");
 
@@ -334,6 +335,7 @@ async function getChatCompletion({
     // Skip to the fallback rather than burn attempts discovering that.
     const est = estimatedTokens();
     if (est > groqBudget) {
+      usage.record({ provider: 'groq', model: groqModel, label: requestLabel, error: 'skipped: over budget' });
       throw new Error(
         `Groq skipped: request needs ~${est} tokens (input ~${inputTokens()} + max_tokens ${groqMax}) ` +
         `but the per-minute budget is ${groqBudget}.`
@@ -351,6 +353,7 @@ async function getChatCompletion({
           )
         ]);
         const duration = Date.now() - startTime;
+        usage.record({ provider: 'groq', model: groqModel, label: requestLabel });
         console.log(`[AI TRACE] [${requestLabel}] Groq completed successfully in ${duration}ms.`);
         return {
           provider: "groq",
@@ -361,6 +364,7 @@ async function getChatCompletion({
       } catch (err) {
         lastError = err;
         const msg = String((err && err.message) || '');
+        usage.record({ provider: 'groq', model: groqModel, label: requestLabel, error: msg });
         const rateLimited = /rate_limit_exceeded|tokens per minute|\bTPM\b|\b429\b/i.test(msg);
         if (!rateLimited || attempt === groqMaxAttempts - 1) throw err;
 
@@ -458,6 +462,7 @@ async function getChatCompletion({
           throw new Error(`Gemini returned an empty response (${why})`);
         }
 
+        usage.record({ provider: 'gemini', model, label: requestLabel });
         console.log(`[AI TRACE] [${requestLabel}] Gemini (${model}) completed successfully in ${duration}ms. Raw text length: ${response.text?.length}`);
         console.log(`[AI TRACE] [${requestLabel}] Raw response:`, response.text);
         return {
@@ -467,6 +472,10 @@ async function getChatCompletion({
           duration
         };
       } catch (err) {
+        // Counted whatever the reason. A RECITATION or SAFETY refusal is a
+        // response the model produced, so it costs a request from the day's
+        // allowance exactly like a useful answer does.
+        usage.record({ provider: 'gemini', model, label: requestLabel, error: err && err.message });
         console.warn(`[AI TRACE] [${requestLabel}] Gemini (${model}) attempt ${attempt + 1} failed: ${err.message}`);
         lastError = err;
 
@@ -530,9 +539,41 @@ async function getChatCompletion({
          * answer to it; before this it fell straight through to Groq, which
          * cannot take a request this size, and the whole issue was lost.
          */
-        const worthSwitching = /UNAVAILABLE|\b503\b|high demand|overloaded|RESOURCE_EXHAUSTED|quota|\b429\b|RECITATION|SAFETY|BLOCKLIST|PROHIBITED|empty response/i.test(msg);
+        /**
+         * How far to walk depends on WHY this model refused, because the
+         * reasons cost very different amounts of the day's allowance.
+         *
+         * Requests per day are counted per model, so a model that is out of
+         * quota genuinely has nothing left while the next one still has its
+         * own allowance - walking the whole chain is the entire point there,
+         * and a rejected request costs nothing anyway.
+         *
+         * A filter refusal is the opposite. RECITATION and SAFETY mean the
+         * model RAN the request and produced a response, so each one spends a
+         * request from that model's day. Walking all six turns one quoted
+         * judgment into six spent requests across six separate buckets, which
+         * is the most expensive thing this service can do. Two models is a
+         * real answer to one filter being idiosyncratic; six is paying six
+         * times to be told the same thing.
+         *
+         * An overload is transient and usually clears, so three is plenty.
+         */
+        const reason =
+          /RESOURCE_EXHAUSTED|exceeded your current quota|free_tier|PerDay|quota|\b429\b/i.test(msg) ? 'quota'
+          : /RECITATION|SAFETY|BLOCKLIST|PROHIBITED|empty response/i.test(msg) ? 'filter'
+          : /UNAVAILABLE|\b503\b|high demand|overloaded/i.test(msg) ? 'overload'
+          : null;
+
+        const MAX_MODELS_FOR = { quota: GEMINI_MODELS.length, overload: 3, filter: 2 };
+        const tried = i + 1;
         const more = i < GEMINI_MODELS.length - 1;
-        if (!worthSwitching || !more) throw err;
+
+        if (!reason || !more) throw err;
+        if (tried >= MAX_MODELS_FOR[reason]) {
+          console.warn(`[AI TRACE] [${requestLabel}] Stopping after ${tried} model(s): a "${reason}" ` +
+            `refusal is not worth spending the rest of the chain's daily allowance on.`);
+          throw err;
+        }
         console.warn(`[AI TRACE] [${requestLabel}] ${model} unavailable (${msg.slice(0, 80)}). Trying ${GEMINI_MODELS[i + 1]}...`);
       }
     }

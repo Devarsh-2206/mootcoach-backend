@@ -252,6 +252,7 @@ const benchForecastRoute = require("./routes/benchForecast");
 
 // Services
 const { handleLiveVoiceConnection, getChatCompletion } = require("./services/geminiService");
+const usageMeter = require("./services/usageMeter");
 const { createEmptyMemory, evaluateExchange } = require("./services/memoryEngine");
 const { extractPropositionIntelligence } = require("./services/propositionEngine");
 const { extractProceduralHierarchy } = require("./services/proceduralHierarchyEngine");
@@ -301,6 +302,42 @@ app.post("/api/client-log", (req, res) => {
 
 app.get("/health", (req, res) => {
   res.json({ status: "ok" });
+});
+
+/**
+ * Where the day's provider allowance went.
+ *
+ * Both free tiers cap by the day, and until this existed nothing could say
+ * how much was left or which route had spent it - a quota wall simply
+ * arrived. Signed-in only: it is not user data, but it is not public either.
+ *
+ *   GET /api/usage            today, Pacific (the day Google resets on)
+ *   GET /api/usage?day=YYYY-MM-DD
+ */
+app.get("/api/usage", async (req, res) => {
+  const authHeader = req.headers.authorization || "";
+  const idToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
+  if (!idToken || !admin.apps.length) {
+    return res.status(401).json({ success: false, error: "Sign in to read usage." });
+  }
+  try {
+    await admin.auth().verifyIdToken(idToken);
+  } catch (e) {
+    return res.status(401).json({ success: false, error: "Invalid or expired auth token." });
+  }
+  try {
+    // Checked without a regex on purpose. A YYYY-MM-DD shape, and a date
+    // that actually parses; anything else falls back to today rather than
+    // being handed to Firestore as a document id.
+    const asked = String(req.query.day || "");
+    const looksLikeADay = asked.length === 10 && asked[4] === "-" && asked[7] === "-"
+      && !Number.isNaN(Date.parse(asked));
+    const day = looksLikeADay ? asked : undefined;
+    const snap = await usageMeter.snapshot(day);
+    return res.json({ success: true, usage: snap });
+  } catch (e) {
+    return res.status(500).json({ success: false, error: "Could not read usage: " + (e && e.message) });
+  }
 });
 
 const upload = multer({ dest: "uploads/" });
@@ -771,7 +808,7 @@ app.post("/analyze", aiLimiter, upload.single("file"), async (req, res) => {
     // high demand...","status":"UNAVAILABLE"}. Carries no quota or rate-limit
     // wording, so without this it reads as a generic failure — and unlike a
     // quota wall, retrying genuinely does work.
-    const overloaded = /UNAVAILABLE|503|high demand|overloaded/i.test(msg);
+    const overloaded = /UNAVAILABLE|\b503\b|high demand|overloaded/i.test(msg);
 
     let status = 500;
     let userError = "Analysis failed. Please try again. If the problem persists, the AI service may be temporarily unavailable.";
