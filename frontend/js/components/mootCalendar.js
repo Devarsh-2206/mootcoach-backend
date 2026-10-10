@@ -68,7 +68,7 @@ function el(html) {
 
 /* ── State ── */
 let COMPS = [];
-let state = { y: 0, m: 0, sel: null, cat: 'all', view: 'month', hours: 8, open: '' };
+let state = { y: 0, m: 0, sel: null, selDate: null, cat: 'all', view: 'month', hours: 8, open: '' };
 let loadError = null;
 
 /* ── Data ─────────────────────────────────────────────────────────────────── */
@@ -287,10 +287,15 @@ function downloadIcs(mo) {
 
 const MONO = "font-family:'IBM Plex Mono',monospace;";
 
-function kindStyle(kind) {
-  if (kind === 'hard') return 'background:var(--gold);color:#FFF8F0;border:1px solid var(--gold);';
-  if (kind === 'orals') return 'background:var(--ink);color:var(--paper);border:1px solid var(--ink);';
-  return 'background:transparent;color:var(--white-2);border:1px dashed var(--glass-b);';
+
+/* The dot vocabulary, shared by the grid, the day view and the detail column.
+   A filled gold dot is a hard deadline, a filled ink dot is the oral rounds, and
+   a dashed outline is something that merely becomes available. Both --gold and
+   --ink invert against --navy-3, so each reads in either theme. */
+function dotStyle(kind) {
+  if (kind === 'hard') return 'background:var(--gold);';
+  if (kind === 'orals') return 'background:var(--ink);';
+  return 'border:1px dashed var(--white-muted);';
 }
 
 function nextHardDeadline() {
@@ -340,9 +345,9 @@ function chipsByDate() {
     for (let k = 0; k < n; k++) {
       const ds = addDays(x.d, k);
       (map[ds] = map[ds] || []).push({
-        id: mo.id, kind: x.kind,
-        label: mo.short + ' · ' + x.chip + (n > 1 ? ' D' + (k + 1) : ''),
-        aria: mo.name + ', ' + x.label + (n > 1 ? ' day ' + (k + 1) : '') + ', ' + fmt(ds),
+        id: mo.id, kind: x.kind, mo, x,
+        dayN: n > 1 ? k + 1 : 0,
+        brief: mo.name + ' — ' + x.label + (n > 1 ? ' (day ' + (k + 1) + ')' : ''),
       });
     }
   }));
@@ -362,24 +367,43 @@ function renderMonth() {
     `<div style="${MONO}font-size:11px;letter-spacing:.08em;text-transform:uppercase;
           color:var(--white-muted);padding:6px 4px;">${d}</div>`).join('');
 
+  // Dots, not names. A competition name under every date number turned each
+  // cell into a block of text, and with ten moots running the grid stopped
+  // reading as a calendar at all. A dot says "something is due here"; the day
+  // view says what. That is the whole job of a month grid.
   let cells = '';
   for (let i = 0; i < total; i++) {
     const ds = addDays(start, i);
     const d = D(ds);
     const inMonth = d.getUTCMonth() === state.m;
     const isToday = ds === t;
-    const chips = (map[ds] || []).map(c =>
-      `<button type="button" data-pick="${esc(c.id)}" aria-label="${esc(c.aria)}"
-        style="display:block;width:100%;text-align:left;${MONO}font-size:11px;line-height:1.3;
-               padding:3px 5px;cursor:pointer;white-space:normal;${kindStyle(c.kind)}
-               ${c.id === state.sel ? 'outline:2px solid var(--white);outline-offset:1px;' : ''}">${esc(c.label)}</button>`
-    ).join('');
-    cells += `<div style="min-height:92px;padding:6px;display:flex;flex-direction:column;gap:3px;
-                   background:${inMonth ? 'transparent' : 'var(--glass)'};border:1px solid var(--glass-b);">
-        <span style="${MONO}font-size:12px;align-self:flex-start;padding:0 4px;
-              ${isToday ? 'background:var(--gold);color:#FFF8F0;' : inMonth ? 'color:var(--white-2);' : 'color:var(--white-muted);opacity:.6;'}">${d.getUTCDate()}</span>
-        ${chips}
-      </div>`;
+    const on = map[ds] || [];
+    const picked = ds === state.selDate;
+
+    const shown = on.slice(0, 4);
+    const dots = shown.map(c =>
+      `<span style="width:7px;height:7px;flex:none;border-radius:50%;box-sizing:border-box;${dotStyle(c.kind)}"></span>`).join('')
+      + (on.length > shown.length
+        ? `<span style="${MONO}font-size:9px;line-height:7px;color:var(--white-muted);">+${on.length - shown.length}</span>`
+        : '');
+
+    const num = `<span style="${MONO}font-size:12px;align-self:flex-start;padding:0 4px;
+          ${isToday ? 'background:var(--gold);color:#FFF8F0;' : inMonth ? 'color:var(--white-2);' : 'color:var(--white-muted);opacity:.6;'}">${d.getUTCDate()}</span>`;
+
+    const box = `min-height:60px;padding:6px;display:flex;flex-direction:column;gap:6px;
+        background:${picked ? 'var(--glass)' : inMonth ? 'transparent' : 'var(--glass)'};
+        border:1px solid ${picked ? 'var(--gold)' : 'var(--glass-b)'};`;
+
+    if (!on.length) {
+      cells += `<div style="${box}${inMonth ? '' : 'opacity:.55;'}">${num}</div>`;
+      continue;
+    }
+    cells += `<button type="button" data-date="${ds}" aria-pressed="${picked}"
+        aria-label="${esc(fmt(ds) + ' — ' + on.map(c => c.brief).join('; '))}"
+        style="${box}width:100%;text-align:left;cursor:pointer;font:inherit;">
+        ${num}
+        <span style="display:flex;gap:3px;align-items:center;flex-wrap:wrap;">${dots}</span>
+      </button>`;
   }
 
   return `
@@ -411,7 +435,7 @@ function renderList() {
     const rel = diffDays(t, x.d);
     const hard = x.kind === 'hard';
     out += `
-      <button type="button" data-pick="${esc(mo.id)}"
+      <button type="button" data-pick="${esc(mo.id)}" data-go="${esc(x.d)}"
         style="display:flex;gap:12px;align-items:center;width:100%;text-align:left;cursor:pointer;
                padding:10px 4px;background:transparent;border:none;border-bottom:1px solid var(--glass-b);">
         <span style="width:44px;flex:none;display:flex;flex-direction:column;align-items:center;">
@@ -446,7 +470,7 @@ function renderPicker() {
     const on = c.id === state.sel;
     const up = c.ms.filter(x => (x.end || x.d) >= t);
     const nx = up.length ? up[0] : null;
-    return `<button type="button" data-pick="${esc(c.id)}"
+    return `<button type="button" data-pick="${esc(c.id)}" data-nodate="1"
       style="display:flex;gap:9px;align-items:baseline;width:100%;text-align:left;cursor:pointer;
              padding:7px 9px;border:1px solid ${on ? 'var(--gold)' : 'transparent'};
              background:${on ? 'var(--glass)' : 'transparent'};">
@@ -457,9 +481,50 @@ function renderPicker() {
   }).join('') + `</div>`;
 }
 
+/* A way back out of a selection, so hiding the full picker costs nothing. */
+function backLink(label) {
+  return `<button type="button" data-clear="1"
+    style="display:inline-flex;align-items:center;gap:6px;min-height:34px;margin-bottom:12px;padding:0 2px;
+           background:transparent;border:none;cursor:pointer;${MONO}font-size:11px;letter-spacing:.04em;
+           color:var(--white-muted);">← ${esc(label)}</button>`;
+}
+
+/* What is due on one clicked day.
+   Reached when a day carries more than one competition - with only one we go
+   straight to it, because making someone click a list of one teaches nothing. */
+function renderDay() {
+  const on = chipsByDate()[state.selDate] || [];
+  const t = today();
+  const rel = diffDays(t, state.selDate);
+  const when = rel === 0 ? 'today' : rel === 1 ? 'tomorrow'
+    : rel > 0 ? 'in ' + rel + ' days' : Math.abs(rel) + ' days ago';
+
+  return backLink('All competitions') + `
+    <div style="${MONO}font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--white-muted);">${esc(when)}</div>
+    <h2 style="margin:3px 0 14px;font-family:var(--serif),Georgia,serif;font-size:1.4rem;font-weight:500;
+         line-height:1.2;color:var(--white);">${esc(fmt(state.selDate))}</h2>
+    <div style="${MONO}font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--white-muted);margin-bottom:6px;">
+      ${on.length} ${on.length === 1 ? 'entry' : 'entries'}</div>`
+    + on.map(c => `
+      <button type="button" data-pick="${esc(c.id)}"
+        style="display:flex;gap:10px;align-items:flex-start;width:100%;text-align:left;cursor:pointer;
+               padding:11px 2px;background:transparent;border:none;border-bottom:1px solid var(--glass-b);">
+        <span style="width:9px;height:9px;flex:none;margin-top:6px;border-radius:50%;box-sizing:border-box;
+              ${dotStyle(c.kind)}"></span>
+        <span style="flex:1;min-width:0;">
+          <span style="display:block;font-size:.88rem;color:var(--white);line-height:1.35;">${esc(c.mo.name)}</span>
+          <span style="display:block;font-size:.8rem;color:${c.kind === 'hard' ? 'var(--gold)' : 'var(--white-muted)'};">
+            ${esc(c.x.label)}${c.dayN ? ' · day ' + c.dayN : ''}${c.x.time ? ' · ' + esc(c.x.time) : ''}${c.x.tent ? ' · tentative' : ''}</span>
+        </span>
+        <span style="${MONO}font-size:11px;flex:none;color:var(--white-muted);margin-top:4px;">→</span>
+      </button>`).join('');
+}
+
 function renderDetail() {
   const mo = COMPS.find(c => c.id === state.sel);
   if (!mo) {
+    // A clicked day with several competitions on it: show the day, not nothing.
+    if (state.selDate && (chipsByDate()[state.selDate] || []).length) return renderDay();
     // Nothing listed at all reads differently from "pick one from the list".
     const none = !COMPS.length;
     return renderPicker() + `<div style="padding:24px 10px;text-align:center;color:var(--white-muted);font-size:.86rem;line-height:1.7;">`
@@ -468,7 +533,7 @@ function renderDetail() {
            <div style="color:var(--white);margin-bottom:7px;">No competitions added yet</div>
            Competitions are kept in one shared list, so adding a moot puts it in front of every
            user \u2014 with its deadlines on the grid and a prep plan worked back from the memorial date.`
-        : 'Pick a competition to see its dates and a prep plan built back from the memorial deadline.')
+        : 'Click a date on the grid, or a competition below, to see its details and a prep plan worked back from the memorial deadline.')
       + `</div>`;
   }
   const t = today();
@@ -482,8 +547,12 @@ function renderDetail() {
   const dates = mo.ms.map(x => {
     const past = (x.end || x.d) < t;
     const rel = diffDays(t, x.d);
+    // The milestone the clicked day belongs to, so arriving from the grid
+    // lands you on the date you actually tapped rather than a flat list.
+    const onDay = !!state.selDate && state.selDate >= x.d && state.selDate <= (x.end || x.d);
     return `
-      <div style="display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--glass-b);${past ? 'opacity:.5;' : ''}">
+      <div style="display:flex;gap:10px;align-items:flex-start;padding:8px ${onDay ? '8px' : '0'};
+           border-bottom:1px solid var(--glass-b);${past ? 'opacity:.5;' : ''}${onDay ? 'background:var(--glass);' : ''}">
         <span style="width:9px;height:9px;flex:none;margin-top:7px;border-radius:50%;box-sizing:border-box;
               ${x.kind === 'hard' ? 'background:var(--gold);' : x.kind === 'orals' ? 'background:var(--ink);' : 'border:1px dashed var(--white-muted);'}"></span>
         <span style="flex:1;min-width:0;">
@@ -493,6 +562,13 @@ function renderDetail() {
         <span style="${MONO}font-size:11px;flex:none;color:var(--white-muted);">${past ? 'passed' : rel === 0 ? 'today' : rel > 0 ? 'in ' + rel + 'd' : 'on now'}</span>
       </div>`;
   }).join('');
+
+  // An online competition has a city of "Online" and a mode of "Online", and
+  // joining them said the same thing twice.
+  const whereBits = [mo.city, mo.mode].filter(Boolean).map(v => String(v).trim());
+  const where = whereBits
+    .filter((v, i) => whereBits.findIndex(x => x.toLowerCase() === v.toLowerCase()) === i)
+    .join(' · ');
 
   const plan = buildPlan(mo, state.hours);
   const hourPills = [4, 8, 12].map(h => {
@@ -539,7 +615,10 @@ function renderDetail() {
         </div>`;
       }).join('');
 
-  return renderPicker() + `
+  // The picker is not repeated here. Ten competitions listed above a full set
+  // of details was the crowding - once you have chosen one, the list is noise,
+  // and the back link returns you to it.
+  return backLink(state.selDate ? fmt(state.selDate) : 'All competitions') + `
     <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
       <div style="flex:1;min-width:0;">
         <span style="${MONO}font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--white-muted);">${esc(mo.catLabel)}</span>
@@ -547,7 +626,7 @@ function renderDetail() {
       </div>
     </div>
     ${field('Host', mo.host)}
-    ${field('Where', [mo.city, mo.mode].filter(Boolean).join(' · '))}
+    ${field('Where', where)}
     ${field('Subject', mo.subject)}
     ${field('Eligibility', mo.elig)}
     ${field('Team', mo.team)}
@@ -634,7 +713,33 @@ function wire(body) {
   body.querySelectorAll('[data-pick]').forEach(b => b.addEventListener('click', () => {
     state.sel = b.getAttribute('data-pick');
     const go = b.getAttribute('data-go');
-    if (go) { const d = D(go); state.y = d.getUTCFullYear(); state.m = d.getUTCMonth(); }
+    if (go) {
+      const d = D(go);
+      state.y = d.getUTCFullYear(); state.m = d.getUTCMonth();
+      state.selDate = go;
+    }
+    // A pick from the full list is not tied to any one day. A pick from inside
+    // a day keeps that day, so the detail still highlights it.
+    if (b.hasAttribute('data-nodate')) state.selDate = null;
+    state.open = '';
+    renderBody();
+  }));
+
+  body.querySelectorAll('[data-date]').forEach(b => b.addEventListener('click', () => {
+    const ds = b.getAttribute('data-date');
+    const on = chipsByDate()[ds] || [];
+    const ids = [...new Set(on.map(c => c.id))];
+    state.selDate = ds;
+    // One competition on the day: go straight to it rather than making someone
+    // click through a list of one.
+    state.sel = ids.length === 1 ? ids[0] : null;
+    state.open = '';
+    renderBody();
+  }));
+
+  body.querySelectorAll('[data-clear]').forEach(b => b.addEventListener('click', () => {
+    state.sel = null;
+    state.selDate = null;
     state.open = '';
     renderBody();
   }));
@@ -716,9 +821,14 @@ export async function openMootCalendar() {
   const anchor = b ? D(b.x.d) : new Date();
   state.y = anchor.getUTCFullYear();
   state.m = anchor.getUTCMonth();
-  if (!state.sel || !COMPS.some(c => c.id === state.sel)) {
-    state.sel = b ? b.mo.id : (COMPS[0] && COMPS[0].id) || null;
-  }
+  // Open with nothing selected. Auto-selecting a competition meant the full
+  // detail - six fields, every date, the whole prep plan - was on screen before
+  // the user had asked for any of it, which is what made this panel feel
+  // crowded. The banner above the grid still says what is next, and it is
+  // clickable. Details are what a click is for.
+  state.sel = null;
+  state.selDate = null;
+  state.open = '';
 
   if (document.getElementById('cal-overlay')) renderBody();
 }
