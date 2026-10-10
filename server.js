@@ -46,17 +46,54 @@ try {
 
 
 
-// Rate limiter for heavy AI and logging routes
+/**
+ * Rate limiting for the heavy AI routes.
+ *
+ * This used to be 15 requests per 15 minutes keyed on the IP address, which
+ * is the right shape for stopping a script and the wrong shape for a room.
+ * A class of students testing on one wifi connection is ONE IP, a full
+ * session is three or four of these calls, and so the fifth person to try was
+ * told to come back in fifteen minutes. That is not abuse, and it should not
+ * look like it.
+ *
+ * So the bucket is the person where we can tell who they are. The token is
+ * read but not cryptographically verified, because this is only deciding
+ * which bucket to count in - a forged subject buys you your own allowance,
+ * not somebody else's, and the per-IP bucket still covers anyone unsigned.
+ * The routes that actually act on identity verify the token properly.
+ */
+function identityKey(req) {
+  const h = String(req.headers.authorization || '');
+  if (h.startsWith('Bearer ')) {
+    try {
+      const claims = JSON.parse(Buffer.from(h.slice(7).split('.')[1], 'base64').toString('utf8'));
+      if (claims && (claims.user_id || claims.sub)) return 'u:' + (claims.user_id || claims.sub);
+    } catch (e) {
+      // Not a readable token: fall through to the address.
+    }
+  }
+  return 'ip:' + (req.ip || 'unknown');
+}
+
 const aiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 15,
+  windowMs: 15 * 60 * 1000,
+  keyGenerator: identityKey,
+  // A signed-in advocate gets a generous allowance of their own. Everyone
+  // sharing an address gets a larger pool between them, sized so a room of
+  // thirty is never the thing that stops working.
+  max: (req) => identityKey(req).startsWith('u:') ? 40 : 240,
   standardHeaders: true,
   legacyHeaders: false,
   validate: { trustProxy: false },
-  message: {
-    success: false,
-    error: "Too many requests from this IP. Please try again after 15 minutes."
-  }
+  handler: (req, res) => {
+    const mine = identityKey(req).startsWith('u:');
+    res.status(429).json({
+      success: false,
+      error: mine
+        ? "You have made a lot of requests in a short time. Give it a few minutes and carry on."
+        : "This network has made a lot of requests in a short time. Signing in gives you your own allowance.",
+    });
+  },
 });
 
 function extractAndParseJSON_legacy(text) {
@@ -274,6 +311,7 @@ try {
   console.warn("⚠️ forumDetectionPrompt not found — forum pre-detection disabled, server continues:", e.message);
 }
 const ANALYSIS_SYSTEM_PROMPT = require("./prompts/analysisSystemPrompt");
+const ANALYSIS_LITE_PROMPT = require("./prompts/analysisLitePrompt");
 const ORAL_EVAL_PROMPT = require("./prompts/oralEvalPrompt");
 const { buildJudgePrompt } = require("./prompts/benchJudgePrompt");
 const buildEvaluationPrompt = require("./prompts/benchEvaluationPrompt");
@@ -375,6 +413,54 @@ const upload = multer({ dest: "uploads/" });
  * Set ENRICH_BUDGET_MS=70000 to restore it, at roughly +35s on every upload.
  */
 const ENRICH_BUDGET_MS = Number(process.env.ENRICH_BUDGET_MS ?? 0);
+
+/**
+ * The analysis of last resort.
+ *
+ * Runs on Groq, which means it has to fit inside 8,000 tokens of input plus
+ * reserved output in a single request. The full analysis cannot; this can,
+ * because it asks for four things instead of twenty-one.
+ *
+ * The proposition is sampled head and tail rather than simply truncated.
+ * Moot propositions put the facts at the front and very often list the issues
+ * at the very end, so cutting the tail throws away the part an advocate most
+ * needs. Taking both ends keeps the shape of the document.
+ */
+const LITE_HEAD_CHARS = 9000;
+const LITE_TAIL_CHARS = 4000;
+
+function sampleForLite(text) {
+  if (text.length <= LITE_HEAD_CHARS + LITE_TAIL_CHARS) return text;
+  return text.slice(0, LITE_HEAD_CHARS)
+    + '\n\n[... middle of the proposition omitted for a reduced analysis ...]\n\n'
+    + text.slice(-LITE_TAIL_CHARS);
+}
+
+async function runLiteAnalysis(fullPropositionText, forumDirective) {
+  const sampled = sampleForLite(fullPropositionText);
+  const call = await getChatCompletion({
+    messages: [
+      { role: "system", content: ANALYSIS_LITE_PROMPT },
+      { role: "user", content: `Analyse this proposition. Return ONLY the JSON object.${forumDirective || ''}\n\n${sampled}` },
+    ],
+    temperature: 0.1,
+    // Sized to fit: ~700 prompt + ~3,300 proposition + 3,000 reserved is
+    // comfortably inside the 8,000 Groq charges against the minute.
+    max_tokens: 3000,
+    primaryProvider: "groq",
+    groqTimeoutMs: 45000,
+    groqMaxAttempts: 2,
+    // Gemini is the thing that just failed, so there is no point asking it
+    // again here. One attempt, only in case the failure was specific to the
+    // full request rather than the provider.
+    geminiMaxAttempts: 1,
+    geminiTimeoutMs: 40000,
+    geminiMaxOutputTokens: 6000,
+    totalBudgetMs: 45000,
+    requestLabel: "Reduced Analysis (fallback)",
+  });
+  return extractAndParseJSON(call.text);
+}
 
 async function runEnrichment(rawPropIntel, propIntelError, forumContext) {
   const out = {
@@ -526,6 +612,15 @@ app.post("/analyze", aiLimiter, upload.single("file"), async (req, res) => {
     ]);
     const wantsFresh = String(req.query.fresh || req.body.fresh || '') === '1';
 
+    // ?probe=1 asks only whether this document is already analysed. It must
+    // never start one: the whole point of checking what is ready before a
+    // session is that checking is free.
+    if (String(req.query.probe || '') === '1') {
+      const hit = await analysisCache.get(cacheKey);
+      return res.json({ success: true, probe: true, cached: !!hit,
+        ageMs: hit ? hit.ageMs : null, chars: fullPropositionText.length });
+    }
+
     if (!wantsFresh) {
       const hit = await analysisCache.get(cacheKey);
       if (hit) {
@@ -653,7 +748,7 @@ app.post("/analyze", aiLimiter, upload.single("file"), async (req, res) => {
        overlap is not worth failing the upload. */
     let propIntelError = null;
 
-    const [analysisCall, rawPropIntel] = await Promise.all([
+    const [analysisOutcome, rawPropIntel] = await Promise.all([
       getChatCompletion({
         messages: [
           { role: "system", content: ANALYSIS_SYSTEM_PROMPT },
@@ -719,7 +814,13 @@ app.post("/analyze", aiLimiter, upload.single("file"), async (req, res) => {
         totalBudgetMs: 135000,
         geminiMaxOutputTokens: 16000,
       requestLabel: "Full Legal Analysis"
-      }),
+      })
+        // Captured rather than thrown, so a failure here can be answered
+        // instead of ending the upload. The original error is kept: if the
+        // reduced analysis cannot run either, this is what the advocate is
+        // told, because it is the real reason.
+        .then(call => ({ ok: true, call }))
+        .catch(err => ({ ok: false, err })),
       // Proposition Intelligence exists to feed the enrichment chain, and the
       // client only ever writes it to Firestore — no view reads it back. With
       // the chain off it is pure latency, and worse, it competes with Full
@@ -730,15 +831,54 @@ app.post("/analyze", aiLimiter, upload.single("file"), async (req, res) => {
         : Promise.resolve(null)
     ]);
 
-    const rawAnalysis = analysisCall.text;
+    /* ── PHASE 3: Parse, and if that is not possible, answer anyway ────────
+       Everything above this point can fail for reasons that have nothing to
+       do with the advocate's document: the day's Gemini requests are gone,
+       the model is overloaded, the answer came back truncated. Until now any
+       of those ended the upload, which is the worst possible moment for it -
+       somebody is trying this for the first time.
 
-    /* ── PHASE 3: Parse JSON ── */
-    let analysisData;
-    try {
-      analysisData = extractAndParseJSON(rawAnalysis);
-    } catch (parseErr) {
-      console.error("FATAL JSON PARSE ERROR. Raw text:", rawAnalysis.substring(0, 200));
-      return res.status(500).json({ success: false, error: "AI failed to format response correctly." });
+       So a failure here drops to a reduced analysis that fits inside Groq,
+       whose daily allowance is large enough to effectively always answer.
+       It is smaller, and it says so. A shorter analysis that arrives beats a
+       complete one that does not. */
+    let analysisCall = analysisOutcome.ok ? analysisOutcome.call : null;
+    let analysisData = null;
+    let reduced = false;
+    let failure = analysisOutcome.ok ? null : analysisOutcome.err;
+
+    if (analysisCall) {
+      try {
+        analysisData = extractAndParseJSON(analysisCall.text);
+      } catch (parseErr) {
+        console.error("[ANALYSIS] Unparseable response, falling back. First 200 chars:",
+          String(analysisCall.text || '').substring(0, 200));
+        failure = parseErr;
+        analysisCall = null;
+      }
+    }
+
+    if (!analysisData) {
+      console.warn('[ANALYSIS] Full analysis unavailable (' +
+        String((failure && failure.message) || 'unknown').slice(0, 140) + '). Trying the reduced analysis.');
+      try {
+        analysisData = await runLiteAnalysis(fullPropositionText, forumDirective);
+        reduced = true;
+        // Carried inside the analysis itself, because that is the object the
+        // client renders and saves. The advocate should be told their
+        // analysis is the short one wherever they next look at it, including
+        // when they reopen the saved session.
+        analysisData._notice = 'This is a shorter analysis. The full one could not run just now, '
+          + 'so MootCoach produced the core of it rather than leaving you with nothing. '
+          + 'Upload the same proposition again later for the complete version.';
+        console.log('[ANALYSIS] Reduced analysis served. The upload did not fail.');
+      } catch (liteErr) {
+        console.error('[ANALYSIS] The reduced analysis failed too:', liteErr && liteErr.message);
+        // Both are gone. Report the ORIGINAL reason, not this one: the outer
+        // handler knows how to explain a quota wall or an overload, and that
+        // is what actually happened.
+        throw failure || liteErr;
+      }
     }
 
     /* ── PHASE 4: Additional-issue integrity guard ──
@@ -807,7 +947,11 @@ app.post("/analyze", aiLimiter, upload.single("file"), async (req, res) => {
 
     const payload = {
       isStructured: true,
-      modelUsed: analysisCall.model,
+      modelUsed: analysisCall ? analysisCall.model : 'reduced',
+      reduced,
+      reducedNotice: reduced
+        ? 'This is a shorter analysis. The full one could not run just now, so MootCoach produced the core of it \u2014 the summary, the issues, and both sides\u2019 arguments \u2014 rather than leaving you with nothing. Upload again later for the complete version.'
+        : null,
       documentType: validationResult.documentType,
       truncated,
       detectedForum: forumContext,
@@ -822,7 +966,12 @@ app.post("/analyze", aiLimiter, upload.single("file"), async (req, res) => {
 
     // Stored, not awaited: the advocate should not wait on a write that only
     // benefits the next upload. A failure here costs nothing but a cache miss.
-    analysisCache.put(cacheKey, payload, {
+    //
+    // A reduced analysis is never stored. It exists because something was
+    // temporarily wrong, and caching it would make a bad few minutes
+    // permanent for that document - every later upload would be served the
+    // short version even once the full one could run again.
+    if (!reduced) analysisCache.put(cacheKey, payload, {
       documentType: validationResult.documentType,
       chars: fullPropositionText.length,
     }).catch(() => {});

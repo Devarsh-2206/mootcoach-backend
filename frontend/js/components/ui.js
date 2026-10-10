@@ -1120,8 +1120,19 @@ export function showStructuredResults(data) {
         </div>`;
     }).join('');
 
+    // When the full analysis could not run, say so on the page. Otherwise
+    // this one just looks thinner than the last and the advocate is left
+    // wondering whether their proposition was the problem.
+    const noticeHTML = data._notice
+      ? `<div style="grid-column:1/-1;border:1px solid var(--glass-b);background:var(--glass);
+             padding:13px 16px;font-size:.84rem;line-height:1.7;color:var(--white-2);">
+           <strong style="color:var(--white);font-weight:600;">Shorter analysis</strong><br>${esc(data._notice)}
+         </div>`
+      : '';
+
     document.getElementById('analysis-output').innerHTML = `
       <div class="result-grid">
+        ${noticeHTML}
         ${heroHTML}
         <div class="result-divider"><span>Detailed Analysis</span></div>
         ${cardsHTML}

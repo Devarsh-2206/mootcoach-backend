@@ -1,4 +1,27 @@
 import { BASE_URL } from '../config.js';
+import { auth } from './firebase.js';
+
+/**
+ * Identify the caller to the server.
+ *
+ * Without this every request from one network looks like one person, so a
+ * room of students sharing a wifi connection shares a single allowance and
+ * the fifth of them is told to come back in fifteen minutes. Signed in, each
+ * gets their own.
+ *
+ * Best effort on purpose: a failure here must never stop an upload, it only
+ * means falling back to the shared bucket.
+ */
+async function identityHeaders() {
+  try {
+    const u = auth && auth.currentUser;
+    if (!u) return {};
+    const token = await u.getIdToken();
+    return token ? { Authorization: 'Bearer ' + token } : {};
+  } catch (e) {
+    return {};
+  }
+}
 
 export async function checkBackendHealth() {
   const controller = new AbortController();
@@ -14,7 +37,11 @@ export async function checkBackendHealth() {
 }
 
 export async function analyzeProposition(formData) {
-  const res = await fetch(`${BASE_URL}/analyze`, { method: 'POST', body: formData });
+  const res = await fetch(`${BASE_URL}/analyze`, {
+    method: 'POST',
+    headers: await identityHeaders(),      // no Content-Type: the browser sets the multipart boundary
+    body: formData,
+  });
   if (!res.ok) {
     const txt = await res.text().catch(() => 'Unknown server error.');
     throw new Error(`Server ${res.status}: ${txt}`);
@@ -25,7 +52,7 @@ export async function analyzeProposition(formData) {
 export async function evaluateOral(argumentText, contextText, difficultyMode) {
   const res = await fetch(`${BASE_URL}/evaluate-oral`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: Object.assign({ 'Content-Type': 'application/json' }, await identityHeaders()),
     body: JSON.stringify({
       argument: argumentText,
       propositionContext: contextText || '',
@@ -56,7 +83,7 @@ export async function logSessionSecurely(payload, idToken) {
 export async function buildArgument(stance, issue, notes, propositionContext, forum, opts = {}) {
   const res = await fetch(`${BASE_URL}/api/build-argument`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: Object.assign({ 'Content-Type': 'application/json' }, await identityHeaders()),
     // instructions: the advocate's directives, kept separate from notes so the
     // backend can present them as binding rather than as material to summarise.
     // authorities: their Authority Armory picks, which must appear in the memorial.
@@ -85,7 +112,7 @@ export async function buildArgument(stance, issue, notes, propositionContext, fo
 export async function buildMemorial(payload) {
   const res = await fetch(`${BASE_URL}/api/build-memorial`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: Object.assign({ 'Content-Type': 'application/json' }, await identityHeaders()),
     body: JSON.stringify(payload),
   });
   const data = await res.json();
