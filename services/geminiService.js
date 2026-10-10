@@ -291,6 +291,21 @@ async function getChatCompletion({
   groqMaxAttempts = 3,
   geminiTimeoutMs = 90000,
   geminiMaxAttempts = 3,
+  // How long an answer Gemini is allowed to give.
+  //
+  // This is NOT max_tokens. On Groq max_tokens is a reservation charged
+  // against the per-minute budget, so asking for more costs you capacity. On
+  // Gemini it is only a ceiling, so being generous costs nothing and running
+  // into it costs you the whole request.
+  //
+  // Left unset the model applies its own default - 8,192 on 2.5-flash, shared
+  // with the tokens it spends thinking - and a long structured answer is
+  // simply cut off mid-JSON. Measured: a full analysis came back at 28,166
+  // characters with the closing braces missing, parsed as a syntax error, and
+  // the upload failed having already spent the request.
+  //
+  // 0 keeps the model default for the short calls that cannot get near it.
+  geminiMaxOutputTokens = 0,
   geminiBackoffMs = 1500,
   // Ceiling for the WHOLE Gemini chain, not one model.
   //
@@ -430,11 +445,11 @@ async function getChatCompletion({
           ai.models.generateContent({
             model: model,
             contents,
-            config: {
+            config: Object.assign({
               responseMimeType: response_format?.type === "json_object" ? "application/json" : "text/plain",
               systemInstruction,
               temperature
-            }
+            }, geminiMaxOutputTokens > 0 ? { maxOutputTokens: geminiMaxOutputTokens } : {})
           }),
           new Promise((_, reject) =>
             setTimeout(() => reject(new Error(`Gemini Timeout`)), timeoutMs)
@@ -463,6 +478,27 @@ async function getChatCompletion({
         }
 
         usage.record({ provider: 'gemini', model, label: requestLabel });
+        /**
+         * A cut-off answer is a failure, and it has to be named as one here.
+         *
+         * Gemini stops with finishReason MAX_TOKENS when it reaches the output
+         * ceiling, and returns everything it had written so far - which for a
+         * JSON response is a string that cannot parse. Left to fall through,
+         * it surfaced as "AI failed to format response correctly", which sends
+         * you looking at the prompt rather than at the ceiling.
+         *
+         * It does not advance the model chain: every model would stop at its
+         * own ceiling in the same place, so walking the chain would spend the
+         * day's allowance discovering the same thing six times.
+         */
+        const finish = (response.candidates && response.candidates[0] && response.candidates[0].finishReason) || '';
+        if (String(finish).toUpperCase() === 'MAX_TOKENS') {
+          throw new Error(
+            `Gemini stopped at its output ceiling (MAX_TOKENS) after ${response.text.length} characters, ` +
+            `so the answer is incomplete. Raise geminiMaxOutputTokens for [${requestLabel}] ` +
+            `(currently ${geminiMaxOutputTokens || 'the model default'}).`);
+        }
+
         console.log(`[AI TRACE] [${requestLabel}] Gemini (${model}) completed successfully in ${duration}ms. Raw text length: ${response.text?.length}`);
         console.log(`[AI TRACE] [${requestLabel}] Raw response:`, response.text);
         return {
@@ -479,8 +515,11 @@ async function getChatCompletion({
         console.warn(`[AI TRACE] [${requestLabel}] Gemini (${model}) attempt ${attempt + 1} failed: ${err.message}`);
         lastError = err;
 
-        // Fatal error (like auth error/API key error), don't retry
-        if (err.message.includes("API key") || err.message.includes("403") || err.message.includes("404")) {
+        // Fatal: retrying cannot change the outcome. An output ceiling cuts
+        // the same answer at the same place every time, so three attempts just
+        // spend three requests to learn it once.
+        if (err.message.includes("API key") || err.message.includes("403") || err.message.includes("404")
+            || err.message.includes("MAX_TOKENS")) {
           throw err;
         }
 

@@ -253,6 +253,7 @@ const benchForecastRoute = require("./routes/benchForecast");
 // Services
 const { handleLiveVoiceConnection, getChatCompletion } = require("./services/geminiService");
 const usageMeter = require("./services/usageMeter");
+const analysisCache = require("./services/analysisCache");
 const { createEmptyMemory, evaluateExchange } = require("./services/memoryEngine");
 const { extractPropositionIntelligence } = require("./services/propositionEngine");
 const { extractProceduralHierarchy } = require("./services/proceduralHierarchyEngine");
@@ -334,7 +335,10 @@ app.get("/api/usage", async (req, res) => {
       && !Number.isNaN(Date.parse(asked));
     const day = looksLikeADay ? asked : undefined;
     const snap = await usageMeter.snapshot(day);
-    return res.json({ success: true, usage: snap });
+    // The cache is the other half of the picture: calls not made are
+    // the cheapest kind, and they are invisible in a usage count.
+    const cache = await analysisCache.stats().catch(() => null);
+    return res.json({ success: true, usage: snap, cache });
   } catch (e) {
     return res.status(500).json({ success: false, error: "Could not read usage: " + (e && e.message) });
   }
@@ -508,6 +512,30 @@ app.post("/analyze", aiLimiter, upload.single("file"), async (req, res) => {
      */
     const PROPOSITION_CHAR_CAP = Number(process.env.PROPOSITION_CHAR_CAP || 120000);
     const fullPropositionText = extractedText.slice(0, PROPOSITION_CHAR_CAP);
+
+    /* ── The same document twice should not cost twice ──────────────────────
+       This route spends a Gemini request from an allowance of roughly 20-50
+       per model per day, and testing means uploading the same proposition
+       over and over. The key includes a fingerprint of the prompts, so an
+       edited prompt invalidates every entry on its own.
+
+       ?fresh=1 forces a real run, for when you want to see the model roll the
+       answer again rather than read the one it already gave. */
+    const cacheKey = analysisCache.keyFor(fullPropositionText, [
+      ANALYSIS_SYSTEM_PROMPT, LEGAL_VALIDATION_PROMPT, FORUM_DETECTION_PROMPT,
+    ]);
+    const wantsFresh = String(req.query.fresh || req.body.fresh || '') === '1';
+
+    if (!wantsFresh) {
+      const hit = await analysisCache.get(cacheKey);
+      if (hit) {
+        const days = Math.round(hit.ageMs / 86400000);
+        console.log('[CACHE] hit for this proposition (' +
+          (days >= 1 ? days + 'd old' : Math.round(hit.ageMs / 60000) + 'm old') +
+          ', seen ' + (hit.hits + 1) + ' times). No provider call made.');
+        return res.json(Object.assign({ success: true, cached: true }, hit.payload));
+      }
+    }
 
     // Anything still over the cap is reported rather than dropped in silence.
     // A truncated analysis looks exactly as authoritative as a complete one,
@@ -689,7 +717,8 @@ app.post("/analyze", aiLimiter, upload.single("file"), async (req, res) => {
         // request ceiling, so a bad run ends in a clear 504 rather than the
         // socket being cut with nothing to show.
         totalBudgetMs: 135000,
-        requestLabel: "Full Legal Analysis"
+        geminiMaxOutputTokens: 16000,
+      requestLabel: "Full Legal Analysis"
       }),
       // Proposition Intelligence exists to feed the enrichment chain, and the
       // client only ever writes it to Firestore — no view reads it back. With
@@ -776,8 +805,7 @@ app.post("/analyze", aiLimiter, upload.single("file"), async (req, res) => {
       issueIntelligence, authorityIntelligence, advocacyIntelligence
     } = await runEnrichment(rawPropIntel, propIntelError, forumContext);
 
-    return res.json({
-      success: true,
+    const payload = {
       isStructured: true,
       modelUsed: analysisCall.model,
       documentType: validationResult.documentType,
@@ -790,7 +818,16 @@ app.post("/analyze", aiLimiter, upload.single("file"), async (req, res) => {
       issueIntelligence: issueIntelligence,
       authorityIntelligence: authorityIntelligence,
       advocacyIntelligence: advocacyIntelligence
-    });
+    };
+
+    // Stored, not awaited: the advocate should not wait on a write that only
+    // benefits the next upload. A failure here costs nothing but a cache miss.
+    analysisCache.put(cacheKey, payload, {
+      documentType: validationResult.documentType,
+      chars: fullPropositionText.length,
+    }).catch(() => {});
+
+    return res.json(Object.assign({ success: true, cached: false }, payload));
 
   } catch (error) {
     console.error("Analyze route error:", error);
@@ -870,6 +907,7 @@ app.post("/evaluate-oral", aiLimiter, express.json(), async (req, res) => {
       geminiTimeoutMs: 120000,
       geminiMaxAttempts: 1,
       totalBudgetMs: 120000,
+      geminiMaxOutputTokens: 6000,
       requestLabel: "Oral Evaluation"
     });
 
@@ -1334,6 +1372,7 @@ Authorities. Cite nothing you cannot stand behind: mark anything uncertain with
       // inside each call must respect the same figure rather than spending it
       // six times over.
       totalBudgetMs: timeoutMs,
+      geminiMaxOutputTokens: 24000,
       requestLabel: "Build Side-Aware Argument Package"
     });
 
@@ -1543,6 +1582,7 @@ app.post("/api/analyse-memorial", aiLimiter, upload.single("file"), async (req, 
       geminiTimeoutMs: 120000,
       geminiMaxAttempts: 1,
       totalBudgetMs: 120000,
+      geminiMaxOutputTokens: 16000,
       requestLabel: "Memorial Review"
     });
 
