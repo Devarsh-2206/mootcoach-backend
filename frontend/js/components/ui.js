@@ -62,7 +62,8 @@ export function openLegalModal(type) {
       <h3>2. Information Collection</h3>
       <p>We collect essential account information (Email, Name, Law School) to provide you with a personalized dashboard. We store the analysis results of your uploaded propositions solely so you can retrieve your history seamlessly across devices.</p>
       <h3>3. AI Processing & Third Parties</h3>
-      <p>We utilize enterprise-grade LLM APIs (such as Groq and Llama) operating under strict zero-data-retention agreements where applicable. Your competition strategies are NOT ingested into public base models.</p>
+      <p>To analyse a proposition we send its text to our AI providers &mdash; Groq and Google (Gemini) &mdash; for processing. Nothing is sold, and nothing is shared with anyone else.</p>
+      <p>What those providers may retain is governed by their terms rather than ours, and depends on the plan MootCoach runs on. If your proposition is under embargo, treat uploading it as you would treat sending it to any service outside your team, and check your competition&rsquo;s rules first.</p>
       <h3>4. Data Control</h3>
       <p>You retain full control over your data. You reserve the right to completely wipe your workspace. If you require a complete account deletion, please contact our support team.</p>
     `;

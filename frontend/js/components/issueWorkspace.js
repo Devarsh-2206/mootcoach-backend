@@ -7,17 +7,20 @@ let activeStance = 'petitioner';
 // ── SHARED MOOT STATE (single source of truth across Issues → Advocacy → Simulator) ──
 // Every stage reads/writes this so the Bench Simulator can prove it is using the
 // advocate's actual issue, stance, authorities and drafts.
-if (!window.mootState) {
-  window.mootState = {
-    issueIndex: 0,
-    issueText: '',
-    stance: 'Petitioner',     // 'Petitioner' | 'Respondent'
-    authorities: [],
-    strategicNotes: '',
-    oralSubmission: '',
-    memorialDraft: ''
-  };
-}
+// Filled in, not replaced. This module may load after another stage has
+// already recorded a choice - the Advocacy selector writes the side here the
+// moment it changes - and replacing the object would throw that away. Equally,
+// an object created elsewhere will not have these fields, so the defaults
+// still have to land.
+window.mootState = Object.assign({
+  issueIndex: 0,
+  issueText: '',
+  stance: 'Petitioner',     // 'Petitioner' | 'Respondent'
+  authorities: [],
+  strategicNotes: '',
+  oralSubmission: '',
+  memorialDraft: ''
+}, window.mootState || {});
 
 // Normalised list of issues regardless of source shape.
 // Each entry: { title, raw } where raw is the original object (or string).
@@ -172,7 +175,27 @@ export function setIwStance(stance) {
   activeStance = stance;
   // Always reflect the choice visually + in shared state immediately.
   applyStanceButtonStyles();
-  window.mootState.stance = stance === 'respondent' ? 'Respondent' : 'Petitioner';
+  const side = stance === 'respondent' ? 'Respondent' : 'Petitioner';
+  window.mootState.stance = side;
+
+  // And move the Advocacy stage's own selector to match. Several places read
+  // the checked radio directly rather than the shared state, so leaving it
+  // behind means switching sides here only half works - the matrix changes
+  // and the drafting stage carries on arguing the other side.
+  // Done through the DOM rather than an import, because the two modules do
+  // not otherwise depend on each other and should not start now.
+  try {
+    // Case-insensitively: the radio values are lowercase and the shared state
+    // is capitalised, so comparing them directly matched nothing at all.
+    const want = side.toLowerCase();
+    document.querySelectorAll('input[name="stance"]').forEach(r => {
+      r.checked = (String(r.value).toLowerCase() === want);
+    });
+  } catch (e) {
+    // The Advocacy stage may not be in the DOM yet; the shared state above
+    // still carries the choice, and that is what it is for.
+  }
+
   // Re-render the matrix if we have data for it.
   if (currentSessionData) renderIssueWorkspace();
 }

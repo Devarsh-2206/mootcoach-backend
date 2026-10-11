@@ -384,6 +384,18 @@ export function initArgumentBuilder() {
   stanceRadios.forEach(radio => {
     radio.addEventListener('change', () => {
       selectedSide = radio.value;
+      // The Issue Workspace keeps the side in window.mootState and this
+      // selector kept it in selectedSide, and nothing joined them up. They
+      // drifted, and whichever one a consumer happened to read decided what
+      // it believed - which is how a memorial for the respondent came out
+      // with a cover headed "MEMORIAL FOR PETITIONER". Writing through here
+      // means changing the side anywhere changes it everywhere.
+      // Not guarded on the object already existing: the Issue Workspace
+      // module creates it, and it may not have loaded yet, in which case the
+      // guard would silently drop the user's choice. It fills in whatever is
+      // here when it does load.
+      window.mootState = window.mootState || {};
+      window.mootState.stance = /respondent/i.test(radio.value) ? 'Respondent' : 'Petitioner';
       selectedAuthorities.length = 0; // Reset selected authorities when stance changes
       validateDraftForm();
       renderPreDraftAuthorities();
