@@ -17,6 +17,25 @@ carry `verified: 2026-10-09`.
 
 ---
 
+## Re-check log
+
+### 2026-10-11 (daily re-check)
+
+All ten entries re-fetched from the URLs below; edition confirmed on each; **no
+milestone moved**. `verified` set to 2026-10-11 on all ten.
+
+- Noticed, not recorded: the Vis 34th page now lists "Friday, 6 November 2026
+  Deadline for Requests for Clarification". Vis has no `clar` milestone in the
+  calendar; left as is, for a person to decide.
+- Vis East key-dates PDF (still "as of 27 July 2026") still carries the
+  "7 November 2025" typo; `clar` stays tentative.
+- ilsa.org (Jessup) still HTTP 403. Bonavero Price calendar still shows South
+  Asia Rounds "TBC"; only International Rounds 12-16 April 2027.
+- Labour Law, UPES and NAPMCC PDFs extract with scrambled columns; each recorded
+  date was found in the body text.
+
+---
+
 ## 34th Willem C. Vis International Commercial Arbitration Moot
 
 `vis-moot-34` · international · Vienna
