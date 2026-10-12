@@ -161,7 +161,19 @@ export function getFriendlyError(code) {
     case 'auth/email-already-in-use': 
       return "This email is already registered. Please log in.";
     case 'auth/weak-password': 
-      return "Password should be at least 6 characters.";
+      return "Use a password of at least 8 characters.";
+    case 'auth/too-many-requests':
+      return "Too many attempts. Wait a few minutes, or reset your password.";
+    case 'auth/network-request-failed':
+      return "Couldn't reach the sign-in service. Check your connection and try again.";
+    case 'auth/user-disabled':
+      return "This account has been disabled.";
+    case 'auth/missing-email':
+      return "Enter your email address.";
+    case 'auth/account-exists-with-different-credential':
+      return "This email is registered with a password. Sign in with your password instead.";
+    case 'auth/popup-blocked':
+      return "Your browser blocked the Google sign-in window. Allow pop-ups for this site and try again.";
     default: 
       return "An authentication error occurred. Please try again.";
   }
@@ -339,6 +351,9 @@ export function resetWorkspace() {
   if (oral) oral.style.display = 'none';
   const stack = document.getElementById('ws-issue-stack');
   if (stack) stack.style.display = 'none';
+  updateWsMootName('');
+  const file = document.getElementById('wsib-file');
+  if (file) { file.textContent = 'No file uploaded'; file.className = 'wsib-value empty'; }
   refreshStepper();
 }
 window.resetWorkspace = resetWorkspace;

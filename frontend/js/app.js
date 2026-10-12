@@ -88,6 +88,38 @@ import { initClarity, identifyUserInClarity } from './services/clarity.js';
 // Auth Overlay State and Handlers
 let isOverlaySignUpMode = false;
 
+/* A field error the person can read: the underline turns red AND the hint
+   under the field says what is wrong. Marking the field alone left an empty
+   submit doing nothing visible. */
+function fieldError(id, message) {
+  markErr(id, !!message);
+  const hint = document.getElementById('h-' + id);
+  if (!hint) return;
+  if (message) hint.textContent = message;
+  hint.classList.toggle('hidden', !message);
+}
+
+/* After an explicit sign-in, open the workspace. Done from the auth
+   listener (below) rather than straight after the sign-in call, because the
+   app's own record of the user is set by that listener and the workspace
+   refuses to open until it is. */
+function goToWorkspaceWhenSignedIn() {
+  if (window.currentUser) { navigate('workspace'); return; }
+  window.__openWorkspaceOnSignIn = true;
+}
+
+function clearOverlayForm() {
+  ['auth-fname', 'auth-lname', 'auth-school', 'auth-email', 'auth-password'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+    fieldError(id, null);
+  });
+  const errorDiv = document.getElementById('auth-overlay-error');
+  if (errorDiv) { errorDiv.textContent = ''; errorDiv.classList.add('hidden'); }
+  const status = document.getElementById('auth-status-message');
+  if (status) status.textContent = '';
+}
+
 function toggleOverlayMode(signup) {
   isOverlaySignUpMode = signup;
   const toggleBtn = document.getElementById('auth-overlay-toggle-btn');
@@ -98,10 +130,18 @@ function toggleOverlayMode(signup) {
 
   if (errorDiv) errorDiv.classList.add('hidden');
   
-  // Clear any existing field errors
-  markErr('auth-email', false);
-  markErr('auth-password', false);
-  markErr('auth-fname', false);
+  // Clear any existing field errors and the last status line
+  ['auth-email', 'auth-password', 'auth-fname'].forEach(id => fieldError(id, null));
+  const status = document.getElementById('auth-status-message');
+  if (status) status.textContent = '';
+
+  const pass = document.getElementById('auth-password');
+  if (pass) {
+    pass.setAttribute('autocomplete', signup ? 'new-password' : 'current-password');
+    pass.placeholder = signup ? 'At least 8 characters' : 'Your password';
+  }
+  const forgot = document.getElementById('forgot-password-btn');
+  if (forgot) forgot.style.display = signup ? 'none' : '';
 
   if (signup) {
     if (toggleBtn) toggleBtn.textContent = 'Sign In';
@@ -125,15 +165,10 @@ async function handleOverlayLogin() {
   
   let ok = true;
   const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  markErr('auth-email', !emailOk);
+  fieldError('auth-email', emailOk ? null : (email ? 'That email address is not valid.' : 'Enter your email address.'));
   if (!emailOk) ok = false;
-  
-  if (!pass) {
-    markErr('auth-password', true);
-    ok = false;
-  } else {
-    markErr('auth-password', false);
-  }
+  fieldError('auth-password', pass ? null : 'Enter your password.');
+  if (!pass) ok = false;
   
   if (!ok) return;
   
@@ -142,15 +177,18 @@ async function handleOverlayLogin() {
 
   try {
     await signInWithEmailAndPassword(auth, email, pass);
-    // Success: observer will handle hiding overlay and showing dashboard
     setLoading('auth-overlay-submit', false, 'Sign In');
+    // They asked to sign in to get to their work: take them there.
+    clearOverlayForm();
+    goToWorkspaceWhenSignedIn();
   } catch (err) {
     setLoading('auth-overlay-submit', false, 'Sign In');
     if (errorDiv) {
       errorDiv.textContent = getFriendlyError(err.code);
       errorDiv.classList.remove('hidden');
     }
-    markErr('auth-password', true);
+    if (/password|credential/.test(err.code || '')) markErr('auth-password', true);
+    if (/user-not-found|invalid-email/.test(err.code || '')) markErr('auth-email', true);
   }
 }
 
@@ -170,40 +208,41 @@ async function handleOverlaySignup() {
 
   let ok = true;
 
-  if (!fname) {
-    markErr('auth-fname', true);
-    ok = false;
-  } else {
-    markErr('auth-fname', false);
-  }
+  fieldError('auth-fname', fname ? null : 'First name is required.');
+  if (!fname) ok = false;
 
   const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  markErr('auth-email', !emailOk);
+  fieldError('auth-email', emailOk ? null : (email ? 'That email address is not valid.' : 'Enter your email address.'));
   if (!emailOk) ok = false;
 
-  if (!pass || pass.length < 8) {
-    markErr('auth-password', true);
-    ok = false;
-    if (errorDiv) {
-      errorDiv.textContent = "Password must be at least 8 characters.";
-      errorDiv.classList.remove('hidden');
-    }
-  } else {
-    markErr('auth-password', false);
-  }
+  const passOk = !!pass && pass.length >= 8;
+  fieldError('auth-password', passOk ? null : 'Use at least 8 characters.');
+  if (!passOk) ok = false;
 
   if (!ok) return;
 
   setLoading('auth-overlay-submit', true, 'Create Account');
   if (errorDiv) errorDiv.classList.add('hidden');
 
+  let user;
   try {
-    const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
-    const user = userCredential.user;
-    
-    await updateProfile(user, { displayName: fname });
-    
-    // Save to Firestore under the new secure path moot.coach
+    user = (await createUserWithEmailAndPassword(auth, email, pass)).user;
+  } catch (err) {
+    setLoading('auth-overlay-submit', false, 'Create Account');
+    if (errorDiv) {
+      errorDiv.textContent = getFriendlyError(err.code);
+      errorDiv.classList.remove('hidden');
+    }
+    if (/email/.test(err.code || '')) markErr('auth-email', true);
+    if (/password/.test(err.code || '')) markErr('auth-password', true);
+    return;
+  }
+
+  // The account exists from here on. Saving the profile and the welcome
+  // email are extras: if one fails, the signup did not, so it must not be
+  // reported as an error.
+  try { await updateProfile(user, { displayName: fname }); } catch (e) { console.warn('Profile name not saved:', e); }
+  try {
     await db.collection('artifacts').doc('moot.coach').collection('users').doc(user.uid).set({
       firstName: fname,
       lastName: lname || '',
@@ -211,20 +250,14 @@ async function handleOverlaySignup() {
       email: email,
       createdAt: window.firebase.firestore.FieldValue.serverTimestamp()
     });
-    
-    // Trigger onboarding welcome email
-    await triggerWelcomeEmail(email, fname);
-    
-    // Success will be handled by auth state observer
-    setLoading('auth-overlay-submit', false, 'Create Account');
-  } catch (err) {
-    setLoading('auth-overlay-submit', false, 'Create Account');
-    if (errorDiv) {
-      errorDiv.textContent = getFriendlyError(err.code);
-      errorDiv.classList.remove('hidden');
-    }
-    markErr('auth-password', true);
-  }
+  } catch (e) { console.warn('Profile not saved:', e); }
+  triggerWelcomeEmail(email, fname);
+
+  setLoading('auth-overlay-submit', false, 'Create Account');
+  clearOverlayForm();
+  toggleOverlayMode(false);
+  goToWorkspaceWhenSignedIn();
+  showToast(`Welcome to MootCoach, ${fname}.`, 'ok');
 }
 
 // Auth Event Handlers (Compat / Legacy)
@@ -297,13 +330,18 @@ async function handleGoogle() {
   try {
     const provider = new GoogleAuthProvider();
     await signInWithPopup(auth, provider);
-    showAuthSuccess();
+    clearOverlayForm();
+    goToWorkspaceWhenSignedIn();
   } catch (err) {
     console.error("Google Auth Error:", err);
-    if (err.code === 'auth/operation-not-supported-in-this-environment') {
+    // Closing the Google window is a choice, not an error.
+    if (err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request') return;
+    if (err.code === 'auth/popup-blocked') {
+      showToast("Your browser blocked the Google sign-in window. Allow pop-ups for this site and try again.", "err");
+    } else if (err.code === 'auth/operation-not-supported-in-this-environment') {
        showToast("Google Sign-In is blocked in this preview window. Please use Email/Password, or open your deployed site to use Google Auth.", "err");
     } else {
-       showToast("Google Sign-in failed: " + err.message, "err");
+       showToast(getFriendlyError(err.code), "err");
     }
   }
 }
@@ -373,8 +411,23 @@ async function handleOverlayForgotPassword() {
   }
 }
 
-function handleLogout() {
-  signOut(auth);
+async function handleLogout() {
+  // Close this person's work before the account goes, so the next person to
+  // sign in on this browser does not find it loaded.
+  if (typeof window.resetWorkspace === 'function') window.resetWorkspace();
+  window.currentMootDocId = null;
+  window.currentMootName = '';
+  const recent = document.getElementById('ws-recent-list');
+  if (recent) recent.innerHTML = '';
+  const recentSec = document.getElementById('ws-recent-section');
+  if (recentSec) recentSec.style.display = 'none';
+  clearOverlayForm();
+  window.__signingOut = true;
+  try { await signOut(auth); } finally {
+    navigate('landing');
+    showToast('Signed out.', 'ok');
+    window.__signingOut = false;
+  }
 }
 
 let isInitialAuthCheck = true;
@@ -411,6 +464,11 @@ onAuthChanged(async (user) => {
     // automatically since they're already authenticated — see navigate()
     // in ui.js).
 
+    if (window.__openWorkspaceOnSignIn) {
+      window.__openWorkspaceOnSignIn = false;
+      navigate('workspace');
+    }
+
     // ONLY fetch moots AFTER the UI is stable and user is set
     await loadRecentSessions();
   } else {
@@ -428,9 +486,10 @@ onAuthChanged(async (user) => {
       dashboardView.classList.remove('active');
     }
     
-    // Enforce unhiding auth overlay when user signs out, preventing black void
+    // A session that ends on its own (expiry, another tab) asks them to sign
+    // in again; signing out on purpose goes to the landing page instead.
     if (authView) {
-      if (!isInitialAuthCheck) {
+      if (!isInitialAuthCheck && !window.__signingOut) {
         authView.classList.remove('hidden');
         authView.classList.add('show');
         authView.classList.remove('opacity-0', 'pointer-events-none');
@@ -668,6 +727,17 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
+
+  // Enter submits from any field, as it does in every other sign-in form.
+  document.querySelectorAll('#auth-overlay-form input').forEach(input => {
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); document.getElementById('auth-overlay-submit')?.click(); }
+    });
+  });
+  document.getElementById('auth-overlay-google')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    handleGoogle();
+  });
 
   const forgotPasswordBtn = document.getElementById('forgot-password-btn');
   if (forgotPasswordBtn) {
