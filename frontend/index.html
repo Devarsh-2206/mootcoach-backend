@@ -796,6 +796,7 @@ p  { color:var(--white-2); }
 .btn-analyze:hover:not(:disabled) { background:var(--gold-light); transform:translateY(-1px); }
 .btn-analyze:disabled { opacity:.4; cursor:not-allowed; }
 
+.upload-limits { font-size:.74rem; color:var(--white-muted); text-align:center; margin:.6rem 0 0; line-height:1.5; }
 .upload-note { font-size:.72rem; color:var(--white-muted); opacity:.45; text-align:center; margin-top:1rem; line-height:1.6; }
 
 /* ── TOAST ── */
@@ -3433,6 +3434,7 @@ body.intro-hold #view-landing .swear{animation-play-state:paused!important}
               <div class="dz-title">Lodge Proposition Dossier (.pdf)</div>
               <div class="dz-sub">or <span>click to browse</span> · PDF only</div>
             </div>
+            <p class="upload-limits" id="ws-upload-limits">Max 25 MB · text-based PDF · the first ~45 pages are analysed</p>
             <div class="file-pill" id="ws-file-pill">
               <div class="fp-icon">📄</div>
               <div class="fp-details">

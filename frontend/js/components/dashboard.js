@@ -1,4 +1,5 @@
 import { analyzeProposition, logSessionSecurely } from '../services/api.js';
+import { UPLOAD_LIMITS } from '../config.js';
 import { currentUser } from '../services/firebase.js';
 import { 
   showToast, 
@@ -69,6 +70,9 @@ export function initDashboard() {
       removeFile();
     });
   }
+
+  const hint = document.getElementById('ws-upload-limits');
+  if (hint) hint.textContent = `Max ${UPLOAD_LIMITS.maxMB} MB · text-based PDF · the first ~${UPLOAD_LIMITS.propositionPages} pages are analysed`;
 }
 
 export function handleFileSelect(fileOrEvent) {
@@ -81,6 +85,14 @@ export function handleFileSelect(fileOrEvent) {
     console.warn(`[UPLOAD_DEBUG] Invalid file type selected: ${file.type}. Rejects.`);
     showToast('Only PDF files are accepted.', 'err'); 
     return; 
+  }
+  if (file.size > UPLOAD_LIMITS.maxMB * 1024 * 1024) {
+    const mbSel = (file.size / 1048576).toFixed(1);
+    console.warn(`[UPLOAD_DEBUG] File too large: ${mbSel} MB (limit ${UPLOAD_LIMITS.maxMB} MB).`);
+    showToast(`That file is ${mbSel} MB. Upload a PDF under ${UPLOAD_LIMITS.maxMB} MB.`, 'err');
+    const fi = document.getElementById('proposition-upload');
+    if (fi) fi.value = '';
+    return;
   }
   selectedFile = file;
   const mb = (file.size / 1048576).toFixed(2);

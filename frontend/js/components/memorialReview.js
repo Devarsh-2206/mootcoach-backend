@@ -11,7 +11,7 @@
  * content review by the model. Audit findings are shown first because they are
  * measured rather than judged.
  */
-import { BASE_URL } from '../config.js';
+import { BASE_URL, UPLOAD_LIMITS } from '../config.js';
 
 const SEVERITY = {
   critical: { label: 'Critical', bg: '#fdecea', border: '#f5c6c0', ink: '#8a1c12' },
@@ -77,7 +77,10 @@ const FORM = `
   <label style="display:block;font-family:system-ui,sans-serif;font-size:11px;letter-spacing:.12em;
          text-transform:uppercase;color:#6b6257;margin-bottom:6px;">Memorial (PDF)</label>
   <input id="mr-file" type="file" accept="application/pdf,.pdf"
-         style="width:100%;padding:12px;border:1px dashed #cfc9bd;border-radius:10px;background:#f7f5f1;margin-bottom:16px;">
+         style="width:100%;padding:12px;border:1px dashed #cfc9bd;border-radius:10px;background:#f7f5f1;margin-bottom:6px;">
+  <p style="margin:0 0 16px;font-size:12px;color:#6b6257;">
+    Max ${UPLOAD_LIMITS.maxMB} MB · text-based PDF · the first ~${UPLOAD_LIMITS.memorialPages} pages are marked for substance
+  </p>
   <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:18px;">
     <div style="flex:1;min-width:150px;">
       <label style="display:block;font-family:system-ui,sans-serif;font-size:11px;letter-spacing:.12em;
@@ -227,7 +230,7 @@ function attachForm(body) {
   go.addEventListener('click', async () => {
     const f = body.querySelector('#mr-file').files[0];
     if (!f) { status.textContent = 'Choose a PDF first.'; return; }
-    if (f.size > 25 * 1024 * 1024) { status.textContent = 'That file is over 25MB. Export a smaller PDF.'; return; }
+    if (f.size > UPLOAD_LIMITS.maxMB * 1024 * 1024) { status.textContent = `That file is ${(f.size / 1048576).toFixed(1)} MB. Upload a PDF under ${UPLOAD_LIMITS.maxMB} MB.`; return; }
 
     go.disabled = true;
     go.style.opacity = '.6';

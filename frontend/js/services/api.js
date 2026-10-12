@@ -44,7 +44,10 @@ export async function analyzeProposition(formData) {
   });
   if (!res.ok) {
     const txt = await res.text().catch(() => 'Unknown server error.');
-    throw new Error(`Server ${res.status}: ${txt}`);
+    // Routes answer {success:false, error:"..."}; show that sentence, not raw JSON.
+    let msg = null;
+    try { msg = JSON.parse(txt).error; } catch (e) { /* not JSON */ }
+    throw new Error(msg || `Server ${res.status}: ${txt}`);
   }
   return res.json();
 }

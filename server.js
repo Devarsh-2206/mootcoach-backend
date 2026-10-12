@@ -382,7 +382,41 @@ app.get("/api/usage", async (req, res) => {
   }
 });
 
-const upload = multer({ dest: "uploads/" });
+/**
+ * Upload ceiling.
+ *
+ * There was none, and the whole file is read into memory and copied into the
+ * PDF worker. Measured: the process peaks at roughly 80 MB plus 4-5x the file
+ * size (56 MB file -> 333 MB, 112 MB file -> 567 MB), so one large scanned
+ * PDF, or two medium ones at once, could take the instance past its memory
+ * and restart it for everybody. 25 MB covers any text-based proposition or
+ * memorial with room to spare - 200 pages of text measured 0.15 MB.
+ *
+ * Keep in step with UPLOAD_LIMITS in frontend/js/config.js, which tells the
+ * user the same numbers before they upload.
+ */
+const MAX_UPLOAD_MB = Number(process.env.MAX_UPLOAD_MB || 25);
+const upload = multer({
+  dest: "uploads/",
+  limits: { fileSize: MAX_UPLOAD_MB * 1024 * 1024, files: 1 },
+});
+
+/* multer reports an oversized file by passing an error to next(), which
+   would otherwise reach Express's default HTML error page. Answer in the
+   same JSON shape every route uses. multer removes the partial file. */
+function singlePdf(field) {
+  const handler = upload.single(field);
+  return (req, res, next) => handler(req, res, (err) => {
+    if (!err) return next();
+    if (err instanceof multer.MulterError && err.code === "LIMIT_FILE_SIZE") {
+      return res.status(413).json({
+        success: false,
+        error: `That file is larger than ${MAX_UPLOAD_MB} MB. Upload a PDF under ${MAX_UPLOAD_MB} MB — a text-based PDF is usually well under 5 MB.`,
+      });
+    }
+    return res.status(400).json({ success: false, error: "The upload could not be read: " + err.message });
+  });
+}
 
 
 
@@ -551,7 +585,7 @@ async function runEnrichment(rawPropIntel, propIntelError, forumContext) {
 }
 
 /* ─── /analyze (Now fully powered by Groq & Native JSON Mode) ─── */
-app.post("/analyze", aiLimiter, upload.single("file"), async (req, res) => {
+app.post("/analyze", aiLimiter, singlePdf("file"), async (req, res) => {
   let filePath = null;
 
   try {
@@ -1667,7 +1701,7 @@ app.post("/api/build-memorial", aiLimiter, express.json(), async (req, res) => {
    numbering and limits are countable; asking a model to count them gets an
    estimate. The model is spent on what code cannot judge — whether the argument
    works and whether the law is right. */
-app.post("/api/analyse-memorial", aiLimiter, upload.single("file"), async (req, res) => {
+app.post("/api/analyse-memorial", aiLimiter, singlePdf("file"), async (req, res) => {
   let filePath = null;
   try {
     if (!req.file) {
