@@ -80,7 +80,10 @@ export function renderOralResults(data) {
   ];
 
   const dimHTML = dimDefs.map(d => {
-    const dim  = dims[d.key] || {};
+    // The prompt asks for { score, max, feedback }; accept a bare number too,
+    // which otherwise rendered as 0.
+    const raw  = dims[d.key];
+    const dim  = (raw && typeof raw === 'object') ? raw : { score: raw };
     const sc   = Math.min(d.max, Math.max(0, Number(dim.score) || 0));
     const pct  = Math.round((sc / d.max) * 100);
     const bCls = pct >= 74 ? 'sf-green' : pct >= 50 ? 'sf-gold' : 'sf-red';

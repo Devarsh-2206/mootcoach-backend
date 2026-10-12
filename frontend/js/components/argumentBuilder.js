@@ -3960,14 +3960,14 @@ export async function openAuthorityModal(caseName, initialTab = 'ratio') {
   const selectBtn = document.getElementById('auth-modal-select-btn');
   if (selectBtn) {
     const isSelected = selectedAuthorities.some(a => a.name === auth.name);
-    selectBtn.textContent = isSelected ? '✕ Deselect Weapon' : '⚔️ Select Weapon';
+    selectBtn.textContent = isSelected ? '✓ In draft — remove' : '+ Add to draft';
     selectBtn.className = `btn-sm text-xs font-semibold px-4 py-1.5 rounded transition-all cursor-pointer ${
       isSelected ? 'bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20' : 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20'
     }`;
     selectBtn.onclick = () => {
       toggleAuthority(auth.name, auth.ratio);
       const isNowSelected = selectedAuthorities.some(a => a.name === auth.name);
-      selectBtn.textContent = isNowSelected ? '✕ Deselect Weapon' : '⚔️ Select Weapon';
+      selectBtn.textContent = isNowSelected ? '✓ In draft — remove' : '+ Add to draft';
       selectBtn.className = `btn-sm text-xs font-semibold px-4 py-1.5 rounded transition-all cursor-pointer ${
         isNowSelected ? 'bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20' : 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20'
       }`;
@@ -4022,6 +4022,12 @@ export async function openAuthorityModal(caseName, initialTab = 'ratio') {
   // Re-render the active tab with actual data
   switchAuthModalTab(initialTab);
 }
+
+// Esc closes the authority dialog.
+document.addEventListener('keydown', (e) => {
+  const m = document.getElementById('authority-detail-modal');
+  if (e.key === 'Escape' && m && !m.classList.contains('hidden')) closeAuthorityModal();
+});
 
 export function closeAuthorityModal() {
   const modal = document.getElementById('authority-detail-modal');
