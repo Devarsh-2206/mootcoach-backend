@@ -3015,6 +3015,45 @@ body.intro-hold #view-landing .swear{animation-play-state:paused!important}
 :root[data-theme="dark"] .border-black\/20:not(.mc-paper *) { border-color: rgba(239,230,211,.14) !important; }
 :root[data-theme="dark"] .bg-\[\#FCF9EF\]:not(.mc-paper),
 :root[data-theme="dark"] .bg-\[\#F3ECDA\]:not(.mc-paper) { background-color: var(--navy-3) !important; }
+
+/* ════════════════════════════════════════════════════════════════════
+   FIXED PLACES FOR FLOATING CONTROLS
+
+   Previous/Next floated over the bottom-right of every stage and covered
+   Send in the courtroom and Evaluate in Advocacy; the theme toggle sat at
+   mid-right over the Oral Coach column. Each now has a slot of its own.
+   ════════════════════════════════════════════════════════════════════ */
+/* Previous/Next: a footer row of the main column. The stage above is
+   flex:1, so it ends where this begins and nothing scrolls under it. */
+#view-workspace .ws-floating-nav {
+  position: static;
+  flex-shrink: 0;
+  justify-content: space-between;
+  border-radius: 0;
+  border: none;
+  border-top: 1px solid var(--rule);
+  box-shadow: none;
+  background: var(--navy);
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+  padding: 8px 24px;
+}
+#view-workspace .ws-floating-nav #wizard-next-btn { margin-left: auto; }
+
+/* Theme toggle: the top-right corner, level with the step bar, while the
+   workspace is open. The landing page keeps its own placement, and phones
+   keep the slot chosen for them further up. */
+@media (min-width: 641px) {
+  body:has(#view-workspace.active) .theme-toggle {
+    top: 14px; right: 16px; transform: none;
+    width: 44px; height: 44px; font-size: 17px;
+  }
+  body:has(#view-workspace.active) .theme-toggle:hover { transform: none; }
+}
+/* The step bar is centred; give it compact labels until there is room for
+   both it and the corner toggle. */
+@media (max-width: 900px) {
+  .di-step-text, .di-docket-name, .di-step .step-label { display: none; }
+}
 </style>
 </head>
 <body class="intro-hold">
