@@ -9,6 +9,7 @@ import {
   startElapsed
 } from './ui.js';
 import { BASE_URL } from '../config.js';
+import { printMemorial } from './memorialPrint.js';
 
 // Argument Builder State
 export let selectedAuthorities = [];
@@ -1350,6 +1351,20 @@ export function exportAsPDF(type) {
   let headerText = "";
   let titleText = "";
   
+  // The memorial is typeset from its data as a filed document (see
+  // memorialPrint.js), not printed from the on-screen preview.
+  const memorialData = lastBuiltArgument && lastBuiltArgument.memorial;
+  if ((type === 'memorial' || !type) && memorialData && typeof memorialData === 'object') {
+    const cp = memorialData.coverPage || {};
+    const stance = cp.memorialFor || (window.mootState && window.mootState.stance) || builtArgumentSide || '';
+    const ok = printMemorial(memorialData, {
+      colours: coverColourFor(stance),
+      title: (cp.memorialFor ? cp.memorialFor + ' — ' : '') + (window.currentMootName || 'Memorial'),
+    });
+    if (!ok) showToast('Allow pop-ups for this site to export the memorial.', 'err');
+    return;
+  }
+
   if (type === 'memorial') {
     if (!storedMemorialHTML) {
       showToast("Memorial content is not generated.", "err");
