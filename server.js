@@ -27,7 +27,7 @@ const fs = require("fs");
 const { Worker } = require("worker_threads");
 const path = require("path");
 const admin = require("firebase-admin");
-const rateLimit = require("express-rate-limit");
+const { rateLimit, ipKeyGenerator } = require("express-rate-limit");
 
 // Initialize Firebase Admin SDK securely
 try {
@@ -72,7 +72,11 @@ function identityKey(req) {
       // Not a readable token: fall through to the address.
     }
   }
-  return 'ip:' + (req.ip || 'unknown');
+  // An IPv6 connection is usually handed a whole block of addresses, so
+  // keying on the exact address would let one person step through the block
+  // and get a fresh allowance each time. The helper collapses IPv6 to its /56
+  // network; IPv4 passes through unchanged.
+  return 'ip:' + (req.ip ? ipKeyGenerator(req.ip) : 'unknown');
 }
 
 const aiLimiter = rateLimit({
