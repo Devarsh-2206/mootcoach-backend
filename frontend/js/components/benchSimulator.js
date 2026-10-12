@@ -335,6 +335,25 @@ function readBenchSelections() {
   };
 }
 
+/**
+ * The lobby's "your case" panel: what the bench will be given, before the
+ * round starts, so a missing issue or draft can be fixed first.
+ */
+export function renderLobbyBrief() {
+  const el = document.getElementById('bench-lobby-brief');
+  if (!el) return;
+  const sel = readBenchSelections();
+  const rows = [
+    ['Arguing as', sel.stance],
+    ['Issue', sel.issue],
+    ['Authorities', sel.authorities.map(a => a.name).join('; ')],
+    ['Draft', sel.memorialDraft ? 'Attached — the bench will question it' : ''],
+  ];
+  el.innerHTML = `<div class="bench-ctx-title">Your case before the bench</div><dl>${rows.map(([k, v]) =>
+    `<dt>${esc(k)}</dt><dd class="${v ? '' : 'missing'}">${esc(v || 'None chosen yet')}</dd>`).join('')}</dl>`;
+}
+window.renderLobbyBrief = renderLobbyBrief;
+
 export function startBenchSession() {
   benchConversation = [];
   claimLedger = [];
@@ -368,7 +387,7 @@ export function startBenchSession() {
   const benchWord = fp.isArbitration ? 'TRIBUNAL' : 'BENCH';
 
   // Update Global Chambers Header for Text Session
-  const mootName = document.getElementById('ws-moot-name')?.value?.trim() || 'General Appellate Docket';
+  const mootName = document.getElementById('ws-moot-name')?.value?.trim() || window.currentMootName || 'General Appellate Docket';
   const sessionTitleEl = document.getElementById('cr-session-title');
   const sessionMetaEl = document.getElementById('cr-session-meta');
   const exitBtn = document.getElementById('chambers-exit-btn');
@@ -395,17 +414,27 @@ export function startBenchSession() {
   }
   const ctxPlan = ms.plan || {};
   const ctxPredicted = ((ctxPlan.fatalQuestions || []).length) + ((ctxPlan.benchQuestions || []).length);
-  const ctxParts = [
-    `Forum: ${fp.benchType}${fp.specificBody ? ' (' + fp.specificBody + ')' : ''}`,
-    `Arguing as: ${ctxStance}`,
-    `Issue: ${ctxIssue}`,
-    `Authorities loaded: ${ctxAuthCount}`,
-    `Memorial draft: ${ctxHasMemorial ? 'attached' : 'none'}`,
-    `Oral draft: ${ctxHasOral ? 'attached' : 'none'}`,
-    `Predicted questions loaded: ${ctxPredicted}`,
-    `Presiding: ${getPresidingJudgeName()} · Depth: ${(DEPTH_PROFILES[benchDifficultyMode] || DEPTH_PROFILES.moderate).label}`
-  ];
-  appendBenchMessage('system', `This ${fp.court} is using your selections — ${ctxParts.join('  ·  ')}`);
+  // What the bench was given, as a short list rather than one run-on line.
+  {
+    const rows = [
+      ['Forum', `${fp.benchType}${fp.specificBody && fp.specificBody !== fp.benchType ? ' (' + fp.specificBody + ')' : ''}`],
+      ['Arguing as', ctxStance],
+      ['Issue', sel.issue || ''],
+      ['Authorities', ctxAuthCount ? sel.authorities.map(a => a.name).join('; ') : ''],
+      ['Memorial draft', ctxHasMemorial ? 'Attached' : ''],
+      ['Oral draft', ctxHasOral ? 'Attached' : ''],
+      ['Predicted questions', ctxPredicted ? String(ctxPredicted) : ''],
+      ['Presiding', `${getPresidingJudgeName()} · ${(DEPTH_PROFILES[benchDifficultyMode] || DEPTH_PROFILES.moderate).label} questioning`],
+    ];
+    const chat = document.getElementById('bench-chat');
+    if (chat) {
+      const d = document.createElement('div');
+      d.className = 'bench-msg bench-msg-system bench-ctx';
+      d.innerHTML = `<div class="bench-ctx-title">The ${esc(fp.court)} has your selections</div><dl>${rows.map(([k, v]) =>
+        `<dt>${esc(k)}</dt><dd class="${v ? '' : 'missing'}">${esc(v || 'None')}</dd>`).join('')}</dl>`;
+      chat.appendChild(d);
+    }
+  }
 
   let opening = openingMap[benchDifficultyMode] || openingMap.moderate;
   // Open on the advocate's ACTUAL case so it's immediately their session, not generic.
@@ -1072,7 +1101,7 @@ export async function startOralRound() {
   if (courtroom) courtroom.classList.add('active');
 
   // Load Moot details into headers and show controls
-  const mootName = document.getElementById('ws-moot-name')?.value?.trim() || 'General Appellate Docket';
+  const mootName = document.getElementById('ws-moot-name')?.value?.trim() || window.currentMootName || 'General Appellate Docket';
   const sessionTitleEl = document.getElementById('cr-session-title');
   const sessionMetaEl = document.getElementById('cr-session-meta');
   const exitBtn = document.getElementById('chambers-exit-btn');
@@ -1243,7 +1272,7 @@ export async function stopOralRound() {
 
   if (currentUser && voiceSessionStartTime) {
     const duration = Math.floor((Date.now() - voiceSessionStartTime) / 1000);
-    const mootName = document.getElementById('ws-moot-name')?.value?.trim() || 'Untitled Moot';
+    const mootName = document.getElementById('ws-moot-name')?.value?.trim() || window.currentMootName || 'Untitled Moot';
 
     try {
       const idToken = await currentUser.getIdToken();

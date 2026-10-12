@@ -3125,10 +3125,10 @@ export function renderPreDraftAuthorities() {
             <span class="text-[9px] uppercase tracking-wider px-2 py-0.5 rounded bg-moot-accent/10 text-moot-accent border border-moot-accent/20 font-sans font-semibold">${esc(auth.section || 'Constitutional Law')}</span>
             <h4 class="text-xs font-semibold text-[#1C1710] mt-1.5 leading-snug font-sans">${esc(auth.display || auth.name)}</h4>
           </div>
-          <button type="button" onclick="window.toggleAuthority('${auth.name.replace(/'/g, "\\'")}', '${auth.ratio.replace(/'/g, "\\'")}')" class="btn-weapon-toggle text-[10px] font-bold uppercase tracking-wider py-1 px-2.5 rounded border transition-all ${
+          <button type="button" aria-pressed="${isSelected}" title="${isSelected ? 'Included in the draft and given to the bench. Click to remove.' : 'Include this authority in the draft and the simulator.'}" onclick="window.toggleAuthority('${auth.name.replace(/'/g, "\\'")}', '${auth.ratio.replace(/'/g, "\\'")}')" class="btn-weapon-toggle text-[10px] font-bold uppercase tracking-wider py-1 px-2.5 rounded border transition-all ${
             isSelected ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-black/5 border border-black/10 text-white-muted hover:text-[#1C1710] hover:bg-black/10'
           }">
-            ${isSelected ? '✓ Arm' : '+ Weapon'}
+            ${isSelected ? '✓ In draft' : '+ Add to draft'}
           </button>
         </div>
         

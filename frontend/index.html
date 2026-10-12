@@ -2679,7 +2679,8 @@ p  { color:var(--white-2); }
 #view-landing .scoresheet .remarks .mono-label{display:block;margin-bottom:12px}
 #view-landing .scoresheet .remarks p{font-family:var(--lv-hand);font-size:21px;line-height:1.5;color:var(--ink-soft);transform:rotate(-.6deg)}
 #view-landing .scoresheet .remarks p b{color:var(--red);font-weight:600}
-#view-landing .scoresheet .stamp{position:absolute;right:34px;top:30px}
+/* Off the corner: at right:34px/top:30px it sat on "Speaker No. 1". */
+#view-landing .scoresheet .stamp{position:absolute;right:-22px;top:-24px;background:var(--sheet)}
 @media(max-width:700px){#view-landing .scoresheet{padding:32px 24px}#view-landing .scoresheet .stamp{display:none}}
 
 /* ---------- CTA ---------- */
@@ -3054,6 +3055,60 @@ body.intro-hold #view-landing .swear{animation-play-state:paused!important}
 @media (max-width: 900px) {
   .di-step-text, .di-docket-name, .di-step .step-label { display: none; }
 }
+
+/* ── Analysis layout ──
+   11 section tabs scrolled sideways with a hidden scrollbar, so the last
+   ones simply looked cut off: wrap them instead. Section bodies scrolled
+   inside a 450px box, which trapped the mouse wheel mid-page: let the page
+   scroll (sections still collapse). */
+@media (min-width: 641px) {
+  .res-sticky-nav { overflow-x: visible; padding-top: 2px; padding-bottom: 2px; }
+  #res-sticky-nav-inner { flex-wrap: wrap; }
+}
+.rn-item { padding: 10px 10px; }
+.asc-body { max-height: none; overflow: visible; }
+.sc-sub { overflow-wrap: anywhere; }
+
+/* ── Advocacy layout ──
+   Three columns at 25/45/30% left the memorial preview a narrow strip at
+   1440px. Below 1700px: strategy and builder side by side, Oral Coach
+   full width underneath. One column on tablets and phones. */
+#stage-3-container .workspace-container {
+  display: grid !important;
+  grid-template-columns: minmax(260px, 1fr) minmax(0, 2.3fr);
+  align-items: start;
+}
+#stage-3-container .workspace-container > div { width: auto !important; min-width: 0; }
+#stage-3-container .workspace-container > div:nth-child(3) { grid-column: 1 / -1; }
+@media (min-width: 1700px) {
+  #stage-3-container .workspace-container { grid-template-columns: minmax(280px, 1fr) minmax(0, 1.9fr) minmax(320px, 1.2fr); }
+  #stage-3-container .workspace-container > div:nth-child(3) { grid-column: auto; }
+}
+@media (max-width: 1023px) {
+  #stage-3-container .workspace-container { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* ── Courtroom ──
+   Counsel and the bench were both pale red boxes; they now read as two
+   different speakers at a glance. */
+.bench-msg-judge { border-left: 3px solid var(--acc-red); }
+.bench-msg-advocate {
+  background: var(--sheet); border: 1px solid var(--rule); border-right: 3px solid var(--white);
+}
+.bench-msg-advocate .bm-role-advocate { color: var(--white-2); }
+.bench-ctx { text-align: left; width: 100%; }
+.bench-ctx-title { font-family: var(--mono); font-size: .6rem; letter-spacing: .16em; text-transform: uppercase; color: var(--white-muted); margin-bottom: 8px; }
+.bench-ctx dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; margin: 0; font-size: .82rem; line-height: 1.5; }
+.bench-ctx dt { color: var(--white-muted); }
+.bench-ctx dd { margin: 0; color: var(--white); }
+.bench-ctx dd.missing { color: var(--white-muted); font-style: italic; }
+
+/* Issue cards are flex columns but inherited align-items:center from the
+   row layout, which centred the text and tags. */
+.issue-card.flex-col { align-items: stretch; }
+.issue-card.flex-col > .flex.justify-between > .flex:first-child { flex: 1; min-width: 0; }
+.btn-weapon-toggle { white-space: nowrap; flex-shrink: 0; }
+#mr-panel input, #mr-panel select { font-family: var(--sans); font-size: 15px; }
 </style>
 </head>
 <body class="intro-hold">
@@ -3252,9 +3307,9 @@ body.intro-hold #view-landing .swear{animation-play-state:paused!important}
           <h3>Bench Simulator</h3>
           <div class="mini">
             <table>
-              <tr><td>The Textualist</td><td>Ct. 1</td></tr>
-              <tr><td><span class="circled" data-circle>The Interventionist<svg viewBox="0 0 100 30" preserveAspectRatio="none"><ellipse pathLength="1" cx="50" cy="15" rx="48" ry="13"/></svg></span></td><td>Ct. 2</td></tr>
-              <tr><td>The Silent Bench</td><td>Ct. 3</td></tr>
+              <tr><td>The Mentor</td><td>Ct. 1</td></tr>
+              <tr><td><span class="circled" data-circle>The Procedural Hawk<svg viewBox="0 0 100 30" preserveAspectRatio="none"><ellipse pathLength="1" cx="50" cy="15" rx="48" ry="13"/></svg></span></td><td>Ct. 2</td></tr>
+              <tr><td>The Skeptic</td><td>Ct. 3</td></tr>
             </table>
           </div>
           <p class="one">Pick your judge. Get interrupted. Hold your structure.</p>
@@ -3296,29 +3351,29 @@ body.intro-hold #view-landing .swear{animation-play-state:paused!important}
   <div class="wrap">
     <div class="sec-head reveal">
       <span class="mono-label">Constitution of the bench</span>
-      <h2>Three temperaments. <em>One is waiting for you.</em></h2>
+      <h2>Five temperaments. <em>One is waiting for you.</em></h2>
     </div>
     <div class="judges reveal">
       <div class="jcard">
-        <div class="glyph">T</div>
-        <h3>The Textualist</h3>
-        <span class="temper">Precise · Provision-bound</span>
-        <p>Wants the section, the sub-clause, the exact words.</p>
-        <div class="q">"Counsel, take me to the provision. Which limb are you actually invoking?"</div>
+        <div class="glyph">M</div>
+        <h3>The Mentor</h3>
+        <span class="temper">Patient · Guiding</span>
+        <p>Draws you to the point rather than trapping you. Start here.</p>
+        <div class="q">"Counsel, before we go further: what exactly is the relief you seek?"</div>
       </div>
       <div class="jcard">
-        <div class="glyph">I</div>
-        <h3>The Interventionist</h3>
-        <span class="temper">Relentless · Interrupting</span>
-        <p>You won't finish a sentence unchallenged.</p>
-        <div class="q">"Stop there. If I'm against you, what is your second-best argument?"</div>
+        <div class="glyph">P</div>
+        <h3>The Procedural Hawk</h3>
+        <span class="temper">Exacting · Threshold-first</span>
+        <p>No merits until jurisdiction, standing and limitation are settled.</p>
+        <div class="q">"Is this petition even maintainable, Counsel? There is an alternative remedy."</div>
       </div>
       <div class="jcard">
         <div class="glyph">S</div>
-        <h3>The Silent Bench</h3>
-        <span class="temper">Sparse · Unreadable</span>
-        <p>No questions, no signals — you carry the round alone.</p>
-        <div class="q">"…Proceed, counsel."</div>
+        <h3>The Skeptic</h3>
+        <span class="temper">Distrustful · Probing</span>
+        <p>Makes you earn every proposition and distinguish every adverse case. Also on the roster: a Doctrinal Purist and a Rights-Oriented judge.</p>
+        <div class="q">"That authority was decided on different facts. Why should it bind me?"</div>
       </div>
     </div>
   </div>
@@ -3621,7 +3676,7 @@ body.intro-hold #view-landing .swear{animation-play-state:paused!important}
                 <div class="res-title" id="res-moot-title">Proposition Briefing</div>
               </div>
               <div class="res-actions">
-                <button class="btn-sm btn-sm-ghost" onclick="showWsPanel('upload')">New Analysis</button>
+                <button class="btn-sm btn-sm-ghost" onclick="startNewAnalysis()">New Analysis</button>
                 <button class="btn-sm btn-sm-gold" onclick="copyAnalysis()">Copy All</button>
               </div>
             </div>
@@ -3760,7 +3815,7 @@ body.intro-hold #view-landing .swear{animation-play-state:paused!important}
             <!-- Case Overview/Context Card -->
             <div class="bg-black/5 border border-black/10 rounded-xl p-4 backdrop-blur-md">
               <div class="text-[10px] uppercase tracking-widest text-white-muted font-sans font-semibold mb-2">Case Summary Context</div>
-              <div id="stage3-case-context" class="text-xs text-white-muted font-serif leading-relaxed max-h-[150px] overflow-y-auto pr-1">
+              <div id="stage3-case-context" class="text-xs font-serif leading-relaxed" style="color:var(--white-2)">
                 Upload and analyze a proposition to see summary context here.
               </div>
             </div>
@@ -4002,6 +4057,9 @@ body.intro-hold #view-landing .swear{animation-play-state:paused!important}
                     <button class="diff-btn text-[10px] uppercase font-sans tracking-wider py-1.5 px-3 flex-1" id="bench-diff-hard" onclick="setBenchDifficulty('hard')" style="flex: 1; text-align: center;">Hard</button>
                   </div>
                 </div>
+
+                <!-- What the bench will be given. Filled when the stage opens. -->
+                <div id="bench-lobby-brief" class="bench-ctx" style="margin-bottom:24px;"></div>
 
                 <div class="flex flex-col gap-2 mt-auto" style="display: flex; flex-direction: column; gap: 8px;">
                   <button class="btn-primary tracking-widest font-medium py-3 text-xs w-full text-center" onclick="startOralRound()" style="width: 100%; padding: 12px 0; text-transform: uppercase; font-size: 11px;">

@@ -9,7 +9,8 @@ import {
   showResults,
   showError,
   showRejection,
-  loadSavedSession
+  loadSavedSession,
+  deriveMootName
 } from './ui.js';
 
 // Controller State
@@ -237,7 +238,12 @@ export async function runAnalysis() {
       }
       if (currentUser) {
         try {
-          const mootName = document.getElementById('ws-moot-name')?.value?.trim() || 'Untitled Moot';
+          const mootName = deriveMootName({
+            mootName: document.getElementById('ws-moot-name')?.value,
+            fileName: selectedFile.name,
+            analysisData: data.response,
+            propositionIntelligence: data.propositionIntelligence,
+          });
           const idToken = await currentUser.getIdToken();
           const logRes = await logSessionSecurely({
             type: 'analysis',

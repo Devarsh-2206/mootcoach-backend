@@ -315,6 +315,28 @@ export function showAuthSuccess() {
   if (noteS) noteS.style.display = 'none';
 }
 
+/**
+ * A clean upload screen. "File your first proposition" used to reveal the
+ * workspace as it was last left - an old analysis, scrolled halfway down,
+ * with the old moot still highlighted in the sidebar.
+ */
+export function startNewAnalysis() {
+  if (!currentUser) { navigate('login'); return; }
+  navigate('workspace');
+  document.querySelectorAll('#ws-recent-list .ws-sb-item').forEach(b =>
+    b.classList.remove('active', 'bg-moot-accent/10', 'text-moot-accent'));
+  window.currentMootDocId = null;
+  window.currentMootName = '';
+  if (typeof window.removeFile === 'function') window.removeFile();
+  const nameInput = document.getElementById('ws-moot-name');
+  if (nameInput) nameInput.value = '';
+  updateWsMootName('');
+  showWsPanel('upload');
+  const up = document.getElementById('wsp-upload');
+  if (up) up.scrollTop = 0;
+}
+window.startNewAnalysis = startNewAnalysis;
+
 export function showWsPanel(name, buttonEl) {
   if (name === 'upload') {
     const uploadEl = document.getElementById('wsp-upload');
@@ -363,6 +385,35 @@ export function updateWsMootName(val) {
 
 // Decoupled upload logic is now managed inside components/dashboard.js
 
+/**
+ * A name a person can tell apart from their other moots.
+ *
+ * Every upload without a typed name was saved as "Untitled Moot", so a list
+ * of five read "Untitled Moot" five times. In order: the name they typed,
+ * the case name the analysis found, an "X v. Y" title in the summary, then
+ * the file name. Also applied when listing moots saved before this existed.
+ */
+export function deriveMootName({ mootName, fileName, analysisData, propositionIntelligence } = {}) {
+  const typed = String(mootName || '').trim();
+  if (typed && !/^untitled( moot| analysis)?$/i.test(typed)) return typed;
+  const pi = propositionIntelligence || {};
+  const cn = (pi.caseMetadata && pi.caseMetadata.caseName) || pi.caseName
+    || (analysisData && analysisData.caseMetadata && analysisData.caseMetadata.caseName);
+  if (cn && String(cn).trim()) return String(cn).trim().slice(0, 90);
+  const summary = (analysisData && analysisData.summary) || '';
+  // A party: capitalised words, joined only by of/the/and/for.
+  const party = "[A-Z][\\w.'&-]*(?:\\s+(?:(?:of|the|and|for)\\s+)?[A-Z][\\w.'&-]*){0,5}";
+  const vs = String(summary).match(new RegExp('(' + party + ')\\s+vs?\\.?\\s+(' + party + ')'));
+  if (vs) {
+    const first = vs[1].replace(/^(?:In|The|This|That|Whether|Under|After|Before)\s+/, '');
+    return (first + ' v. ' + vs[2]).replace(/\s+/g, ' ').trim().slice(0, 90);
+  }
+  const base = String(fileName || '').replace(/\.[a-z0-9]+$/i, '').replace(/[_]+/g, ' ').replace(/\s+/g, ' ').trim();
+  if (base) return base.replace(/\bv\b/g, 'v.').slice(0, 90);
+  return 'Untitled Moot';
+}
+window.deriveMootName = deriveMootName;
+
 export async function loadRecentSessions() {
   if (!currentUser) return;
   const sec = document.getElementById('ws-recent-section');
@@ -389,7 +440,7 @@ export async function loadRecentSessions() {
     let html = '';
     snapshot.forEach(doc => {
       const d = doc.data();
-      const title = d.mootName || d.fileName || 'Untitled Analysis';
+      const title = deriveMootName(d);
       html += `<button class="ws-sb-item" onclick="loadSavedSession('${doc.id}')" title="${esc(title)}">
         <span class="ws-sb-icon">📄</span> <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(title)}</span>
       </button>`;
@@ -445,7 +496,8 @@ export async function loadSavedSession(docId) {
       issueChosen: false, roundMarked: false, authorities: [],
       memorialDraft: '', oralSubmission: '', strategicNotes: '',
     });
-    updateWsMootName(data.mootName || '');
+    window.currentMootName = deriveMootName(data);
+    updateWsMootName(window.currentMootName);
     
     const wsibFile = document.getElementById('wsib-file');
     if (wsibFile) {
@@ -1054,7 +1106,9 @@ export function buildStructuredScoreHero(data) {
   const rPct   = resD  === "high" ? 88 : resD  === "low" ? 28 : 56;
   const iPct   = Math.min(100, total * 11);
   const dlbl   = { high:"High", medium:"Moderate", low:"Low" };
-  const clip   = (t) => t ? t.slice(0,72) + (t.length > 72 ? "\u2026" : "") : "";
+  // Shown in full: the cards used to cut the reason at 72 characters with
+  // no way to read the rest.
+  const clip   = (t) => t || "";
   const oReason = clip(data.oralDifficultyReason);
   const rReason = clip(data.researchDifficultyReason);
   const issueSub = extra
@@ -1074,13 +1128,13 @@ export function buildStructuredScoreHero(data) {
       <div class="score-card">
         <div class="sc-label"><span class="sc-label-dot"></span>Oral Difficulty</div>
         <div class="sc-value" style="font-size:1.5rem;padding-top:8px;">${dlbl[oralD] || "Moderate"}</div>
-        <div class="sc-sub" style="font-size:.68rem;line-height:1.5;">${oReason}</div>
+        <div class="sc-sub" style="font-size:.68rem;line-height:1.5;">${esc(oReason)}</div>
         <div class="sc-bar"><div class="sc-bar-fill sf-blue" data-target="${oPct}%" style="width:0%"></div></div>
       </div>
       <div class="score-card">
         <div class="sc-label"><span class="sc-label-dot"></span>Research Load</div>
         <div class="sc-value" style="font-size:1.5rem;padding-top:8px;">${dlbl[resD] || "Moderate"}</div>
-        <div class="sc-sub" style="font-size:.68rem;line-height:1.5;">${rReason}</div>
+        <div class="sc-sub" style="font-size:.68rem;line-height:1.5;">${esc(rReason)}</div>
         <div class="sc-bar"><div class="sc-bar-fill sf-purple" data-target="${rPct}%" style="width:0%"></div></div>
       </div>
     </div>`;
@@ -1346,6 +1400,19 @@ export function goToStage(stageNum) {
 
   refreshStepper();
 
+  if (stageNum === 4 && window.renderLobbyBrief) window.renderLobbyBrief();
+
+  // Advocacy's "Case Summary Context" card was never filled, so it asked
+  // for an upload even with a proposition loaded.
+  if (stageNum === 3) {
+    const ctxEl = document.getElementById('stage3-case-context');
+    if (ctxEl) {
+      let summary = '';
+      try { summary = (JSON.parse(window.lastAnalysis || lastAnalysis || '{}').summary) || ''; } catch (e) {}
+      ctxEl.textContent = summary || 'Upload and analyse a proposition to see its summary here.';
+    }
+  }
+
   // Toggle active stage containers
   for (let i = 1; i <= 4; i++) {
     const stageEl = document.getElementById('stage-' + i + '-container');
@@ -1414,11 +1481,16 @@ export function renderStage2Issues() {
   // an added one. Keyed by index so the card renderer can badge them without
   // changing the shape of `issues`, which the builder reads by value.
   let issueMeta = [];
+  let intelFor = [];          // issueIntelligence entry per issue, when present
+  let benchQs = [], vulns = [];
   try {
     const analysisStr = window.lastAnalysis || lastAnalysis;
     if (analysisStr) {
       const data = JSON.parse(analysisStr);
+      benchQs = Array.isArray(data.benchQuestions) ? data.benchQuestions : [];
+      vulns = Array.isArray(data.benchVulnerabilities) ? data.benchVulnerabilities : [];
       const intelIssues = data.issueIntelligence?.issues;
+      if (intelIssues && intelIssues.length > 0) intelFor = intelIssues;
       if (intelIssues && intelIssues.length > 0) {
         issues = intelIssues.map((iss, i) => iss.issueDefinition?.exactLegalQuestion || iss.issueTitle || ('Issue ' + (i+1)));
       } else {
@@ -1456,47 +1528,56 @@ export function renderStage2Issues() {
         const isSelected = currentVal === issue || (!currentVal && idx === 0);
         const cardClass = isSelected ? 'issue-card selected' : 'issue-card';
         
+        // Only what the analysis actually says about this issue. These cards
+        // used to assign difficulty and strategy by keyword, so nearly every
+        // issue read "Medium Difficulty" with the same stock tip - one of which
+        // called Indian precedent "binding" whatever the forum.
         const selectStr = issue.toLowerCase();
-        let importance = "Core Issue";
-        let importanceCls = "bg-blue-500/10 text-blue-400 border border-blue-500/20";
-        let difficulty = "Medium";
-        let difficultyCls = "bg-amber-500/10 text-amber-400 border border-amber-500/20";
-        let path = "Alternate Path";
-        let pathCls = "bg-[#8C8270]/12 text-[#6b5f4d] border border-[#8C8270]/30";
-        let advice = "Focus on presenting fact-based arguments backed by strong precedents.";
-
-        if (selectStr.includes("jurisdiction") || selectStr.includes("maintainability") || selectStr.includes("standing") || selectStr.includes("preliminary")) {
-          importance = "Threshold Gate";
+        let importance = "Framed Issue";
+        let importanceCls = "bg-[#8C8270]/12 text-[#6b5f4d] border border-[#8C8270]/30";
+        if (/jurisdiction|maintainab|locus|standing|limitation|preliminary|admissib/.test(selectStr)) {
+          importance = "Threshold — decided first";
           importanceCls = "bg-purple-500/10 text-purple-400 border border-purple-500/20";
-          difficulty = "Medium";
-          difficultyCls = "bg-amber-500/10 text-amber-400 border border-amber-500/20";
-          path = "Jurisdictional Bar";
-          pathCls = "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20";
-          advice = "Must be resolved first. Focus on statutory alternative remedies and constitutional writ jurisdiction scope.";
-        } else if (selectStr.includes("validity") || selectStr.includes("constitutionality") || selectStr.includes("ultra vires") || selectStr.includes("arbitrary") || selectStr.includes("equality")) {
-          importance = "Strategic Pinnacle";
-          importanceCls = "bg-[#B0392E]/10 text-moot-accent border border-[#B0392E]/20";
-          difficulty = "High";
-          difficultyCls = "bg-red-500/10 text-red-400 border border-red-500/20";
-          path = "High Risk / High Reward";
-          pathCls = "bg-orange-500/10 text-orange-400 border border-orange-500/20";
-          advice = "Hardest to argue. High presumption of constitutionality. Rely on manifest arbitrariness or rights override.";
-        } else if (selectStr.includes("merits") || selectStr.includes("breach") || selectStr.includes("privacy") || selectStr.includes("speech") || selectStr.includes("rights")) {
-          importance = "Critical Merits";
-          importanceCls = "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
-          difficulty = "Medium";
-          difficultyCls = "bg-amber-500/10 text-amber-400 border border-amber-500/20";
-          path = "Strongest Precedent Path";
-          pathCls = "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
-          advice = "Offers the strongest path. Ground claims in binding landmark precedents (like Puttaswamy or Shreya Singhal).";
-        } else if (selectStr.includes("remedy") || selectStr.includes("relief") || selectStr.includes("compensation") || selectStr.includes("damages") || selectStr.includes("prayer")) {
-          importance = "Remedial Path";
+        } else if (/remed|relief|compensat|damages|prayer|costs/.test(selectStr)) {
+          importance = "Remedy";
           importanceCls = "bg-blue-500/10 text-blue-400 border border-blue-500/20";
-          difficulty = "Low";
-          difficultyCls = "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
-          path = "Alternate Path";
-          pathCls = "bg-[#8C8270]/12 text-[#6b5f4d] border border-[#8C8270]/30";
-          advice = "Evaluate alternative remedies. Ensure prayer for relief maps directly to substantive violations.";
+        } else {
+          importance = "Merits";
+          importanceCls = "bg-[#B0392E]/10 text-moot-accent border border-[#B0392E]/20";
+        }
+        let difficulty = '';
+        let difficultyCls = '';
+        let path = '';
+        let pathCls = '';
+        let advice = '';
+        let adviceLabel = 'Strategy';
+
+        const intel = intelFor[idx];
+        const rawDiff = intel && (intel.difficulty || intel.difficultyLevel || intel.issueDifficulty);
+        if (rawDiff) {
+          const d = String(rawDiff).toLowerCase();
+          difficulty = d.includes('high') || d.includes('hard') ? 'High' : d.includes('low') || d.includes('easy') ? 'Low' : 'Medium';
+          difficultyCls = difficulty === 'High' ? "bg-red-500/10 text-red-400 border border-red-500/20"
+            : difficulty === 'Low' ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+            : "bg-amber-500/10 text-amber-400 border border-amber-500/20";
+        }
+        if (intel && intel.issueDefinition && intel.issueDefinition.whyItMatters) {
+          advice = intel.issueDefinition.whyItMatters;
+          adviceLabel = 'Why it matters';
+        } else {
+          // The bench question (or known weakness) that shares the most
+          // substantive words with this issue - shown only on a real match.
+          const words = w => new Set(String(w).toLowerCase().match(/[a-z][a-z0-9()]{4,}/g) || []);
+          const mine = words(issue);
+          const best = (list) => {
+            let top = null, score = 0;
+            list.forEach(q => { let n = 0; words(q).forEach(w => { if (mine.has(w)) n++; }); if (n > score) { score = n; top = q; } });
+            return score >= 2 ? top : null;
+          };
+          const q = best(benchQs);
+          const v = best(vulns);
+          if (q) { advice = q; adviceLabel = 'Expect from the bench'; }
+          else if (v) { advice = v; adviceLabel = 'Watch for'; }
         }
 
         const sugg = issueMeta[idx];
@@ -1534,14 +1615,14 @@ export function renderStage2Issues() {
             </div>
             
             <div class="flex flex-wrap gap-2">
-              <span class="text-[9px] uppercase tracking-wider px-2 py-0.5 rounded font-sans font-semibold ${importanceCls}">${importance}</span>
-              <span class="text-[9px] uppercase tracking-wider px-2 py-0.5 rounded font-sans font-semibold ${difficultyCls}">${difficulty} Difficulty</span>
-              <span class="text-[9px] uppercase tracking-wider px-2 py-0.5 rounded font-sans font-semibold ${pathCls}">${path}</span>
+              <span class="text-[9px] uppercase tracking-wider px-2 py-0.5 rounded font-sans font-semibold ${importanceCls}">${esc(importance)}</span>
+              ${difficulty ? `<span class="text-[9px] uppercase tracking-wider px-2 py-0.5 rounded font-sans font-semibold ${difficultyCls}">${esc(difficulty)}${/^(High|Medium|Low)$/.test(difficulty) ? ' Difficulty' : ''}</span>` : ''}
+              ${path ? `<span class="text-[9px] uppercase tracking-wider px-2 py-0.5 rounded font-sans font-semibold ${pathCls}">${esc(path)}</span>` : ''}
             </div>
             
-            <div class="text-[10px] text-white-muted italic leading-relaxed font-sans border-t border-black/5 pt-2">
-              💡 <strong>Strategy:</strong> ${advice}
-            </div>
+            ${advice ? `<div class="text-[11px] text-white-muted leading-relaxed font-sans border-t border-black/5 pt-2">
+              <strong class="not-italic">${esc(adviceLabel)}:</strong> <span class="italic">${esc(advice)}</span>
+            </div>` : ''}
           </div>
         `;
       }).join('')}

@@ -445,6 +445,11 @@ onAuthChanged(async (user) => {
 
 // Setup DOM Event Listeners
 document.addEventListener('DOMContentLoaded', () => {
+  // Wake the backend while the visitor is still reading the landing page.
+  // An idle host can take tens of seconds to start, and that wait used to
+  // land on their first AI request instead. Fire and forget.
+  fetch(`${BASE_URL}/health`, { method: 'GET', cache: 'no-store' }).catch(() => {});
+
   // Initialize Microsoft Clarity
   initClarity();
 
@@ -463,7 +468,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   document.getElementById('hero-btn-start')?.addEventListener('click', (e) => {
     e.preventDefault();
-    navigate('login');
+    window.startNewAnalysis();
   });
   document.getElementById('beta-btn-signup')?.addEventListener('click', (e) => {
     e.preventDefault();
@@ -471,7 +476,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   document.getElementById('bottom-btn-practice')?.addEventListener('click', (e) => {
     e.preventDefault();
-    navigate('login');
+    window.startNewAnalysis();
   });
   document.getElementById('footer-link-terms')?.addEventListener('click', (e) => {
     e.preventDefault();
