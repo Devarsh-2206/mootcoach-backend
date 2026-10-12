@@ -2807,7 +2807,7 @@ p  { color:var(--white-2); }
 @keyframes iTimer{to{transform:scaleX(0)}}
 .i-skip{
   position:absolute;bottom:20px;font-family:var(--mono);font-size:9.5px;letter-spacing:.26em;
-  text-transform:uppercase;color:var(--ink-soft, #5A5142);opacity:0;animation:iFade .8s 1.2s ease forwards;
+  text-transform:uppercase;color:var(--white-muted);opacity:0;animation:iFade .8s 1.2s ease forwards;
 }
 /* hold hero choreography until the curtain lifts, so it plays fresh rather
    than finishing invisibly behind the intro */
@@ -3130,6 +3130,12 @@ body.intro-hold #view-landing .swear{animation-play-state:paused!important}
 #auth-overlay-submit { background: var(--gold) !important; color: #FCF9EF !important; border-color: var(--gold) !important; }
 #auth-overlay-submit:hover { background: var(--gold-light) !important; }
 #auth-overlay-submit:disabled { opacity: .7; cursor: progress; }
+
+/* Phones, landing page: the top-right toggle sat on the File Appearance
+   button. The bottom corner is free there (the workspace keeps its own slot). */
+@media (max-width: 640px) {
+  body:has(#view-landing.active) .theme-toggle { top: auto; bottom: 16px; right: 16px; width: 40px; height: 40px; }
+}
 </style>
 </head>
 <body class="intro-hold">
@@ -3445,6 +3451,8 @@ body.intro-hold #view-landing .swear{animation-play-state:paused!important}
       <a href="#exhibit-a">Exhibit A</a>
       <a href="#bench">Bench</a>
       <a href="#scoresheet">Scoresheet</a>
+      <a href="#" id="footer-link-terms">Terms</a>
+      <a href="#" id="footer-link-privacy">Privacy</a>
     </div>
     <span>§ 2026 · Built for law students, by one</span>
   </div>

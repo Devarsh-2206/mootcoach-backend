@@ -141,6 +141,11 @@ export function openLegalModal(type) {
   document.body.style.overflow = 'hidden';
 }
 
+// Esc closes the Terms/Privacy dialog, as it does every other dialog.
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && document.getElementById('legal-modal')?.classList.contains('show')) closeLegalModal();
+});
+
 export function closeLegalModal(e) {
   if (e && e.target !== document.getElementById('legal-modal')) return;
   document.getElementById('legal-modal')?.classList.remove('show');
