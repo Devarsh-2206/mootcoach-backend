@@ -243,15 +243,15 @@ export function renderJudgeCards() {
       : 'border:1px solid rgba(28,23,16,0.05); background:rgba(28,23,16,0.01);';
     return `
       <button type="button" onclick="window.selectJudge('${j.id}')" title="${esc(j.focus)}"
-        style="display:flex; align-items:flex-start; gap:12px; width:100%; text-align:left; padding:10px 12px; border-radius:8px; cursor:pointer; transition:all .15s; ${rowStyle}">
+        style="display:flex; align-items:flex-start; gap:12px; width:100%; text-align:left; padding:10px 12px; border-radius:8px; cursor:pointer; transition:all .15s; font-family:var(--sans); ${rowStyle}">
         <div style="width:30px; height:30px; border-radius:50%; background:rgba(176,57,46,0.1); border:1px solid rgba(176,57,46,0.3); display:flex; align-items:center; justify-content:center; color:var(--gold); flex-shrink:0; font-size:13px;">⚖️</div>
         <div style="flex:1; min-width:0;">
           <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-            <span style="font-size:12px; font-weight:600; color:#fff;">${esc(j.name)}</span>
+            <span style="font-size:12px; font-weight:600; color:var(--white);">${esc(j.name)}</span>
             <span style="font-size:8px; letter-spacing:0.08em; text-transform:uppercase; color:var(--white-muted);">${esc(j.archetype)}</span>
             ${on ? '<span style="font-size:8px; letter-spacing:0.08em; text-transform:uppercase; color:var(--gold); margin-left:auto;">✓ Selected</span>' : ''}
           </div>
-          <div style="font-size:10px; color:rgba(28,23,16,.62); line-height:1.4; margin-top:3px;">${esc(j.temperament)}</div>
+          <div style="font-size:10px; color:var(--white-muted); line-height:1.4; margin-top:3px;">${esc(j.temperament)}</div>
         </div>
       </button>`;
   }).join('');
@@ -586,13 +586,13 @@ export function appendBenchPerformanceReview(review) {
   const d_moment = review.mostDangerousMoment || {};
   const prioritiesHTML = (review.trainingPriorities || []).map((p, i) => `
     <div style="margin-bottom:8px; display:flex; align-items:start; gap:8px;">
-      <span style="display:inline-block; width:20px; height:20px; background:rgba(96,165,250,0.1); color:#60a5fa; border-radius:50%; text-align:center; line-height:20px; font-size:10px; font-weight:bold; flex-shrink:0;">${i + 1}</span>
+      <span style="display:inline-block; width:20px; height:20px; background:rgba(96,165,250,0.1); color:var(--acc-blue); border-radius:50%; text-align:center; line-height:20px; font-size:10px; font-weight:bold; flex-shrink:0;">${i + 1}</span>
       <span style="font-size:.82rem; color:var(--white-2); line-height:1.5;">${fmtInline(p)}</span>
     </div>
   `).join('');
 
   const concernsHTML = (review.judicialConcerns || []).map(c => `
-    <span style="display:inline-block; padding:4px 8px; background:rgba(224,82,82,.08); border:1px solid rgba(224,82,82,.2); border-radius:4px; font-size:.75rem; color:#e05252; margin-right:6px; margin-bottom:6px;">${fmtInline(c)}</span>
+    <span style="display:inline-block; padding:4px 8px; background:rgba(224,82,82,.08); border:1px solid rgba(224,82,82,.2); border-radius:4px; font-size:.75rem; color:var(--acc-red); margin-right:6px; margin-bottom:6px;">${fmtInline(c)}</span>
   `).join('');
 
   div.innerHTML = `
@@ -609,7 +609,7 @@ export function appendBenchPerformanceReview(review) {
     <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin-bottom: 16px;">
       <!-- Strongest Moment -->
       <div style="background:var(--navy-4); border:1px solid var(--glass-b); border-radius:10px; padding:16px;">
-        <div style="font-size:.65rem; letter-spacing:.1em; text-transform:uppercase; color:#4caf82; font-weight:700; margin-bottom:10px; display:flex; align-items:center; gap:6px;">
+        <div style="font-size:.65rem; letter-spacing:.1em; text-transform:uppercase; color:var(--acc-green); font-weight:700; margin-bottom:10px; display:flex; align-items:center; gap:6px;">
           <span>🏆</span> Strongest Moment
         </div>
         <div style="font-family:var(--serif); font-size:.9rem; color:var(--white-2); font-style:italic; line-height:1.5; margin-bottom:10px; border-left:2px solid #4caf82; padding-left:10px;">
@@ -622,7 +622,7 @@ export function appendBenchPerformanceReview(review) {
 
       <!-- Most Dangerous Moment -->
       <div style="background:var(--navy-4); border:1px solid var(--glass-b); border-radius:10px; padding:16px;">
-        <div style="font-size:.65rem; letter-spacing:.1em; text-transform:uppercase; color:#e05252; font-weight:700; margin-bottom:10px; display:flex; align-items:center; gap:6px;">
+        <div style="font-size:.65rem; letter-spacing:.1em; text-transform:uppercase; color:var(--acc-red); font-weight:700; margin-bottom:10px; display:flex; align-items:center; gap:6px;">
           <span>⚠️</span> Most Dangerous Moment
         </div>
         <div style="font-family:var(--serif); font-size:.9rem; color:var(--white-2); font-style:italic; line-height:1.5; margin-bottom:10px; border-left:2px solid #e05252; padding-left:10px;">
@@ -631,7 +631,7 @@ export function appendBenchPerformanceReview(review) {
         <div style="font-size:.8rem; color:var(--white-muted); line-height:1.5; margin-bottom:8px;">
           <strong style="color:var(--white-muted);">Why it was vulnerable:</strong> ${fmtInline(d_moment.whyVulnerable || 'N/A')}
         </div>
-        <div style="font-size:.8rem; color:#4caf82; line-height:1.5; background:rgba(76,175,130,0.05); padding:8px; border-radius:6px;">
+        <div style="font-size:.8rem; color:var(--acc-green); line-height:1.5; background:rgba(76,175,130,0.05); padding:8px; border-radius:6px;">
           <strong>Better Answer:</strong> "${fmtInline(d_moment.betterAnswer || 'N/A')}"
         </div>
       </div>
@@ -656,7 +656,7 @@ export function appendBenchPerformanceReview(review) {
 
       <!-- Consistency Analysis -->
       <div style="background:var(--navy-4); border:1px solid var(--glass-b); border-radius:10px; padding:16px;">
-        <div style="font-size:.65rem; letter-spacing:.1em; text-transform:uppercase; color:#a855f7; font-weight:700; margin-bottom:10px; display:flex; align-items:center; gap:6px;">
+        <div style="font-size:.65rem; letter-spacing:.1em; text-transform:uppercase; color:var(--acc-purple); font-weight:700; margin-bottom:10px; display:flex; align-items:center; gap:6px;">
           <span>⚖️</span> Consistency Analysis
         </div>
         <div style="font-size:.8rem; color:var(--white-2); line-height:1.6;">
@@ -667,7 +667,7 @@ export function appendBenchPerformanceReview(review) {
 
     <!-- Bottom: Training Priorities -->
     <div style="background:var(--navy-4); border:1px solid var(--glass-b); border-radius:10px; padding:16px;">
-      <div style="font-size:.65rem; letter-spacing:.1em; text-transform:uppercase; color:#60a5fa; font-weight:700; margin-bottom:12px; display:flex; align-items:center; gap:6px;">
+      <div style="font-size:.65rem; letter-spacing:.1em; text-transform:uppercase; color:var(--acc-blue); font-weight:700; margin-bottom:12px; display:flex; align-items:center; gap:6px;">
         <span>🎯</span> Training Priorities Before Next Round
       </div>
       <div>

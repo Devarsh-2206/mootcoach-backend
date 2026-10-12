@@ -744,7 +744,7 @@ export function renderAdditionalIssues(list, framedCount) {
     const added = a.status === 'added';
     const dismissed = a.status === 'dismissed';
     const cls = RISK_CLS[a.confidence] || 'badge-gold';
-    const mark = added ? '<span style="color:#4caf82;">\u2713</span> '
+    const mark = added ? '<span style="color:var(--acc-green);">\u2713</span> '
                : dismissed ? '<span style="color:var(--white-muted);">\u2014</span> ' : '';
     return '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;'
       + 'padding:11px 14px;border:1px solid var(--glass-b);border-radius:9px;margin-bottom:9px;'
@@ -761,7 +761,7 @@ export function renderAdditionalIssues(list, framedCount) {
     + 'None of them is in your memorial or oral prep unless you add it.';
 
   const status = addedCount
-    ? '<span style="color:#4caf82;">\u2713 ' + addedCount + ' added</span> \u00b7 review the rest in the Issue Workspace'
+    ? '<span style="color:var(--acc-green);">\u2713 ' + addedCount + ' added</span> \u00b7 review the rest in the Issue Workspace'
     : 'Decide which to argue in the Issue Workspace.';
 
   return '<div style="font-size:.78rem;color:var(--white-muted);line-height:1.68;margin-bottom:14px;">'
@@ -935,9 +935,9 @@ export function renderArgumentDefects(defectsData) {
 
   const sevBorder = { fatal:'#e05252', significant:'#fbbf24', minor:'#2dd4bf' };
   const sevStyle  = {
-    fatal:       'background:rgba(224,82,82,.1);border:1px solid rgba(224,82,82,.28);color:#e05252;',
-    significant: 'background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.22);color:#fbbf24;',
-    minor:       'background:rgba(45,212,191,.08);border:1px solid rgba(45,212,191,.22);color:#2dd4bf;'
+    fatal:       'background:rgba(224,82,82,.1);border:1px solid rgba(224,82,82,.28);color:var(--acc-red);',
+    significant: 'background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.22);color:var(--acc-amber);',
+    minor:       'background:rgba(45,212,191,.08);border:1px solid rgba(45,212,191,.22);color:var(--acc-teal);'
   };
 
   const renderSideDefects = (items, label) => {
@@ -1604,7 +1604,7 @@ export function renderStage4OralNotes() {
                 </span>
                 <span class="text-[9px] uppercase tracking-wider font-semibold text-moot-accent bg-moot-accent/5 px-2 py-0.5 rounded font-sans" style="border: 1px solid rgba(176,57,46,0.15);">${mod.readTime}</span>
               </div>
-              <p class="text-[11px] text-white-muted leading-relaxed font-sans" style="margin: 4px 0 8px 0; color: rgba(28,23,16,.55);">${mod.description}</p>
+              <p class="text-[11px] text-white-muted leading-relaxed font-sans" style="margin: 4px 0 8px 0; color:var(--white-muted);">${mod.description}</p>
               <button onclick="window.openArsenalModule('${mod.id}')" class="btn-sm text-[10px] py-1.5 bg-black/5 border border-black/10 text-[#1C1710] hover:bg-black/10 rounded cursor-pointer text-center w-full transition-all duration-200" style="width: 100%; text-transform: uppercase; letter-spacing: 0.05em;">
                 Open Module
               </button>
@@ -1670,7 +1670,7 @@ export function openArsenalModule(moduleId) {
           ${(oralAdvocacy.qa || []).map((pair, idx) => `
             <div class="p-3 bg-black/[0.03] border border-black/5 rounded-lg" style="margin-bottom: 10px;">
               <strong class="text-[#B0392E] block mb-1" style="color: var(--gold); font-size: 12px;">Q${idx+1}: ${esc(pair.q)}</strong>
-              <div class="text-[#4a4030] italic font-serif leading-relaxed mt-1" style="font-size: 11px; line-height: 1.5; color: rgba(28,23,16,.62); padding-left: 8px; border-left: 2px solid rgba(28,23,16,0.1);">"${esc(pair.a)}"</div>
+              <div class="text-[#4a4030] italic font-serif leading-relaxed mt-1" style="font-size: 11px; line-height: 1.5; color:var(--white-muted); padding-left: 8px; border-left: 2px solid rgba(28,23,16,0.1);">"${esc(pair.a)}"</div>
             </div>
           `).join('') || '<p class="text-white-muted italic">No bench questions generated yet.</p>'}
         </div>
@@ -1682,10 +1682,10 @@ export function openArsenalModule(moduleId) {
         <div class="space-y-3 font-sans">
           ${(oralAdvocacy.precedents || []).map(p => `
             <div class="p-3 bg-black/[0.03] border border-black/5 rounded-lg text-xs" style="margin-bottom: 10px;">
-              <strong class="text-[#1C1710] block mb-1" style="font-size: 12px; color: #fff;">⚖️ ${esc(p.name)} (${esc(p.bench || 'Constitutional Bench')})</strong>
+              <strong class="text-[#1C1710] block mb-1" style="font-size: 12px; color: var(--white);">⚖️ ${esc(p.name)} (${esc(p.bench || 'Constitutional Bench')})</strong>
               <div class="text-white-muted mt-1.5" style="font-size: 11px;"><span class="text-[#B0392E] font-semibold uppercase text-[9px] tracking-wider" style="color: var(--gold); font-size: 9px; font-weight: bold; margin-right: 4px;">Ratio:</span> ${esc(p.ratio)}</div>
-              <div class="text-white-muted mt-1.5" style="font-size: 11px;"><span class="text-[#4caf82] font-semibold uppercase text-[9px] tracking-wider" style="color: #4caf82; font-size: 9px; font-weight: bold; margin-right: 4px;">Application:</span> ${esc(p.strategicValue || p.why)}</div>
-              <div class="text-white-muted mt-1.5" style="font-size: 11px;"><span class="text-[#B0392E] font-semibold uppercase text-[9px] tracking-wider" style="color: var(--gold); font-size: 9px; font-weight: bold; margin-right: 4px;">Usage:</span> <span class="italic font-serif" style="color: #e2e8f0;">"${esc(p.usage)}"</span></div>
+              <div class="text-white-muted mt-1.5" style="font-size: 11px;"><span class="text-[#4caf82] font-semibold uppercase text-[9px] tracking-wider" style="color:var(--acc-green); font-size: 9px; font-weight: bold; margin-right: 4px;">Application:</span> ${esc(p.strategicValue || p.why)}</div>
+              <div class="text-white-muted mt-1.5" style="font-size: 11px;"><span class="text-[#B0392E] font-semibold uppercase text-[9px] tracking-wider" style="color: var(--gold); font-size: 9px; font-weight: bold; margin-right: 4px;">Usage:</span> <span class="italic font-serif" style="color:var(--white);">"${esc(p.usage)}"</span></div>
             </div>
           `).join('') || '<p class="text-white-muted italic">No precedents annotated yet.</p>'}
         </div>
@@ -1697,9 +1697,9 @@ export function openArsenalModule(moduleId) {
         <div class="space-y-3 font-sans">
           ${(oralAdvocacy.traps || []).map(trap => `
             <div class="p-3 bg-red-950/10 border border-red-900/20 rounded-lg text-xs leading-relaxed text-[#4a4030]" style="margin-bottom: 10px; border-left: 3px solid #f87171;">
-              <strong class="text-red-400 block mb-1" style="color: #f87171; font-size: 12px;">⚠️ ${esc(trap.title || 'Judicial Trap')}</strong>
-              <div class="text-gray-400 mb-1" style="font-size: 11px; margin-top: 4px;"><strong style="color: #e2e8f0;">Danger:</strong> ${esc(trap.description)}</div>
-              <div class="mt-2 italic text-[#4a4030] font-serif" style="font-size: 11px; color: rgba(28,23,16,.62); padding-top: 4px; border-t: 1px solid rgba(28,23,16,0.05);">Escape Route: "${esc(trap.escapeResponse)}"</div>
+              <strong class="text-red-400 block mb-1" style="color:var(--acc-red); font-size: 12px;">⚠️ ${esc(trap.title || 'Judicial Trap')}</strong>
+              <div class="text-gray-400 mb-1" style="font-size: 11px; margin-top: 4px;"><strong style="color:var(--white);">Danger:</strong> ${esc(trap.description)}</div>
+              <div class="mt-2 italic text-[#4a4030] font-serif" style="font-size: 11px; color:var(--white-muted); padding-top: 4px; border-t: 1px solid rgba(28,23,16,0.05);">Escape Route: "${esc(trap.escapeResponse)}"</div>
             </div>
           `).join('') || '<p class="text-white-muted italic">No judicial traps identified yet.</p>'}
         </div>
@@ -1711,14 +1711,14 @@ export function openArsenalModule(moduleId) {
         <div class="space-y-4 font-sans">
           <div class="p-3 bg-black/[0.03] border border-black/5 rounded-lg" style="margin-bottom: 10px;">
             <h4 class="text-[#B0392E] font-semibold uppercase text-[10px] tracking-wider mb-2" style="color: var(--gold); font-size: 10px;">Opposition Arguments</h4>
-            <ul class="list-disc pl-4 text-[#4a4030] space-y-1.5" style="font-size: 11px; color: rgba(28,23,16,.62);">
+            <ul class="list-disc pl-4 text-[#4a4030] space-y-1.5" style="font-size: 11px; color:var(--white-muted);">
               ${(rebuttals.opponentArguments || []).map(arg => `<li>${esc(arg)}</li>`).join('') || '<li class="italic text-gray-500">None identified.</li>'}
             </ul>
           </div>
           <div class="p-3 bg-black/[0.03] border border-black/5 rounded-lg">
-            <h4 class="text-emerald-400 font-semibold uppercase text-[10px] tracking-wider mb-2" style="color: #34d399; font-size: 10px;">Demolition Strategy</h4>
-            <div class="text-[#4a4030] space-y-2" style="font-size: 11px; color: rgba(28,23,16,.62);">
-              ${(rebuttals.demolitionStrategy || []).map((strat, idx) => `<p style="margin-bottom: 6px;"><strong style="color: #fff; margin-right: 4px;">${idx + 1}.</strong> ${esc(strat)}</p>`).join('') || '<p class="italic text-gray-500">No response strategy prepared.</p>'}
+            <h4 class="text-emerald-400 font-semibold uppercase text-[10px] tracking-wider mb-2" style="color:var(--acc-green); font-size: 10px;">Demolition Strategy</h4>
+            <div class="text-[#4a4030] space-y-2" style="font-size: 11px; color:var(--white-muted);">
+              ${(rebuttals.demolitionStrategy || []).map((strat, idx) => `<p style="margin-bottom: 6px;"><strong style="color: var(--white); margin-right: 4px;">${idx + 1}.</strong> ${esc(strat)}</p>`).join('') || '<p class="italic text-gray-500">No response strategy prepared.</p>'}
             </div>
           </div>
         </div>
@@ -1731,7 +1731,7 @@ export function openArsenalModule(moduleId) {
         : "Submit that administrative policies enjoy a wide latitude of immunity under public law, and judicial review is restricted to procedural impropriety.");
       content = `
         <div class="p-4 bg-red-950/10 border border-red-900/20 rounded-xl font-sans" style="border-left: 3px solid #ef4444;">
-          <p class="text-[#4a4030] leading-relaxed font-serif italic" style="font-size: 12px; color: rgba(28,23,16,.62); line-height: 1.6;">
+          <p class="text-[#4a4030] leading-relaxed font-serif italic" style="font-size: 12px; color:var(--white-muted); line-height: 1.6;">
             "${esc(rescueArg)}"
           </p>
         </div>
@@ -1744,7 +1744,7 @@ export function openArsenalModule(moduleId) {
         : "We pray that this Honorable Court dismiss the petition in its entirety with exemplary costs.");
       content = `
         <div class="p-4 bg-indigo-950/10 border border-indigo-900/20 rounded-xl font-sans" style="border-left: 3px solid #6366f1;">
-          <p class="text-[#4a4030] leading-relaxed font-serif italic" style="font-size: 12px; color: rgba(28,23,16,.62); line-height: 1.6;">
+          <p class="text-[#4a4030] leading-relaxed font-serif italic" style="font-size: 12px; color:var(--white-muted); line-height: 1.6;">
             "${esc(prayerArg)}"
           </p>
         </div>
@@ -1757,7 +1757,7 @@ export function openArsenalModule(moduleId) {
           ${(rebuttals.followUpQuestions || []).map((pair, idx) => `
             <div class="p-3 bg-black/[0.03] border border-black/5 rounded-lg" style="margin-bottom: 10px;">
               <strong class="text-[#1C1710] block mb-1" style="font-size: 12px;">Follow-up ${idx + 1}: "${esc(pair.q)}"</strong>
-              <div class="italic block mt-1 font-serif text-[#4a4030]" style="font-size: 11px; color: rgba(28,23,16,.62); padding-left: 8px; border-left: 2px solid rgba(28,23,16,0.1);">Answer: "${esc(pair.a)}"</div>
+              <div class="italic block mt-1 font-serif text-[#4a4030]" style="font-size: 11px; color:var(--white-muted); padding-left: 8px; border-left: 2px solid rgba(28,23,16,0.1);">Answer: "${esc(pair.a)}"</div>
             </div>
           `).join('') || '<p class="text-white-muted italic">No follow-up questions prepared.</p>'}
         </div>
@@ -1770,7 +1770,7 @@ export function openArsenalModule(moduleId) {
         : "In the alternative, submit that if this Court finds a right was infringed, it was a proportional and necessary limitation in a democratic society.");
       content = `
         <div class="p-4 bg-indigo-950/10 border border-indigo-900/20 rounded-xl font-sans" style="border-left: 3px solid #6366f1;">
-          <p class="text-[#4a4030] leading-relaxed font-serif italic" style="font-size: 12px; color: rgba(28,23,16,.62); line-height: 1.6;">
+          <p class="text-[#4a4030] leading-relaxed font-serif italic" style="font-size: 12px; color:var(--white-muted); line-height: 1.6;">
             "${esc(fallbackArg)}"
           </p>
         </div>

@@ -94,6 +94,16 @@
   --rule:        #D9CFB8;
   --faint:       #8C8270;
   --surface-rgb: 246,241,228;  /* RGB channels of --navy, for rgba() blur-bar backgrounds */
+  /* Accent text. Dark enough to read on cream; the dark theme swaps in the
+     pale versions these components were originally designed with. */
+  --acc-amber:  #8A5A00;
+  --acc-blue:   #2E5A88;
+  --acc-indigo: #4A4594;
+  --acc-green:  #2F6B4A;
+  --acc-teal:   #1F6F66;
+  --acc-red:    #A8362A;
+  --acc-purple: #6B3F8A;
+  --acc-orange: #9A4A12;
   --serif: 'Cormorant Garamond', Georgia, serif;
   --sans:  'EB Garamond', Georgia, serif;
   --mono:  'IBM Plex Mono', ui-monospace, monospace;
@@ -136,6 +146,14 @@
   --rule:        rgba(239,230,211,.16);
   --faint:       rgba(239,230,211,.5);
   --surface-rgb: 22,18,13;
+  --acc-amber:  #FBBF24;
+  --acc-blue:   #60A5FA;
+  --acc-indigo: #A5B4FC;
+  --acc-green:  #4FAE7C;
+  --acc-teal:   #2DD4BF;
+  --acc-red:    #F87171;
+  --acc-purple: #C4B5FD;
+  --acc-orange: #FB923C;
 }
 
 html { scroll-behavior:smooth; }
@@ -985,9 +1003,9 @@ p  { color:var(--white-2); }
 ═══════════════════════════════════════════ */
 
 /* Dynamic Score Colors */
-.text-green { color: #4caf82 !important; text-shadow: 0 0 20px rgba(76,175,130,0.3); }
+.text-green { color: var(--acc-green) !important; text-shadow: 0 0 20px rgba(76,175,130,0.3); }
 .text-gold { color: var(--gold) !important; text-shadow: 0 0 20px rgba(176,57,46,0.3); }
-.text-red { color: #e05252 !important; text-shadow: 0 0 20px rgba(224,82,82,0.3); }
+.text-red { color: var(--acc-red) !important; text-shadow: 0 0 20px rgba(224,82,82,0.3); }
 
 /* Sticky section nav */
 .res-sticky-nav {
@@ -1052,10 +1070,10 @@ p  { color:var(--white-2); }
   transition: width 1.4s cubic-bezier(.22,.68,0,1.2);
 }
 .sf-gold   { background: linear-gradient(90deg,var(--gold),var(--gold-light)); }
-.sf-blue   { background: linear-gradient(90deg,#60a5fa,#93c5fd); }
-.sf-green  { background: linear-gradient(90deg,#4caf82,#6ee7b7); }
+.sf-blue   { background: linear-gradient(90deg,var(--gold),var(--gold-light)); }
+.sf-green  { background: linear-gradient(90deg,var(--success),#5E9C78); }
 .sf-red    { background: linear-gradient(90deg,#e05252,#f87171); }
-.sf-purple { background: linear-gradient(90deg,#a78bfa,#c4b5fd); }
+.sf-purple { background: linear-gradient(90deg,#9A7B3F,#C2A468); }
 
 /* Section cards */
 .analysis-section-card {
@@ -1087,11 +1105,11 @@ p  { color:var(--white-2); }
   font-size: .85rem; flex-shrink: 0;
 }
 .asc-icon-gold   { background: var(--gold-muted);            border: 1px solid var(--gold-border);            color: var(--gold); }
-.asc-icon-blue   { background: rgba(96,165,250,.1);          border: 1px solid rgba(96,165,250,.25);          color: #60a5fa; }
-.asc-icon-green  { background: rgba(76,175,130,.1);          border: 1px solid rgba(76,175,130,.25);          color: #4caf82; }
-.asc-icon-red    { background: rgba(224,82,82,.1);           border: 1px solid rgba(224,82,82,.25);           color: #e05252; }
-.asc-icon-purple { background: rgba(167,139,250,.1);         border: 1px solid rgba(167,139,250,.25);         color: #a78bfa; }
-.asc-icon-teal   { background: rgba(45,212,191,.1);          border: 1px solid rgba(45,212,191,.25);          color: #2dd4bf; }
+.asc-icon-blue   { background: rgba(96,165,250,.1);          border: 1px solid rgba(96,165,250,.25);          color: var(--acc-blue); }
+.asc-icon-green  { background: rgba(76,175,130,.1);          border: 1px solid rgba(76,175,130,.25);          color: var(--acc-green); }
+.asc-icon-red    { background: rgba(224,82,82,.1);           border: 1px solid rgba(224,82,82,.25);           color: var(--acc-red); }
+.asc-icon-purple { background: rgba(167,139,250,.1);         border: 1px solid rgba(167,139,250,.25);         color: var(--acc-purple); }
+.asc-icon-teal   { background: rgba(45,212,191,.1);          border: 1px solid rgba(45,212,191,.25);          color: var(--acc-teal); }
 .asc-title { font-family: var(--serif); font-size: .98rem; font-weight: 500; color: var(--white); }
 .asc-header-right { display: flex; align-items: center; gap: 8px; }
 .asc-badge {
@@ -1099,11 +1117,11 @@ p  { color:var(--white-2); }
   text-transform: uppercase; padding: 3px 8px; border-radius: 100px; border: 1px solid;
 }
 .badge-gold   { color: var(--gold);  background: var(--gold-muted);         border-color: var(--gold-border); }
-.badge-blue   { color: #60a5fa;      background: rgba(96,165,250,.1);       border-color: rgba(96,165,250,.25); }
-.badge-green  { color: #4caf82;      background: rgba(76,175,130,.1);       border-color: rgba(76,175,130,.25); }
-.badge-red    { color: #e05252;      background: rgba(224,82,82,.1);        border-color: rgba(224,82,82,.25); }
-.badge-purple { color: #a78bfa;      background: rgba(167,139,250,.1);      border-color: rgba(167,139,250,.25); }
-.badge-teal   { color: #2dd4bf;      background: rgba(45,212,191,.1);       border-color: rgba(45,212,191,.25); }
+.badge-blue   { color: var(--acc-blue);      background: rgba(96,165,250,.1);       border-color: rgba(96,165,250,.25); }
+.badge-green  { color: var(--acc-green);      background: rgba(76,175,130,.1);       border-color: rgba(76,175,130,.25); }
+.badge-red    { color: var(--acc-red);      background: rgba(224,82,82,.1);        border-color: rgba(224,82,82,.25); }
+.badge-purple { color: var(--acc-purple);      background: rgba(167,139,250,.1);      border-color: rgba(167,139,250,.25); }
+.badge-teal   { color: var(--acc-teal);      background: rgba(45,212,191,.1);       border-color: rgba(45,212,191,.25); }
 .asc-copy {
   font-size: .58rem; font-weight: 400; letter-spacing: .08em; text-transform: uppercase;
   color: var(--white-muted); background: none; border: 1px solid var(--glass-b);
@@ -1111,7 +1129,7 @@ p  { color:var(--white-2); }
   transition: color .2s, border-color .2s;
 }
 .asc-copy:hover { color: var(--gold); border-color: var(--gold-border); }
-.asc-copy.copied { color: #4caf82; border-color: rgba(76,175,130,.3); }
+.asc-copy.copied { color: var(--acc-green); border-color: rgba(76,175,130,.3); }
 .asc-chevron { color: var(--white-muted); font-size: .65rem; transition: transform .3s cubic-bezier(.22,.68,0,1.2); flex-shrink: 0; }
 .asc-header.asc-collapsed .asc-chevron { transform: rotate(-90deg); }
 .asc-body {
@@ -1197,9 +1215,9 @@ p  { color:var(--white-2); }
   padding: 7px 15px; border-radius: 100px;
   font-size: .74rem; font-weight: 500; margin-bottom: 14px; margin-right: 6px;
 }
-.dp-high   { background: rgba(224,82,82,.12); border: 1px solid rgba(224,82,82,.3);   color: #f87171; }
-.dp-medium { background: rgba(251,191,36,.1); border: 1px solid rgba(251,191,36,.28); color: #fbbf24; }
-.dp-low    { background: rgba(76,175,130,.1); border: 1px solid rgba(76,175,130,.28); color: #4caf82; }
+.dp-high   { background: rgba(224,82,82,.12); border: 1px solid rgba(224,82,82,.3);   color: var(--acc-red); }
+.dp-medium { background: rgba(251,191,36,.1); border: 1px solid rgba(251,191,36,.28); color: var(--acc-amber); }
+.dp-low    { background: rgba(76,175,130,.1); border: 1px solid rgba(76,175,130,.28); color: var(--acc-green); }
 
 /* Section divider */
 .result-divider {
@@ -1226,9 +1244,9 @@ p  { color:var(--white-2); }
   transition:background .15s,border-color .15s,color .15s;
 }
 .diff-btn:hover { background:rgba(28, 23, 16, .06); color:var(--white-2); }
-.diff-btn.active-easy     { background:rgba(76,175,130,.1);  border-color:rgba(76,175,130,.3);  color:#4caf82; }
-.diff-btn.active-moderate { background:rgba(251,191,36,.1);  border-color:rgba(251,191,36,.28); color:#fbbf24; }
-.diff-btn.active-hard     { background:rgba(224,82,82,.1);   border-color:rgba(224,82,82,.3);   color:#e05252; }
+.diff-btn.active-easy     { background:rgba(76,175,130,.1);  border-color:rgba(76,175,130,.3);  color:var(--acc-green); }
+.diff-btn.active-moderate { background:rgba(251,191,36,.1);  border-color:rgba(251,191,36,.28); color:var(--acc-amber); }
+.diff-btn.active-hard     { background:rgba(224,82,82,.1);   border-color:rgba(224,82,82,.3);   color:var(--acc-red); }
 
 .oral-textarea {
   width:100%; min-height:180px; background:var(--navy-3);
@@ -1245,11 +1263,11 @@ p  { color:var(--white-2); }
   width:56px; height:56px; border-radius:50%;
   font-family:var(--serif); font-size:1.8rem; font-weight:500; flex-shrink:0;
 }
-.grade-A { background:rgba(76,175,130,.15);  border:2px solid rgba(76,175,130,.4);  color:#4caf82; }
-.grade-B { background:rgba(96,165,250,.12);  border:2px solid rgba(96,165,250,.3);  color:#60a5fa; }
-.grade-C { background:rgba(251,191,36,.1);   border:2px solid rgba(251,191,36,.3);  color:#fbbf24; }
-.grade-D { background:rgba(251,146,60,.1);   border:2px solid rgba(251,146,60,.3);  color:#fb923c; }
-.grade-F { background:rgba(224,82,82,.1);    border:2px solid rgba(224,82,82,.3);   color:#e05252; }
+.grade-A { background:rgba(76,175,130,.15);  border:2px solid rgba(76,175,130,.4);  color:var(--acc-green); }
+.grade-B { background:rgba(96,165,250,.12);  border:2px solid rgba(96,165,250,.3);  color:var(--acc-blue); }
+.grade-C { background:rgba(251,191,36,.1);   border:2px solid rgba(251,191,36,.3);  color:var(--acc-amber); }
+.grade-D { background:rgba(251,146,60,.1);   border:2px solid rgba(251,146,60,.3);  color:var(--acc-orange); }
+.grade-F { background:rgba(224,82,82,.1);    border:2px solid rgba(224,82,82,.3);   color:var(--acc-red); }
 
 /* Bench simulator layout */
 .bench-panel {
@@ -1323,7 +1341,7 @@ p  { color:var(--white-2); }
   font-size:.56rem; font-weight:500; letter-spacing:.16em;
   text-transform:uppercase; margin-bottom:7px;
 }
-.bm-role-judge    { color:#e05252; }
+.bm-role-judge    { color:var(--acc-red); }
 .bm-role-advocate { color:var(--gold); }
 .bm-role-system   { color:var(--white-muted); }
 .bm-text { font-size:.84rem; color:var(--white-2); line-height:1.72; }
@@ -1505,17 +1523,17 @@ p  { color:var(--white-2); }
 .cr-status-badge.speaking-judge {
   background: rgba(224, 82, 82, 0.1);
   border-color: rgba(224, 82, 82, 0.3);
-  color: #e05252;
+  color: var(--acc-red);
 }
 .cr-status-badge.speaking-user {
   background: rgba(96, 165, 250, 0.1);
   border-color: rgba(96, 165, 250, 0.3);
-  color: #60a5fa;
+  color: var(--acc-blue);
 }
 .cr-status-badge.processing {
   background: rgba(167, 139, 250, 0.1);
   border-color: rgba(167, 139, 250, 0.3);
-  color: #a78bfa;
+  color: var(--acc-purple);
 }
 
 /* Courtroom Stage (Avatars) */
@@ -1603,8 +1621,8 @@ p  { color:var(--white-2); }
   text-align: center;
   transition: color 0.3s;
 }
-.cr-avatar.speaking-judge + .cr-avatar-name { color: #e05252; }
-.cr-avatar.speaking-user + .cr-avatar-name { color: #60a5fa; }
+.cr-avatar.speaking-judge + .cr-avatar-name { color: var(--acc-red); }
+.cr-avatar.speaking-user + .cr-avatar-name { color: var(--acc-blue); }
 
 /* Visualizer Waveform */
 .cr-visualizer-bar {
@@ -1699,8 +1717,8 @@ p  { color:var(--white-2); }
   letter-spacing: 0.14em;
   text-transform: uppercase;
 }
-.cr-msg-role.judge { color: #e05252; }
-.cr-msg-role.advocate { color: #60a5fa; }
+.cr-msg-role.judge { color: var(--acc-red); }
+.cr-msg-role.advocate { color: var(--acc-blue); }
 
 .cr-msg-text {
   font-size: 0.86rem;
@@ -1766,7 +1784,7 @@ p  { color:var(--white-2); }
 }
 .be-notice {
   font-size: 0.78rem;
-  color: #fbbf24;
+  color: var(--acc-amber);
   background: rgba(251, 191, 36, 0.06);
   border: 1px solid rgba(251, 191, 36, 0.15);
   border-radius: 8px;
@@ -2767,7 +2785,7 @@ p  { color:var(--white-2); }
 @keyframes iTimer{to{transform:scaleX(0)}}
 .i-skip{
   position:absolute;bottom:20px;font-family:var(--mono);font-size:9.5px;letter-spacing:.26em;
-  text-transform:uppercase;color:var(--faint);opacity:0;animation:iFade .8s 1.2s ease forwards;
+  text-transform:uppercase;color:var(--ink-soft, #5A5142);opacity:0;animation:iFade .8s 1.2s ease forwards;
 }
 /* hold hero choreography until the curtain lifts, so it plays fresh rather
    than finishing invisibly behind the intro */
@@ -2917,6 +2935,65 @@ body.intro-hold #view-landing .swear{animation-play-state:paused!important}
   #view-landing .cause .stamp { right: -2px; top: -8px; }
 
 }
+
+/* ════════════════════════════════════════════════════════════════════
+   THEME BRIDGE — contrast in both themes.
+
+   The workspace was built dark and converted to cream by remapping the
+   colour tokens, but hundreds of colours were written directly: Tailwind's
+   pale -300/-400 accents (made for a dark background, near-invisible on
+   cream) and literal ink (#1C1710, made for cream, invisible in dark mode).
+   Rather than chase each one, map them onto the theme tokens here.
+   .mc-paper marks surfaces that are white paper in both themes (the
+   memorial preview); nothing inside them is remapped.
+   ════════════════════════════════════════════════════════════════════ */
+.text-amber-300,.text-amber-400,.text-yellow-300,.text-yellow-400 { color: var(--acc-amber) !important; }
+.text-blue-300,.text-blue-400,.text-sky-300,.text-sky-400 { color: var(--acc-blue) !important; }
+.text-indigo-200,.text-indigo-300,.text-indigo-400 { color: var(--acc-indigo) !important; }
+.text-emerald-300,.text-emerald-400,.text-green-300,.text-green-400 { color: var(--acc-green) !important; }
+.text-teal-300,.text-teal-400 { color: var(--acc-teal) !important; }
+.text-red-300,.text-red-400,.text-rose-300,.text-rose-400 { color: var(--acc-red) !important; }
+.text-purple-300,.text-purple-400,.text-violet-300,.text-violet-400 { color: var(--acc-purple) !important; }
+.text-orange-300,.text-orange-400 { color: var(--acc-orange) !important; }
+.text-white-muted { color: var(--white-muted) !important; }
+
+/* Muted text that was then faded again with opacity fell to ~2:1. */
+:root { --white-muted: rgba(28,23,16,.64); }
+.ws-sb-label, .wsib-label { opacity: 1; }
+.step-item.upcoming, .di-step.upcoming { opacity: 1; }
+.di-step.upcoming .step-icon, .di-step.upcoming .step-label { color: var(--white-muted); }
+.peer:checked ~ .peer-checked\:text-indigo-400 { color: var(--acc-indigo) !important; }
+.peer:checked ~ .peer-checked\:text-rose-400 { color: var(--acc-red) !important; }
+.text-moot-muted { color: var(--white-muted) !important; }
+:root[data-theme="dark"] .text-moot-accent:not(.mc-paper *),
+:root[data-theme="dark"] .badge-gold, :root[data-theme="dark"] .asc-icon-gold,
+:root[data-theme="dark"] .be-icon { color: var(--gold-light) !important; }
+.result-divider span { opacity: 1; color: var(--white-muted); }
+.summary-quote { opacity: .35; }
+
+/* Dark theme: literal ink becomes the light ink; black tints become light tints. */
+:root[data-theme="dark"] { --white-muted: rgba(239,230,211,.66); }
+:root[data-theme="dark"] .text-\[\#1C1710\]:not(.mc-paper *),
+:root[data-theme="dark"] .text-\[\#1C1710\]\/95:not(.mc-paper *),
+:root[data-theme="dark"] .text-\[\#1C1710\]\/90:not(.mc-paper *) { color: var(--white) !important; }
+:root[data-theme="dark"] .text-\[\#1C1710\]\/80:not(.mc-paper *),
+:root[data-theme="dark"] .text-\[\#4a4030\]:not(.mc-paper *) { color: var(--white-2) !important; }
+:root[data-theme="dark"] .text-\[\#1C1710\]\/60:not(.mc-paper *),
+:root[data-theme="dark"] .text-\[\#1C1710\]\/50:not(.mc-paper *),
+:root[data-theme="dark"] .text-\[\#6b5f4d\]:not(.mc-paper *),
+:root[data-theme="dark"] .text-\[\#8C8270\]:not(.mc-paper *) { color: var(--white-muted) !important; }
+:root[data-theme="dark"] .text-\[\#1C1710\]\/20:not(.mc-paper *) { color: var(--white-faint) !important; }
+:root[data-theme="dark"] .bg-black\/5:not(.mc-paper *),
+:root[data-theme="dark"] .bg-black\/\[0\.02\]:not(.mc-paper *),
+:root[data-theme="dark"] .bg-black\/\[0\.03\]:not(.mc-paper *) { background-color: rgba(239,230,211,.04) !important; }
+:root[data-theme="dark"] .bg-black\/10:not(.mc-paper *),
+:root[data-theme="dark"] .bg-black\/20:not(.mc-paper *) { background-color: rgba(239,230,211,.07) !important; }
+:root[data-theme="dark"] .border-black\/5:not(.mc-paper *),
+:root[data-theme="dark"] .border-black\/10:not(.mc-paper *),
+:root[data-theme="dark"] .border-black\/15:not(.mc-paper *),
+:root[data-theme="dark"] .border-black\/20:not(.mc-paper *) { border-color: rgba(239,230,211,.14) !important; }
+:root[data-theme="dark"] .bg-\[\#FCF9EF\]:not(.mc-paper),
+:root[data-theme="dark"] .bg-\[\#F3ECDA\]:not(.mc-paper) { background-color: var(--navy-3) !important; }
 </style>
 </head>
 <body class="intro-hold">
@@ -3854,11 +3931,11 @@ body.intro-hold #view-landing .swear{animation-play-state:paused!important}
                 <div>
                   <div class="be-icon text-left mb-2" style="font-size: 2.2rem; color: var(--gold); margin-bottom: 12px;">⚖️</div>
                   <h3 class="font-serif text-2xl text-[#1C1710] font-medium mb-2" style="font-family: var(--serif); font-size: 1.5rem; margin-bottom: 8px;">Courtroom Chambers</h3>
-                  <p class="text-xs text-white-muted leading-relaxed mb-6" style="color: rgba(28,23,16,.6); font-size: 11px; line-height: 1.5;">Practice appellate advocacy under intense Socratic questioning. Face a simulated AI Bench that probes your argument's logic, precedents, and structure.</p>
+                  <p class="text-xs text-white-muted leading-relaxed mb-6" style="color:var(--white-muted); font-size: 11px; line-height: 1.5;">Practice appellate advocacy under intense Socratic questioning. Face a simulated AI Bench that probes your argument's logic, precedents, and structure.</p>
                 </div>
 
                 <div class="ws-field flex flex-col gap-2 mb-6" style="margin-bottom: 24px;">
-                  <span class="text-[10px] tracking-widest uppercase text-white-muted font-sans font-semibold" style="font-size: 9px; letter-spacing: 0.1em; color: rgba(28,23,16,.55);">Chamber Difficulty</span>
+                  <span class="text-[10px] tracking-widest uppercase text-white-muted font-sans font-semibold" style="font-size: 9px; letter-spacing: 0.1em; color:var(--white-muted);">Chamber Difficulty</span>
                   <div class="oral-difficulty-row flex gap-2 w-full" style="display: flex; gap: 8px; width: 100%; margin-top: 6px;">
                     <button class="diff-btn text-[10px] uppercase font-sans tracking-wider py-1.5 px-3 flex-1" id="bench-diff-easy" onclick="setBenchDifficulty('easy')" style="flex: 1; text-align: center;">Easy</button>
                     <button class="diff-btn active-moderate text-[10px] uppercase font-sans tracking-wider py-1.5 px-3 flex-1" id="bench-diff-moderate" onclick="setBenchDifficulty('moderate')" style="flex: 1; text-align: center;">Moderate</button>
@@ -3884,23 +3961,23 @@ body.intro-hold #view-landing .swear{animation-play-state:paused!important}
               <div class="w-full lg:w-[60%] bg-black/[0.03] border border-black/10 rounded-2xl p-6 flex flex-col gap-6 hover:border-black/15 transition-all duration-200 text-left" style="display: flex; flex-direction: column; gap: 20px;">
                 <div class="border-b border-black/5 pb-3" style="border-bottom: 1px solid rgba(28,23,16,.1); padding-bottom: 10px;">
                   <span class="text-[9px] uppercase tracking-widest text-moot-accent font-semibold" style="color: var(--gold); font-size: 9px; letter-spacing: 0.12em;">Presiding Bench Profile</span>
-                  <h4 class="text-sm font-sans font-semibold text-[#1C1710] mt-0.5" id="lobby-bench-type-title" style="font-size: 14px; color: #1C1710; margin-top: 2px;">Moderate Constitutional Bench</h4>
+                  <h4 class="text-sm font-sans font-semibold text-[#1C1710] mt-0.5" id="lobby-bench-type-title" style="font-size: 14px; color:var(--white); margin-top: 2px;">Moderate Constitutional Bench</h4>
                 </div>
 
                 <div class="flex flex-col gap-3" id="lobby-bench-stats" style="display:flex; flex-direction:column; gap:12px;">
                   <div class="p-3 bg-black/[0.02] border border-black/5 rounded-xl" style="background: rgba(28,23,16,.03); border: 1px solid rgba(28,23,16,.1); padding: 12px; border-radius: 8px;">
-                    <div class="text-[9px] text-white-muted uppercase tracking-wider" style="font-size: 9px; color: rgba(28,23,16,.55);">Questioning Depth</div>
+                    <div class="text-[9px] text-white-muted uppercase tracking-wider" style="font-size: 9px; color:var(--white-muted);">Questioning Depth</div>
                     <div class="text-xs font-semibold text-moot-accent mt-1" id="lobby-depth-label" style="font-size: 12px; margin-top: 4px; color: var(--gold);">Applied</div>
-                    <div class="text-[11px] text-white-muted mt-1 leading-relaxed" id="lobby-depth-desc" style="font-size: 11px; margin-top: 4px; color: rgba(28,23,16,.6); line-height: 1.5;">Applied questioning — probes your reasoning and how you apply authority to the facts.</div>
+                    <div class="text-[11px] text-white-muted mt-1 leading-relaxed" id="lobby-depth-desc" style="font-size: 11px; margin-top: 4px; color:var(--white-muted); line-height: 1.5;">Applied questioning — probes your reasoning and how you apply authority to the facts.</div>
                   </div>
                   <div class="p-3 bg-black/[0.02] border border-black/5 rounded-xl" style="background: rgba(28,23,16,.03); border: 1px solid rgba(28,23,16,.1); padding: 12px; border-radius: 8px;">
-                    <div class="text-[9px] text-white-muted uppercase tracking-wider" style="font-size: 9px; color: rgba(28,23,16,.55);">Focus Areas — Selected Judge</div>
+                    <div class="text-[9px] text-white-muted uppercase tracking-wider" style="font-size: 9px; color:var(--white-muted);">Focus Areas — Selected Judge</div>
                     <div class="text-[10px] text-moot-accent font-sans mt-1" id="lobby-focus-areas" style="font-size: 10px; margin-top: 4px; color: var(--gold);">—</div>
                   </div>
                 </div>
 
                 <div class="flex-1 flex flex-col gap-3" style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">
-                  <span class="text-[9px] uppercase tracking-widest text-white-muted font-semibold" style="font-size: 9px; letter-spacing: 0.1em; color: rgba(28,23,16,.55);">Select Presiding Judge</span>
+                  <span class="text-[9px] uppercase tracking-widest text-white-muted font-semibold" style="font-size: 9px; letter-spacing: 0.1em; color:var(--white-muted);">Select Presiding Judge</span>
                   <div class="grid grid-cols-1 sm:grid-cols-2 gap-2" id="bench-judge-cards" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px;">
                     <!-- Judge cards rendered dynamically (forum-gated, single-select) -->
                   </div>
@@ -4090,7 +4167,7 @@ body.intro-hold #view-landing .swear{animation-play-state:paused!important}
   </div>
   
   <!-- Body Content -->
-  <div id="memorial-panel-content" class="flex-1 overflow-y-auto p-6 bg-[#fcfbfa] text-slate-800 space-y-4 font-sans leading-relaxed"></div>
+  <div id="memorial-panel-content" class="mc-paper flex-1 overflow-y-auto p-6 bg-[#fcfbfa] text-slate-800 space-y-4 font-sans leading-relaxed"></div>
 </div>
 
 <!-- TABBED OVERLAY MODAL FOR AUTHORITIES -->

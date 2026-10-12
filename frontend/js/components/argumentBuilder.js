@@ -1183,7 +1183,7 @@ function renderMemorial(memorialData) {
   const forLabel = (cp && has(cp.memorialFor)) ? esc(cp.memorialFor) : 'MEMORIAL SUBMISSION';
 
   storedMemorialHTML = `
-  <div class="flex-1 bg-[#fcfbfa] border border-[#dcdad5] rounded-xl shadow-xl overflow-hidden min-h-[400px] flex flex-col text-slate-800">
+  <div class="mc-paper flex-1 bg-[#fcfbfa] border border-[#dcdad5] rounded-xl shadow-xl overflow-hidden min-h-[400px] flex flex-col text-slate-800">
     <div class="border-b border-[#ecebe7] bg-[#f9f8f4] py-3 px-6 flex justify-between items-center text-[10px] uppercase tracking-widest text-slate-500 font-sans font-medium">
       <span>${header}</span>
       <span>${forLabel}</span>
