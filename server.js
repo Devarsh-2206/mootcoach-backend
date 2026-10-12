@@ -100,6 +100,32 @@ const aiLimiter = rateLimit({
   },
 });
 
+/*
+ * The bench: a round is many short calls (a reply and a claim extraction per
+ * turn, then the marking), so it gets a larger allowance than the heavy
+ * routes - but not none. Six AI routes had no limit at all, so anyone who
+ * found the API could spend the day's provider quota for every user.
+ */
+const benchLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  keyGenerator: identityKey,
+  max: (req) => identityKey(req).startsWith('u:') ? 150 : 600,
+  standardHeaders: true,
+  legacyHeaders: false,
+  validate: { trustProxy: false },
+  handler: (req, res) => res.status(429).json({
+    success: false,
+    error: "The bench has heard a lot from you in a short time. Give it a few minutes and carry on.",
+  }),
+});
+
+/* Client logging is unauthenticated; keep it from becoming a log flood. */
+const logLimiter = rateLimit({
+  windowMs: 60 * 1000, max: 60, keyGenerator: identityKey,
+  standardHeaders: true, legacyHeaders: false, validate: { trustProxy: false },
+  handler: (req, res) => res.sendStatus(429),
+});
+
 function extractAndParseJSON_legacy(text) {
   if (!text) throw new Error("Empty text provided");
   let cleanText = text.trim();
@@ -334,12 +360,14 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static("frontend"));
 
-app.use("/extract-issues", extractIssuesRoute);
-app.use("/api/authority-intelligence", authorityIntelligenceRoute);
-app.use("/api/bench-forecast", benchForecastRoute);
+app.use("/extract-issues", aiLimiter, extractIssuesRoute);
+app.use("/api/authority-intelligence", aiLimiter, authorityIntelligenceRoute);
+app.use("/api/bench-forecast", aiLimiter, benchForecastRoute);
 
-app.post("/api/client-log", (req, res) => {
-  console.log(`[FRONTEND METRIC] ${req.body.message}`);
+app.post("/api/client-log", logLimiter, (req, res) => {
+  // Unauthenticated input: one line, bounded, so it cannot forge or flood log lines.
+  const msg = String((req.body && req.body.message) || '').replace(/[\r\n]+/g, ' ').slice(0, 500);
+  console.log(`[FRONTEND METRIC] ${msg}`);
   res.sendStatus(200);
 });
 
@@ -1129,7 +1157,7 @@ app.post("/evaluate-oral", aiLimiter, express.json(), async (req, res) => {
    Separate from /simulate-bench because that route ends a session on a turn
    count; a live round ends when the advocate stops talking, and the transcript
    arrives in one piece at the end rather than a turn at a time. */
-app.post("/simulate-bench/oral-review", express.json(), async (req, res) => {
+app.post("/simulate-bench/oral-review", benchLimiter, express.json(), async (req, res) => {
   const { transcript, propositionSummary, difficulty, intensity, claimLedger, durationSeconds } = req.body;
 
   const turns = (Array.isArray(transcript) ? transcript : [])
@@ -1191,7 +1219,7 @@ app.post("/simulate-bench/oral-review", express.json(), async (req, res) => {
 });
 
 /* ─── /simulate-bench/extract-claims ─── */
-app.post("/simulate-bench/extract-claims", express.json(), async (req, res) => {
+app.post("/simulate-bench/extract-claims", benchLimiter, express.json(), async (req, res) => {
   const { studentStatement } = req.body;
   
   if (!studentStatement || studentStatement.trim().length < 3) {
@@ -1267,7 +1295,7 @@ function normaliseScorecard(review) {
   return review;
 }
 
-app.post("/simulate-bench", express.json(), async (req, res) => {
+app.post("/simulate-bench", benchLimiter, express.json(), async (req, res) => {
   const { conversationHistory, propositionSummary, difficulty, intensity, judgeType, studentStatement, claimLedger } = req.body;
 
   if (!studentStatement || studentStatement.trim().length < 3) {

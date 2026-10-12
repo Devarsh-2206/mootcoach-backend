@@ -3996,18 +3996,12 @@ export async function openAuthorityModal(caseName, initialTab = 'ratio') {
     const notesInput = document.getElementById('builder-notes-input');
     const notes = notesInput ? notesInput.value : '';
     
-    const response = await fetch(`${BASE_URL}/api/authority-intelligence`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+    const data = await requestJson('/api/authority-intelligence', { timeoutMs: 60000, body: {
         authorityName: auth.name,
         propositionContext: currentPropositionContext || "General constitutional matter.",
         stance: stance,
         notes: notes
-      })
-    });
-    
-    const data = await response.json();
+      } }).catch(() => ({}));
     if (data.success && data.response) {
       currentModalDetails = data.response;
       currentModalDetails.isAiGenerated = true;

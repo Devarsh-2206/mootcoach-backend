@@ -867,12 +867,7 @@ export async function submitToBench() {
     } });
 
     // Fire-and-forget Claim Extraction to build the ledger without adding latency
-    fetch(`${BASE_URL}/simulate-bench/extract-claims`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ studentStatement: statement })
-    })
-    .then(r => r.json())
+    requestJson('/simulate-bench/extract-claims', { timeoutMs: 60000, body: { studentStatement: statement } })
     .then(d => {
       if (d.success && d.claims) {
         d.claims.forEach(c => {
