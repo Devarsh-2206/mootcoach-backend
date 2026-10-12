@@ -476,7 +476,11 @@ export async function exitChambers() {
   const turns = voiceSessionActive ? getOralTranscript() : benchConversation;
   const argued = turns.filter(t => t.role === 'advocate').length;
 
-  if (roundMarked || argued === 0) {
+  if (roundMarked) { clearBenchSession(); return; }
+  if (argued === 0) {
+    // A voice round where nothing was captured: end it and say so, rather
+    // than dropping straight back to the lobby with no explanation.
+    if (voiceSessionActive) { await stopOralRound(); return; }
     clearBenchSession();
     return;
   }
@@ -511,7 +515,7 @@ export async function exitChambers() {
 }
 
 export function clearBenchSession() {
-  stopOralRound();
+  stopOralRound({ mark: false });
   benchConversation = [];
   claimLedger = [];
   benchActive = false;
@@ -1222,7 +1226,7 @@ export async function startOralRound() {
   }
 }
 
-export async function stopOralRound() {
+export async function stopOralRound({ mark = true } = {}) {
   if (!voiceSessionActive) return;
   console.log("🎙️ Stopping oral round...");
   voiceSessionActive = false;
@@ -1237,7 +1241,19 @@ export async function stopOralRound() {
   if (btnStart) btnStart.disabled = false;
 
   if (courtroom) courtroom.classList.remove('active');
-  if (empty) empty.style.display = '';
+  // The report renders into #bench-chat, which stays hidden for the whole
+  // voice round. Showing the lobby here meant the scoresheet (or the "too
+  // short to mark" note) was written into an invisible element.
+  const chat = document.getElementById('bench-chat');
+  if (mark && chat) {
+    if (empty) empty.style.display = 'none';
+    chat.style.display = 'flex';
+    chat.querySelectorAll('.bench-msg').forEach(m => m.remove());
+    // What was said, so the scoresheet below it can be read against it.
+    getOralTranscript().forEach(t => appendBenchMessage(t.role, t.content));
+  } else if (empty) {
+    empty.style.display = '';
+  }
 
   stopVoiceTimer();
   stopSpeechRecognition();
@@ -1256,9 +1272,14 @@ export async function stopOralRound() {
   const timerEl = document.getElementById('cr-timer');
   const voiceStatusEl = document.getElementById('bench-voice-status');
   const fpStop = getForumProfile();
-  if (sessionTitleEl) sessionTitleEl.textContent = fpStop.chambersLabel;
-  if (sessionMetaEl) sessionMetaEl.textContent = fpStop.lobbyLabel;
-  if (exitBtn) exitBtn.style.display = 'none';
+  if (!mark) {
+    if (sessionTitleEl) sessionTitleEl.textContent = fpStop.chambersLabel;
+    if (sessionMetaEl) sessionMetaEl.textContent = fpStop.lobbyLabel;
+    if (exitBtn) exitBtn.style.display = 'none';
+  } else if (exitBtn) {
+    // Stay in chambers with the report; Exit becomes Leave once it lands.
+    exitBtn.style.display = 'block';
+  }
   if (timerEl) timerEl.style.display = 'none';
   if (voiceStatusEl) voiceStatusEl.style.display = 'none';
 
@@ -1268,7 +1289,7 @@ export async function stopOralRound() {
 
   // The report is the point of the exercise, so it is requested before the
   // bookkeeping below and never gated on being signed in.
-  requestOralReview(roundSeconds);
+  if (mark) requestOralReview(roundSeconds);
 
   if (currentUser && voiceSessionStartTime) {
     const duration = Math.floor((Date.now() - voiceSessionStartTime) / 1000);
@@ -1382,7 +1403,8 @@ function recordTurn(role, text, isChunk) {
     // Append the chunk EXACTLY as the transcript panel does. Trimming each
     // one welds words together ("maintainableunder"), which reads fine
     // nowhere and would be marked as garbled speech.
-    last.content = (last.content + raw).replace(/s+/g, ' ').trim();
+    // \s, not s: the missing backslash replaced every letter s with a space.
+    last.content = (last.content + raw).replace(/\s+/g, ' ').trim();
     return;
   }
   // Speech recognition can fire the same final result twice; a duplicated turn
@@ -1430,21 +1452,15 @@ export function appendTranscript(role, text, isChunk = false) {
 
     currentJudgeSpeech = cleanText;
     const div = document.createElement('div');
-    div.className = 'flex flex-col max-w-[80%] self-start items-start animate-[secReveal_0.3s_ease_both]';
 
     const crJudgeNameEl = document.getElementById('cr-judge-name');
     if (crJudgeNameEl) {
       crJudgeNameEl.textContent = `⚖️ ${finalJudgeName.toUpperCase()}`;
     }
 
-    div.innerHTML = `
-      <div class="text-[10px] font-semibold tracking-wider text-red-400 mb-1 flex items-center gap-1">
-        <span>⚖️</span> ${finalJudgeName}
-      </div>
-      <div class="bg-red-950/20 border border-red-900/30 rounded-r-xl rounded-bl-xl p-3 text-sm text-gray-200 leading-relaxed shadow-sm">
-        <span class="cr-msg-text">${fmtInline(cleanText)}</span>
-      </div>
-    `;
+    div.className = 'bench-msg bench-msg-judge';
+    div.innerHTML = `<div class="bm-role bm-role-judge">${esc(finalJudgeName)}</div>
+      <div class="bm-text"><span class="cr-msg-text">${fmtInline(cleanText)}</span></div>`;
     panel.appendChild(div);
     currentJudgeBubble = div;
   } else if (role === 'advocate') {
@@ -1452,27 +1468,17 @@ export function appendTranscript(role, text, isChunk = false) {
     currentJudgeSpeech = '';
 
     const div = document.createElement('div');
-    div.className = 'flex flex-col max-w-[80%] self-end items-end animate-[secReveal_0.3s_ease_both]';
-    div.innerHTML = `
-      <div class="text-[10px] font-semibold tracking-wider text-blue-400 mb-1 flex items-center gap-1">
-        <span>🎓</span> Advocate
-      </div>
-      <div class="bg-blue-950/20 border border-blue-900/30 rounded-l-xl rounded-br-xl p-3 text-sm text-gray-200 leading-relaxed shadow-sm">
-        <span class="cr-msg-text">${fmtInline(text)}</span>
-      </div>
-    `;
+    div.className = 'bench-msg bench-msg-advocate';
+    div.innerHTML = `<div class="bm-role bm-role-advocate">Counsel</div>
+      <div class="bm-text"><span class="cr-msg-text">${fmtInline(text)}</span></div>`;
     panel.appendChild(div);
   } else {
     currentJudgeBubble = null;
     currentJudgeSpeech = '';
 
     const div = document.createElement('div');
-    div.className = 'flex flex-col max-w-[90%] self-center items-center animate-[secReveal_0.3s_ease_both]';
-    div.innerHTML = `
-      <div class="bg-gray-900/40 border border-gray-800 rounded-lg py-1.5 px-4 text-xs text-gray-400 text-center">
-        ${esc(text)}
-      </div>
-    `;
+    div.className = 'bench-msg bench-msg-system';
+    div.innerHTML = `<div class="bm-text" style="font-size:.8rem;color:var(--white-2);">${esc(text)}</div>`;
     panel.appendChild(div);
   }
 
@@ -1486,7 +1492,8 @@ export function showInterimUserSpeech(text) {
   let interim = document.getElementById('cr-interim-bubble');
   if (!interim) {
     interim = document.createElement('div');
-    interim.className = 'bg-gray-900/20 border border-dashed border-gray-800 rounded-l-xl rounded-br-xl p-3 text-sm text-gray-400 font-light italic self-end max-w-[80%]';
+    interim.className = 'bench-msg bench-msg-advocate';
+    interim.style.cssText = 'border-style:dashed;font-style:italic;color:var(--white-muted);';
     interim.id = 'cr-interim-bubble';
     panel.appendChild(interim);
   }
