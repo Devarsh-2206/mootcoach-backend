@@ -82,7 +82,10 @@ export function handleFileSelect(fileOrEvent) {
     console.warn("[UPLOAD_DEBUG] handleFileSelect called but no file was provided.");
     return;
   }
-  if (file.type !== 'application/pdf') { 
+  // Some systems report a PDF's type as empty or application/x-pdf; the
+  // extension is as good a signal, and the server checks the content anyway.
+  const isPdf = /pdf/i.test(file.type || '') || /\.pdf$/i.test(file.name || '');
+  if (!isPdf) { 
     console.warn(`[UPLOAD_DEBUG] Invalid file type selected: ${file.type}. Rejects.`);
     showToast('Only PDF files are accepted.', 'err'); 
     return; 

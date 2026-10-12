@@ -256,7 +256,14 @@ export function navigate(view) {
   
   document.body.style.overflow = (view === 'workspace') ? 'hidden' : 'auto';
   window.scrollTo(0, 0);
-  if (view === 'workspace') triggerBackendCheck();
+  if (view === 'workspace') {
+    triggerBackendCheck();
+    // Locked/ticked steps and the Next button reflect what is loaded from
+    // the moment the workspace opens, not only after the first stage change.
+    refreshStepper();
+    const nextBtn = document.getElementById('wizard-next-btn');
+    if (nextBtn && currentStage === 1) nextBtn.style.display = (window.lastAnalysis || lastAnalysis) ? 'block' : 'none';
+  }
 
   // Passively update URL hash for Microsoft Clarity SPA route tracking
   const newHash = `#view/${view}`;
@@ -478,7 +485,8 @@ export async function loadRecentSessions() {
     await currentUser.getIdToken();
     const snapshot = await db.collection('artifacts').doc('moot.coach')
       .collection('users').doc(currentUser.uid).collection('analyses')
-      .orderBy('timestamp', 'desc').limit(6).get();
+      // 50, not 6: older moots used to fall off the list with no way back.
+      .orderBy('timestamp', 'desc').limit(50).get();
       
     if (snapshot.empty) {
       sec.style.display = 'none';
@@ -490,9 +498,12 @@ export async function loadRecentSessions() {
     snapshot.forEach(doc => {
       const d = doc.data();
       const title = deriveMootName(d);
-      html += `<button class="ws-sb-item" onclick="loadSavedSession('${doc.id}')" title="${esc(title)}">
-        <span class="ws-sb-icon">📄</span> <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(title)}</span>
-      </button>`;
+      html += `<div class="ws-recent-row">
+        <button class="ws-sb-item" onclick="loadSavedSession('${doc.id}')" title="${esc(title)}">
+          <span class="ws-sb-icon">📄</span> <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(title)}</span>
+        </button>
+        <button type="button" class="ws-recent-del" onclick="deleteSavedSession('${doc.id}')" aria-label="Delete ${esc(title)}" title="Delete this moot">&times;</button>
+      </div>`;
     });
     list.innerHTML = html;
   } catch (e) {
@@ -500,6 +511,43 @@ export async function loadRecentSessions() {
     showToast("Failed to load history: " + e.message, "err");
   }
 }
+
+/**
+ * Delete a saved moot, after asking. There was no way to remove one, though
+ * the privacy text promises the user can wipe their workspace.
+ */
+export async function deleteSavedSession(docId) {
+  if (!currentUser || !docId) return;
+  const row = document.querySelector(`#ws-recent-list button[onclick*="${docId}"]`);
+  const title = row ? row.getAttribute('title') : 'this moot';
+  const choice = await confirmDialog({
+    title: 'Delete this moot?',
+    body: `"${title}" and its analysis will be removed from your account. This cannot be undone.`,
+    actions: [
+      { label: 'Delete moot', value: 'delete', danger: false, primary: true },
+      { label: 'Keep it', value: null },
+    ],
+  });
+  if (choice !== 'delete') return;
+  try {
+    const userDoc = db.collection('artifacts').doc('moot.coach').collection('users').doc(currentUser.uid);
+    const analysis = userDoc.collection('analyses').doc(docId);
+    // Firestore does not delete sub-collections with their parent: remove the
+    // moot's saved drafts and the stored proposition explicitly.
+    try {
+      const drafts = await analysis.collection('advocacy').get();
+      await Promise.all(drafts.docs.map(d => d.ref.delete()));
+    } catch (e) { console.warn('Drafts not removed:', e); }
+    try { await userDoc.collection('propositions').doc(docId).delete(); } catch (e) { console.warn('Proposition copy not removed:', e); }
+    await analysis.delete();
+    if (window.currentMootDocId === docId) startNewAnalysis();
+    await loadRecentSessions();
+    showToast('Moot deleted.', 'ok');
+  } catch (e) {
+    showToast('Could not delete the moot: ' + e.message, 'err');
+  }
+}
+window.deleteSavedSession = deleteSavedSession;
 
 export async function loadSavedSession(docId) {
   console.log("[DEBUG] loadSavedSession invoked with docId:", docId);
