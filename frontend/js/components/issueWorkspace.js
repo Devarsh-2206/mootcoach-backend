@@ -131,6 +131,20 @@ function syncMootStateForIssue(index) {
   window.mootState.issueIndex = index;
   window.mootState.issueText = issue ? issue.title : '';
   window.mootState.stance = activeStance === 'respondent' ? 'Respondent' : 'Petitioner';
+
+  // The Advocacy builder has its own issue selector. Left alone it stayed on
+  // the first issue, so picking issue 2 here drafted issue 1 there. Both
+  // lists come from the same source in the same order: match by text, and
+  // fall back to position when the wording differs.
+  const sel = document.getElementById('builder-issue-select');
+  if (sel && issue && sel.options.length) {
+    let i = [...sel.options].findIndex(o => o.value === issue.title);
+    if (i < 0 && index < sel.options.length) i = index;
+    if (i >= 0 && sel.selectedIndex !== i) {
+      sel.selectedIndex = i;
+      sel.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+  }
 }
 
 // User clicked an issue in the sidebar → select it AND navigate to Stage 2.

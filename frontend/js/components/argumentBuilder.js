@@ -15,6 +15,33 @@ export let selectedAuthorities = [];
 export let lastBuiltArgument = null;
 export let builtArgumentSide = 'Petitioner';
 
+/**
+ * The Simulator reads the advocate's choices from window.mootState. This
+ * builder kept its own copies (selectedAuthorities, lastBuiltArgument) and
+ * never wrote them there, so the bench opened with "Authorities loaded: 0 ·
+ * Memorial draft: none" after a full Advocacy session. Every change here now
+ * goes through this one function.
+ */
+function syncBuilderToMootState() {
+  const ms = window.mootState = window.mootState || {};
+  ms.authorities = selectedAuthorities.map(a => ({ name: a.name, ratio: a.ratio || '' }));
+  const select = document.getElementById('builder-issue-select');
+  if (select && select.value) {
+    ms.issueIndex = select.selectedIndex;
+    ms.issueText = select.value;
+  }
+}
+
+/* Every string inside a nested answer, in order: enough to hand the bench
+   what the advocate prepared without depending on one response shape. */
+function flattenText(v, out = []) {
+  if (v == null) return out;
+  if (typeof v === 'string') { if (v.trim()) out.push(v.trim()); }
+  else if (Array.isArray(v)) v.forEach(x => flattenText(x, out));
+  else if (typeof v === 'object') Object.values(v).forEach(x => flattenText(x, out));
+  return out;
+}
+
 // Unified Shared Authority Registry for all workflow modules
 export const SHARED_AUTHORITY_REGISTRY = {
   "Issue 1": {
@@ -399,6 +426,7 @@ export function initArgumentBuilder() {
       window.mootState = window.mootState || {};
       window.mootState.stance = /respondent/i.test(radio.value) ? 'Respondent' : 'Petitioner';
       selectedAuthorities.length = 0; // Reset selected authorities when stance changes
+      syncBuilderToMootState();
       validateDraftForm();
       renderPreDraftAuthorities();
     });
@@ -409,6 +437,7 @@ export function initArgumentBuilder() {
   if (issueSelect) {
     issueSelect.addEventListener('change', () => {
       selectedAuthorities.length = 0; // Reset selected authorities when issue changes
+      syncBuilderToMootState();
       validateDraftForm();
       renderPreDraftAuthorities();
     });
@@ -614,6 +643,19 @@ async function generateArgument() {
     if (data.success && data.response) {
       lastBuiltArgument = data.response;
       builtArgumentSide = stance;
+      // Hand the finished draft to the Simulator so the bench questions it.
+      if (window.mootState) {
+        const m = data.response.memorial || data.response;
+        // The formatter knows the full memorial shape; the flattener catches
+        // anything it does not. Keep whichever carried more of the draft.
+        const formatted = renderMemorialText(m, stance) || '';
+        const flat = flattenText(m).join('\n');
+        window.mootState.memorialDraft = formatted.length >= flat.length ? formatted : flat;
+        if (data.response.oralAdvocacy) {
+          window.mootState.oralSubmission = flattenText(data.response.oralAdvocacy).join('\n');
+        }
+        syncBuilderToMootState();
+      }
       if (window.setBuilderButtonsState) {
         window.setBuilderButtonsState(false);
       }
@@ -3046,6 +3088,7 @@ export function toggleAuthority(caseName, ratio) {
     selectedAuthorities.push({ name: caseName, ratio: ratio });
     showToast(`Selected: ${caseName}`, "ok");
   }
+  syncBuilderToMootState();
   validateDraftForm();
   renderPreDraftAuthorities();
 }

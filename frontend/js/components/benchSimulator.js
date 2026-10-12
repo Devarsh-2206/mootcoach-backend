@@ -307,6 +307,29 @@ export function updateBenchProfileUI(mode) {
   if (focusEl) focusEl.textContent = j ? j.focus : '—';
 }
 
+/**
+ * What the advocate chose in Issues and Advocacy, read the same way for the
+ * opening summary and for every turn sent to the bench, so the two cannot
+ * disagree about what the bench was given.
+ */
+function readBenchSelections() {
+  const ms = window.mootState || {};
+  const issue = ms.issueText
+    || document.getElementById('builder-issue-select')?.value
+    || '';
+  const stance = ms.stance
+    || ((typeof getCurrentSelectedSide === 'function') ? getCurrentSelectedSide() : null)
+    || 'Petitioner';
+  const authorities = (Array.isArray(ms.authorities) && ms.authorities.length > 0)
+    ? ms.authorities
+    : (selectedAuthorities || []);
+  return {
+    issue, stance, authorities,
+    memorialDraft: (ms.memorialDraft || '').trim(),
+    oralDraft: (ms.oralSubmission || '').trim(),
+  };
+}
+
 export function startBenchSession() {
   benchConversation = [];
   claimLedger = [];
@@ -353,11 +376,12 @@ export function startBenchSession() {
   // Show the advocate exactly what context the Bench is using (proves the
   // Issues + Advocacy selections are connected to this session).
   const ms = window.mootState || {};
-  const ctxStance = ms.stance || 'Petitioner';
-  const ctxIssue = ms.issueText || 'General appellate docket';
-  const ctxAuthCount = Array.isArray(ms.authorities) ? ms.authorities.length : 0;
-  const ctxHasMemorial = !!(ms.memorialDraft && ms.memorialDraft.trim());
-  const ctxHasOral = !!(ms.oralSubmission && ms.oralSubmission.trim());
+  const sel = readBenchSelections();
+  const ctxStance = sel.stance;
+  const ctxIssue = sel.issue || 'General appellate docket';
+  const ctxAuthCount = sel.authorities.length;
+  const ctxHasMemorial = !!sel.memorialDraft;
+  const ctxHasOral = !!sel.oralDraft;
   if (sessionMetaEl) {
     sessionMetaEl.textContent = `${ctxStance.toUpperCase()} · ${benchDifficultyMode.toUpperCase()} ${benchWord} · ${fp.benchType.toUpperCase()}`;
   }
@@ -685,20 +709,14 @@ export async function submitToBench() {
   try {
     // Read the live, shared moot state (set by the Issues + Advocacy stages).
     const ms = window.mootState || {};
-    const selectedIssue = ms.issueText
-      || document.getElementById('builder-issue-select')?.value
-      || '';
-    const selectedStance = ms.stance
-      || ((typeof getCurrentSelectedSide === 'function') ? getCurrentSelectedSide() : null)
-      || 'Petitioner';
-    const authList = (Array.isArray(ms.authorities) && ms.authorities.length > 0)
-      ? ms.authorities
-      : (selectedAuthorities || []);
-    const selectedAuthsText = authList.map(a => `${a.name}: ${a.ratio}`).join(', ') || 'None deployed';
+    const sel = readBenchSelections();
+    const selectedIssue = sel.issue;
+    const selectedStance = sel.stance;
+    const selectedAuthsText = sel.authorities.map(a => `${a.name}: ${a.ratio}`).join(', ') || 'None deployed';
 
     // Carry the advocate's actual drafts so the Bench questions their own submissions.
-    const memorialDraft = (ms.memorialDraft || '').trim();
-    const oralDraft = (ms.oralSubmission || '').trim();
+    const memorialDraft = sel.memorialDraft;
+    const oralDraft = sel.oralDraft;
     const draftBlock =
       (memorialDraft ? `\n[Advocate's Written Memorial Draft]\n${memorialDraft.slice(0, 1500)}\n` : '') +
       (oralDraft ? `\n[Advocate's Oral Submission Draft]\n${oralDraft.slice(0, 1500)}\n` : '');
