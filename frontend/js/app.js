@@ -63,6 +63,7 @@ import {
   setBenchDifficulty,
   startBenchSession,
   clearBenchSession,
+  exitChambers,
   submitToBench,
   handleBenchKeydown,
   startOralRound,
@@ -703,6 +704,7 @@ window.runOralEvaluation = runOralEvaluation;
 window.setBenchDifficulty = setBenchDifficulty;
 window.startBenchSession = startBenchSession;
 window.clearBenchSession = clearBenchSession;
+window.exitChambers = exitChambers;
 window.submitToBench = submitToBench;
 window.handleBenchKeydown = handleBenchKeydown;
 window.startOralRound = startOralRound;

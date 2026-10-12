@@ -74,6 +74,35 @@ export function startElapsed(el, render) {
   return () => clearInterval(iv);
 }
 
+/**
+ * An in-app choice, styled like the rest of the app (window.confirm is
+ * unstyled and offers only two answers). Resolves with the chosen action's
+ * value, or null if dismissed with Escape or a click outside.
+ */
+export function confirmDialog({ title, body, actions }) {
+  return new Promise(resolve => {
+    const overlay = document.createElement('div');
+    overlay.className = 'mc-dialog-overlay';
+    overlay.innerHTML = `<div class="mc-dialog" role="dialog" aria-modal="true" aria-labelledby="mc-dialog-title">
+      <h3 id="mc-dialog-title">${esc(title)}</h3>
+      <p>${esc(body)}</p>
+      <div class="mc-dialog-actions">
+        ${actions.map((a, i) => `<button type="button" data-i="${i}" class="${a.primary ? 'mc-dialog-primary' : a.danger ? 'mc-dialog-danger' : 'mc-dialog-secondary'}">${esc(a.label)}</button>`).join('')}
+      </div>
+    </div>`;
+    const done = (v) => { document.removeEventListener('keydown', onKey); overlay.remove(); resolve(v); };
+    const onKey = (e) => { if (e.key === 'Escape') done(null); };
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) return done(null);
+      const b = e.target.closest('button[data-i]');
+      if (b) done(actions[+b.dataset.i].value);
+    });
+    document.addEventListener('keydown', onKey);
+    document.body.appendChild(overlay);
+    overlay.querySelector('.mc-dialog-primary, button')?.focus();
+  });
+}
+
 /* ─── LEGAL MODAL LOGIC ─── */
 export function openLegalModal(type) {
   const modal = document.getElementById('legal-modal');
@@ -410,6 +439,12 @@ export async function loadSavedSession(docId) {
     if (!doc.exists) throw new Error("Analysis not found.");
     
     const data = doc.data();
+    // A different moot: nothing chosen, drafted or argued in it yet. Without
+    // this, one moot's draft and authorities followed you into the next.
+    if (window.mootState) Object.assign(window.mootState, {
+      issueChosen: false, roundMarked: false, authorities: [],
+      memorialDraft: '', oralSubmission: '', strategicNotes: '',
+    });
     updateWsMootName(data.mootName || '');
     
     const wsibFile = document.getElementById('wsib-file');
@@ -1257,6 +1292,45 @@ export function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt
 
 export let currentStage = 1;
 
+/**
+ * A step is ticked when its work is done, not when you have walked past it.
+ * It used to tick every step before the current one, so visiting Advocacy
+ * marked Analysis and Issues complete with nothing chosen or drafted.
+ */
+function stageDone(i) {
+  const ms = window.mootState || {};
+  if (i === 1) return !!(window.lastAnalysis || lastAnalysis);
+  if (i === 2) return !!ms.issueChosen;
+  if (i === 3) return !!((ms.memorialDraft || '').trim() || (ms.oralSubmission || '').trim());
+  if (i === 4) return !!ms.roundMarked;
+  return false;
+}
+
+export function refreshStepper() {
+  for (let i = 1; i <= 4; i++) {
+    const stepEl = document.getElementById('step-' + i);
+    const connectorEl = document.getElementById('connector-' + i);
+    const done = stageDone(i);
+    if (stepEl) {
+      stepEl.classList.remove('active', 'completed', 'upcoming');
+      const iconEl = stepEl.querySelector('.step-icon');
+      if (i === currentStage) {
+        stepEl.classList.add('active');
+        if (iconEl) iconEl.innerHTML = done ? '✓' : i;
+      } else if (done) {
+        stepEl.classList.add('completed');
+        if (iconEl) iconEl.innerHTML = '✓';
+      } else {
+        stepEl.classList.add('upcoming');
+        if (iconEl) iconEl.innerHTML = i;
+      }
+      stepEl.setAttribute('aria-label', `Step ${i}${done ? ', complete' : ''}`);
+    }
+    if (connectorEl) connectorEl.classList.toggle('completed', done);
+  }
+}
+window.refreshStepper = refreshStepper;
+
 export function goToStage(stageNum) {
   if (stageNum < 1 || stageNum > 4) return;
   if (!currentUser) return;
@@ -1270,31 +1344,7 @@ export function goToStage(stageNum) {
 
   currentStage = stageNum;
 
-  // Update Stepper UI
-  for (let i = 1; i <= 4; i++) {
-    const stepEl = document.getElementById('step-' + i);
-    const connectorEl = document.getElementById('connector-' + i);
-    if (stepEl) {
-      stepEl.classList.remove('active', 'completed', 'upcoming');
-      if (i === currentStage) {
-        stepEl.classList.add('active');
-        const iconEl = stepEl.querySelector('.step-icon');
-        if (iconEl) iconEl.innerHTML = i;
-      } else if (i < currentStage) {
-        stepEl.classList.add('completed');
-        const iconEl = stepEl.querySelector('.step-icon');
-        if (iconEl) iconEl.innerHTML = '✓';
-      } else {
-        stepEl.classList.add('upcoming');
-        const iconEl = stepEl.querySelector('.step-icon');
-        if (iconEl) iconEl.innerHTML = i;
-      }
-    }
-    if (connectorEl) {
-      connectorEl.classList.toggle('completed', i < currentStage);
-    }
-  }
-
+  refreshStepper();
 
   // Toggle active stage containers
   for (let i = 1; i <= 4; i++) {
@@ -1515,6 +1565,8 @@ export function selectIssueFromCard(idx) {
     selectEl.selectedIndex = idx;
     const changeEvent = new Event('change', { bubbles: true });
     selectEl.dispatchEvent(changeEvent);
+    if (window.mootState) window.mootState.issueChosen = true;
+    refreshStepper();
     showToast("Issue selected ✓", "ok");
     renderStage2Issues();
   }

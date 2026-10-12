@@ -152,6 +152,8 @@ export function selectIssue(index) {
   activeIssueIndex = index;
   highlightSidebar(index);
   syncMootStateForIssue(index);
+  window.mootState.issueChosen = true;
+  if (window.refreshStepper) window.refreshStepper();
 
   if (typeof window.goToStage === 'function') window.goToStage(2);
 

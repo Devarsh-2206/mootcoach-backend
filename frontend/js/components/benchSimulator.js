@@ -8,7 +8,8 @@ import {
   showWsPanel,
   toggleSection,
   lastAnalysis,
-  renderActionError
+  renderActionError,
+  confirmDialog
 } from './ui.js';
 import {
   startOralRound as engineStartOralRound,
@@ -26,6 +27,10 @@ export let claimLedger = [];
 export let benchActive = false;
 export let benchSubmitting = false;
 export let benchDifficultyMode = 'moderate';
+// Set when a round's scoresheet is on screen, so leaving afterwards needs no
+// warning; and when the text round began, for the scoresheet's duration.
+let roundMarked = false;
+let textSessionStartTime = null;
 window.benchDifficultyMode = 'moderate';
 export let voiceSessionActive = false;
 export let voiceSessionStartTime = null;
@@ -333,6 +338,9 @@ function readBenchSelections() {
 export function startBenchSession() {
   benchConversation = [];
   claimLedger = [];
+  roundMarked = false;
+  textSessionStartTime = Date.now();
+  setExitLabel('Exit Chambers');
   benchActive = true;
   window.benchActive = true;
   benchSubmitting = false;
@@ -416,6 +424,61 @@ export function startBenchSession() {
   }
   const sendBtn = document.getElementById('btn-bench-send');
   if (sendBtn) sendBtn.disabled = true;
+}
+
+function setExitLabel(text) {
+  const b = document.getElementById('chambers-exit-btn');
+  if (b) b.textContent = text;
+  // The label flips to "Leave" exactly when a round has been marked, which
+  // is also when the Simulator step is complete.
+  if (window.mootState) window.mootState.roundMarked = roundMarked;
+  if (window.refreshStepper) window.refreshStepper();
+}
+
+/**
+ * Leaving the courtroom.
+ *
+ * Exit used to call clearBenchSession() directly: the round vanished with
+ * no warning and no scoresheet, which is the one thing the round is for.
+ * Now an unmarked round asks first, and ending it marks it in place. Once
+ * the scoresheet is on screen, Exit just leaves.
+ */
+export async function exitChambers() {
+  const turns = voiceSessionActive ? getOralTranscript() : benchConversation;
+  const argued = turns.filter(t => t.role === 'advocate').length;
+
+  if (roundMarked || argued === 0) {
+    clearBenchSession();
+    return;
+  }
+
+  const choice = await confirmDialog({
+    title: 'End this round?',
+    body: `You have made ${argued} submission${argued === 1 ? '' : 's'}. End the round now and the bench will mark it on a scoresheet.`,
+    actions: [
+      { label: 'End round and get my scoresheet', value: 'mark', primary: true },
+      { label: 'Keep arguing', value: 'stay' },
+      { label: 'Leave without a score', value: 'leave', danger: true },
+    ],
+  });
+
+  if (choice === 'leave') { clearBenchSession(); return; }
+  if (choice !== 'mark') return;
+
+  if (voiceSessionActive) {
+    // Stopping a voice round already requests its review.
+    await stopOralRound();
+    return;
+  }
+
+  benchActive = false;
+  window.benchActive = false;
+  const input = document.getElementById('bench-input');
+  const sendBtn = document.getElementById('btn-bench-send');
+  if (input) { input.disabled = true; input.placeholder = 'Round ended. The scoresheet is below.'; }
+  if (sendBtn) sendBtn.disabled = true;
+  const seconds = textSessionStartTime ? Math.floor((Date.now() - textSessionStartTime) / 1000) : 0;
+  await requestOralReview(seconds, benchConversation.slice());
 }
 
 export function clearBenchSession() {
@@ -646,7 +709,7 @@ export function appendBenchPerformanceReview(review) {
         </div>
         <div style="margin-bottom:10px;">${concernsHTML || '<span style="color:var(--white-muted);font-size:.8rem;">None</span>'}</div>
         
-        <div style="font-size:.65rem; letter-spacing:.1em; text-transform:uppercase; color:#9ca3af; font-weight:700; margin-top:16px; margin-bottom:8px; display:flex; align-items:center; gap:6px;">
+        <div style="font-size:.65rem; letter-spacing:.1em; text-transform:uppercase; color:var(--white-muted); font-weight:700; margin-top:16px; margin-bottom:8px; display:flex; align-items:center; gap:6px;">
           <span>💡</span> Missed Opportunity
         </div>
         <div style="font-size:.8rem; color:var(--white-2); line-height:1.5;">
@@ -677,7 +740,8 @@ export function appendBenchPerformanceReview(review) {
   `;
 
   chat.appendChild(div);
-  chat.scrollTo({ top: chat.scrollHeight, behavior: 'smooth' });
+  // Open on the score, not on the last card of the report.
+  div.scrollIntoView({ block: 'start', behavior: 'smooth' });
 }
 
 export async function submitToBench() {
@@ -790,6 +854,8 @@ export async function submitToBench() {
 
     if (data.isSessionEnd) {
       appendBenchPerformanceReview(data.performanceReview);
+      roundMarked = true;
+      setExitLabel('Leave Chambers');
       benchActive = false;
       window.benchActive = false;
       if (input) {
@@ -1200,8 +1266,8 @@ export async function stopOralRound() {
  * Renders into the same place the text bench puts its report, so an advocate
  * who does both formats reads one thing in one shape.
  */
-async function requestOralReview(durationSeconds) {
-  const turns = getOralTranscript();
+async function requestOralReview(durationSeconds, transcript) {
+  const turns = transcript || getOralTranscript();
   const advocateTurns = turns.filter(t => t.role === 'advocate');
   const chat = document.getElementById('bench-chat');
   if (!chat) return;
@@ -1209,6 +1275,8 @@ async function requestOralReview(durationSeconds) {
   // Nothing was said. Saying so beats a scorecard invented from silence.
   if (advocateTurns.length < 2 || advocateTurns.reduce((n, t) => n + t.content.length, 0) < 200) {
     appendBenchSystemNote('That round was too short to mark. Argue for a few exchanges and the bench will have something to assess.');
+    roundMarked = true;           // nothing to lose by leaving now
+    setExitLabel('Leave Chambers');
     return;
   }
 
@@ -1232,6 +1300,8 @@ async function requestOralReview(durationSeconds) {
       document.getElementById('oral-review-pending')?.remove();
       if (data.performanceReview) {
         appendBenchPerformanceReview(data.performanceReview);
+        roundMarked = true;
+        setExitLabel('Leave Chambers');
       } else {
         throw new Error('The report came back empty.');
       }

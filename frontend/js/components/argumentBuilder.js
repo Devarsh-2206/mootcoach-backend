@@ -655,6 +655,7 @@ async function generateArgument() {
           window.mootState.oralSubmission = flattenText(data.response.oralAdvocacy).join('\n');
         }
         syncBuilderToMootState();
+        if (window.refreshStepper) window.refreshStepper();
       }
       if (window.setBuilderButtonsState) {
         window.setBuilderButtonsState(false);
