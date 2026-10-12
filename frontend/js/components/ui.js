@@ -316,6 +316,34 @@ export function showAuthSuccess() {
 }
 
 /**
+ * Clear every stage of the moot that was open, so the next one starts from
+ * nothing. New Analysis used to switch to the upload panel and leave the old
+ * analysis loaded underneath: Issues, Advocacy and the Simulator kept
+ * showing it, and the stepper kept ticking it.
+ */
+export function resetWorkspace() {
+  lastAnalysis = '';
+  currentPropositionContext = '';
+  if (window.lastAnalysis) window.lastAnalysis = '';
+  window.forumIntelligence = null;
+  window.detectedForum = null;
+  if (window.mootState) Object.assign(window.mootState, {
+    issueIndex: 0, issueText: '', issueChosen: false, roundMarked: false,
+    authorities: [], memorialDraft: '', oralSubmission: '', strategicNotes: '', plan: null,
+  });
+  if (typeof window.resetBuilderState === 'function') window.resetBuilderState();
+  if (typeof window.clearBenchSession === 'function') window.clearBenchSession();
+  ['analysis-output', 'stage-2-extracted-issues-list', 'ws-issue-list', 'oral-results-content']
+    .forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = ''; });
+  const oral = document.getElementById('oral-results-area');
+  if (oral) oral.style.display = 'none';
+  const stack = document.getElementById('ws-issue-stack');
+  if (stack) stack.style.display = 'none';
+  refreshStepper();
+}
+window.resetWorkspace = resetWorkspace;
+
+/**
  * A clean upload screen. "File your first proposition" used to reveal the
  * workspace as it was last left - an old analysis, scrolled halfway down,
  * with the old moot still highlighted in the sidebar.
@@ -327,6 +355,7 @@ export function startNewAnalysis() {
     b.classList.remove('active', 'bg-moot-accent/10', 'text-moot-accent'));
   window.currentMootDocId = null;
   window.currentMootName = '';
+  resetWorkspace();
   if (typeof window.removeFile === 'function') window.removeFile();
   const nameInput = document.getElementById('ws-moot-name');
   if (nameInput) nameInput.value = '';
@@ -454,6 +483,9 @@ export async function loadRecentSessions() {
 
 export async function loadSavedSession(docId) {
   console.log("[DEBUG] loadSavedSession invoked with docId:", docId);
+  // Reopening the moot already open keeps its unsaved draft; any other moot
+  // starts clean.
+  const previousDocId = window.currentMootDocId;
   console.trace("[DEBUG] loadSavedSession trace");
   
   if (docId && typeof docId === 'string') {
@@ -492,10 +524,7 @@ export async function loadSavedSession(docId) {
     const data = doc.data();
     // A different moot: nothing chosen, drafted or argued in it yet. Without
     // this, one moot's draft and authorities followed you into the next.
-    if (window.mootState) Object.assign(window.mootState, {
-      issueChosen: false, roundMarked: false, authorities: [],
-      memorialDraft: '', oralSubmission: '', strategicNotes: '',
-    });
+    if (previousDocId !== docId) resetWorkspace();
     window.currentMootName = deriveMootName(data);
     updateWsMootName(window.currentMootName);
     
@@ -1378,7 +1407,10 @@ export function refreshStepper() {
         stepEl.classList.add('upcoming');
         if (iconEl) iconEl.innerHTML = i;
       }
-      stepEl.setAttribute('aria-label', `Step ${i}${done ? ', complete' : ''}`);
+      const locked = i > 1 && !(window.lastAnalysis || lastAnalysis);
+      stepEl.classList.toggle('locked', locked);
+      stepEl.setAttribute('aria-disabled', locked ? 'true' : 'false');
+      stepEl.setAttribute('aria-label', `Step ${i}${done ? ', complete' : locked ? ', analyse a proposition first' : ''}`);
     }
     if (connectorEl) connectorEl.classList.toggle('completed', done);
   }
@@ -1435,7 +1467,8 @@ export function goToStage(stageNum) {
     prevBtn.style.display = currentStage === 1 ? 'none' : 'block';
   }
   if (nextBtn) {
-    nextBtn.style.display = currentStage === 4 ? 'none' : 'block';
+    const loaded = !!(window.lastAnalysis || lastAnalysis);
+    nextBtn.style.display = (currentStage === 4 || (currentStage === 1 && !loaded)) ? 'none' : 'block';
   }
 
   // Stage-specific renderings

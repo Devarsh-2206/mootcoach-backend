@@ -32,6 +32,34 @@ function syncBuilderToMootState() {
   }
 }
 
+/**
+ * Forget everything the builder holds for the current moot: the draft, the
+ * chosen authorities and the issue list. Called when a new analysis starts
+ * or another moot is opened; before this, the previous moot's draft and
+ * authorities stayed on screen and went to the bench with the next one.
+ */
+export function resetBuilderState() {
+  selectedAuthorities.length = 0;
+  lastBuiltArgument = null;
+  builtArgumentSide = 'Petitioner';
+  const out = document.getElementById('builder-output-state');
+  const empty = document.getElementById('builder-empty-state');
+  const loading = document.getElementById('builder-loading-state');
+  if (out) out.classList.add('hidden');
+  if (loading) loading.classList.add('hidden');
+  if (empty) empty.classList.remove('hidden');
+  document.getElementById('builder-error')?.remove();
+  const notes = document.getElementById('builder-notes-input');
+  if (notes) notes.value = '';
+  const select = document.getElementById('builder-issue-select');
+  if (select) select.innerHTML = '';
+  const chips = document.getElementById('pre-draft-chips');
+  if (chips) chips.innerHTML = '';
+  const forecast = document.getElementById('bench-forecast-results');
+  if (forecast) forecast.innerHTML = '';
+}
+window.resetBuilderState = resetBuilderState;
+
 /* Every string inside a nested answer, in order: enough to hand the bench
    what the advocate prepared without depending on one response shape. */
 function flattenText(v, out = []) {
