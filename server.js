@@ -20,7 +20,13 @@ server.headersTimeout = 185000;
 server.keepAliveTimeout = 65000;
 
 const { WebSocketServer } = require("ws");
-const wss = new WebSocketServer({ server });
+// Clients offer the "mootcoach" subprotocol plus their ID token (see
+// audioEngine.js); the server answers with "mootcoach" so the token itself is
+// never echoed back.
+const wss = new WebSocketServer({
+  server,
+  handleProtocols: (protocols) => (protocols.has('mootcoach') ? 'mootcoach' : false),
+});
 const cors = require("cors");
 const multer = require("multer");
 const fs = require("fs");
@@ -47,6 +53,61 @@ try {
 
 
 /**
+ * Who is calling.
+ *
+ * Every AI route spends a provider allowance shared by all users, and until
+ * this existed any script on the internet could call them directly. Now a
+ * route that reaches Gemini or Groq requires a signed-in MootCoach user,
+ * verified with Firebase (not just read from the token).
+ *
+ *   PREWARM_KEY            lets tools/prewarm.js analyse propositions ahead
+ *                          of a session without a user account (header
+ *                          x-prewarm-key); /analyze only. Unset = disabled.
+ *   ALLOW_UNAUTHENTICATED  "1" skips the check, for local development
+ *                          without Firebase credentials. Never set it on the
+ *                          deployed server.
+ */
+const PREWARM_KEY = process.env.PREWARM_KEY || '';
+const ALLOW_UNAUTHENTICATED = process.env.ALLOW_UNAUTHENTICATED === '1';
+if (ALLOW_UNAUTHENTICATED) console.warn('⚠️ ALLOW_UNAUTHENTICATED=1: AI routes accept anonymous calls. Development only.');
+
+async function verifiedUser(token) {
+  if (!token || !admin.apps.length) return null;
+  try {
+    const d = await admin.auth().verifyIdToken(token);
+    return { uid: d.uid, email: d.email || '', emailVerified: !!d.email_verified, name: d.name || '' };
+  } catch (e) {
+    return null;
+  }
+}
+
+function sameSecret(a, b) {
+  const x = Buffer.from(String(a || '')), y = Buffer.from(String(b || ''));
+  return x.length === y.length && x.length >= 16 && require('crypto').timingSafeEqual(x, y);
+}
+
+function requireUser({ allowPrewarm = false } = {}) {
+  return async (req, res, next) => {
+    if (ALLOW_UNAUTHENTICATED) { req.user = { uid: 'dev' }; return next(); }
+    if (allowPrewarm && PREWARM_KEY && sameSecret(req.headers['x-prewarm-key'], PREWARM_KEY)) {
+      req.user = { uid: 'prewarm', prewarm: true };
+      return next();
+    }
+    if (!admin.apps.length) {
+      return res.status(503).json({ success: false, error: "Sign-in can't be verified right now. Try again shortly." });
+    }
+    const h = String(req.headers.authorization || '');
+    const user = await verifiedUser(h.startsWith('Bearer ') ? h.slice(7) : '');
+    if (!user) {
+      return res.status(401).json({ success: false, code: 'auth', error: 'Your session has ended. Sign in again to continue.' });
+    }
+    req.user = user;
+    next();
+  };
+}
+const signedIn = requireUser();
+
+/**
  * Rate limiting for the heavy AI routes.
  *
  * This used to be 15 requests per 15 minutes keyed on the IP address, which
@@ -63,6 +124,7 @@ try {
  * The routes that actually act on identity verify the token properly.
  */
 function identityKey(req) {
+  if (req.user && req.user.uid) return 'u:' + req.user.uid;
   const h = String(req.headers.authorization || '');
   if (h.startsWith('Bearer ')) {
     try {
@@ -356,19 +418,71 @@ const { buildMemorial } = require("./services/memorialBuilder");
 
 // const app = express();
 // app.set('trust proxy', 1);
-app.use(cors());
-app.use(express.json());
-app.use(express.static("frontend"));
+/*
+ * Only MootCoach's own pages may call this API from a browser. With cors()
+ * wide open, any website could script requests against it on its visitors'
+ * behalf. Same-origin requests (the frontend served from this server) carry
+ * no Origin restriction and are unaffected; tools and curl send no Origin.
+ * Extra origins (a custom domain) go in ALLOWED_ORIGINS, comma-separated.
+ */
+const ALLOWED_ORIGINS = new Set([
+  'https://mootcoach-frontend.onrender.com',
+  'https://mootcoach-backend-1.onrender.com',
+  'http://localhost:3000', 'http://127.0.0.1:3000',
+  'http://localhost:5500', 'http://127.0.0.1:5500',
+  ...String(process.env.ALLOWED_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean),
+]);
+app.use(cors({
+  origin: (origin, cb) => cb(null, !origin || ALLOWED_ORIGINS.has(origin)),
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  methods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
+}));
 
-app.use("/extract-issues", aiLimiter, extractIssuesRoute);
-app.use("/api/authority-intelligence", aiLimiter, authorityIntelligenceRoute);
-app.use("/api/bench-forecast", aiLimiter, benchForecastRoute);
+/*
+ * Baseline browser protections for everything this server sends:
+ * no MIME sniffing, never framed by another site (clickjacking), no
+ * referrer leaking page paths to third parties, HTTPS only once seen.
+ */
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Content-Security-Policy', "frame-ancestors 'none'");
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'camera=(), geolocation=(), microphone=(self)');
+  if (req.secure || req.headers['x-forwarded-proto'] === 'https') {
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  }
+  next();
+});
+app.disable('x-powered-by');
+app.use(express.json());
+// Serve the app, never leftovers: dotfiles, backups and dev fixtures are not public.
+app.use((req, res, next) => {
+  if (/\.(bak|backup|orig|swp)$|redesign-backup|\/mock_|\/\./i.test(req.path)) return res.sendStatus(404);
+  next();
+});
+app.use(express.static("frontend", { dotfiles: 'deny' }));
+
+app.use("/extract-issues", signedIn, aiLimiter, extractIssuesRoute);
+app.use("/api/authority-intelligence", signedIn, aiLimiter, authorityIntelligenceRoute);
+app.use("/api/bench-forecast", signedIn, aiLimiter, benchForecastRoute);
 
 app.post("/api/client-log", logLimiter, (req, res) => {
   // Unauthenticated input: one line, bounded, so it cannot forge or flood log lines.
   const msg = String((req.body && req.body.message) || '').replace(/[\r\n]+/g, ' ').slice(0, 500);
   console.log(`[FRONTEND METRIC] ${msg}`);
   res.sendStatus(200);
+});
+
+/* Welcome email for a brand-new account (see services/welcomeEmail.js). */
+app.post("/api/welcome", signedIn, logLimiter, async (req, res) => {
+  try {
+    const r = await require('./services/welcomeEmail').sendWelcome(req.user);
+    return res.json({ success: true, sent: r.sent });
+  } catch (e) {
+    console.warn('[WELCOME EMAIL] failed:', e && e.message);
+    return res.json({ success: true, sent: false });
+  }
 });
 
 app.get("/health", (req, res) => {
@@ -617,7 +731,7 @@ async function runEnrichment(rawPropIntel, propIntelError, forumContext) {
 }
 
 /* ─── /analyze (Now fully powered by Groq & Native JSON Mode) ─── */
-app.post("/analyze", aiLimiter, singlePdf("file"), async (req, res) => {
+app.post("/analyze", requireUser({ allowPrewarm: true }), aiLimiter, singlePdf("file"), async (req, res) => {
   let filePath = null;
 
   try {
@@ -1088,7 +1202,7 @@ app.post("/analyze", aiLimiter, singlePdf("file"), async (req, res) => {
 });
 
 /* ─── /evaluate-oral ─── */
-app.post("/evaluate-oral", aiLimiter, express.json(), async (req, res) => {
+app.post("/evaluate-oral", signedIn, aiLimiter, express.json(), async (req, res) => {
   const { argument, propositionContext, difficulty } = req.body;
 
   if (!argument || argument.trim().length < 30) {
@@ -1157,7 +1271,7 @@ app.post("/evaluate-oral", aiLimiter, express.json(), async (req, res) => {
    Separate from /simulate-bench because that route ends a session on a turn
    count; a live round ends when the advocate stops talking, and the transcript
    arrives in one piece at the end rather than a turn at a time. */
-app.post("/simulate-bench/oral-review", benchLimiter, express.json(), async (req, res) => {
+app.post("/simulate-bench/oral-review", signedIn, benchLimiter, express.json(), async (req, res) => {
   const { transcript, propositionSummary, difficulty, intensity, claimLedger, durationSeconds } = req.body;
 
   const turns = (Array.isArray(transcript) ? transcript : [])
@@ -1219,7 +1333,7 @@ app.post("/simulate-bench/oral-review", benchLimiter, express.json(), async (req
 });
 
 /* ─── /simulate-bench/extract-claims ─── */
-app.post("/simulate-bench/extract-claims", benchLimiter, express.json(), async (req, res) => {
+app.post("/simulate-bench/extract-claims", signedIn, benchLimiter, express.json(), async (req, res) => {
   const { studentStatement } = req.body;
   
   if (!studentStatement || studentStatement.trim().length < 3) {
@@ -1295,7 +1409,7 @@ function normaliseScorecard(review) {
   return review;
 }
 
-app.post("/simulate-bench", benchLimiter, express.json(), async (req, res) => {
+app.post("/simulate-bench", signedIn, benchLimiter, express.json(), async (req, res) => {
   const { conversationHistory, propositionSummary, difficulty, intensity, judgeType, studentStatement, claimLedger } = req.body;
 
   if (!studentStatement || studentStatement.trim().length < 3) {
@@ -1480,7 +1594,7 @@ app.get("/api/judge-profiles", (req, res) => {
 });
 
 /* ─── /api/build-argument ─── */
-app.post("/api/build-argument", aiLimiter, express.json(), async (req, res) => {
+app.post("/api/build-argument", signedIn, aiLimiter, express.json(), async (req, res) => {
   const { stance, issue, notes, propositionContext, forum, instructions, authorities, memorialFocus } = req.body;
 
   /**
@@ -1660,7 +1774,7 @@ Authorities. Cite nothing you cannot stand behind: mark anything uncertain with
    one call per issue argues it out, then services/memorialBuilder stitches them
    together. /api/build-argument stays as it is, because the oral-advocacy,
    rebuttal and citation panels still read its combined response. */
-app.post("/api/build-memorial", aiLimiter, express.json(), async (req, res) => {
+app.post("/api/build-memorial", signedIn, aiLimiter, express.json(), async (req, res) => {
   const { stance, propositionContext, notes, instructions, authorities, forum, maxIssues, depth } = req.body;
 
   if (!stance) {
@@ -1733,7 +1847,7 @@ app.post("/api/build-memorial", aiLimiter, express.json(), async (req, res) => {
    numbering and limits are countable; asking a model to count them gets an
    estimate. The model is spent on what code cannot judge — whether the argument
    works and whether the law is right. */
-app.post("/api/analyse-memorial", aiLimiter, singlePdf("file"), async (req, res) => {
+app.post("/api/analyse-memorial", signedIn, aiLimiter, singlePdf("file"), async (req, res) => {
   let filePath = null;
   try {
     if (!req.file) {
@@ -1919,6 +2033,26 @@ wss.on("connection", (ws, req) => {
   });
 
   if (req.url === "/ws/voice" || req.url.startsWith("/ws/voice")) {
+    // Hold anything the client sends until we know who it is, then start the
+    // Gemini Live session. Each session spends the provider allowance, so an
+    // anonymous connection is refused (code 4401) instead of served.
+    ws.pause();
+    const offered = String(req.headers['sec-websocket-protocol'] || '').split(',').map(x => x.trim());
+    const token = offered.find(p => p && p !== 'mootcoach') || '';
+    (async () => {
+      const user = ALLOW_UNAUTHENTICATED ? { uid: 'dev' } : await verifiedUser(token);
+      if (!user) {
+        // Resume first: a paused socket never reads the client's close reply,
+        // so the handshake would hang open.
+        ws.resume();
+        try { ws.close(4401, 'Sign in required'); } catch (e) {}
+        return;
+      }
+      startVoice();
+      ws.resume();
+    })();
+
+    function startVoice() {
     let benchLevel = 'moderate';
     let propositionSummary = '';
     let benchContext = '';
@@ -1950,6 +2084,7 @@ wss.on("connection", (ws, req) => {
     // directives the client already embedded, so the voice judge adapts to the forum.
     const voiceSummary = [backendJudgeDirective, benchContext, propositionSummary].filter(Boolean).join('\n\n');
     handleLiveVoiceConnection(ws, benchLevel, voiceSummary, voiceGender);
+    }
   } else {
     ws.close();
   }

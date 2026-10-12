@@ -730,11 +730,6 @@ export function fmtInline(text) {
   if (!text) return '';
   let t = String(text);
 
-  // Convert markdown headers to styled HTML headers instead of leaving them raw
-  t = t.replace(/^\s*#{5,6}\s*(.+)$/gm, '<h6 style="font-family:var(--font-sans, Arial); font-size:11px; font-weight:bold; letter-spacing:0.04em; color:var(--white-2); margin-top:10px; margin-bottom:4px; text-transform:uppercase;">$1</h6>');
-  t = t.replace(/^\s*####\s*(.+)$/gm, '<h5 style="font-family:var(--font-sans, Arial); font-size:12px; font-weight:bold; letter-spacing:0.06em; color:var(--white); margin-top:14px; margin-bottom:6px; text-transform:uppercase; border-bottom:1px solid rgba(28,23,16,0.05); padding-bottom:2px;">$1</h5>');
-  t = t.replace(/^\s*###\s*(.+)$/gm, '<h4 style="font-family:var(--font-sans, Arial); font-size:14px; font-weight:bold; letter-spacing:0.08em; color:var(--moot-accent); margin-top:18px; margin-bottom:8px; text-transform:uppercase; border-bottom:1px solid rgba(28,23,16,0.1); padding-bottom:4px;">$1</h4>');
-  t = t.replace(/^\s*##\s*(.+)$/gm, '<h3 style="font-family:var(--font-serif, Merriweather); font-size:16px; font-weight:normal; letter-spacing:0.1em; color:var(--moot-accent); margin-top:22px; margin-bottom:10px; text-transform:uppercase; border-bottom:2px double rgba(28,23,16,0.15); padding-bottom:6px;">$1</h3>');
 
   // Escape HTML characters (excluding our newly added HTML tags, so do escaping first or be careful)
   let escaped = t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -935,7 +930,7 @@ export function renderAdditionalIssues(list, framedCount) {
       + 'background:var(--glass);' + (dismissed ? 'opacity:.55;' : '') + '">'
       + '<div style="font-size:.83rem;line-height:1.6;color:var(--white-2);flex:1;">'
       + mark + fmtInline(String(a.issue)) + '</div>'
-      + '<span class="asc-badge ' + cls + '" style="flex:0 0 auto;white-space:nowrap;">' + a.confidence + '</span>'
+      + '<span class="asc-badge ' + cls + '" style="flex:0 0 auto;white-space:nowrap;">' + esc(a.confidence) + '</span>'
       + '</div>';
   }).join('');
 
@@ -1135,7 +1130,7 @@ export function renderArgumentDefects(defectsData) {
           <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:8px;flex-wrap:wrap;">
             <div style="font-size:.78rem;font-weight:500;color:var(--white-2);flex:1;font-style:italic;">"${fmtInline(d.argument || '')}"</div>
             <div style="display:flex;gap:5px;flex-shrink:0;">
-              <span style="font-size:.56rem;padding:2px 7px;border-radius:4px;letter-spacing:.08em;text-transform:uppercase;font-weight:500;${bsty}">${sev}</span>
+              <span style="font-size:.56rem;padding:2px 7px;border-radius:4px;letter-spacing:.08em;text-transform:uppercase;font-weight:500;${bsty}">${esc(sev)}</span>
               <span style="font-size:.56rem;padding:2px 7px;border-radius:4px;background:rgba(28,23,16,.04);border:1px solid var(--glass-b);color:var(--white-muted);">${esc(d.defectType || '')}</span>
             </div>
           </div>
@@ -1392,7 +1387,8 @@ export function showStructuredResults(data) {
 }
 
 export function renderMarkdown(text) {
-  return text
+  return String(text ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/^&gt; (.+)$/gm,'> $1')
     .replace(/^### (.+)$/gm,'<h3>$1</h3>')
     .replace(/^## (.+)$/gm,'<h2>$1</h2>')
     .replace(/^# (.+)$/gm,'<h1>$1</h1>')
@@ -1439,7 +1435,7 @@ export function copyAnalysis() {
 
 export function hideLoading() { document.getElementById('loading-overlay').classList.remove('show'); }
 export function sleep(ms) { return new Promise(r=>setTimeout(r,ms)); }
-export function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+export function esc(s){ return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 
 export let currentStage = 1;
 

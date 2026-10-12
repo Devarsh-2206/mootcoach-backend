@@ -1,4 +1,4 @@
-import { showWsPanel } from './ui.js';
+import { showWsPanel, esc } from './ui.js';
 
 let currentSessionData = null;
 let activeIssueIndex = 0;
@@ -535,8 +535,8 @@ function renderAdvocacyMatrix(issueId) {
           <div class="text-[11px] font-sans text-orange-400 font-semibold uppercase mb-1 tracking-wider flex items-center gap-1">
             <span class="w-1.5 h-1.5 rounded-full bg-orange-500 shadow-[0_0_5px_rgba(249,115,22,0.5)]"></span> Judge Question
           </div>
-          <div class="text-xs font-serif text-[#1C1710] italic mb-2">"${q.question}"</div>
-          <div class="text-[10px] font-sans text-[#1C1710]/50 uppercase bg-black/20 p-2 rounded">Safe Exit: <span class="text-xs font-serif normal-case text-[#1C1710]/90">${q.safeExit}</span></div>
+          <div class="text-xs font-serif text-[#1C1710] italic mb-2">"${esc(q.question)}"</div>
+          <div class="text-[10px] font-sans text-[#1C1710]/50 uppercase bg-black/20 p-2 rounded">Safe Exit: <span class="text-xs font-serif normal-case text-[#1C1710]/90">${esc(q.safeExit)}</span></div>
         </div>
       `;
     });

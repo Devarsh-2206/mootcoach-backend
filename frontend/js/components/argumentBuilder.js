@@ -4145,7 +4145,7 @@ export async function generateBenchForecast() {
       
       let html = `
         <div class="text-[10px] text-[#4a4030] italic mb-2 border-b border-black/5 pb-2 font-serif">
-          <strong class="font-sans not-italic text-[#1C1710]">Forecast Summary:</strong> ${forecast.forecastSummary || "The bench will heavily scrutinize your stance."}
+          <strong class="font-sans not-italic text-[#1C1710]">Forecast Summary:</strong> ${esc(forecast.forecastSummary || "The bench will heavily scrutinize your stance.")}
         </div>
       `;
 
@@ -4158,15 +4158,15 @@ export async function generateBenchForecast() {
         html += `
           <div class="bg-black/20 border border-black/5 rounded-lg p-3 text-xs transition-all hover:border-black/10">
             <div class="flex justify-between items-start mb-1 gap-2">
-              <strong class="text-[#1C1710] leading-snug">Q${idx + 1}: "${q.question}"</strong>
-              <span class="text-[8px] uppercase tracking-wider font-semibold border ${probColor} px-1.5 py-0.5 rounded whitespace-nowrap mt-0.5">${q.probability}</span>
+              <strong class="text-[#1C1710] leading-snug">Q${idx + 1}: "${esc(q.question)}"</strong>
+              <span class="text-[8px] uppercase tracking-wider font-semibold border ${probColor} px-1.5 py-0.5 rounded whitespace-nowrap mt-0.5">${esc(q.probability)}</span>
             </div>
-            <div class="text-white-muted text-[10px] mb-2 font-serif italic leading-relaxed">${q.rationale}</div>
+            <div class="text-white-muted text-[10px] mb-2 font-serif italic leading-relaxed">${esc(q.rationale)}</div>
             
             <div class="space-y-1.5 mt-2 text-[10px] border-t border-black/5 pt-2 leading-relaxed">
-              <div><strong class="text-emerald-400 uppercase tracking-wider text-[9px]">Ideal Answer:</strong> <span class="text-[#4a4030]">${q.idealAnswer}</span></div>
-              <div><strong class="text-red-400 uppercase tracking-wider text-[9px]">Dangerous Follow-Up:</strong> <span class="text-[#4a4030]">${q.dangerousFollowUp}</span></div>
-              <div><strong class="text-indigo-400 uppercase tracking-wider text-[9px]">Recovery Route:</strong> <span class="text-[#4a4030]">${q.recoveryRoute}</span></div>
+              <div><strong class="text-emerald-400 uppercase tracking-wider text-[9px]">Ideal Answer:</strong> <span class="text-[#4a4030]">${esc(q.idealAnswer)}</span></div>
+              <div><strong class="text-red-400 uppercase tracking-wider text-[9px]">Dangerous Follow-Up:</strong> <span class="text-[#4a4030]">${esc(q.dangerousFollowUp)}</span></div>
+              <div><strong class="text-indigo-400 uppercase tracking-wider text-[9px]">Recovery Route:</strong> <span class="text-[#4a4030]">${esc(q.recoveryRoute)}</span></div>
             </div>
           </div>
         `;
@@ -4176,7 +4176,7 @@ export async function generateBenchForecast() {
          html += `
            <div class="mt-2 bg-indigo-500/10 border border-indigo-500/20 rounded-lg p-3 text-xs text-indigo-200">
              <strong class="text-indigo-400 block mb-1 uppercase tracking-wider text-[9px]">Strategic Advice</strong>
-             <span class="leading-relaxed font-serif italic">${forecast.strategicAdvice}</span>
+             <span class="leading-relaxed font-serif italic">${esc(forecast.strategicAdvice)}</span>
            </div>
          `;
       }

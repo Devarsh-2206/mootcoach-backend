@@ -41,12 +41,20 @@ async function send(file, qs) {
   const form = new FormData();
   form.append('file', new Blob([fs.readFileSync(file)], { type: 'application/pdf' }), path.basename(file));
   const t = Date.now();
-  const res = await fetch(BASE + '/analyze' + (qs || ''), { method: 'POST', body: form });
+  // /analyze is signed-in only; PREWARM_KEY (same value as on the server)
+  // lets this tool through without a user account.
+  const headers = process.env.PREWARM_KEY ? { 'x-prewarm-key': process.env.PREWARM_KEY } : {};
+  const res = await fetch(BASE + '/analyze' + (qs || ''), { method: 'POST', body: form, headers });
   const body = await res.json().catch(() => ({}));
   return { status: res.status, body, ms: Date.now() - t };
 }
 
 (async () => {
+  if (!process.env.PREWARM_KEY) {
+    console.error('\n  PREWARM_KEY is not set. Put the same value in .env here and on the server.\n');
+    process.exitCode = 1;
+    return;
+  }
   try {
     const h = await fetch(BASE + '/health');
     if (!h.ok) throw new Error('status ' + h.status);

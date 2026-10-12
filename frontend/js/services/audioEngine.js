@@ -1,4 +1,5 @@
 import { BASE_URL } from '../config.js';
+import { auth } from './firebase.js';
 import { currentPropositionContext } from '../components/ui.js';
 import { benchProfiles } from '../config/benchProfiles.js';
 
@@ -20,6 +21,18 @@ let onPlaybackCompleteCallback = null;
 let activeCallbacks = null;
 let heartbeatInterval = null;
 let reconnectionPromise = null;
+
+/* The voice bench is signed-in only. The ID token travels in the WebSocket
+   protocol header rather than the URL, where it could land in access logs. */
+async function wsProtocols() {
+  try {
+    const u = auth && auth.currentUser;
+    const token = u ? await u.getIdToken() : '';
+    return token ? ['mootcoach', token] : ['mootcoach'];
+  } catch (e) {
+    return ['mootcoach'];
+  }
+}
 
 function getWsUrl() {
   const mode = window.benchDifficultyMode || 'moderate';
@@ -308,8 +321,15 @@ Begin the hearing by having one of the judges ask a challenging opening question
     }
   };
 
-  voiceWebSocket.onclose = () => {
+  voiceWebSocket.onclose = (ev) => {
     console.log("🎙️ Voice WebSocket closed.");
+    if (ev && ev.code === 4401) {
+      // Refused for sign-in: reconnecting would only be refused again.
+      voiceSessionActive = false;
+      if (onError) onError(new Error('Your session has ended. Sign in again to use the voice bench.'));
+      if (onClose) onClose();
+      return;
+    }
     if (heartbeatInterval) {
       clearInterval(heartbeatInterval);
       heartbeatInterval = null;
@@ -373,7 +393,7 @@ async function reconnectWebSocket(callbacks = activeCallbacks, onOpenCallback = 
 
   try {
     const wsUrl = getWsUrl();
-    voiceWebSocket = new WebSocket(wsUrl);
+    voiceWebSocket = new WebSocket(wsUrl, await wsProtocols());
     setupWebSocketHandlers(callbacks, onOpenCallback);
   } catch (err) {
     console.error("Reconnection attempt failed:", err);
@@ -429,7 +449,7 @@ export async function startOralRound(callbacks) {
 
     const wsUrl = getWsUrl();
     console.log(`Connecting to voice WebSocket: ${wsUrl}`);
-    voiceWebSocket = new WebSocket(wsUrl);
+    voiceWebSocket = new WebSocket(wsUrl, await wsProtocols());
     
     voiceAudioContext = new (window.AudioContext || window.webkitAudioContext)();
     if (voiceAudioContext.state === 'suspended') {
