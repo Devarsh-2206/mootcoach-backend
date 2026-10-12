@@ -35,6 +35,45 @@ export function showToast(msg, type = 'err') {
   }, duration);
 }
 
+/**
+ * A failure the user can see and act on.
+ *
+ * Renders into `host` (replacing its content when `replace` is set, otherwise
+ * appended) a card with the message and a Retry button. Returns the element so
+ * callers can remove it when the retry starts.
+ */
+export function renderActionError(host, { title = 'That did not work', message, onRetry, retryLabel = 'Try again', replace = false } = {}) {
+  if (!host) return null;
+  const box = document.createElement('div');
+  box.className = 'mc-error';
+  box.setAttribute('role', 'alert');
+  box.innerHTML = `<div class="mc-error-title">${esc(title)}</div>
+    <div class="mc-error-msg">${esc(message || 'Something went wrong. Try again.')}</div>
+    <div class="mc-error-actions">
+      ${onRetry ? `<button type="button" class="mc-error-retry">${esc(retryLabel)}</button>` : ''}
+      <button type="button" class="mc-error-dismiss">Dismiss</button>
+    </div>`;
+  if (onRetry) box.querySelector('.mc-error-retry').addEventListener('click', () => { box.remove(); onRetry(); });
+  box.querySelector('.mc-error-dismiss').addEventListener('click', () => box.remove());
+  if (replace) host.innerHTML = '';
+  host.appendChild(box);
+  return box;
+}
+
+/**
+ * Counts up while a slow call runs, so a 60-second wait reads as progress
+ * rather than as a hang. `render(seconds)` returns the text to show.
+ * Returns a stop function.
+ */
+export function startElapsed(el, render) {
+  if (!el) return () => {};
+  const t0 = Date.now();
+  const tick = () => { el.textContent = render(Math.round((Date.now() - t0) / 1000)); };
+  tick();
+  const iv = setInterval(tick, 1000);
+  return () => clearInterval(iv);
+}
+
 /* ─── LEGAL MODAL LOGIC ─── */
 export function openLegalModal(type) {
   const modal = document.getElementById('legal-modal');

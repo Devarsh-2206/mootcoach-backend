@@ -7,7 +7,8 @@ import {
   fmtInline,
   showWsPanel,
   toggleSection,
-  lastAnalysis
+  lastAnalysis,
+  renderActionError
 } from './ui.js';
 import {
   startOralRound as engineStartOralRound,
@@ -15,7 +16,7 @@ import {
   getSocketState,
   sendSpeechText
 } from '../services/audioEngine.js';
-import { logSessionSecurely } from '../services/api.js';
+import { logSessionSecurely, requestJson } from '../services/api.js';
 import { getCurrentSelectedSide, selectedAuthorities } from './argumentBuilder.js';
 import { DEPTH_PROFILES, JUDGE_ROSTERS, COURT_ROSTERS, FULL_BENCH } from '../config/benchProfiles.js';
 
@@ -666,6 +667,7 @@ export async function submitToBench() {
   if (sendBtn) sendBtn.disabled = true;
 
   appendBenchMessage('advocate', statement);
+  const advocateBubble = document.getElementById('bench-chat')?.lastElementChild || null;
   benchConversation.push({ role: 'advocate', content: statement });
   if (input) input.value = '';
 
@@ -729,10 +731,7 @@ export async function submitToBench() {
       judgeTextContainer.innerHTML = "";
     }
 
-    const res = await fetch(`${BASE_URL}/simulate-bench`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+    const data = await requestJson('/simulate-bench', { timeoutMs: 120000, body: {
         conversationHistory: benchConversation.slice(-10),
         // Lets the backend ground an Indian bench in the law that governs —
         // the CPC and the substantive Act for a civil suit, not writ doctrine.
@@ -750,8 +749,7 @@ export async function submitToBench() {
         difficulty: benchDifficultyMode,
         studentStatement: statement,
         claimLedger: claimLedger
-      })
-    });
+    } });
 
     // Fire-and-forget Claim Extraction to build the ledger without adding latency
     fetch(`${BASE_URL}/simulate-bench/extract-claims`, {
@@ -771,9 +769,6 @@ export async function submitToBench() {
     .catch(err => console.error("[CLAIM GRAPH] Extraction failed:", err));
 
     document.getElementById(typingId)?.remove();
-    const data = await res.json();
-
-    if (!data.success) throw new Error(data.error || 'No response from bench.');
 
     if (data.isSessionEnd) {
       appendBenchPerformanceReview(data.performanceReview);
@@ -799,7 +794,23 @@ export async function submitToBench() {
 
   } catch (err) {
     document.getElementById(typingId)?.remove();
-    appendBenchMessage('system', `Connection error: ${err.message} — Please try again.`);
+    // The bench never heard this submission, so take it back out of the
+    // record and offer to send it again, rather than leaving a turn the
+    // judge appears to have ignored.
+    const last = benchConversation[benchConversation.length - 1];
+    if (last && last.role === 'advocate' && last.content === statement) benchConversation.pop();
+    const box = renderActionError(document.getElementById('bench-chat'), {
+      title: 'The bench did not respond',
+      message: err.message,
+      retryLabel: 'Send again',
+      onRetry: () => {
+        advocateBubble?.remove();
+        const inp = document.getElementById('bench-input');
+        if (inp) inp.value = statement;
+        submitToBench();
+      },
+    });
+    box?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   } finally {
     benchSubmitting = false;
     if (benchActive) {
@@ -1191,33 +1202,34 @@ async function requestOralReview(durationSeconds) {
   chat.appendChild(pending);
   chat.scrollTo({ top: chat.scrollHeight, behavior: 'smooth' });
 
-  try {
-    const res = await fetch(`${BASE_URL}/simulate-bench/oral-review`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+  const markRound = async () => {
+    try {
+      const data = await requestJson('/simulate-bench/oral-review', { body: {
         transcript: turns,
         propositionSummary: getBenchContextString(),
         intensity: benchDifficultyMode,
         claimLedger: claimLedger,
         durationSeconds,
-      }),
-    });
-    const data = await res.json().catch(() => null);
-    const el = document.getElementById('oral-review-pending');
-    if (el) el.remove();
-
-    if (data && data.success && data.performanceReview) {
-      appendBenchPerformanceReview(data.performanceReview);
-    } else {
-      appendBenchSystemNote((data && data.error) || 'Could not produce a report for that round.');
+      } });
+      document.getElementById('oral-review-pending')?.remove();
+      if (data.performanceReview) {
+        appendBenchPerformanceReview(data.performanceReview);
+      } else {
+        throw new Error('The report came back empty.');
+      }
+    } catch (err) {
+      console.error('[ORAL REVIEW] failed:', err);
+      document.getElementById('oral-review-pending')?.remove();
+      const box = renderActionError(chat, {
+        title: 'Round not marked',
+        message: err.message + ' Your transcript is still on screen.',
+        retryLabel: 'Mark again',
+        onRetry: () => { chat.appendChild(pending); markRound(); },
+      });
+      box?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     }
-  } catch (err) {
-    console.error('[ORAL REVIEW] failed:', err);
-    const el = document.getElementById('oral-review-pending');
-    if (el) el.remove();
-    appendBenchSystemNote('Could not reach the server to mark that round. Your transcript is still on screen.');
-  }
+  };
+  await markRound();
 }
 
 function appendBenchSystemNote(text) {

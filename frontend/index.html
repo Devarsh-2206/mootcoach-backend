@@ -912,6 +912,25 @@ p  { color:var(--white-2); }
 .error-box-title { font-family:var(--serif); font-size:1.25rem; font-weight:500; color:var(--error); margin-bottom:.5rem; }
 .error-box-msg { font-size:.86rem; color:var(--white-muted); margin-bottom:1.4rem; line-height:1.6; }
 
+/* Inline failure with a way forward. Used wherever an AI call can fail, so a
+   failure is never just a toast that disappears. */
+.mc-error {
+  border:1px solid var(--gold-border); background:var(--gold-muted);
+  border-radius:var(--r); padding:14px 16px; margin:10px 0; text-align:left;
+  color:var(--white); font-family:var(--sans);
+}
+.mc-error-title { font-family:var(--mono); font-size:.68rem; letter-spacing:.14em; text-transform:uppercase; color:var(--error); margin-bottom:6px; }
+.mc-error-msg { font-size:.9rem; line-height:1.55; color:var(--white-2); }
+.mc-error-actions { display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; }
+.mc-error-actions button {
+  font-family:var(--mono); font-size:.68rem; letter-spacing:.12em; text-transform:uppercase;
+  padding:7px 14px; border-radius:6px; cursor:pointer; border:1px solid var(--gold); 
+}
+.mc-error-retry { background:var(--gold); color:#FCF9EF; }
+.mc-error-retry:hover { background:var(--gold-light); }
+.mc-error-dismiss { background:transparent; color:var(--gold); }
+.mc-elapsed { font-family:var(--mono); font-size:.72rem; color:var(--white-muted); letter-spacing:.04em; }
+
 /* ── LOADING OVERLAY ── */
 .loading-overlay {
   display:none; position:fixed; inset:0;
@@ -3658,6 +3677,7 @@ body.intro-hold #view-landing .swear{animation-play-state:paused!important}
                   <div class="text-xs font-sans text-indigo-300 font-medium tracking-wide mb-6">
                     <span class="animate-cycle-text"></span>
                   </div>
+                  <div class="mc-elapsed mb-6" aria-live="polite"></div>
                   <div class="w-full space-y-4 text-left">
                     <div class="h-3 bg-black/10 rounded w-1/4 mb-4"></div>
                     <div class="space-y-2">

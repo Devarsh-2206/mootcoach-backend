@@ -1,10 +1,12 @@
-import { buildArgument, buildMemorial } from '../services/api.js';
+import { buildArgument, buildMemorial, requestJson } from '../services/api.js';
 import { 
   currentPropositionContext,
   lastAnalysis, 
   showToast, 
   fmtInline, 
-  esc 
+  esc,
+  renderActionError,
+  startElapsed
 } from './ui.js';
 import { BASE_URL } from '../config.js';
 
@@ -593,7 +595,14 @@ async function generateArgument() {
 
   // Set loading UI states
   submitBtn.disabled = true;
-  submitBtn.innerHTML = '<span class="animate-pulse">Weaving Draft...</span>';
+  document.getElementById('builder-error')?.remove();
+  // A draft takes 30-90s. Counting up says it is working; a bare pulse for a
+  // minute reads as a hang, which is what made the failure look silent.
+  const stopElapsed = startElapsed(submitBtn, s => `Drafting… ${s}s`);
+  const loadingNote = loadingState && loadingState.querySelector('.mc-elapsed');
+  const stopNote = startElapsed(loadingNote, s => s < 90
+    ? `${s}s elapsed · a draft usually takes 30–90 seconds`
+    : `${s}s elapsed · taking longer than usual, still working`);
   
   if (emptyState) emptyState.classList.add('hidden');
   if (outputState) outputState.classList.add('hidden');
@@ -619,7 +628,6 @@ async function generateArgument() {
     }
   } catch (err) {
     console.error("Failed to build argument:", err);
-    showToast(err.message, "err");
     
     if (loadingState) loadingState.classList.add('hidden');
     if (lastBuiltArgument) {
@@ -627,9 +635,24 @@ async function generateArgument() {
     } else {
       if (emptyState) emptyState.classList.remove('hidden');
     }
+    // Stays on screen until dismissed or retried. A toast alone vanished
+    // after a few seconds and the panel reset, so the failure looked silent.
+    const host = (lastBuiltArgument ? outputState : emptyState) || submitBtn.parentElement;
+    const box = renderActionError(host, {
+      title: 'Draft not generated',
+      message: err.message + ' Your notes and selected authorities are kept.',
+      onRetry: () => generateArgument(),
+    });
+    if (box) {
+      box.id = 'builder-error';
+      if (host === outputState || host === emptyState) host.prepend(box);
+      box.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
   } finally {
+    stopElapsed();
+    stopNote();
     submitBtn.disabled = false;
-    submitBtn.textContent = 'Draft Submission →';
+    submitBtn.textContent = 'Generate Structured Draft →';
   }
 }
 
@@ -4024,18 +4047,12 @@ export async function generateBenchForecast() {
     const notesInput = document.getElementById('builder-notes-input');
     const notes = notesInput ? notesInput.value : '';
 
-    const response = await fetch(`${BASE_URL}/api/bench-forecast`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        propositionContext: currentPropositionContext || "",
-        issue: issueVal,
-        stance: stance,
-        notes: notes
-      })
-    });
-
-    const data = await response.json();
+    const data = await requestJson('/api/bench-forecast', { body: {
+      propositionContext: currentPropositionContext || "",
+      issue: issueVal,
+      stance: stance,
+      notes: notes
+    } });
     if (data.success && data.response) {
       const forecast = data.response;
       
@@ -4079,11 +4096,16 @@ export async function generateBenchForecast() {
 
       container.innerHTML = html;
     } else {
-      container.innerHTML = `<div class="text-red-400 text-xs italic">Failed to generate forecast.</div>`;
+      throw new Error('The forecast came back empty.');
     }
   } catch (err) {
     console.error("Bench Forecast Error:", err);
-    container.innerHTML = `<div class="text-red-400 text-xs italic">Error generating forecast.</div>`;
+    renderActionError(container, {
+      title: 'Forecast not generated',
+      message: err.message,
+      onRetry: () => generateBenchForecast(),
+      replace: true,
+    });
   } finally {
     btn.disabled = false;
     btn.innerHTML = `Generate Forecast`;

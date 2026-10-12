@@ -7,7 +7,8 @@ import {
   fmtInline, 
   animateBars, 
   animateValue, 
-  renderMarkdown 
+  renderMarkdown,
+  renderActionError
 } from './ui.js';
 
 export let oralDifficultyMode = 'easy';
@@ -47,7 +48,12 @@ export async function runOralEvaluation() {
     const content = document.getElementById('oral-results-content');
     if (area && content) {
       area.style.display = 'block';
-      content.innerHTML = `<div class="error-box"><div class="error-box-title">Evaluation Failed</div><div class="error-box-msg">${esc(err.message)}</div></div>`;
+      renderActionError(content, {
+        title: 'Evaluation failed',
+        message: err.message + ' Your argument is still in the box.',
+        onRetry: () => runOralEvaluation(),
+        replace: true,
+      });
     }
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = 'Evaluate Argument →'; }

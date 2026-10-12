@@ -11,7 +11,8 @@
  * content review by the model. Audit findings are shown first because they are
  * measured rather than judged.
  */
-import { BASE_URL, UPLOAD_LIMITS } from '../config.js';
+import { UPLOAD_LIMITS } from '../config.js';
+import { requestJson } from '../services/api.js';
 
 const SEVERITY = {
   critical: { label: 'Critical', bg: '#fdecea', border: '#f5c6c0', ink: '#8a1c12' },
@@ -247,9 +248,7 @@ function attachForm(body) {
     if (pages) fd.append('pageLimit', pages);
 
     try {
-      const res = await fetch(`${BASE_URL}/api/analyse-memorial`, { method: 'POST', body: fd });
-      const data = await res.json();
-      if (!res.ok || !data.success) throw new Error(data.error || `Failed with status ${res.status}`);
+      const data = await requestJson('/api/analyse-memorial', { formData: fd });
       body.innerHTML = renderResult(data);
       const again = body.querySelector('#mr-again');
       if (again) again.addEventListener('click', () => attachForm(body));

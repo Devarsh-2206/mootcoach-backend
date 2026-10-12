@@ -23,6 +23,50 @@ async function identityHeaders() {
   }
 }
 
+/**
+ * POST and read a JSON answer, turning every way that can fail into a sentence
+ * a student can act on.
+ *
+ * Before this, three failures surfaced badly or not at all: a dropped
+ * connection ("Failed to fetch"), a gateway page instead of JSON when the host
+ * timed out or restarted ("Unexpected token <"), and a request that never
+ * came back at all, which left a spinner running forever. The server gives up
+ * at 180s, so the browser waits a little longer than that and then says so.
+ */
+export async function requestJson(path, { body, formData, timeoutMs = 190000 } = {}) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  let res;
+  try {
+    res = await fetch(`${BASE_URL}${path}`, {
+      method: 'POST',
+      headers: Object.assign(formData ? {} : { 'Content-Type': 'application/json' }, await identityHeaders()),
+      body: formData || JSON.stringify(body || {}),
+      signal: controller.signal,
+    });
+  } catch (e) {
+    clearTimeout(timer);
+    if (e && e.name === 'AbortError') {
+      throw new Error('The server took too long to answer. Nothing you wrote has been lost. Try again.');
+    }
+    throw new Error("Couldn't reach the MootCoach server. If it has been idle it can take up to a minute to wake up. Try again shortly.");
+  }
+  clearTimeout(timer);
+  const text = await res.text().catch(() => '');
+  let data = null;
+  try { data = text ? JSON.parse(text) : null; } catch (e) { /* not JSON: a gateway or host error page */ }
+  if (!data) {
+    throw new Error(`The server could not finish that request (status ${res.status}). It may have restarted or timed out. Try again.`);
+  }
+  // A rejection ("this is not a legal document") is an answer, not a failure:
+  // the caller has its own screen for it.
+  if (data.isRejection) return data;
+  if (!res.ok || data.success === false) {
+    throw new Error(data.error || `The request failed (status ${res.status}). Try again.`);
+  }
+  return data;
+}
+
 export async function checkBackendHealth() {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 7000);
@@ -37,34 +81,15 @@ export async function checkBackendHealth() {
 }
 
 export async function analyzeProposition(formData) {
-  const res = await fetch(`${BASE_URL}/analyze`, {
-    method: 'POST',
-    headers: await identityHeaders(),      // no Content-Type: the browser sets the multipart boundary
-    body: formData,
-  });
-  if (!res.ok) {
-    const txt = await res.text().catch(() => 'Unknown server error.');
-    // Routes answer {success:false, error:"..."}; show that sentence, not raw JSON.
-    let msg = null;
-    try { msg = JSON.parse(txt).error; } catch (e) { /* not JSON */ }
-    throw new Error(msg || `Server ${res.status}: ${txt}`);
-  }
-  return res.json();
+  return requestJson('/analyze', { formData });
 }
 
 export async function evaluateOral(argumentText, contextText, difficultyMode) {
-  const res = await fetch(`${BASE_URL}/evaluate-oral`, {
-    method: 'POST',
-    headers: Object.assign({ 'Content-Type': 'application/json' }, await identityHeaders()),
-    body: JSON.stringify({
-      argument: argumentText,
-      propositionContext: contextText || '',
-      difficulty: difficultyMode
-    })
-  });
-  const data = await res.json();
-  if (!res.ok || !data.success) throw new Error(data.error || 'Evaluation failed.');
-  return data;
+  return requestJson('/evaluate-oral', { body: {
+    argument: argumentText,
+    propositionContext: contextText || '',
+    difficulty: difficultyMode
+  } });
 }
 
 export async function logSessionSecurely(payload, idToken) {
@@ -84,21 +109,12 @@ export async function logSessionSecurely(payload, idToken) {
 }
 
 export async function buildArgument(stance, issue, notes, propositionContext, forum, opts = {}) {
-  const res = await fetch(`${BASE_URL}/api/build-argument`, {
-    method: 'POST',
-    headers: Object.assign({ 'Content-Type': 'application/json' }, await identityHeaders()),
-    // instructions: the advocate's directives, kept separate from notes so the
-    // backend can present them as binding rather than as material to summarise.
-    // authorities: their Authority Armory picks, which must appear in the memorial.
-    body: JSON.stringify({ stance, issue, notes, propositionContext, forum,
-      instructions: opts.instructions || '', authorities: opts.authorities || [],
-      memorialFocus: !!opts.memorialFocus })
-  });
-  const data = await res.json();
-  if (!res.ok || !data.success) {
-    throw new Error(data.error || `Failed to build argument with status ${res.status}`);
-  }
-  return data;
+  // instructions: the advocate's directives, kept separate from notes so the
+  // backend can present them as binding rather than as material to summarise.
+  // authorities: their Authority Armory picks, which must appear in the memorial.
+  return requestJson('/api/build-argument', { body: { stance, issue, notes, propositionContext, forum,
+    instructions: opts.instructions || '', authorities: opts.authorities || [],
+    memorialFocus: !!opts.memorialFocus } });
 }
 
 
@@ -113,14 +129,6 @@ export async function buildArgument(stance, issue, notes, propositionContext, fo
  * sub-ground, which roughly doubles the body but takes a few minutes.
  */
 export async function buildMemorial(payload) {
-  const res = await fetch(`${BASE_URL}/api/build-memorial`, {
-    method: 'POST',
-    headers: Object.assign({ 'Content-Type': 'application/json' }, await identityHeaders()),
-    body: JSON.stringify(payload),
-  });
-  const data = await res.json();
-  if (!res.ok || !data.success) {
-    throw new Error(data.error || `Memorial drafting failed with status ${res.status}`);
-  }
-  return data;
+  // Several passes; 'full' depth can run past the default wait.
+  return requestJson('/api/build-memorial', { body: payload, timeoutMs: 400000 });
 }
