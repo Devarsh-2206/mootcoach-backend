@@ -19,6 +19,23 @@ carry `verified: 2026-10-09`.
 
 ## Re-check log
 
+### 2026-10-12 (daily re-check)
+
+All ten entries re-fetched and edition confirmed; **no milestone moved**.
+`verified` set to 2026-10-12 on all ten. The Surana-Raffles Labour Law rules
+body text still gives clarifications before 15 October, registration 22 October,
+memorials 30 October 5:00 PM, orals 13-15 November 2026.
+
+- Vis 34th page still lists "Friday, 6 November 2026" for Requests for
+  Clarification. No `clar` milestone in the calendar; not added (not authorised).
+- Vis East key-dates PDF is still the "Updated as of 28 July 2026" file with the
+  "7 November 2025" typo; no newer version found. `clar` stays tentative.
+- ilsa.org (Jessup) still HTTP 403. Bonavero calendar still shows South Asia
+  Rounds "TBC", International Rounds 12-16 April 2027, no memorial deadline.
+  Neither Jessup nor Price is confirmable.
+- Large PDFs read from locally extracted text; Stetson table columns scrambled but
+  body text matches recorded dates.
+
 ### 2026-10-11 (daily re-check)
 
 All ten entries re-fetched from the URLs below; edition confirmed on each; **no
