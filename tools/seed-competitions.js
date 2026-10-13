@@ -63,7 +63,7 @@ const COMPETITIONS = [
     cat: 'international',
     city: 'Vienna',
     subject: 'International commercial arbitration (CISG)',
-    verified: '2026-10-12',
+    verified: '2026-10-13',
     link: 'https://www.vismoot.org/home/34th-vis-moot/',
     milestones: [
       { type: 'prop',  d: '2026-10-02' },
@@ -83,14 +83,14 @@ const COMPETITIONS = [
     host: 'Vis East Moot Foundation Limited',
     city: 'Hong Kong',
     subject: 'International commercial arbitration (CISG)',
-    verified: '2026-10-12',
-    link: 'https://cisgmoot.org/wp-content/uploads/2026/07/VEM24-Key-Dates-and-Times-as-of-27-July-2026.pdf',
+    verified: '2026-10-13',
+    link: 'https://cisgmoot.org/wp-content/uploads/2026/08/VEM24-Key-Dates-and-Times-as-of-27-July-2026-1.pdf',
     milestones: [
       { type: 'open',  d: '2026-09-25' },
       { type: 'prop',  d: '2026-10-02' },
-      // The official PDF prints "Saturday, 7 November 2025". 7 Nov 2026 is the
-      // Saturday, so the year reads as a typo — left unconfirmed rather than fixed.
-      { type: 'clar',  d: '2026-11-07', tent: true },
+      // The reissued key-dates PDF (Aug 2026) prints "Saturday, 7 November 2026",
+      // correcting the "2025" typo in the July file.
+      { type: 'clar',  d: '2026-11-07' },
       { type: 'reg',   d: '2026-11-12' },
       { type: 'memo',  d: '2026-12-10', label: "Claimant's Memorandum due" },
       { type: 'memo',  d: '2027-01-21', label: "Respondent's Memorandum due" },
@@ -112,7 +112,7 @@ const COMPETITIONS = [
     elig: 'Teams from India and Nepal',
     team: '2 speakers + 1 researcher',
     fee: 'INR 5,900 (incl. GST)',
-    verified: '2026-10-12',
+    verified: '2026-10-13',
     link: 'https://moot.in/moot1/case_documents/171/rules.pdf',
     milestones: [
       { type: 'open',  d: '2026-09-09' },
@@ -134,7 +134,7 @@ const COMPETITIONS = [
     city: 'Singapore',
     subject: 'Space law',
     fee: 'SGD 800 initial + SGD 700 post-memorial',
-    verified: '2026-10-12',
+    verified: '2026-10-13',
     link: 'https://iisl.space/asia-pacific-manfred-lachs-space-law-moot-court-competition',
     milestones: [
       { type: 'open',  d: '2026-09-01' },
@@ -161,7 +161,7 @@ const COMPETITIONS = [
     elig: 'Undergraduate law students · 3-yr, 5-yr integrated or international equivalent',
     team: '2 speakers + 1 researcher, or 2 speakers only',
     fee: 'No fee',
-    verified: '2026-10-12',
+    verified: '2026-10-13',
     link: 'https://kkluthramoot.org/wp-content/uploads/2020/12/Schedule-of-Events-2027-1.pdf',
     milestones: [
       { type: 'prop',  d: '2026-07-15' },
@@ -185,7 +185,7 @@ const COMPETITIONS = [
     elig: '5-yr and 3-yr LLB programmes in India',
     team: '2 speakers + 1 researcher',
     fee: 'INR 2,000',
-    verified: '2026-10-12',
+    verified: '2026-10-13',
     link: 'https://moot.in/moot1/case_documents/170/rules.pdf',
     milestones: [
       { type: 'open',  d: '2026-09-01' },
@@ -207,7 +207,7 @@ const COMPETITIONS = [
     mode: 'Online',
     subject: 'Taxation law',
     fee: 'INR 3,540 (incl. GST)',
-    verified: '2026-10-12',
+    verified: '2026-10-13',
     link: 'https://itatonline.org/digest/wp-content/uploads/2026/08/15TH-NAPMCC-BROCHURE.pdf',
     milestones: [
       { type: 'open',  d: '2026-08-08' },
@@ -229,7 +229,7 @@ const COMPETITIONS = [
     city: 'New Delhi',
     subject: 'International humanitarian law',
     elig: 'Law students from Indian universities',
-    verified: '2026-10-12',
+    verified: '2026-10-13',
     link: 'https://blogs.icrc.org/new-delhi/2026/07/23/opening-of-registrations-for-the-25th-henry-dunant-memorial-moot-court-competition-india-national-rounds-silver-jubilee/',
     milestones: [
       { type: 'clar',  d: '2026-08-17' },
@@ -250,7 +250,7 @@ const COMPETITIONS = [
     mode: 'Offline',
     subject: 'Insolvency law',
     fee: 'INR 4,000 (+ INR 3,000 per day for the offline rounds)',
-    verified: '2026-10-12',
+    verified: '2026-10-13',
     link: 'https://moot.in/moot1/case_documents/169/rules.pdf',
     milestones: [
       { type: 'open',  d: '2026-08-13' },
@@ -273,7 +273,7 @@ const COMPETITIONS = [
     subject: 'FinTech and financial regulation',
     elig: '2nd year and above · 5-yr integrated and 3-yr LLB',
     fee: 'INR 2,500 registration + INR 7,500 participation for qualifiers',
-    verified: '2026-10-12',
+    verified: '2026-10-13',
     link: 'https://www.nls.ac.in/news-events/call-for-applications-3rd-fintech-moot-court-competition-2026-2027-by-nlsiu-and-shardul-amarchand-mangaldas/',
     milestones: [
       { type: 'prop',  d: '2026-08-22' },
