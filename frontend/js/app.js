@@ -16,6 +16,7 @@ import { BASE_URL } from './config.js';
 import './components/memorialReview.js';
 import './components/mootCalendar.js';
 import './services/mootProgress.js';
+import { ensureFreshBuild } from './services/freshness.js';
 import { 
   showToast,
   getFriendlyError,
@@ -512,6 +513,7 @@ document.addEventListener('DOMContentLoaded', () => {
   fetch(`${BASE_URL}/health`, { method: 'GET', cache: 'no-store' }).catch(() => {});
 
   // Initialize Microsoft Clarity
+  ensureFreshBuild();
   initClarity();
 
   // ─── LANDING & LOGIN PAGE ROUTING LISTENERS ───

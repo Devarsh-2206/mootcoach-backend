@@ -132,8 +132,20 @@ function capTotal(dims, cap) {
   dims.legalAccuracy.score = acc;
   const others = DIMENSIONS.filter(d => d.key !== 'legalAccuracy');
   const rest = others.reduce((n, d) => n + dims[d.key].score, 0);
-  const f = rest ? (cap - acc) / rest : 0;
-  for (const d of others) dims[d.key].score = Math.floor(dims[d.key].score * f);
+  const target = cap - acc;
+  const f = rest ? target / rest : 0;
+  // Round down, then hand the leftover points to the largest remainders, so
+  // the total lands exactly on the cap. Rounding down alone left totals a
+  // point or three under it, unevenly, which let Hard come out above
+  // Moderate on the same argument.
+  const raw = others.map(d => ({ d, v: dims[d.key].score * f }));
+  raw.forEach(r => { dims[r.d.key].score = Math.floor(r.v); });
+  let left = target - raw.reduce((n, r) => n + dims[r.d.key].score, 0);
+  raw.sort((x, y) => (y.v - Math.floor(y.v)) - (x.v - Math.floor(x.v)));
+  for (const r of raw) {
+    if (left <= 0) break;
+    if (dims[r.d.key].score < r.d.max) { dims[r.d.key].score++; left--; }
+  }
 }
 
 /**
@@ -230,6 +242,18 @@ function computeScore(assessment, { difficulty = 'moderate', stance = '', knownA
       quote: '',
       issue: `You are arguing for the ${want === 'petitioner' ? 'Petitioner' : 'Respondent'}, but this submission argues the ${argued === 'petitioner' ? 'Petitioner' : 'Respondent'}'s case. Scored at no more than ${cap}.`,
     });
+  }
+
+  // ── Fabricated authority ──
+  // A citation confirmed not to exist is fatal before a bench, however well
+  // the rest is put: one reading scored a fabricated-case argument 77 on Easy,
+  // above the same argument with real cases.
+  if (citations.some(c => c.exists === 'no')) {
+    const cap = 45;
+    if (DIMENSIONS.reduce((n, d) => n + dims[d.key].score, 0) > cap) {
+      capTotal(dims, cap);
+      notes.push(`A citation that could not be identified as real caps the score at ${cap}.`);
+    }
   }
 
   // ── Padding ──
