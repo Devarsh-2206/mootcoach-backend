@@ -977,6 +977,33 @@ p  { color:var(--white-2); }
   z-index:999; flex-direction:column; align-items:center; justify-content:center; gap:0;
 }
 .loading-overlay.show { display:flex; }
+/* Scales of justice on the loading overlay (see the overlay markup). */
+.mc-scales { width: min(240px, 62vw); height: auto; display: block; margin: 0 auto 4px; }
+.mc-scales .mcs-line { stroke: var(--glass-b); }
+.mc-scales .mcs-disc { fill: var(--sheet); stroke: var(--glass-b); }
+.mc-scales .mcs-orbit { stroke: var(--acc-blue); stroke-dasharray: 2 10; opacity: .55; }
+.mc-scales .mcs-ink { fill: var(--white); }
+.mc-scales .mcs-ink-stroke { stroke: var(--white); }
+.mc-scales .mcs-cord { stroke: var(--white-muted); stroke-width: 1.2; }
+.mc-scales .mcs-pet { fill: var(--acc-blue); }
+.mc-scales .mcs-res { fill: var(--acc-red); }
+.mc-scales .mcs-pivot { fill: var(--gold); }
+.mc-scales .mcs-ring-text { font-family: var(--mono); font-size: 13px; letter-spacing: 4px; fill: var(--white-muted); }
+.mc-scales .mcs-label { font-family: var(--mono); font-size: 11px; letter-spacing: 2px; font-weight: 600; }
+@keyframes mcs-spin { to { transform: rotate(360deg); } }
+@keyframes mcs-spin-rev { to { transform: rotate(-360deg); } }
+@keyframes mcs-beam { from { transform: rotate(-7deg); } to { transform: rotate(7deg); } }
+@keyframes mcs-panL { from { transform: translateY(18px); } to { transform: translateY(-18px); } }
+@keyframes mcs-panR { from { transform: translateY(-18px); } to { transform: translateY(18px); } }
+.mc-scales .mcs-ring-outer { transform-box: view-box; transform-origin: 260px 260px; animation: mcs-spin 70s linear infinite; }
+.mc-scales .mcs-ring-inner { transform-box: view-box; transform-origin: 260px 260px; animation: mcs-spin-rev 40s linear infinite; }
+.mc-scales .mcs-beam { transform-box: view-box; transform-origin: 260px 200px; animation: mcs-beam 4.2s ease-in-out infinite alternate; }
+.mc-scales .mcs-panL { animation: mcs-panL 4.2s ease-in-out infinite alternate; }
+.mc-scales .mcs-panR { animation: mcs-panR 4.2s ease-in-out infinite alternate; }
+/* Only while it is on screen: no work for a hidden overlay. */
+.loading-overlay:not(.show) .mc-scales * { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) { .mc-scales * { animation: none !important; } }
+
 .lo-glow {
   width:110px; height:110px; border-radius:50%;
   background:radial-gradient(circle,rgba(176,57,46,.16) 0%,transparent 70%);
@@ -4271,20 +4298,44 @@ input.sr-only { position: absolute !important; width: 1px !important; height: 1p
 <!-- LOADING OVERLAY -->
 <div class="loading-overlay" id="loading-overlay">
   <div style="width: 100%; max-width: 500px; padding: 32px; background: var(--navy-3); border: 1px solid var(--glass-b); border-radius: var(--rl); display: flex; flex-direction: column; gap: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.5);">
-    <div class="w-full space-y-6 animate-pulse">
-      <div class="h-4 bg-moot-border/50 rounded w-1/4 mb-4"></div>
-      <div class="space-y-3">
-        <div class="h-3 bg-moot-border/30 rounded w-full"></div>
-        <div class="h-3 bg-moot-border/30 rounded w-5/6"></div>
-        <div class="h-3 bg-moot-border/30 rounded w-full"></div>
-      </div>
-      <div class="h-4 bg-moot-border/50 rounded w-1/3 mt-6 mb-4"></div>
-      <div class="space-y-3">
-        <div class="h-3 bg-moot-border/30 rounded w-full"></div>
-        <div class="h-3 bg-moot-border/30 rounded w-4/5"></div>
-      </div>
-    </div>
-    
+    <!-- Scales of justice: both sides weighed while the proposition is analysed.
+         Replaces grey placeholder bars. Petitioner blue, Respondent red, as on
+         the memorial covers; colours follow the light and dark themes. -->
+    <svg class="mc-scales" viewBox="0 0 520 520" role="img" aria-label="Weighing the Petitioner's case against the Respondent's">
+      <defs><path id="mc-scales-circ" d="M260,260 m-228,0 a228,228 0 1,1 456,0 a228,228 0 1,1 -456,0"/></defs>
+      <circle cx="260" cy="260" r="246" fill="none" class="mcs-line"/>
+      <g class="mcs-ring-outer">
+        <text class="mcs-ring-text"><textPath href="#mc-scales-circ">ART. 14 · ART. 19(1)(a) · ART. 21 · ART. 32 · ISSUE · RULE · APPLICATION · CONCLUSION · AUDI ALTERAM PARTEM · RATIO DECIDENDI · OBITER DICTUM ·</textPath></text>
+      </g>
+      <g class="mcs-ring-inner">
+        <circle cx="260" cy="260" r="196" fill="none" class="mcs-orbit"/>
+        <circle cx="260" cy="64" r="5" class="mcs-pet"/>
+        <circle cx="456" cy="260" r="3" class="mcs-res"/>
+        <circle cx="122" cy="398" r="4" class="mcs-ink"/>
+      </g>
+      <circle cx="260" cy="260" r="160" class="mcs-disc"/>
+      <line x1="260" y1="188" x2="260" y2="372" class="mcs-ink-stroke" stroke-width="3"/>
+      <path d="M214 378 L306 378 L292 364 L228 364 Z" class="mcs-ink"/>
+      <circle cx="260" cy="182" r="9" class="mcs-pivot"/>
+      <g class="mcs-beam">
+        <line x1="110" y1="200" x2="410" y2="200" class="mcs-ink-stroke" stroke-width="3"/>
+        <circle cx="110" cy="200" r="4" class="mcs-ink"/>
+        <circle cx="410" cy="200" r="4" class="mcs-ink"/>
+      </g>
+      <g class="mcs-panL">
+        <line x1="110" y1="200" x2="80" y2="282" class="mcs-cord"/>
+        <line x1="110" y1="200" x2="140" y2="282" class="mcs-cord"/>
+        <path d="M70 282 L150 282 Q110 318 70 282 Z" class="mcs-pet"/>
+        <text class="mcs-label mcs-pet" x="110" y="336" text-anchor="middle">PETITIONER</text>
+      </g>
+      <g class="mcs-panR">
+        <line x1="410" y1="200" x2="380" y2="282" class="mcs-cord"/>
+        <line x1="410" y1="200" x2="440" y2="282" class="mcs-cord"/>
+        <path d="M370 282 L450 282 Q410 318 370 282 Z" class="mcs-res"/>
+        <text class="mcs-label mcs-res" x="410" y="336" text-anchor="middle">RESPONDENT</text>
+      </g>
+    </svg>
+
     <div class="lo-steps" style="display: none;">
       <div class="lo-step" id="ls-1"><div class="lo-dot"></div>Reading PDF</div>
       <div class="lo-step" id="ls-2"><div class="lo-dot"></div>Extracting text</div>
