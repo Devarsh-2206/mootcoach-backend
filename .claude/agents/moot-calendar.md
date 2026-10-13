@@ -178,6 +178,14 @@ goes wrong, and each one looks exactly like a date change:
   often than they move up. An earlier date is more often a cached page or the
   previous edition. Apply it only if the page unambiguously says so, and call it
   out in your report either way.
+- **A corrected document may wear the old one's header.** On 13 October the Vis
+  East Foundation reissued its key-dates PDF to fix a year — "7 November 2025"
+  became "7 November 2026" — but the new file still read "Updated as of 28 July
+  2026" and its filename still said 27 July, differing from the old one only by
+  a "-1" and a different upload month in the path. The header and the filename
+  told you nothing. Follow the link from the organiser's page each time and
+  compare the dates themselves, rather than concluding from a matching header
+  that you have already seen this file.
 
 Change a date only when a reachable page of the right edition clearly states a
 different one. Otherwise the entry stands.
