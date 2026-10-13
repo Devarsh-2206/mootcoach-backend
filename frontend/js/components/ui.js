@@ -367,6 +367,8 @@ export function resetWorkspace() {
   // The Oral Coach box kept one moot's argument for the next.
   const oralBox = document.getElementById('oral-argument-input');
   if (oralBox) { oralBox.value = ''; oralBox.dispatchEvent(new Event('input', { bubbles: true })); }
+  // Nor may its bench carry over; a moot with a saved bench gets it back on restore.
+  if (typeof window.setOralDifficulty === 'function') window.setOralDifficulty('easy');
   if (typeof window.resetBuilderState === 'function') window.resetBuilderState();
   if (typeof window.clearBenchSession === 'function') window.clearBenchSession();
   ['analysis-output', 'stage-2-extracted-issues-list', 'ws-issue-list', 'oral-results-content']
