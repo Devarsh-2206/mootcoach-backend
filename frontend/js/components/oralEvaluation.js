@@ -61,12 +61,17 @@ export async function runOralEvaluation() {
       s < 20 ? `Evaluating… ${s}s` : s < 60 ? `Still evaluating… ${s}s (usually under a minute)` : `Still working… ${s}s — the server may be waking up`);
   }
 
+  const mootId = window.currentMootDocId || null;
   try {
     const data = await evaluateOral(argumentText, currentPropositionContext, oralDifficultyMode, {
-      stance: (window.mootState && window.mootState.stance) || '',
+      // Checked against the side only when the advocate chose one; the
+      // default is not a choice.
+      stance: (window.mootState && window.mootState.stanceChosen && window.mootState.stance) || '',
       knownAuthorities: knownAuthorityNames(),
     });
 
+    // Another moot was opened while this was being marked: drop the result.
+    if ((window.currentMootDocId || null) !== mootId) return;
     if (data.isStructured && data.response && typeof data.response === 'object') {
       renderOralResults(data.response);
     } else {

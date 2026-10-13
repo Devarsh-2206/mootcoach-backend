@@ -233,7 +233,7 @@ function attachForm(body) {
   body.innerHTML = FORM;
   // Start from the side the open moot is argued for; the advocate can change it.
   const sideSel = body.querySelector('#mr-side');
-  const mootSide = window.mootState && window.mootState.stance;
+  const mootSide = window.mootState && window.mootState.stanceChosen && window.mootState.stance;
   if (sideSel && mootSide && window.currentMootDocId) sideSel.value = /respondent/i.test(mootSide) ? 'Respondent' : 'Petitioner';
   const fileInput = body.querySelector('#mr-file');
   const drop = body.querySelector('#mr-drop');

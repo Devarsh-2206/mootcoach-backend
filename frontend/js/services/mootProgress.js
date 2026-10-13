@@ -36,19 +36,21 @@ function snapshot() {
   const ms = window.mootState || {};
   const built = window.getBuiltArgument ? window.getBuiltArgument() : {};
   const out = {
-    issueIndex: Number.isInteger(ms.issueIndex) ? ms.issueIndex : null,
+    // Only a chosen issue is restored as chosen.
+    issueIndex: ms.issueChosen && Number.isInteger(ms.issueIndex) ? ms.issueIndex : null,
     issueText: ms.issueText || '',
-    stance: ms.stance || '',
+    stance: ms.stanceChosen ? (ms.stance || '') : '',
     builtSide: built.side || '',
     builtArgumentJson: built.arg ? JSON.stringify(built.arg) : '',
     briefingJson: window.getChambersBriefing && window.getChambersBriefing() ? JSON.stringify(window.getChambersBriefing()) : '',
     updatedAt: Date.now(),
   };
-  if (out.builtArgumentJson.length + out.briefingJson.length > MAX_BYTES) {
+  const bytes = str => new TextEncoder().encode(str).length;
+  if (bytes(out.builtArgumentJson) + bytes(out.briefingJson) > MAX_BYTES) {
     // Too large to keep in one document: keep the selection, drop the briefing first.
     console.warn('[MOOT PROGRESS] Draft too large to save in full; keeping the selection.');
     out.briefingJson = '';
-    if (out.builtArgumentJson.length > MAX_BYTES) out.builtArgumentJson = '';
+    if (bytes(out.builtArgumentJson) > MAX_BYTES) out.builtArgumentJson = '';
   }
   return out;
 }

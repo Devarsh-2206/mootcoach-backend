@@ -480,6 +480,7 @@ export function initArgumentBuilder() {
       // here when it does load.
       window.mootState = window.mootState || {};
       window.mootState.stance = /respondent/i.test(radio.value) ? 'Respondent' : 'Petitioner';
+      window.mootState.stanceChosen = true;
       selectedAuthorities.length = 0; // Reset selected authorities when stance changes
       syncBuilderToMootState();
       validateDraftForm();

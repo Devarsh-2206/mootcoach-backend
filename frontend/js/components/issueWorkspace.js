@@ -157,7 +157,8 @@ export function restoreIssueSelection(index, stance) {
   if (stance) activeStance = /respondent/i.test(stance) ? 'respondent' : 'petitioner';
   syncMootStateForIssue(index);
   window.mootState.issueChosen = true;
-  setIwStance(activeStance);
+  // Only a side that was actually chosen is put back as chosen.
+  if (stance) setIwStance(activeStance); else applyStanceButtonStyles();
   renderIssueWorkspace();
   if (window.refreshStepper) window.refreshStepper();
 }
@@ -208,6 +209,7 @@ export function setIwStance(stance) {
   applyStanceButtonStyles();
   const side = stance === 'respondent' ? 'Respondent' : 'Petitioner';
   window.mootState.stance = side;
+  window.mootState.stanceChosen = true;
   if (window.saveMootProgress) window.saveMootProgress();
 
   // And move the Advocacy stage's own selector to match. Several places read

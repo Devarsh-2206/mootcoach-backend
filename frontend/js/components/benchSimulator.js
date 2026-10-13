@@ -355,6 +355,7 @@ export function renderLobbyBrief() {
 window.renderLobbyBrief = renderLobbyBrief;
 
 export function startBenchSession() {
+  window.__benchMootId = window.currentMootDocId || null;
   benchConversation = [];
   claimLedger = [];
   roundMarked = false;
@@ -665,6 +666,8 @@ function renderScorecard(review) {
 export function appendBenchPerformanceReview(review, source = 'bench') {
   const chat = document.getElementById('bench-chat');
   if (!chat) return;
+  // A review that arrives after another moot was opened belongs to the old one.
+  if ((window.__benchMootId || null) !== (window.currentMootDocId || null)) return;
   // Carry what the bench caught back to drafting and the briefing.
   if (review && window.recordMootFeedback) {
     const dm = review.mostDangerousMoment || {};
@@ -1069,6 +1072,7 @@ export function updateBenchState(state) {
 }
 
 export async function startOralRound() {
+  window.__benchMootId = window.currentMootDocId || null;
   resetOralTranscript();
   if (voiceSessionActive) {
     stopOralRound();

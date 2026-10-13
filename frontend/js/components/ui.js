@@ -346,6 +346,8 @@ export function showAuthSuccess() {
  * showing it, and the stepper kept ticking it.
  */
 export function resetWorkspace() {
+  // Nothing from the moot being closed may be saved over the next one.
+  if (window.pauseMootProgress) window.pauseMootProgress();
   clearChambersBriefing();
   if (window.loadMootFeedback) window.loadMootFeedback(null);
   lastAnalysis = '';
@@ -357,6 +359,11 @@ export function resetWorkspace() {
     issueIndex: 0, issueText: '', issueChosen: false, roundMarked: false,
     authorities: [], memorialDraft: '', oralSubmission: '', strategicNotes: '', plan: null,
   });
+  // The side went unreset, so one moot's Respondent carried into the next.
+  // Back to the default, marked as not chosen: nothing is checked against a
+  // side the advocate never picked.
+  if (typeof window.setIwStance === 'function') window.setIwStance('petitioner');
+  if (window.mootState) { window.mootState.stance = 'Petitioner'; window.mootState.stanceChosen = false; }
   if (typeof window.resetBuilderState === 'function') window.resetBuilderState();
   if (typeof window.clearBenchSession === 'function') window.clearBenchSession();
   ['analysis-output', 'stage-2-extracted-issues-list', 'ws-issue-list', 'oral-results-content']
@@ -1808,9 +1815,15 @@ function briefingIsThin(src) {
     || !oa.closingPrayer || !rb.emergencyRescue || !rb.planB;
 }
 
+let briefingInFlight = false;
 window.prepareChambersBriefing = async function () {
+  // The panel re-renders (bench change, new feedback) while this runs, which
+  // replaces the button with an enabled one; the flag, not the button, stops
+  // a second request.
+  if (briefingInFlight) return;
+  briefingInFlight = true;
+  const mootId = window.currentMootDocId || null;
   const btn = document.getElementById('btn-prepare-briefing');
-  if (btn && btn.disabled) return;
   const stance = (window.mootState && window.mootState.stance) || window.builtArgumentSide || 'Petitioner';
   const draft = [
     window.mootState && window.mootState.memorialDraft,
@@ -1828,12 +1841,14 @@ window.prepareChambersBriefing = async function () {
       knownAuthorities: known,
       pastWeaknesses: window.getMootFeedbackPoints ? window.getMootFeedbackPoints(6) : [],
     });
+    if ((window.currentMootDocId || null) !== mootId) return;   // another moot opened meanwhile
     chambersBriefing = data.briefing;
     if (window.saveMootProgress) window.saveMootProgress();
     showToast('Chambers Briefing prepared', 'ok');
   } catch (e) {
     showToast(e.message, 'err');
   } finally {
+    briefingInFlight = false;
     stop();
     renderStage4OralNotes();
   }
@@ -1923,8 +1938,8 @@ export function renderStage4OralNotes() {
           ${stale ? `This briefing was prepared for the ${BENCH_NAME[src.benchMode]} bench; you have the ${BENCH_NAME[mode]} bench selected.`
             : thin ? 'The draft only carried a short briefing (one item per module).'
             : 'This briefing comes from your Stage 3 draft.'}
-          <button type="button" id="btn-prepare-briefing" onclick="window.prepareChambersBriefing()" class="btn-sm" style="display:block;width:100%;margin-top:8px;padding:8px;text-transform:uppercase;letter-spacing:.05em;font-size:10px;">
-            Prepare full briefing for the ${BENCH_NAME[mode]} bench
+          <button type="button" id="btn-prepare-briefing" onclick="window.prepareChambersBriefing()" class="btn-sm" ${briefingInFlight ? 'disabled' : ''} style="display:block;width:100%;margin-top:8px;padding:8px;text-transform:uppercase;letter-spacing:.05em;font-size:10px;">
+            ${briefingInFlight ? 'Preparing…' : `Prepare full briefing for the ${BENCH_NAME[mode]} bench`}
           </button>
         </div>` : `<div style="font-size:11px;color:var(--white-muted);margin-bottom:10px;">Prepared for the ${BENCH_NAME[src.benchMode]} bench.</div>`;
       modulesHTML = (window.mootFeedbackHTML ? window.mootFeedbackHTML() : '') + banner + `
