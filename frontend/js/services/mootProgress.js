@@ -43,6 +43,11 @@ function snapshot() {
     builtSide: built.side || '',
     builtArgumentJson: built.arg ? JSON.stringify(built.arg) : '',
     briefingJson: window.getChambersBriefing && window.getChambersBriefing() ? JSON.stringify(window.getChambersBriefing()) : '',
+    // The Oral Coach: the bench chosen (a briefing is prepared for one bench,
+    // and a reload used to fall back to Easy, making a Hard briefing look
+    // gone) and the argument being worked on.
+    oralBench: window.oralDifficultyMode || '',
+    oralText: String(document.getElementById('oral-argument-input')?.value || '').slice(0, 12000),
     updatedAt: Date.now(),
   };
   const bytes = str => new TextEncoder().encode(str).length;
@@ -95,6 +100,14 @@ export async function restoreMootProgress(mootId) {
           }
         }
       }
+      // Before the draft: restoring the draft fills an empty Oral Coach box
+      // with its opening speech, which would hide the advocate's own text.
+      if (d.oralBench && window.setOralDifficulty) window.setOralDifficulty(d.oralBench);
+      const oralBox = document.getElementById('oral-argument-input');
+      if (d.oralText && oralBox && !oralBox.value.trim()) {
+        oralBox.value = d.oralText;
+        oralBox.dispatchEvent(new Event('input', { bubbles: true }));
+      }
       if (d.builtArgumentJson && window.restoreBuiltArgument) {
         try { window.restoreBuiltArgument(JSON.parse(d.builtArgumentJson), d.builtSide || d.stance); } catch (e) { /* unreadable draft: start without it */ }
       }
@@ -121,6 +134,10 @@ export function startFreshMootProgress(mootId) {
 }
 
 window.saveMootProgress = saveMootProgress;
+// Typing in the Oral Coach box is saved like any other change.
+document.addEventListener('input', (e) => {
+  if (e.target && e.target.id === 'oral-argument-input' && e.isTrusted) saveMootProgress();
+});
 window.restoreMootProgress = restoreMootProgress;
 window.startFreshMootProgress = startFreshMootProgress;
 window.pauseMootProgress = pauseMootProgress;

@@ -364,6 +364,9 @@ export function resetWorkspace() {
   // side the advocate never picked.
   if (typeof window.setIwStance === 'function') window.setIwStance('petitioner');
   if (window.mootState) { window.mootState.stance = 'Petitioner'; window.mootState.stanceChosen = false; }
+  // The Oral Coach box kept one moot's argument for the next.
+  const oralBox = document.getElementById('oral-argument-input');
+  if (oralBox) { oralBox.value = ''; oralBox.dispatchEvent(new Event('input', { bubbles: true })); }
   if (typeof window.resetBuilderState === 'function') window.resetBuilderState();
   if (typeof window.clearBenchSession === 'function') window.clearBenchSession();
   ['analysis-output', 'stage-2-extracted-issues-list', 'ws-issue-list', 'oral-results-content']

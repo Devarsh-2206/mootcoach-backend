@@ -35,6 +35,7 @@ export function setOralDifficulty(mode) {
   window.oralDifficultyMode = mode;
   // The briefing says which bench it was prepared for; let it notice.
   if (typeof window.renderStage4OralNotes === 'function') window.renderStage4OralNotes();
+  if (typeof window.saveMootProgress === 'function') window.saveMootProgress();
   ['easy','moderate','hard'].forEach(d => {
     const el = document.getElementById(`oral-diff-${d}`);
     if (el) el.className = `diff-btn${d === mode ? ` active-${d}` : ''}`;
