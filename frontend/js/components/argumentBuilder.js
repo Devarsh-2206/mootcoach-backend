@@ -486,6 +486,18 @@ export function initArgumentBuilder() {
       validateDraftForm();
       renderPreDraftAuthorities();
     });
+    // Clicking the side that is already selected (Petitioner, by default)
+    // fires no "change", so that click never counted as choosing a side and
+    // the oral scorer could not check the argument against it. A click is a
+    // choice whether or not it changes anything.
+    radio.addEventListener('click', () => {
+      window.mootState = window.mootState || {};
+      window.mootState.stance = /respondent/i.test(radio.value) ? 'Respondent' : 'Petitioner';
+      if (!window.mootState.stanceChosen) {
+        window.mootState.stanceChosen = true;
+        if (window.saveMootProgress) window.saveMootProgress();
+      }
+    });
   });
 
   // Bind issue select change event
