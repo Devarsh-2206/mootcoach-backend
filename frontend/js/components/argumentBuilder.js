@@ -3449,12 +3449,16 @@ function seedAdvocacyFromPlan(notesEl, oralEl) {
  * memorials filed at NUALS 2025: the Petitioner's cover was blue, the
  * Respondent's red.
  *
+ * Only the cover is coloured, and its ink is plain black, as on the filed
+ * memorials: tinting the text to match turned the whole page blue or red.
+ * Every page after the cover is black on white.
+ *
  * Competitions occasionally invert or add colours, so this is the default and
  * not a rule the advocate cannot override.
  */
 export const MEMORIAL_COVER_COLOURS = {
-  petitioner: { bg: '#4472C4', ink: '#10233F', label: 'Blue — Petitioner / Appellant / Claimant' },
-  respondent: { bg: '#C00000', ink: '#2B0000', label: 'Red — Respondent / Defendant' },
+  petitioner: { bg: '#4472C4', ink: '#000000', label: 'Blue — Petitioner / Appellant / Claimant' },
+  respondent: { bg: '#C00000', ink: '#000000', label: 'Red — Respondent / Defendant' },
 };
 
 export function coverColourFor(stance) {
