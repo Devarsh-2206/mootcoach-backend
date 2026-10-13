@@ -508,15 +508,37 @@ export async function loadRecentSessions() {
     }
     
     sec.style.display = 'flex';
-    let html = '';
+    /* The upload date beside each name: the same proposition uploaded twice
+       gave two identical entries with no way to tell them apart. When two
+       share a name and a day, the time is added too. */
+    const rows = [];
     snapshot.forEach(doc => {
       const d = doc.data();
-      const title = deriveMootName(d);
+      let when = null;
+      try { when = d.timestamp && d.timestamp.toDate ? d.timestamp.toDate() : (d.timestamp ? new Date(d.timestamp) : null); } catch (e) {}
+      if (when && isNaN(when)) when = null;
+      rows.push({ id: doc.id, title: deriveMootName(d), when });
+    });
+    const sameYear = (dt) => dt.getFullYear() === new Date().getFullYear();
+    const dayLabel = (dt) => dt.toLocaleDateString(undefined, sameYear(dt) ? { day: 'numeric', month: 'short' } : { day: 'numeric', month: 'short', year: 'numeric' });
+    const timeLabel = (dt) => dt.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+    const dayKey = (r) => r.when ? r.title + '|' + r.when.toDateString() : null;
+    const clash = {};
+    rows.forEach(r => { const k = dayKey(r); if (k) clash[k] = (clash[k] || 0) + 1; });
+    let html = '';
+    rows.forEach(r => {
+      const short = r.when ? dayLabel(r.when) + (clash[dayKey(r)] > 1 ? ', ' + timeLabel(r.when) : '') : '';
+      const full = r.when ? `${r.when.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}, ${timeLabel(r.when)}` : '';
+      const label = full ? `${r.title} — uploaded ${full}` : r.title;
       html += `<div class="ws-recent-row">
-        <button class="ws-sb-item" onclick="loadSavedSession('${doc.id}')" title="${esc(title)}">
-          <span class="ws-sb-icon">📄</span> <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(title)}</span>
+        <button class="ws-sb-item" onclick="loadSavedSession('${r.id}')" title="${esc(label)}">
+          <span class="ws-sb-icon">📄</span>
+          <span style="display:flex;flex-direction:column;min-width:0;flex:1;text-align:left;line-height:1.25;">
+            <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(r.title)}</span>
+            ${short ? `<span class="ws-recent-date" style="font-size:10px;color:var(--white-muted);white-space:nowrap;letter-spacing:.02em;">${esc(short)}</span>` : ''}
+          </span>
         </button>
-        <button type="button" class="ws-recent-del" onclick="deleteSavedSession('${doc.id}')" aria-label="Delete ${esc(title)}" title="Delete this moot">&times;</button>
+        <button type="button" class="ws-recent-del" onclick="deleteSavedSession('${r.id}')" aria-label="Delete ${esc(label)}" title="Delete this moot">&times;</button>
       </div>`;
     });
     list.innerHTML = html;
