@@ -1202,63 +1202,152 @@ app.post("/analyze", requireUser({ allowPrewarm: true }), aiLimiter, singlePdf("
 });
 
 /* ─── /evaluate-oral ─── */
-app.post("/evaluate-oral", signedIn, aiLimiter, express.json(), async (req, res) => {
-  const { argument, propositionContext, difficulty } = req.body;
+/*
+ * The score is computed in code from the model's levels (services/oralScoring.js),
+ * so the same argument scores the same every time and Legal Accuracy does not
+ * change with the bench. The assessment is cached per text, which also makes
+ * switching bench mode instant.
+ */
+const oralScoring = require("./services/oralScoring");
+const ORAL_MAX_CHARS = 12000;
+
+app.post("/evaluate-oral", signedIn, aiLimiter, express.json({ limit: '200kb' }), async (req, res) => {
+  const { argument, propositionContext, difficulty, stance } = req.body;
 
   if (!argument || argument.trim().length < 30) {
     return res.status(400).json({ success: false, error: "Please provide your oral argument text." });
   }
 
-  const contextBlock = propositionContext ? `PROPOSITION CONTEXT:\n${propositionContext.slice(0, 800)}\n\n` : '';
   const validDifficulty = ['easy', 'moderate', 'hard'].includes(difficulty) ? difficulty : 'moderate';
-  
-  const difficultyRules = {
-    easy: "This is an EASY BENCH. The judges are lenient. Standard, well-structured arguments will score high (80-90). Minor gaps are excused. However, extremely short or legally incoherent submissions must still be graded low (<50).",
-    moderate: "This is a MODERATE BENCH. The judges look for clear statutory construction and application of law to facts. Scores should be strictly balanced: only exceptional arguments get 85+, solid submissions score 70-80, and weak/shallow arguments score 50-65. Incoherent/very short scripts must receive <40.",
-    hard: "This is a HARD BENCH. The judges are hostile rights-purists and procedural hawks. They look for Socratic rigor, deep constitutional reasoning, precision in case law ratios, and preemptive rebuttal coverage. Scoring is extremely strict: a score of 80+ requires master-class elite mooting. Average submissions score 55-65. Shallow, unconvincing, or brief submissions must be graded failing (<50)."
-  };
-
-  const currentSystemPrompt = `${ORAL_EVAL_PROMPT}\n\n[DIFFICULTY STANDARD]\n${difficultyRules[validDifficulty]}`;
+  const text = argument.trim();
+  const truncated = text.length > ORAL_MAX_CHARS;
+  const scored = text.slice(0, ORAL_MAX_CHARS);
+  // The moot's own authorities: real by definition, never "fabricated".
+  const knownAuthorities = (Array.isArray(req.body.knownAuthorities) ? req.body.knownAuthorities : [])
+    .map(x => String(x || '').trim()).filter(x => x.length >= 3).slice(0, 200).map(x => x.slice(0, 200));
+  const context = propositionContext ? String(propositionContext).slice(0, 1500) : '';
 
   try {
-    const evalCall = await getChatCompletion({
+    const key = oralScoring.cacheKey([scored, context, knownAuthorities.slice().sort()]);
+    let assessment = await oralScoring.getCached(key);
+    let cached = !!assessment;
+
+    if (!assessment) {
+      const blocks = [];
+      if (context) blocks.push(`PROPOSITION CONTEXT:\n${context}`);
+      if (knownAuthorities.length) blocks.push(`KNOWN AUTHORITIES (real; relied on in this moot):\n- ${knownAuthorities.join('\n- ')}`);
+      blocks.push(`ORAL SUBMISSION TO ASSESS:\n\n${scored}`);
+
+      const evalCall = await getChatCompletion({
+        messages: [
+          { role: "system", content: ORAL_EVAL_PROMPT },
+          { role: "user", content: blocks.join('\n\n') + '\n\nReturn ONLY a valid JSON object.' }
+        ],
+        temperature: 0,
+        max_tokens: 2500,
+        // One attempt that fits the request budget (a 3 x 90s chain outlived
+        // the 180s server timeout).
+        primaryProvider: "gemini",
+        geminiTimeoutMs: 90000,
+        geminiMaxAttempts: 1,
+        totalBudgetMs: 100000,
+        geminiMaxOutputTokens: 8000,
+        requestLabel: "Oral Evaluation"
+      });
+      assessment = extractAndParseJSON(evalCall.text);
+      if (!assessment || !assessment.levels) throw new Error('Assessment came back without levels');
+      await oralScoring.putCached(key, assessment);
+    }
+
+    const result = oralScoring.computeScore(assessment, {
+      difficulty: validDifficulty,
+      stance,
+      knownAuthorities,
+      repetition: oralScoring.repetitionShare(scored),
+    });
+    result.truncated = truncated ? { scoredChars: ORAL_MAX_CHARS, totalChars: text.length } : null;
+    result.cached = cached;
+
+    return res.json({ success: true, isStructured: true, response: result });
+  } catch (error) {
+    console.error("/evaluate-oral error:", error);
+    const msg = String((error && error.message) || '');
+    const isTimeout = /Timeout/i.test(msg);
+    const busy = /RESOURCE_EXHAUSTED|quota|429|UNAVAILABLE|503|overloaded/i.test(msg);
+    return res.status(isTimeout ? 504 : busy ? 503 : 500).json({
+      success: false,
+      error: isTimeout
+        ? "The evaluation took too long and was stopped. Your argument is unchanged — try again."
+        : busy
+          ? "The AI provider is busy or out of today's allowance. Try again in a minute."
+          : "Evaluation failed. Please try again."
+    });
+  }
+});
+
+/* ─── /api/oral-briefing ───
+   The Chambers Briefing on its own (see prompts/oralBriefingPrompt.js for why
+   it no longer rides on the Stage 3 draft). */
+const { buildOralBriefingPrompt } = require("./prompts/oralBriefingPrompt");
+
+app.post("/api/oral-briefing", signedIn, aiLimiter, express.json({ limit: '300kb' }), async (req, res) => {
+  const { stance, issue, propositionContext, draft, benchMode, forum } = req.body || {};
+  const mode = ['easy', 'moderate', 'hard'].includes(benchMode) ? benchMode : 'moderate';
+  const draftText = String(draft || '').trim();
+  if (draftText.length < 40 && !String(issue || '').trim()) {
+    return res.status(400).json({ success: false, error: "Draft your argument in Stage 3, or write it in the box, so the briefing has something to work from." });
+  }
+  const known = (Array.isArray(req.body.knownAuthorities) ? req.body.knownAuthorities : [])
+    .map(x => String(x || '').trim()).filter(Boolean).slice(0, 60).map(x => x.slice(0, 300));
+
+  const blocks = [];
+  if (forum) blocks.push(`FORUM: ${String(forum).slice(0, 300)}`);
+  if (propositionContext) blocks.push(`PROPOSITION:\n${String(propositionContext).slice(0, 3000)}`);
+  if (issue) blocks.push(`ISSUE BEING ARGUED:\n${String(issue).slice(0, 600)}`);
+  if (known.length) blocks.push(`KNOWN AUTHORITIES (real; relied on in this moot):\n- ${known.join('\n- ')}`);
+  if (draftText) blocks.push(`THE ADVOCATE'S DRAFT:\n${draftText.slice(0, 9000)}`);
+
+  try {
+    const call = await getChatCompletion({
       messages: [
-        { role: "system", content: currentSystemPrompt },
-        { role: "user", content: `${contextBlock}ORAL SUBMISSION TO EVALUATE:\n\n${argument.trim().slice(0, 4000)}\n\nReturn ONLY a valid JSON object.` }
+        { role: "system", content: buildOralBriefingPrompt({ stance, benchMode: mode }) },
+        { role: "user", content: blocks.join('\n\n') + '\n\nReturn ONLY a valid JSON object.' },
       ],
-      temperature: 0.2,
-      max_tokens: 2000,
-      // Was inheriting the defaults: 3 attempts x 90s = 270s against a 180s
-      // server.requestTimeout, so a slow first attempt could never recover —
-      // the request died before the retries finished. Same trap that broke
-      // upload on a large proposition. One attempt that fits the budget.
+      temperature: 0.3,
+      max_tokens: 6000,
       primaryProvider: "gemini",
       geminiTimeoutMs: 120000,
       geminiMaxAttempts: 1,
-      totalBudgetMs: 120000,
-      geminiMaxOutputTokens: 6000,
-      requestLabel: "Oral Evaluation"
+      totalBudgetMs: 130000,
+      geminiMaxOutputTokens: 12000,
+      requestLabel: "Chambers Briefing",
     });
-
-    const evalData = extractAndParseJSON(evalCall.text);
-    evalData.overallScore = Math.min(100, Math.max(0, Number(evalData.overallScore) || 0));
-    
-    const s = evalData.overallScore;
-    if      (s >= 85) evalData.grade = 'A';
-    else if (s >= 70) evalData.grade = 'B';
-    else if (s >= 55) evalData.grade = 'C';
-    else if (s >= 40) evalData.grade = 'D';
-    else              evalData.grade = 'F';
-
-    return res.json({ success: true, isStructured: true, response: evalData });
+    const data = extractAndParseJSON(call.text) || {};
+    const oa = data.oralAdvocacy || {}, rb = data.rebuttals || {};
+    const list = v => Array.isArray(v) ? v.filter(Boolean) : [];
+    const briefing = {
+      benchMode: mode,
+      oralAdvocacy: {
+        qa: list(oa.qa).filter(x => x.q), precedents: list(oa.precedents).filter(x => x.name),
+        traps: list(oa.traps), closingPrayer: String(oa.closingPrayer || ''),
+      },
+      rebuttals: {
+        opponentArguments: list(rb.opponentArguments), demolitionStrategy: list(rb.demolitionStrategy),
+        followUpQuestions: list(rb.followUpQuestions).filter(x => x.q),
+        planB: String(rb.planB || ''), emergencyRescue: String(rb.emergencyRescue || ''),
+      },
+    };
+    return res.json({ success: true, briefing });
   } catch (error) {
-    console.error("/evaluate-oral error:", error);
-    const isTimeout = error.message && error.message.includes("Timeout");
-    return res.status(isTimeout ? 504 : 500).json({
+    console.error("/api/oral-briefing error:", error);
+    const msg = String((error && error.message) || '');
+    const isTimeout = /Timeout/i.test(msg);
+    const busy = /RESOURCE_EXHAUSTED|quota|429|UNAVAILABLE|503|overloaded/i.test(msg);
+    return res.status(isTimeout ? 504 : busy ? 503 : 500).json({
       success: false,
-      error: isTimeout
-        ? "AI evaluation timed out. Please try again."
-        : "Evaluation failed. Please try again."
+      error: isTimeout ? "Preparing the briefing took too long. Try again."
+        : busy ? "The AI provider is busy or out of today's allowance. Try again in a minute."
+        : "The briefing could not be prepared. Try again.",
     });
   }
 });

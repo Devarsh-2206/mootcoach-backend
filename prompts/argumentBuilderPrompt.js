@@ -147,6 +147,13 @@ CRITICAL INSTRUCTIONS:
     response does not change, but reduce them to a single minimal entry each. Do not pad
     them. Everything you save there goes into authorities and numbered paragraphs.
 
+12. **STATE A TEST BY ITS OWN COMPONENTS.**
+    Name a legal test exactly as the judgment frames it, and never relabel a multi-part
+    test as one of its own parts. K.S. Puttaswamy v. Union of India (2017) requires
+    legality, a legitimate aim and proportionality: proportionality is one limb of that
+    test, not the name of the whole. If unsure of a ratio, describe what the case is
+    relied on for and say to verify it, rather than paraphrasing a holding you cannot vouch for.
+
 MANDATORY OUTPUT FORMAT:
 You must respond with ONLY a valid JSON object. No preamble, no explanation, no markdown fences (like \`\`\`json).
 

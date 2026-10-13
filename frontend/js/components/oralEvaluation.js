@@ -8,13 +8,33 @@ import {
   animateBars, 
   animateValue, 
   renderMarkdown,
-  renderActionError
+  renderActionError,
+  startElapsed
 } from './ui.js';
+import { SHARED_AUTHORITY_REGISTRY } from './argumentBuilder.js';
+
+/* Every authority this moot already relies on: the analysis's cases (the
+   Authority Armory) and the built-in registry. The scorer treats these as
+   real, so a case the app itself suggested is never called fabricated. */
+function knownAuthorityNames() {
+  const names = new Set();
+  try { (window.getCasesFromAnalysis ? window.getCasesFromAnalysis() : []).forEach(a => a && a.name && names.add(String(a.name))); } catch (e) {}
+  try {
+    Object.values(SHARED_AUTHORITY_REGISTRY || {}).forEach(byStance =>
+      Object.values(byStance || {}).forEach(list => (list || []).forEach(a => a && a.name && names.add(String(a.name)))));
+  } catch (e) {}
+  return [...names].slice(0, 200);
+}
+
+let evaluating = false;
 
 export let oralDifficultyMode = 'easy';
 
 export function setOralDifficulty(mode) {
   oralDifficultyMode = mode;
+  window.oralDifficultyMode = mode;
+  // The briefing says which bench it was prepared for; let it notice.
+  if (typeof window.renderStage4OralNotes === 'function') window.renderStage4OralNotes();
   ['easy','moderate','hard'].forEach(d => {
     const el = document.getElementById(`oral-diff-${d}`);
     if (el) el.className = `diff-btn${d === mode ? ` active-${d}` : ''}`;
@@ -29,13 +49,23 @@ export function clearOralContext() {
 
 export async function runOralEvaluation() {
   const argumentText = document.getElementById('oral-argument-input')?.value?.trim();
-  if (!argumentText || argumentText.length < 30) return;
+  if (!argumentText || argumentText.length < 30 || evaluating) return;
+  evaluating = true;
 
   const btn = document.getElementById('btn-oral-eval');
-  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>Evaluating…'; }
+  let stop = () => {};
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span><span class="oral-eval-elapsed">Evaluating…</span>';
+    stop = startElapsed(btn.querySelector('.oral-eval-elapsed'), s =>
+      s < 20 ? `Evaluating… ${s}s` : s < 60 ? `Still evaluating… ${s}s (usually under a minute)` : `Still working… ${s}s — the server may be waking up`);
+  }
 
   try {
-    const data = await evaluateOral(argumentText, currentPropositionContext, oralDifficultyMode);
+    const data = await evaluateOral(argumentText, currentPropositionContext, oralDifficultyMode, {
+      stance: (window.mootState && window.mootState.stance) || '',
+      knownAuthorities: knownAuthorityNames(),
+    });
 
     if (data.isStructured && data.response && typeof data.response === 'object') {
       renderOralResults(data.response);
@@ -56,6 +86,8 @@ export async function runOralEvaluation() {
       });
     }
   } finally {
+    stop();
+    evaluating = false;
     if (btn) { btn.disabled = false; btn.textContent = 'Evaluate Argument →'; }
   }
 }
@@ -116,6 +148,31 @@ export function renderOralResults(data) {
       }).join('')
     : `<div style="font-size:.82rem;color:#4caf82;padding:8px 0;">No critical defects detected in this submission.</div>`;
 
+  const VERDICT = {
+    yes: ['Recognised', '#4caf82'],
+    no: ['Could not be identified', '#e05252'],
+    unsure: ['Not verified — check on SCC Online', '#fbbf24'],
+  };
+  const citesHTML = (data.citations || []).map(c => {
+    const [label, col] = VERDICT[c.exists] || VERDICT.unsure;
+    const flags = [c.inMootAuthorities ? 'In this moot\'s authorities' : '', c.holdingMisstated ? 'Holding misstated' : '', c.wrongJurisdiction ? 'Not binding here' : ''].filter(Boolean);
+    return `<div style="padding:10px 0;border-bottom:1px solid var(--glass-b);">
+        <div style="display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;">
+          <span style="font-size:.82rem;color:var(--white);font-style:italic;">${esc(c.name)}</span>
+          <span style="font-size:.6rem;padding:2px 7px;border-radius:3px;color:${col};background:rgba(28,23,16,.04);">${label}</span>
+          ${flags.map(f => `<span style="font-size:.6rem;padding:2px 7px;border-radius:3px;color:var(--white-muted);background:rgba(28,23,16,.04);">${esc(f)}</span>`).join('')}
+        </div>
+        ${c.note ? `<div style="font-size:.74rem;color:var(--white-muted);margin-top:4px;line-height:1.6;">${fmtInline(c.note)}</div>` : ''}
+      </div>`;
+  }).join('');
+
+  const MODE_NAME = { easy: 'Easy', moderate: 'Moderate', hard: 'Hard' };
+  const notices = [
+    data.wrongSide ? `<b>Wrong side.</b> This argues the ${data.sideArgued === 'respondent' ? 'Respondent' : 'Petitioner'}'s case, but your stance is ${esc((window.mootState && window.mootState.stance) || '')}. The score is capped at 40.` : '',
+    data.truncated ? `Only the first ${Number(data.truncated.scoredChars).toLocaleString()} of ${Number(data.truncated.totalChars).toLocaleString()} characters were assessed. Evaluate long submissions a section at a time.` : '',
+  ].filter(Boolean);
+  const noticeHTML = notices.map(n => `<div role="status" style="margin-bottom:12px;padding:12px 15px;border:1px solid var(--glass-b);border-left:3px solid #e05252;border-radius:0 8px 8px 0;font-size:.8rem;color:var(--white-2);line-height:1.6;">${n}</div>`).join('');
+
   const listHTML = (arr, dotColor) => (arr || []).map(s =>
     `<div style="display:flex;gap:10px;padding:9px 0;border-bottom:1px solid var(--glass-b);">
       <div style="width:5px;height:5px;border-radius:50%;background:${dotColor};flex-shrink:0;margin-top:7px;"></div>
@@ -123,12 +180,12 @@ export function renderOralResults(data) {
     </div>`
   ).join('');
 
-  content.innerHTML = `
+  content.innerHTML = `${noticeHTML}
     <div style="display:flex;align-items:center;gap:18px;margin-bottom:18px;padding:20px 22px;background:var(--navy-3);border:1px solid var(--glass-b);border-radius:14px;flex-wrap:wrap;">
       <div class="oral-grade-badge ${gradeCls}">${grade}</div>
       <div>
         <div style="font-family:var(--serif);font-size:2.2rem;font-weight:500;color:var(--white);line-height:1;" id="animated-oral-score">0<span style="font-size:1rem;color:var(--white-muted);font-family:var(--sans);">/100</span></div>
-        <div style="font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:var(--white-muted);margin-top:3px;">Oral Advocacy Score</div>
+        <div style="font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:var(--white-muted);margin-top:3px;">Oral Advocacy Score${data.difficulty ? ` · ${MODE_NAME[data.difficulty] || ''} Bench` : ''}</div>
       </div>
       ${data.judgeVerdict ? `<div style="flex:2;min-width:200px;font-family:var(--serif);font-size:.95rem;font-style:italic;color:var(--white-2);line-height:1.75;border-left:1px solid var(--glass-b);padding-left:18px;">"${fmtInline(data.judgeVerdict)}"</div>` : ''}
     </div>
@@ -140,6 +197,17 @@ export function renderOralResults(data) {
       </div>
       <div class="asc-body" id="asc-b-oral-dims" style="padding:20px 22px;">${dimHTML}</div>
     </div>
+
+    ${citesHTML ? `
+    <div class="analysis-section-card" style="margin-bottom:14px;">
+      <div class="asc-header" id="asc-h-oral-cites" onclick="toggleSection('oral-cites')">
+        <div class="asc-header-left"><div class="asc-icon asc-icon-blue">§</div><div class="asc-title">Authorities Cited</div></div>
+        <div class="asc-header-right"><span class="asc-badge badge-blue">${(data.citations || []).length}</span><span class="asc-chevron" id="asc-ch-oral-cites">▾</span></div>
+      </div>
+      <div class="asc-body" id="asc-b-oral-cites" style="padding:8px 22px 14px;">${citesHTML}
+        <div style="font-size:.7rem;color:var(--white-muted);margin-top:10px;line-height:1.6;">Cases in this moot's authorities are always treated as real. Anything marked "not verified" is not penalised — confirm it before relying on it.</div>
+      </div>
+    </div>` : ''}
 
     <div class="analysis-section-card" style="margin-bottom:14px;">
       <div class="asc-header" id="asc-h-oral-defects" onclick="toggleSection('oral-defects')">

@@ -84,12 +84,21 @@ export async function analyzeProposition(formData) {
   return requestJson('/analyze', { formData });
 }
 
-export async function evaluateOral(argumentText, contextText, difficultyMode) {
-  return requestJson('/evaluate-oral', { body: {
+export async function evaluateOral(argumentText, contextText, difficultyMode, { stance = '', knownAuthorities = [] } = {}) {
+  // The server allows itself about 100s for the assessment; past that the
+  // advocate is told plainly rather than left watching a spinner.
+  return requestJson('/evaluate-oral', { timeoutMs: 120000, body: {
     argument: argumentText,
     propositionContext: contextText || '',
-    difficulty: difficultyMode
+    difficulty: difficultyMode,
+    stance,
+    knownAuthorities,
   } });
+}
+
+/** The Chambers Briefing for the chosen bench (see /api/oral-briefing). */
+export async function prepareOralBriefing(body) {
+  return requestJson('/api/oral-briefing', { timeoutMs: 150000, body });
 }
 
 export async function logSessionSecurely(payload, idToken) {

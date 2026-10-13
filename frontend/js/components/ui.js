@@ -1,6 +1,6 @@
 import { BASE_URL } from '../config.js';
 import { currentUser, db, firebaseRef } from '../services/firebase.js';
-import { logSessionSecurely, checkBackendHealth } from '../services/api.js';
+import { logSessionSecurely, checkBackendHealth, prepareOralBriefing } from '../services/api.js';
 import { storedOralNotes, storedRebuttals, lastBuiltArgument, populateIssuesFromAnalysis } from './argumentBuilder.js';
 
 // Shared State Variables
@@ -346,6 +346,7 @@ export function showAuthSuccess() {
  * showing it, and the stepper kept ticking it.
  */
 export function resetWorkspace() {
+  clearChambersBriefing();
   lastAnalysis = '';
   currentPropositionContext = '';
   if (window.lastAnalysis) window.lastAnalysis = '';
@@ -1750,6 +1751,86 @@ export function selectIssueFromCard(idx) {
   }
 }
 
+/* ── Chambers Briefing ──
+   Prepared on demand for the chosen bench (/api/oral-briefing). Until then the
+   modules show what the Stage 3 draft carried — which, from the memorial-only
+   button, is one item each, and the panel says so instead of padding it out. */
+let chambersBriefing = null;
+export function clearChambersBriefing() { chambersBriefing = null; }
+window.clearChambersBriefing = clearChambersBriefing;
+
+const BENCH_NAME = { easy: 'Easy', moderate: 'Moderate', hard: 'Hard' };
+const currentBenchMode = () => window.oralDifficultyMode || 'easy';
+
+function briefingSource() {
+  if (chambersBriefing) return Object.assign({ prepared: true }, chambersBriefing);
+  const arg = window.lastBuiltArgument || lastBuiltArgument || {};
+  return { prepared: false, benchMode: null, oralAdvocacy: arg.oralAdvocacy || {}, rebuttals: arg.rebuttals || {} };
+}
+
+/* What each module holds, so the card can say "6 questions" and a read time
+   that matches what is actually inside. */
+function moduleStats(id, src) {
+  const oa = src.oralAdvocacy || {}, rb = src.rebuttals || {};
+  const arr = v => Array.isArray(v) ? v : [];
+  const words = x => String(JSON.stringify(x || '')).split(/\s+/).length;
+  const map = {
+    'bench-questions': [arr(oa.qa), 'question'],
+    'key-authorities': [arr(oa.precedents), 'authority'],
+    'judicial-traps': [arr(oa.traps), 'trap'],
+    'rebuttal-strategy': [arr(rb.opponentArguments), 'counter-argument'],
+    'follow-up-questions': [arr(rb.followUpQuestions), 'follow-up'],
+    'emergency-rescue': [rb.emergencyRescue ? [rb.emergencyRescue] : [], 'rescue'],
+    'closing-prayer': [oa.closingPrayer ? [oa.closingPrayer] : [], 'prayer'],
+    'fallback-position': [rb.planB ? [rb.planB] : [], 'position'],
+  };
+  const [items, noun] = map[id] || [[], 'item'];
+  const content = id === 'rebuttal-strategy' ? [items, rb.demolitionStrategy] : items;
+  const n = items.length;
+  const plural = noun === 'authority' ? 'authorities' : noun + 's';
+  return {
+    count: n,
+    label: n ? (['rescue', 'prayer', 'position'].includes(noun) ? 'Ready' : `${n} ${n === 1 ? noun : plural}`) : 'Not prepared',
+    minutes: n ? Math.max(1, Math.round(words(content) / 170)) : 0,
+  };
+}
+
+function briefingIsThin(src) {
+  const oa = src.oralAdvocacy || {}, rb = src.rebuttals || {};
+  const n = v => Array.isArray(v) ? v.length : 0;
+  return n(oa.qa) < 3 || n(oa.precedents) < 2 || n(oa.traps) < 2 || n(rb.followUpQuestions) < 2
+    || !oa.closingPrayer || !rb.emergencyRescue || !rb.planB;
+}
+
+window.prepareChambersBriefing = async function () {
+  const btn = document.getElementById('btn-prepare-briefing');
+  if (btn && btn.disabled) return;
+  const stance = (window.mootState && window.mootState.stance) || window.builtArgumentSide || 'Petitioner';
+  const draft = [
+    window.mootState && window.mootState.memorialDraft,
+    document.getElementById('oral-argument-input')?.value,
+  ].filter(Boolean).join('\n\n').slice(0, 12000);
+  const known = (window.getCasesFromAnalysis ? window.getCasesFromAnalysis() : [])
+    .map(a => a.ratio ? `${a.name} — ${a.ratio}` : a.name).slice(0, 40);
+  let stop = () => {};
+  if (btn) { btn.disabled = true; stop = startElapsed(btn, s => `Preparing for the ${BENCH_NAME[currentBenchMode()]} bench… ${s}s`); }
+  try {
+    const data = await prepareOralBriefing({
+      stance, benchMode: currentBenchMode(), draft,
+      issue: document.getElementById('builder-issue-select')?.value || '',
+      propositionContext: currentPropositionContext || '',
+      knownAuthorities: known,
+    });
+    chambersBriefing = data.briefing;
+    showToast('Chambers Briefing prepared', 'ok');
+  } catch (e) {
+    showToast(e.message, 'err');
+  } finally {
+    stop();
+    renderStage4OralNotes();
+  }
+};
+
 export function renderStage4OralNotes() {
   const briefingEl = document.getElementById('stage4-chamber-briefing');
   const inputEl = document.getElementById('oral-argument-input');
@@ -1821,10 +1902,24 @@ export function renderStage4OralNotes() {
 
     let modulesHTML = '';
     const arg = window.lastBuiltArgument || lastBuiltArgument;
-    const hasData = arg && (arg.oralAdvocacy || arg.rebuttals);
+    const src = briefingSource();
+    const hasDraft = !!(arg && (arg.oralAdvocacy || arg.rebuttals)) || !!(window.mootState && window.mootState.memorialDraft);
+    const hasData = src.prepared || hasDraft;
+    const mode = currentBenchMode();
 
     if (hasData) {
-      modulesHTML = `
+      const stale = src.prepared && src.benchMode !== mode;
+      const thin = !src.prepared && briefingIsThin(src);
+      const banner = (thin || stale || !src.prepared) ? `
+        <div style="padding:12px 14px;border:1px solid var(--glass-b);border-left:3px solid var(--gold);border-radius:0 10px 10px 0;margin-bottom:12px;font-size:12px;line-height:1.55;color:var(--white-2);">
+          ${stale ? `This briefing was prepared for the ${BENCH_NAME[src.benchMode]} bench; you have the ${BENCH_NAME[mode]} bench selected.`
+            : thin ? 'The draft only carried a short briefing (one item per module).'
+            : 'This briefing comes from your Stage 3 draft.'}
+          <button type="button" id="btn-prepare-briefing" onclick="window.prepareChambersBriefing()" class="btn-sm" style="display:block;width:100%;margin-top:8px;padding:8px;text-transform:uppercase;letter-spacing:.05em;font-size:10px;">
+            Prepare full briefing for the ${BENCH_NAME[mode]} bench
+          </button>
+        </div>` : `<div style="font-size:11px;color:var(--white-muted);margin-bottom:10px;">Prepared for the ${BENCH_NAME[src.benchMode]} bench.</div>`;
+      modulesHTML = banner + `
         <div style="display: flex; flex-direction: column; gap: 12px;">
           ${modules.map(mod => `
             <div class="bg-black/[0.03] border border-black/5 rounded-xl p-4 transition-all duration-200 hover:border-black/10 hover:bg-black/[0.05] flex flex-col justify-between" style="min-height: 120px;">
@@ -1832,7 +1927,7 @@ export function renderStage4OralNotes() {
                 <span class="text-[10px] text-white-muted font-sans font-semibold flex items-center gap-1.5" style="display: flex; align-items: center; gap: 6px;">
                   <span style="font-size: 14px;">${mod.icon}</span> <span style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--white);">${mod.title}</span>
                 </span>
-                <span class="text-[9px] uppercase tracking-wider font-semibold text-moot-accent bg-moot-accent/5 px-2 py-0.5 rounded font-sans" style="border: 1px solid rgba(176,57,46,0.15);">${mod.readTime}</span>
+                <span class="text-[9px] uppercase tracking-wider font-semibold text-moot-accent bg-moot-accent/5 px-2 py-0.5 rounded font-sans" style="border: 1px solid rgba(176,57,46,0.15);">${(st => st.count ? `${st.label} · ${st.minutes} min` : st.label)(moduleStats(mod.id, src))}</span>
               </div>
               <p class="text-[11px] text-white-muted leading-relaxed font-sans" style="margin: 4px 0 8px 0; color:var(--white-muted);">${mod.description}</p>
               <button onclick="window.openArsenalModule('${mod.id}')" class="btn-sm text-[10px] py-1.5 bg-black/5 border border-black/10 text-[#1C1710] hover:bg-black/10 rounded cursor-pointer text-center w-full transition-all duration-200" style="width: 100%; text-transform: uppercase; letter-spacing: 0.05em;">
@@ -1885,9 +1980,10 @@ export function openArsenalModule(moduleId) {
   const currentStance = window.builtArgumentSide || document.querySelector('input[name="stance"]:checked')?.value || 'Petitioner';
   const isPetitioner = currentStance.toLowerCase().includes('petitioner') || currentStance.toLowerCase().includes('appellant');
 
-  const arg = window.lastBuiltArgument || lastBuiltArgument || {};
-  const oralAdvocacy = arg.oralAdvocacy || {};
-  const rebuttals = arg.rebuttals || {};
+  const src = briefingSource();
+  const oralAdvocacy = src.oralAdvocacy || {};
+  const rebuttals = src.rebuttals || {};
+  const notPrepared = '<p class="text-white-muted italic">Not prepared yet. Close this and use "Prepare full briefing" above the modules.</p>';
 
   let title = '';
   let content = '';
@@ -1956,10 +2052,8 @@ export function openArsenalModule(moduleId) {
       break;
     case 'emergency-rescue':
       title = 'Emergency Rescue';
-      const rescueArg = rebuttals.emergencyRescue || (isPetitioner 
-        ? "Submit that fundamental rights are absolute bounds on executive action, and any deviation violates the basic structure of the Constitution."
-        : "Submit that administrative policies enjoy a wide latitude of immunity under public law, and judicial review is restricted to procedural impropriety.");
-      content = `
+      const rescueArg = rebuttals.emergencyRescue || '';
+      content = !rescueArg ? notPrepared : `
         <div class="p-4 bg-red-950/10 border border-red-900/20 rounded-xl font-sans" style="border-left: 3px solid #ef4444;">
           <p class="text-[#4a4030] leading-relaxed font-serif italic" style="font-size: 12px; color:var(--white-muted); line-height: 1.6;">
             "${esc(rescueArg)}"
@@ -1969,10 +2063,8 @@ export function openArsenalModule(moduleId) {
       break;
     case 'closing-prayer':
       title = 'Closing Prayer';
-      const prayerArg = oralAdvocacy.closingPrayer || (isPetitioner
-        ? "We pray that this Honorable Court allow the petition and strike down the impugned action as unconstitutional."
-        : "We pray that this Honorable Court dismiss the petition in its entirety with exemplary costs.");
-      content = `
+      const prayerArg = oralAdvocacy.closingPrayer || '';
+      content = !prayerArg ? notPrepared : `
         <div class="p-4 bg-indigo-950/10 border border-indigo-900/20 rounded-xl font-sans" style="border-left: 3px solid #6366f1;">
           <p class="text-[#4a4030] leading-relaxed font-serif italic" style="font-size: 12px; color:var(--white-muted); line-height: 1.6;">
             "${esc(prayerArg)}"
@@ -1995,10 +2087,8 @@ export function openArsenalModule(moduleId) {
       break;
     case 'fallback-position':
       title = 'Fallback Position';
-      const fallbackArg = rebuttals.planB || (isPetitioner
-        ? "Request this Court to read down the provision to preserve its validity while addressing our client\'s core rights."
-        : "In the alternative, submit that if this Court finds a right was infringed, it was a proportional and necessary limitation in a democratic society.");
-      content = `
+      const fallbackArg = rebuttals.planB || '';
+      content = !fallbackArg ? notPrepared : `
         <div class="p-4 bg-indigo-950/10 border border-indigo-900/20 rounded-xl font-sans" style="border-left: 3px solid #6366f1;">
           <p class="text-[#4a4030] leading-relaxed font-serif italic" style="font-size: 12px; color:var(--white-muted); line-height: 1.6;">
             "${esc(fallbackArg)}"

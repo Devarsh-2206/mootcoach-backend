@@ -672,6 +672,8 @@ async function generateArgument() {
     if (data.success && data.response) {
       lastBuiltArgument = data.response;
       builtArgumentSide = stance;
+      // A new draft makes any prepared briefing stale.
+      if (window.clearChambersBriefing) window.clearChambersBriefing();
       // Hand the finished draft to the Simulator so the bench questions it.
       if (window.mootState) {
         const m = data.response.memorial || data.response;
