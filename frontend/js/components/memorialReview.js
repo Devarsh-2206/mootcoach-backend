@@ -231,6 +231,10 @@ function renderResult(data) {
 
 function attachForm(body) {
   body.innerHTML = FORM;
+  // Start from the side the open moot is argued for; the advocate can change it.
+  const sideSel = body.querySelector('#mr-side');
+  const mootSide = window.mootState && window.mootState.stance;
+  if (sideSel && mootSide && window.currentMootDocId) sideSel.value = /respondent/i.test(mootSide) ? 'Respondent' : 'Petitioner';
   const fileInput = body.querySelector('#mr-file');
   const drop = body.querySelector('#mr-drop');
   const showName = () => {
@@ -266,6 +270,17 @@ function attachForm(body) {
     if (side) fd.append('side', side);
     if (words) fd.append('wordLimit', words);
     if (pages) fd.append('pageLimit', pages);
+    // The open moot's record and authorities. The server already used the
+    // record to catch invented facts, but nothing ever sent it; and without the
+    // authorities a case the app itself suggested could be doubted as unreal.
+    if (window.currentMootDocId) {
+      try {
+        const { currentPropositionContext } = await import('./ui.js');
+        if (currentPropositionContext) fd.append('propositionContext', String(currentPropositionContext).slice(0, 8000));
+      } catch (e) {}
+      const known = (window.getCasesFromAnalysis ? window.getCasesFromAnalysis() : []).map(a => a.name).filter(Boolean).slice(0, 150);
+      if (known.length) fd.append('knownAuthorities', JSON.stringify(known));
+    }
 
     try {
       const data = await requestJson('/api/analyse-memorial', { formData: fd });

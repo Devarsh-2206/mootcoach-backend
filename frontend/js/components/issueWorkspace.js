@@ -145,9 +145,24 @@ function syncMootStateForIssue(index) {
       sel.dispatchEvent(new Event('change', { bubbles: true }));
     }
   }
+  if (window.saveMootProgress) window.saveMootProgress();
 }
 
 // User clicked an issue in the sidebar → select it AND navigate to Stage 2.
+/* Reopening a moot: select its saved issue and side without navigating. */
+export function restoreIssueSelection(index, stance) {
+  if (!normalizedIssues[index]) return;
+  activeIssueIndex = index;
+  highlightSidebar(index);
+  if (stance) activeStance = /respondent/i.test(stance) ? 'respondent' : 'petitioner';
+  syncMootStateForIssue(index);
+  window.mootState.issueChosen = true;
+  setIwStance(activeStance);
+  renderIssueWorkspace();
+  if (window.refreshStepper) window.refreshStepper();
+}
+window.restoreIssueSelection = restoreIssueSelection;
+
 export function selectIssue(index) {
   activeIssueIndex = index;
   highlightSidebar(index);
@@ -193,6 +208,7 @@ export function setIwStance(stance) {
   applyStanceButtonStyles();
   const side = stance === 'respondent' ? 'Respondent' : 'Petitioner';
   window.mootState.stance = side;
+  if (window.saveMootProgress) window.saveMootProgress();
 
   // And move the Advocacy stage's own selector to match. Several places read
   // the checked radio directly rather than the shared state, so leaving it

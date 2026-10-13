@@ -1306,6 +1306,9 @@ app.post("/api/oral-briefing", signedIn, aiLimiter, express.json({ limit: '300kb
   if (issue) blocks.push(`ISSUE BEING ARGUED:\n${String(issue).slice(0, 600)}`);
   if (known.length) blocks.push(`KNOWN AUTHORITIES (real; relied on in this moot):\n- ${known.join('\n- ')}`);
   if (draftText) blocks.push(`THE ADVOCATE'S DRAFT:\n${draftText.slice(0, 9000)}`);
+  // What practice rounds exposed: the briefing should drill exactly these.
+  const past = (Array.isArray(req.body.pastWeaknesses) ? req.body.pastWeaknesses : []).map(x => String(x || '').slice(0, 300)).filter(Boolean).slice(0, 8);
+  if (past.length) blocks.push(`WHAT THE BENCH CAUGHT IN PRACTICE ROUNDS (build questions and traps that drill these first):\n- ${past.join('\n- ')}`);
 
   try {
     const call = await getChatCompletion({
@@ -1983,6 +1986,8 @@ app.post("/api/analyse-memorial", signedIn, aiLimiter, singlePdf("file"), async 
       (audit.findings.map(f => `   [${f.severity}] ${f.area}: ${f.finding}`).join('\n') || '   none') +
       `\nDo not repeat these. Assess the substance.\n`;
 
+    let knownForReview = [];
+    try { knownForReview = (JSON.parse(req.body.knownAuthorities || '[]') || []).map(x => String(x).slice(0, 200)).filter(Boolean).slice(0, 150); } catch (e) {}
     const call = await getChatCompletion({
       messages: [
         { role: "system", content: MEMORIAL_REVIEW_PROMPT },
@@ -1990,6 +1995,7 @@ app.post("/api/analyse-memorial", signedIn, aiLimiter, singlePdf("file"), async 
           role: "user",
           content: `${auditSummary}\n` +
             (req.body.side ? `SIDE: ${req.body.side}\n` : '') +
+            (knownForReview.length ? `KNOWN AUTHORITIES (real; relied on in this moot — do not question that they exist):\n- ${knownForReview.join('\n- ')}\n\n` : '') +
             (req.body.propositionContext ? `THE RECORD (use this to check whether facts are invented):\n${String(req.body.propositionContext).slice(0, 8000)}\n\n` : '') +
             `MEMORIAL TEXT:\n${text.slice(0, 90000)}\n\nMark this memorial now.`
         }
@@ -2005,6 +2011,13 @@ app.post("/api/analyse-memorial", signedIn, aiLimiter, singlePdf("file"), async 
     });
 
     const review = extractAndParseJSON(call.text);
+
+    // A doubt about whether one of the moot's own authorities EXISTS is
+    // dropped; a doubt about how it is used stays.
+    if (knownForReview.length && Array.isArray(review.lawConcerns)) {
+      review.lawConcerns = review.lawConcerns.filter(l => !(l && oralScoring.isKnownAuthority(l.authority, knownForReview)
+        && /exist|fabricat|fictitious|invented|could not (be )?(found|identified|verified)|no such/i.test(String(l.concern || ''))));
+    }
 
     // The audit's findings are measured, so they lead. The model's follow.
     const corrections = [].concat(

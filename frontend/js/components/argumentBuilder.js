@@ -31,7 +31,33 @@ function syncBuilderToMootState() {
     ms.issueIndex = select.selectedIndex;
     ms.issueText = select.value;
   }
+  if (window.saveMootProgress) window.saveMootProgress();
 }
+
+/* For services/mootProgress.js: the structured draft is saved with the moot
+   and put back when it is reopened, so the typeset export and the briefing
+   survive a reload. */
+window.getBuiltArgument = () => ({ arg: lastBuiltArgument, side: builtArgumentSide });
+window.restoreBuiltArgument = (arg, side) => {
+  if (!arg || typeof arg !== 'object') return;
+  lastBuiltArgument = arg;
+  builtArgumentSide = /respondent/i.test(side || '') ? 'Respondent' : 'Petitioner';
+  try {
+    renderIRAC(arg);
+    document.getElementById('builder-empty-state')?.classList.add('hidden');
+    document.getElementById('builder-loading-state')?.classList.add('hidden');
+    document.getElementById('builder-output-state')?.classList.remove('hidden');
+    if (window.setBuilderButtonsState) window.setBuilderButtonsState(false);
+    if (window.mootState && !window.mootState.memorialDraft) {
+      const m = arg.memorial || arg;
+      const formatted = renderMemorialText(m, builtArgumentSide) || '';
+      const flat = flattenText(m).join('\n');
+      window.mootState.memorialDraft = formatted.length >= flat.length ? formatted : flat;
+    }
+    if (window.renderStage4OralNotes) window.renderStage4OralNotes();
+    if (window.refreshStepper) window.refreshStepper();
+  } catch (e) { console.warn('[RESTORE] draft render skipped', e); }
+};
 
 /**
  * Forget everything the builder holds for the current moot: the draft, the
@@ -3715,6 +3741,7 @@ window.generateAdvocacyDraft = async function() {
       // object exactly as the main Build left it. (Export also reads the cover
       // page from here.)
       lastBuiltArgument = Object.assign({}, lastBuiltArgument, { memorial: m });
+      if (window.saveMootProgress) window.saveMootProgress();
 
       const st = data.stats || {};
       const gaps = st.issuesFailed

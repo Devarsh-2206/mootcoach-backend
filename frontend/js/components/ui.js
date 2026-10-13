@@ -347,6 +347,7 @@ export function showAuthSuccess() {
  */
 export function resetWorkspace() {
   clearChambersBriefing();
+  if (window.loadMootFeedback) window.loadMootFeedback(null);
   lastAnalysis = '';
   currentPropositionContext = '';
   if (window.lastAnalysis) window.lastAnalysis = '';
@@ -555,6 +556,7 @@ export async function loadSavedSession(docId) {
   // Reopening the moot already open keeps its unsaved draft; any other moot
   // starts clean.
   const previousDocId = window.currentMootDocId;
+  if (window.pauseMootProgress) window.pauseMootProgress();
   console.trace("[DEBUG] loadSavedSession trace");
   
   if (docId && typeof docId === 'string') {
@@ -613,9 +615,8 @@ export async function loadSavedSession(docId) {
     if (data.detectedForum) window.detectedForum = data.detectedForum;
 
     // NEW: Populate Issue Stack (Sprint 2A)
-    import('./issueWorkspace.js').then(module => {
-       module.populateIssueStack(data);
-    });
+    const issueModule = await import('./issueWorkspace.js');
+    issueModule.populateIssueStack(data);
 
     if (data.analysisData) {
       showStructuredResults(data.analysisData);
@@ -631,6 +632,9 @@ export async function loadSavedSession(docId) {
     } else {
       showError("Invalid saved data.");
     }
+    // Put every stage back where this moot was left: issue, side, the
+    // structured draft and any prepared briefing (services/mootProgress.js).
+    if (window.restoreMootProgress) await window.restoreMootProgress(docId);
   } catch (e) {
     hideLoading();
     if (stepsDiv) stepsDiv.style.display = 'flex'; 
@@ -1758,6 +1762,8 @@ export function selectIssueFromCard(idx) {
 let chambersBriefing = null;
 export function clearChambersBriefing() { chambersBriefing = null; }
 window.clearChambersBriefing = clearChambersBriefing;
+window.getChambersBriefing = () => chambersBriefing;
+window.restoreChambersBriefing = (b) => { chambersBriefing = b || null; renderStage4OralNotes(); };
 
 const BENCH_NAME = { easy: 'Easy', moderate: 'Moderate', hard: 'Hard' };
 const currentBenchMode = () => window.oralDifficultyMode || 'easy';
@@ -1820,8 +1826,10 @@ window.prepareChambersBriefing = async function () {
       issue: document.getElementById('builder-issue-select')?.value || '',
       propositionContext: currentPropositionContext || '',
       knownAuthorities: known,
+      pastWeaknesses: window.getMootFeedbackPoints ? window.getMootFeedbackPoints(6) : [],
     });
     chambersBriefing = data.briefing;
+    if (window.saveMootProgress) window.saveMootProgress();
     showToast('Chambers Briefing prepared', 'ok');
   } catch (e) {
     showToast(e.message, 'err');
@@ -1919,7 +1927,7 @@ export function renderStage4OralNotes() {
             Prepare full briefing for the ${BENCH_NAME[mode]} bench
           </button>
         </div>` : `<div style="font-size:11px;color:var(--white-muted);margin-bottom:10px;">Prepared for the ${BENCH_NAME[src.benchMode]} bench.</div>`;
-      modulesHTML = banner + `
+      modulesHTML = (window.mootFeedbackHTML ? window.mootFeedbackHTML() : '') + banner + `
         <div style="display: flex; flex-direction: column; gap: 12px;">
           ${modules.map(mod => `
             <div class="bg-black/[0.03] border border-black/5 rounded-xl p-4 transition-all duration-200 hover:border-black/10 hover:bg-black/[0.05] flex flex-col justify-between" style="min-height: 120px;">

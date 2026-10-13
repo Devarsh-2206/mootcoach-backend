@@ -228,10 +228,16 @@ function setupWebSocketHandlers(callbacks, onOpenCallback = null) {
     if (onOpenCallback) {
       onOpenCallback();
     } else {
-      const selectedIssue = document.getElementById('builder-issue-select')?.value || '';
-      const selectedStance = (typeof window.getCurrentSelectedSide === 'function') ? window.getCurrentSelectedSide() : 'Petitioner';
-      const selectedAuths = window.selectedAuthorities || [];
-      const selectedAuthsText = selectedAuths.map(a => `${a.name}: ${a.ratio}`).join(', ');
+      // The same picture of the moot the typed bench gets (window.mootState):
+      // issue, side, chosen authorities and the advocate's own draft, so the
+      // spoken bench can question what was actually written. Authorities used
+      // to be read from window.selectedAuthorities, which nothing ever set.
+      const ms = window.mootState || {};
+      const selectedIssue = ms.issueText || document.getElementById('builder-issue-select')?.value || '';
+      const selectedStance = ms.stance || ((typeof window.getCurrentSelectedSide === 'function') ? window.getCurrentSelectedSide() : 'Petitioner');
+      const selectedAuths = Array.isArray(ms.authorities) ? ms.authorities : [];
+      const selectedAuthsText = selectedAuths.map(a => a.ratio ? `${a.name}: ${a.ratio}` : a.name).join('; ') || 'None chosen';
+      const draftExcerpt = String(ms.memorialDraft || ms.oralSubmission || '').trim().slice(0, 1500);
       
       const mode = window.benchDifficultyMode || 'moderate';
       const bench = benchProfiles[mode] || benchProfiles.moderate;
@@ -243,7 +249,7 @@ Advocate Stance: ${selectedStance.toUpperCase()}
 Target Legal Issue: ${selectedIssue}
 Selected Authorities: ${selectedAuthsText}
 Case Context Summary: ${currentPropositionContext || 'General dispute'}
-
+${draftExcerpt ? `\n[Advocate's Written Draft — question the advocate on it]\n${draftExcerpt}\n` : ''}
 YOU ARE ACTING AS A MULTI-JUDGE BENCH. 
 The bench comprises:
 ${judgesConfig}

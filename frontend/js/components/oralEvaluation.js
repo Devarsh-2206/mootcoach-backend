@@ -237,6 +237,15 @@ export function renderOralResults(data) {
   `;
 
   area.style.display = 'block';
+
+  if (window.recordMootFeedback) {
+    window.recordMootFeedback({
+      source: 'oral', score, mode: data.difficulty,
+      points: [].concat(
+        (data.defectsFound || []).filter(d => /fatal|significant/i.test(d.severity || '')).map(d => d.issue),
+        data.immediateCorrections || []),
+    });
+  }
   
   setTimeout(() => {
     animateBars();

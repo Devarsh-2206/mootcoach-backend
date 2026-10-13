@@ -662,9 +662,18 @@ function renderScorecard(review) {
         font-family:var(--serif),Georgia,serif;font-size:.98rem;line-height:1.6;color:var(--white-2);">${fmtInline(String(review.verdict))}</div>` : ''}`;
 }
 
-export function appendBenchPerformanceReview(review) {
+export function appendBenchPerformanceReview(review, source = 'bench') {
   const chat = document.getElementById('bench-chat');
   if (!chat) return;
+  // Carry what the bench caught back to drafting and the briefing.
+  if (review && window.recordMootFeedback) {
+    const dm = review.mostDangerousMoment || {};
+    window.recordMootFeedback({
+      source, score: review.overallScore, mode: window.benchDifficultyMode,
+      points: [].concat(review.trainingPriorities || [], dm.whyVulnerable ? [dm.whyVulnerable] : []),
+      concerns: review.judicialConcerns || [],
+    });
+  }
 
   const div = document.createElement('div');
   div.className = 'bench-msg bench-msg-system';
@@ -1344,7 +1353,7 @@ async function requestOralReview(durationSeconds, transcript) {
       } });
       document.getElementById('oral-review-pending')?.remove();
       if (data.performanceReview) {
-        appendBenchPerformanceReview(data.performanceReview);
+        appendBenchPerformanceReview(data.performanceReview, 'voice');
         roundMarked = true;
         setExitLabel('Leave Chambers');
       } else {

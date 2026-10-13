@@ -15,6 +15,7 @@ import { BASE_URL } from './config.js';
 // it owns its own overlay and cannot affect the other workspace flows.
 import './components/memorialReview.js';
 import './components/mootCalendar.js';
+import './services/mootProgress.js';
 import { 
   showToast,
   getFriendlyError,
