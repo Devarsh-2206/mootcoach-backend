@@ -149,9 +149,19 @@ function syncMootStateForIssue(index) {
 }
 
 // User clicked an issue in the sidebar → select it AND navigate to Stage 2.
-/* Reopening a moot: select its saved issue and side without navigating. */
-export function restoreIssueSelection(index, stance) {
-  if (!normalizedIssues[index]) return;
+/* Reopening a moot: select its saved issue and side without navigating.
+   Found by its text first. The saved index can come from the Advocacy
+   selector, which also lists issues the advocate added, so as a position in
+   this list it can be wrong or out of range. Returns whether it was found. */
+export function restoreIssueSelection(index, stance, text) {
+  let found = text ? normalizedIssues.findIndex(i => i.title === text) : -1;
+  if (found < 0 && !text && normalizedIssues[index]) found = index;
+  if (found < 0) {
+    // Not in this list (an issue added in Advocacy): restore the side alone.
+    if (stance) setIwStance(/respondent/i.test(stance) ? 'respondent' : 'petitioner');
+    return false;
+  }
+  index = found;
   activeIssueIndex = index;
   highlightSidebar(index);
   if (stance) activeStance = /respondent/i.test(stance) ? 'respondent' : 'petitioner';
@@ -161,6 +171,7 @@ export function restoreIssueSelection(index, stance) {
   if (stance) setIwStance(activeStance); else applyStanceButtonStyles();
   renderIssueWorkspace();
   if (window.refreshStepper) window.refreshStepper();
+  return true;
 }
 window.restoreIssueSelection = restoreIssueSelection;
 

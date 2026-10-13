@@ -65,24 +65,47 @@ function repetitionShare(text) {
 }
 
 const normName = s => String(s || '').toLowerCase()
-  .replace(/\b(the|of|and|state|union|india|ltd|limited|pvt|private|co|inc|v|vs)\b/g, ' ')
   .replace(/[^a-z0-9]+/g, ' ').replace(/\s+/g, ' ').trim();
 
+/* Words that say nothing about WHICH authority: parties every second case
+   shares ("State of Gujarat", "Union of India"), corporate suffixes,
+   connectors and the reporter. Indian states and UTs are generic because
+   "State of Gujarat" is a party in hundreds of cases. */
+const GENERIC = new Set(('the of and v vs versus in re ex parte state union india government govt ' +
+  'commissioner cit ltd limited pvt private co company corporation corp inc and others ors anr another ' +
+  'municipal council board authority secretary ministry director general registrar republic ' +
+  'scc air scr scale supp sc hc all bom cal del mad ker guj kar mp raj pat ori ap ' +
+  'andhra pradesh arunachal assam bihar chhattisgarh goa gujarat haryana himachal jharkhand karnataka ' +
+  'kerala madhya maharashtra manipur meghalaya mizoram nagaland odisha orissa punjab rajasthan sikkim ' +
+  'tamil nadu telangana tripura uttar uttarakhand bengal west delhi jammu kashmir ladakh madras bombay ' +
+  'calcutta mysore travancore cochin puducherry pondicherry chandigarh').split(' '));
+
+/* The words that identify an authority: names and numbers, not the generic
+   parties, not one-letter initials, not years. "Article 14" keeps its number,
+   so it can never be confused with "Article 141". */
+function distinctive(name) {
+  return normName(name).split(' ').filter(t =>
+    t && !GENERIC.has(t) && !/^(19|20)\d{2}$/.test(t) && (t.length >= 3 || /^\d+$/.test(t)));
+}
+
 /**
- * Is this citation one of the moot's own authorities? Matched on the
- * distinctive words of either party name, so "Khan Chand" finds
- * "Khan Chand v. State of Punjab" and the reverse.
+ * Is this citation one of the moot's own authorities? Every distinctive word
+ * of the citation must appear in a single known authority, and at least one
+ * of them must be a real name (four letters or more). So "Khan Chand" finds
+ * "Khan Chand v. State of Punjab", but "State of Gujarat v. Ramesh Fakename"
+ * does not find "State of Gujarat v. Shantilal Mangaldas", and
+ * "Puttaswamy v. Fake Person" does not find Puttaswamy.
  */
 function isKnownAuthority(name, known) {
-  const n = normName(name);
-  if (n.length < 4) return false;
-  return known.some(k => {
-    const kn = normName(k);
-    if (kn.length < 4) return false;
-    if (kn.includes(n) || n.includes(kn)) return true;
-    const first = s => s.split(/\s+v\.?s?\.?\s+/i)[0];
-    const a = normName(first(String(name))), b = normName(first(String(k)));
-    return a.length >= 4 && b.length >= 4 && (a === b || a.includes(b) || b.includes(a));
+  const want = distinctive(name);
+  if (!want.some(t => t.length >= 4 && !/^\d+$/.test(t))) {
+    // A provision ("Article 14"): its words must match a known one exactly.
+    const n = normName(name);
+    return !!n && (known || []).some(k => normName(k) === n);
+  }
+  return (known || []).some(k => {
+    const have = new Set(normName(k).split(' '));
+    return want.every(t => have.has(t));
   });
 }
 
@@ -95,6 +118,22 @@ function sideOf(s) {
 
 function gradeFor(s) {
   return s >= 85 ? 'A' : s >= 70 ? 'B' : s >= 55 ? 'C' : s >= 40 ? 'D' : 'F';
+}
+
+/* Bring the total down to a cap by scaling every dimension in proportion,
+   so each sub-score still says something (taking the excess off a fixed
+   list left Structure and Persuasiveness at 0 beside Demeanor 9/10). */
+function capTotal(dims, cap) {
+  const total = DIMENSIONS.reduce((n, d) => n + dims[d.key].score, 0);
+  if (total <= cap) return;
+  // Legal Accuracy is left alone: the law is no less correct for being
+  // argued badly or for the wrong side. The rest shares what remains.
+  const acc = Math.min(dims.legalAccuracy.score, cap);
+  dims.legalAccuracy.score = acc;
+  const others = DIMENSIONS.filter(d => d.key !== 'legalAccuracy');
+  const rest = others.reduce((n, d) => n + dims[d.key].score, 0);
+  const f = rest ? (cap - acc) / rest : 0;
+  for (const d of others) dims[d.key].score = Math.floor(dims[d.key].score * f);
 }
 
 /**
@@ -121,7 +160,6 @@ function computeScore(assessment, { difficulty = 'moderate', stance = '', knownA
       note: String(c.note || ''),
     };
   });
-  const knownNames = citations.filter(c => c.inMootAuthorities).map(c => normName(c.name));
 
   // ── Points from levels ──
   const dims = {};
@@ -158,16 +196,23 @@ function computeScore(assessment, { difficulty = 'moderate', stance = '', knownA
     notes.push('Legal Accuracy is 0, so Persuasiveness, Language Clarity and Courtroom Demeanor are capped.');
   }
 
-  // ── Defects: drop any "fabricated" claim about a case the moot itself relies on ──
+  // ── Defects: a "fabricated" claim about one of the moot's own cases is
+  // dropped; a fabricated citation the model listed but did not flag is added.
+  // Matched on the citation's distinctive words, never on a single initial.
+  const mentions = (text, c) => {
+    const t = new Set(normName(text).split(' '));
+    const want = distinctive(c.name);
+    return want.length > 0 && want.every(w => t.has(w));
+  };
   let defects = (Array.isArray(a.defectsFound) ? a.defectsFound : []).filter(d => {
     if (!d || !/fabricat/i.test(String(d.type || ''))) return true;
-    const text = normName(`${d.quote || ''} ${d.issue || ''}`);
-    return !knownNames.some(k => k && text.includes(k.split(' ')[0]));
+    const text = `${d.quote || ''} ${d.issue || ''}`;
+    return !citations.some(c => c.inMootAuthorities && mentions(text, c));
   });
   for (const c of citations) {
-    if (c.exists === 'no' && !defects.some(d => /fabricat/i.test(d.type || '') && normName(d.quote).includes(normName(c.name).split(' ')[0]))) {
-      defects.push({ type: 'FabricatedCitation', quote: c.quote || c.name, issue: c.note || `${c.name} could not be identified as a real authority.`, severity: 'fatal' });
-    }
+    if (c.exists !== 'no') continue;
+    const flagged = defects.some(d => /fabricat/i.test(d.type || '') && mentions(`${d.quote || ''} ${d.issue || ''}`, c));
+    if (!flagged) defects.push({ type: 'FabricatedCitation', quote: c.quote || c.name, issue: c.note || `${c.name} could not be identified as a real authority.`, severity: 'fatal' });
   }
 
   let total = DIMENSIONS.reduce((n, d) => n + dims[d.key].score, 0);
@@ -179,17 +224,7 @@ function computeScore(assessment, { difficulty = 'moderate', stance = '', knownA
   if (want && argued && want !== argued) {
     wrongSide = true;
     const cap = 40;
-    if (total > cap) {
-      // Take the excess off persuasiveness first: an argument for the other
-      // side does not persuade anyone of yours.
-      let excess = total - cap;
-      for (const k of ['persuasiveness', 'argumentStructure', 'pressureReadiness', 'languageClarity', 'courtRoomDemeanor']) {
-        const take = Math.min(excess, dims[k].score);
-        dims[k].score -= take; excess -= take;
-        if (!excess) break;
-      }
-      total = cap;
-    }
+    capTotal(dims, cap);
     defects.unshift({
       type: 'WrongSide', severity: 'fatal',
       quote: '',
@@ -200,15 +235,7 @@ function computeScore(assessment, { difficulty = 'moderate', stance = '', knownA
   // ── Padding ──
   if (repetition >= 0.4) {
     const cap = 30;
-    if (total > cap) {
-      let excess = total - cap;
-      for (const k of ['argumentStructure', 'persuasiveness', 'languageClarity', 'pressureReadiness', 'courtRoomDemeanor', 'legalAccuracy']) {
-        const take = Math.min(excess, dims[k].score);
-        dims[k].score -= take; excess -= take;
-        if (!excess) break;
-      }
-      total = cap;
-    }
+    capTotal(dims, cap);
     defects.unshift({ type: 'Repetition', severity: 'significant', quote: '', issue: `${Math.round(repetition * 100)}% of the sentences repeat earlier ones. Repetition is not argument; scored at no more than ${cap}.` });
   }
 
@@ -240,8 +267,22 @@ const memory = new Map();
 const MEMORY_MAX = 300;
 const TTL_MS = 30 * 24 * 3600e3;
 
+/* Bump when the prompt or the meaning of a level changes, so old readings
+   are not served under the new rules. */
+const ASSESSMENT_VERSION = 'oral-v1';
+
 function cacheKey(parts) {
-  return crypto.createHash('sha256').update(JSON.stringify(parts)).digest('hex');
+  return crypto.createHash('sha256').update(JSON.stringify([ASSESSMENT_VERSION].concat(parts))).digest('hex');
+}
+
+/** Every dimension present with a level 0-5. Anything less is not cached. */
+function isCompleteAssessment(a) {
+  if (!a || typeof a !== 'object' || !a.levels) return false;
+  return DIMENSIONS.every(d => {
+    const l = a.levels[d.key];
+    const v = l && typeof l === 'object' ? Number(l.level) : NaN;
+    return Number.isFinite(v) && v >= 0 && v <= 5;
+  });
 }
 
 function cacheDoc(key) {
@@ -278,4 +319,4 @@ async function putCached(key, assessment) {
   } catch (e) { /* a cache miss next time is the only cost */ }
 }
 
-module.exports = { computeScore, repetitionShare, isKnownAuthority, cacheKey, getCached, putCached, DIMENSIONS, MODE_FACTOR, sideOf };
+module.exports = { computeScore, repetitionShare, isKnownAuthority, isCompleteAssessment, cacheKey, getCached, putCached, DIMENSIONS, MODE_FACTOR, sideOf };

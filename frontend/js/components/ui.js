@@ -539,6 +539,12 @@ export async function deleteSavedSession(docId) {
   });
   if (choice !== 'delete') return;
   try {
+    // A pending save or feedback write for this moot would recreate its
+    // documents under the deleted analysis.
+    if (window.currentMootDocId === docId) {
+      if (window.pauseMootProgress) window.pauseMootProgress();
+      if (window.loadMootFeedback) window.loadMootFeedback(null);
+    }
     const userDoc = db.collection('artifacts').doc('moot.coach').collection('users').doc(currentUser.uid);
     const analysis = userDoc.collection('analyses').doc(docId);
     // Firestore does not delete sub-collections with their parent: remove the

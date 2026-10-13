@@ -1256,7 +1256,9 @@ app.post("/evaluate-oral", signedIn, aiLimiter, express.json({ limit: '200kb' })
       });
       assessment = extractAndParseJSON(evalCall.text);
       if (!assessment || !assessment.levels) throw new Error('Assessment came back without levels');
-      await oralScoring.putCached(key, assessment);
+      // Only a complete reading is kept: a missing or wordy level would score
+      // 0 and be served to everyone who submits this text for a month.
+      if (oralScoring.isCompleteAssessment(assessment)) await oralScoring.putCached(key, assessment);
     }
 
     const result = oralScoring.computeScore(assessment, {

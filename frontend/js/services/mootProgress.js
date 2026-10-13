@@ -38,7 +38,7 @@ function snapshot() {
   const out = {
     // Only a chosen issue is restored as chosen.
     issueIndex: ms.issueChosen && Number.isInteger(ms.issueIndex) ? ms.issueIndex : null,
-    issueText: ms.issueText || '',
+    issueText: ms.issueChosen ? (ms.issueText || '') : '',
     stance: ms.stanceChosen ? (ms.stance || '') : '',
     builtSide: built.side || '',
     builtArgumentJson: built.arg ? JSON.stringify(built.arg) : '',
@@ -77,10 +77,23 @@ export async function restoreMootProgress(mootId) {
     if (window.currentMootDocId !== mootId) return;   // another moot opened meanwhile
     const d = snap && snap.exists ? snap.data() : null;
     if (d) {
-      if (Number.isInteger(d.issueIndex) && window.restoreIssueSelection) {
-        window.restoreIssueSelection(d.issueIndex, d.stance);
-      } else if (d.stance && window.setIwStance) {
-        window.setIwStance(/respondent/i.test(d.stance) ? 'respondent' : 'petitioner');
+      const hasIssue = Number.isInteger(d.issueIndex) || !!d.issueText;
+      const found = hasIssue && window.restoreIssueSelection
+        ? window.restoreIssueSelection(d.issueIndex, d.stance, d.issueText) : false;
+      if (!found) {
+        // The side is restored whether or not the issue could be: losing it
+        // is how a Respondent moot reopened as Petitioner.
+        if (d.stance && window.setIwStance) window.setIwStance(/respondent/i.test(d.stance) ? 'respondent' : 'petitioner');
+        // An issue added in Advocacy lives only in its selector.
+        const sel = document.getElementById('builder-issue-select');
+        if (d.issueText && sel) {
+          const i = [...sel.options].findIndex(o => o.value === d.issueText);
+          if (i >= 0) {
+            sel.selectedIndex = i;
+            sel.dispatchEvent(new Event('change', { bubbles: true }));
+            if (window.mootState) window.mootState.issueChosen = true;
+          }
+        }
       }
       if (d.builtArgumentJson && window.restoreBuiltArgument) {
         try { window.restoreBuiltArgument(JSON.parse(d.builtArgumentJson), d.builtSide || d.stance); } catch (e) { /* unreadable draft: start without it */ }
@@ -122,6 +135,11 @@ const FEEDBACK_DOC = '_feedback';
 const FEEDBACK_KEEP = 8;
 let feedback = [];
 let feedbackFor = null;
+/* 'ok' once the stored list has been read. Until then (or if the read
+   failed) new results are held in memory and never written: writing then
+   would replace the stored history with only the newest result. */
+let feedbackLoad = 'none';
+let unsaved = [];
 
 function feedbackRef(mootId) {
   return refFor(mootId, FEEDBACK_DOC);
@@ -130,15 +148,31 @@ function feedbackRef(mootId) {
 const clean = arr => (Array.isArray(arr) ? arr : []).map(x => String(x || '').trim()).filter(x => x.length > 3).slice(0, 6);
 
 export async function loadMootFeedback(mootId) {
-  feedback = []; feedbackFor = mootId;
+  feedback = []; feedbackFor = mootId; unsaved = [];
+  feedbackLoad = mootId ? 'pending' : 'none';
+  if (!mootId) { refreshFeedbackViews(); return; }
   try {
     const ref = feedbackRef(mootId);
     const snap = ref ? await ref.get() : null;
     if (feedbackFor !== mootId) return;
     const d = snap && snap.exists ? snap.data() : null;
-    feedback = d && d.itemsJson ? JSON.parse(d.itemsJson) : [];
-  } catch (e) { feedback = []; }
+    const stored = d && d.itemsJson ? JSON.parse(d.itemsJson) : [];
+    // Anything recorded while the read was in flight goes on top.
+    feedback = unsaved.concat(stored).slice(0, FEEDBACK_KEEP);
+    feedbackLoad = 'ok';
+    if (unsaved.length) writeFeedback(mootId);
+    unsaved = [];
+  } catch (e) {
+    if (feedbackFor !== mootId) return;
+    feedbackLoad = 'failed';
+    feedback = unsaved.slice();
+  }
   refreshFeedbackViews();
+}
+
+function writeFeedback(mootId) {
+  const ref = feedbackRef(mootId);
+  if (ref) ref.set({ itemsJson: JSON.stringify(feedback), updatedAt: Date.now() }).catch(e => console.warn('[FEEDBACK] save failed:', e && e.message));
 }
 
 /** source: 'bench' | 'voice' | 'oral'. points: what to fix, most important first. */
@@ -150,8 +184,9 @@ export function recordMootFeedback({ source, score, mode, points, concerns }) {
   if (last && last.source === entry.source && JSON.stringify(last.points) === JSON.stringify(entry.points)) return;  // same result shown again
   feedback = [entry].concat(feedback).slice(0, FEEDBACK_KEEP);
   refreshFeedbackViews();
-  const ref = mootId && feedbackFor === mootId ? feedbackRef(mootId) : null;
-  if (ref) ref.set({ itemsJson: JSON.stringify(feedback), updatedAt: Date.now() }).catch(e => console.warn('[FEEDBACK] save failed:', e && e.message));
+  if (!mootId || feedbackFor !== mootId) return;
+  if (feedbackLoad === 'ok') writeFeedback(mootId);
+  else if (feedbackLoad === 'pending') unsaved.unshift(entry);
 }
 
 export function getMootFeedback() { return feedback.slice(); }
