@@ -282,9 +282,23 @@ function attachForm(body) {
       if (known.length) fd.append('knownAuthorities', JSON.stringify(known));
     }
 
+    const mootId = window.currentMootDocId || null;
     try {
       const data = await requestJson('/api/analyse-memorial', { formData: fd });
       body.innerHTML = renderResult(data);
+      // A review of this moot's memorial joins "what the bench caught", so its
+      // findings reach drafting and the briefing like a practice round's do.
+      // Only for the moot still open, and only the serious findings.
+      const r = (data && data.review) || {};
+      if (mootId && window.currentMootDocId === mootId && window.recordMootFeedback) {
+        window.recordMootFeedback({
+          source: 'memorial', score: r.overallScore,
+          points: (Array.isArray(r.corrections) ? r.corrections : [])
+            .filter(c => /critical|major/i.test(c && c.severity || ''))
+            .map(c => [c.problem, c.fix].filter(Boolean).join(' — ')),
+          concerns: (Array.isArray(r.lawConcerns) ? r.lawConcerns : []).map(l => l && l.authority ? `${l.authority}: ${l.concern || ''}` : ''),
+        });
+      }
       const again = body.querySelector('#mr-again');
       if (again) again.addEventListener('click', () => attachForm(body));
       body.scrollIntoView({ block: 'start' });

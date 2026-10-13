@@ -47,6 +47,10 @@ function snapshot() {
     // and a reload used to fall back to Easy, making a Hard briefing look
     // gone) and the argument being worked on.
     oralBench: window.oralDifficultyMode || '',
+    // Stage 3: the Draft Notes box and the Authority Armory picks, both lost
+    // on reload until now.
+    notesText: String(document.getElementById('builder-notes-input')?.value || '').slice(0, 12000),
+    authoritiesJson: JSON.stringify((ms.authorities || []).slice(0, 40)),
     oralText: String(document.getElementById('oral-argument-input')?.value || '').slice(0, 12000),
     updatedAt: Date.now(),
   };
@@ -100,6 +104,14 @@ export async function restoreMootProgress(mootId) {
           }
         }
       }
+      if (d.authoritiesJson && window.restoreSelectedAuthorities) {
+        try { window.restoreSelectedAuthorities(JSON.parse(d.authoritiesJson)); } catch (e) {}
+      }
+      const notesBox = document.getElementById('builder-notes-input');
+      if (d.notesText && notesBox && !notesBox.value.trim()) {
+        notesBox.value = d.notesText;
+        notesBox.dispatchEvent(new Event('input', { bubbles: true }));
+      }
       // Before the draft: restoring the draft fills an empty Oral Coach box
       // with its opening speech, which would hide the advocate's own text.
       if (d.oralBench && window.setOralDifficulty) window.setOralDifficulty(d.oralBench);
@@ -136,7 +148,7 @@ export function startFreshMootProgress(mootId) {
 window.saveMootProgress = saveMootProgress;
 // Typing in the Oral Coach box is saved like any other change.
 document.addEventListener('input', (e) => {
-  if (e.target && e.target.id === 'oral-argument-input' && e.isTrusted) saveMootProgress();
+  if (e.target && (e.target.id === 'oral-argument-input' || e.target.id === 'builder-notes-input') && e.isTrusted) saveMootProgress();
 });
 window.restoreMootProgress = restoreMootProgress;
 window.startFreshMootProgress = startFreshMootProgress;
@@ -219,7 +231,7 @@ export function feedbackPoints(limit = 6) {
   return out;
 }
 
-const SOURCE_NAME = { bench: 'Simulator round', voice: 'Voice round', oral: 'Oral Coach' };
+const SOURCE_NAME = { bench: 'Simulator round', voice: 'Voice round', oral: 'Oral Coach', memorial: 'Memorial Review' };
 const escHtml = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 /** A short card: the latest result's score and the points to work on. */

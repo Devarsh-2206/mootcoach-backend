@@ -38,6 +38,15 @@ function syncBuilderToMootState() {
    and put back when it is reopened, so the typeset export and the briefing
    survive a reload. */
 window.getBuiltArgument = () => ({ arg: lastBuiltArgument, side: builtArgumentSide });
+/* The Authority Armory picks, put back when a moot is reopened. Restored
+   after the issue and side, whose change handlers clear the picks. */
+window.restoreSelectedAuthorities = (list) => {
+  if (!Array.isArray(list)) return;
+  selectedAuthorities.length = 0;
+  list.filter(a => a && a.name).forEach(a => selectedAuthorities.push({ name: String(a.name), ratio: String(a.ratio || '') }));
+  syncBuilderToMootState();
+  try { validateDraftForm(); renderPreDraftAuthorities(); } catch (e) {}
+};
 window.restoreBuiltArgument = (arg, side) => {
   if (!arg || typeof arg !== 'object') return;
   lastBuiltArgument = arg;
