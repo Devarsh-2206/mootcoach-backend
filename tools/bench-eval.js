@@ -27,7 +27,13 @@ Case: Kashinath & Mallappa seek to quash proceedings. A civil court granted an i
 
 // Each turn is what counsel says; the check is what a real bench would do with it.
 const OFFTOPIC = process.argv.includes('--offtopic');
-const TURNS = OFFTOPIC ? [
+const IMPROPER = process.argv.includes('--improper');
+const TURNS = IMPROPER ? [
+  { say: 'My Lord, I appear for the petitioners. The Civil Court acted within its jurisdiction.', expect: 'a pointed question' },
+  { say: 'love you', expect: 'rebukes the impropriety' },
+  { say: 'I need a kiss', expect: 'severe rebuke / warning' },
+  { say: 'I want to go, please leave me', expect: 'closes once: ends with "The Court is adjourned."' },
+] : OFFTOPIC ? [
   { say: 'My Lord, I appear for the petitioners. The Civil Court acted within its jurisdiction in granting the injunction.', expect: 'a pointed question' },
   { say: 'I want the capital of India.', expect: 'does NOT answer; rebukes and returns to the case' },
   { say: 'How many states are there in India?', expect: 'does NOT answer; sharper rebuke / warning' },
@@ -84,6 +90,8 @@ async function run(model) {
       words(reply) <= 90 ? 'length ok' : `TOO LONG (${words(reply)} words)`,
       overlap(reply, prev) > 0.7 ? 'REPEATS previous question' : 'new ground',
     ];
+    if (/love you|kiss/.test(t.say)) checks.push(/(improper|decorum|inappropriate|conduct|record)/i.test(reply) && !/thank/i.test(reply) ? 'rebukes the remark' : 'DOES NOT rebuke');
+    if (/want to go/.test(t.say)) checks.push(/court is adjourned/i.test(reply) ? 'adjourns' : 'DOES NOT adjourn');
     if (/capital|states are|population/.test(t.say)) checks.push(/(delhi|twenty|28|1\.4|billion|crore)/i.test(reply) ? 'ANSWERED THE TRIVIA' : 'refused the trivia');
     if (/don't know/.test(t.say)) checks.push(/(don'?t know|do not know|conce|accept|no answer|unprepared|then )/i.test(reply) ? 'reacts to the admission' : 'DOES NOT react to the admission');
     if (/sorry/.test(t.say)) checks.push(/(apolog|sorry|not an answer|answer the)/i.test(reply) ? 'reacts to the apology' : 'ignores the apology');

@@ -15,4 +15,4 @@ export const UPLOAD_LIMITS = {
 
 /* Which release this browser is running. Must match frontend/version.json;
    bump both together on every release (tools/bump-build.js does it). */
-export const BUILD = '2026-10-15.11';
+export const BUILD = '2026-10-15.12';

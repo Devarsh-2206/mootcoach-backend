@@ -1098,6 +1098,7 @@ export async function startOralRound() {
 
   // Browser SpeechSynthesis iOS warmup removed in favor of Gemini Live native audio.
 
+  let benchAdjourned = false;
   let fullJudgeResponse = '';
   console.log("🎙️ Initiating oral round...");
   console.log("[DEBUG AUDIT] Starting oral round...");
@@ -1210,6 +1211,9 @@ export async function startOralRound() {
         if (cleanResponse) {
           console.log('[JUDGE TRANSCRIPT] Response received:', cleanResponse);
           appendTranscript('judge', cleanResponse);
+          // The bench closed the hearing: end the round (and mark it) once the
+          // judge has finished speaking, instead of letting it run on.
+          if (/court (is|stands) adjourned/i.test(cleanResponse)) benchAdjourned = true;
           console.log('[JUDGE TRANSCRIPT] Appended to transcript');
           console.log('[JUDGE TRANSCRIPT] Container found:', !!document.getElementById('bench-transcript-panel'));
           console.log('[JUDGE TRANSCRIPT] Judge bubble inserted');
@@ -1240,6 +1244,12 @@ export async function startOralRound() {
       },
       onPlaybackComplete: () => {
         console.log("[DEBUG AUDIT] Gemini Live playback completed. Transitioning to listening and reactivating mic...");
+        if (benchAdjourned) {
+          benchAdjourned = false;
+          appendTranscript('system', 'The Bench has adjourned. The round is over.');
+          stopOralRound();
+          return;
+        }
         updateBenchState('listening');
         safeStartRecognition();
       }
