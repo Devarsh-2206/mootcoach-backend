@@ -69,7 +69,7 @@ const generateAIResponse = async (prompt, retries = 2) => {
 const LIVE_MODELS = (process.env.GEMINI_LIVE_MODELS || 'gemini-3.8-live,gemini-3.1-flash-live-preview')
   .split(',').map(s => s.trim()).filter(Boolean);
 
-const handleLiveVoiceConnection = async (ws, benchLevel = 'moderate', propositionSummary = '', voiceGender = 'male') => {
+const handleLiveVoiceConnection = async (ws, benchLevel = 'moderate', propositionSummary = '', voiceGender = 'male', voiceJudge = null) => {
   console.log(`🎙️ New voice connection requested by client. Bench: ${benchLevel} | Voice: ${voiceGender}`);
 
   if (!process.env.GEMINI_API_KEY) {
@@ -81,7 +81,13 @@ const handleLiveVoiceConnection = async (ws, benchLevel = 'moderate', propositio
 
   // Match the spoken voice to the presiding judge's gender (a "Lady Justice"
   // must sound female; a "Lord Justice"/male judge must sound male).
-  const voiceName = (String(voiceGender).toLowerCase() === 'female') ? 'Kore' : 'Charon';
+  // The selected judge's own voice (prompts/judgePersona.js); older callers
+  // that only send a gender keep the old pair.
+  const voiceName = (voiceJudge && voiceJudge.voiceName) || ((String(voiceGender).toLowerCase() === 'female') ? 'Kore' : 'Charon');
+  // en-IN for the Indian benches. If a model refuses the language setting, the
+  // attempt list below retries the same model without it before moving on.
+  const languageCode = (voiceJudge && voiceJudge.languageCode) || null;
+  console.log(`🎙️ Judge: ${(voiceJudge && voiceJudge.name) || '(unspecified)'} | voice ${voiceName} | language ${languageCode || 'default'}`);
 
   let session;
   const liveSystemInstruction = buildLiveJudgePrompt(benchLevel, propositionSummary);
@@ -98,6 +104,11 @@ const handleLiveVoiceConnection = async (ws, benchLevel = 'moderate', propositio
 
   // Newest first; the next one is used only if this one refuses before the
   // session is set up. Override with GEMINI_LIVE_MODELS (comma-separated).
+  const ATTEMPTS = [];
+  for (const model of LIVE_MODELS) {
+    if (languageCode) ATTEMPTS.push({ model, languageCode });
+    ATTEMPTS.push({ model, languageCode: null });
+  }
   let modelIndex = 0, setupDone = false, liveAttempt = 0, clientGone = false;
   ws.on("close", () => { clientGone = true; });
   const liveConfig = {
@@ -122,12 +133,15 @@ const handleLiveVoiceConnection = async (ws, benchLevel = 'moderate', propositio
   };
   async function openLive() {
     const attemptId = ++liveAttempt;
-    const model = LIVE_MODELS[modelIndex];
+    const { model, languageCode: lang } = ATTEMPTS[modelIndex];
     setupDone = false;
-    console.log(`🎙️ Opening Gemini Live session on ${model}`);
+    console.log(`🎙️ Opening Gemini Live session on ${model}${lang ? ` (${lang})` : ''}`);
+    const config = lang
+      ? { ...liveConfig, speechConfig: { ...liveConfig.speechConfig, languageCode: lang } }
+      : liveConfig;
     session = await ai.live.connect({
       model,
-      config: liveConfig,
+      config,
       callbacks: {
         onopen: () => {
           if (liveAttempt !== attemptId) return;
@@ -202,7 +216,7 @@ const handleLiveVoiceConnection = async (ws, benchLevel = 'moderate', propositio
         onerror: (error) => {
           if (liveAttempt !== attemptId) return;
           console.error(`❌ Gemini Live Session Error (${model}):`, error);
-          if (!setupDone && modelIndex < LIVE_MODELS.length - 1) return;   // onclose will try the next model
+          if (!setupDone && modelIndex < ATTEMPTS.length - 1) return;   // onclose will try the next attempt
           ws.send(JSON.stringify({ type: "error", message: "Gemini voice session error." }));
         },
         onclose: (event) => {
@@ -211,9 +225,9 @@ const handleLiveVoiceConnection = async (ws, benchLevel = 'moderate', propositio
           // Closed before the session was ever set up: this model refused (not
           // available on this key, wrong name, overloaded). Try the next one
           // instead of ending the student's round.
-          if (!setupDone && !clientGone && modelIndex < LIVE_MODELS.length - 1) {
+          if (!setupDone && !clientGone && modelIndex < ATTEMPTS.length - 1) {
             modelIndex++;
-            console.warn(`[AI TRACE] Live model ${model} closed before setup; falling back to ${LIVE_MODELS[modelIndex]}.`);
+            console.warn(`[AI TRACE] Live ${model}${lang ? ` (${lang})` : ''} closed before setup; falling back to ${ATTEMPTS[modelIndex].model}${ATTEMPTS[modelIndex].languageCode ? ` (${ATTEMPTS[modelIndex].languageCode})` : ' (default language)'}.`);
             openLive().catch(e => {
               console.error("❌ Failed to establish Gemini Live Session:", e);
               ws.send(JSON.stringify({ type: "error", message: "Failed to connect to the AI Judge. Please try again." }));
@@ -233,8 +247,8 @@ const handleLiveVoiceConnection = async (ws, benchLevel = 'moderate', propositio
       await openLive();
       break;
     } catch (err) {
-      console.error(`❌ Failed to establish Gemini Live Session on ${LIVE_MODELS[modelIndex]}:`, err);
-      if (modelIndex < LIVE_MODELS.length - 1) { modelIndex++; continue; }
+      console.error(`❌ Failed to establish Gemini Live Session on ${ATTEMPTS[modelIndex].model}:`, err);
+      if (modelIndex < ATTEMPTS.length - 1) { modelIndex++; continue; }
       ws.send(JSON.stringify({ type: "error", message: "Failed to connect to the AI Judge. Please check your API key." }));
       ws.close();
       return;

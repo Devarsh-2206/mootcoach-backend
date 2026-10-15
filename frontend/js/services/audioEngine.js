@@ -1,7 +1,7 @@
 import { BASE_URL } from '../config.js';
 import { auth } from './firebase.js';
 import { currentPropositionContext } from '../components/ui.js';
-import { benchProfiles } from '../config/benchProfiles.js';
+import { FULL_BENCH, rosterMembers } from '../config/benchProfiles.js';
 
 let voiceWebSocket = null;
 let voiceAudioContext = null;
@@ -39,9 +39,15 @@ function getWsUrl() {
   const summary = currentPropositionContext || '';
   // Carry the forum + presiding-judge + depth directives so the VOICE bench
   // adapts to the actual forum (English court / arbitral tribunal / Indian court).
-  const ctx = (typeof window.getBenchContextString === 'function') ? window.getBenchContextString() : '';
+  // The judge's own persona, voice and accent are looked up on the server from
+  // the judge id (and roster, for the Full Bench), so only forum + depth go here.
+  const ctx = (typeof window.getVoiceContextString === 'function') ? window.getVoiceContextString()
+    : (typeof window.getBenchContextString === 'function') ? window.getBenchContextString() : '';
   const voice = (typeof window.getPresidingJudgeGender === 'function') ? window.getPresidingJudgeGender() : 'male';
-  const query = `?bench=${encodeURIComponent(mode)}&summary=${encodeURIComponent(summary.slice(0, 1000))}&ctx=${encodeURIComponent(ctx.slice(0, 900))}&voice=${encodeURIComponent(voice)}`;
+  const judge = (typeof window.getPresidingJudge === 'function' && window.getPresidingJudge()) || null;
+  const roster = (typeof window.getActiveRosterKey === 'function') ? window.getActiveRosterKey() : '';
+  const query = `?bench=${encodeURIComponent(mode)}&summary=${encodeURIComponent(summary.slice(0, 1000))}&ctx=${encodeURIComponent(ctx.slice(0, 900))}&voice=${encodeURIComponent(voice)}` +
+    `&judge=${encodeURIComponent(judge ? judge.id : '')}&roster=${encodeURIComponent(roster)}`;
   
   if (BASE_URL.startsWith('https://')) {
     return BASE_URL.replace('https://', 'wss://') + '/ws/voice' + query;
@@ -239,10 +245,11 @@ function setupWebSocketHandlers(callbacks, onOpenCallback = null) {
       const selectedAuthsText = selectedAuths.map(a => a.ratio ? `${a.name}: ${a.ratio}` : a.name).join('; ') || 'None chosen';
       const draftExcerpt = String(ms.memorialDraft || ms.oralSubmission || '').trim().slice(0, 1500);
       
-      const mode = window.benchDifficultyMode || 'moderate';
-      const bench = benchProfiles[mode] || benchProfiles.moderate;
-      
-      const judgesConfig = bench.judges.map(j => `- ${j.name} (${j.ideology}): ${j.behavior}`).join('\n');
+      // Speak as the judge the student chose. The Full Bench is the only
+      // multi-judge sitting; every other choice is that one judge alone.
+      const judge = (typeof window.getPresidingJudge === 'function' && window.getPresidingJudge()) || null;
+      const isFull = !!judge && judge.id === FULL_BENCH.id;
+      const panel = isFull ? rosterMembers((typeof window.getActiveRosterKey === 'function') ? window.getActiveRosterKey() : 'generic') : [];
 
       const primingPrompt = `[Appellate Advocacy Hearing Starting] 
 Advocate Stance: ${selectedStance.toUpperCase()}
@@ -250,18 +257,19 @@ Target Legal Issue: ${selectedIssue}
 Selected Authorities: ${selectedAuthsText}
 Case Context Summary: ${currentPropositionContext || 'General dispute'}
 ${draftExcerpt ? `\n[Advocate's Written Draft — question the advocate on it]\n${draftExcerpt}\n` : ''}
-YOU ARE ACTING AS A MULTI-JUDGE BENCH. 
+${isFull ? `YOU ARE ACTING AS A MULTI-JUDGE BENCH.
 The bench comprises:
-${judgesConfig}
+${panel.map(j => `- ${j.name} (${j.archetype}${j.presiding ? ', presiding' : ''})`).join('\n')}
 
 IMPORTANT INSTRUCTIONS:
-- You must maintain these distinct judge personalities throughout the hearing.
-- WHEN A JUDGE SPEAKS, YOU MUST PREPEND THEIR DIALOGUE WITH THEIR NAME IN BRACKETS.
-- Example: "[Chief Justice Rao] Counsel, how do you explain..."
-- Example: "[Justice Menon] I disagree, the statute is clear..."
+- Each judge keeps their own personality and remit throughout the hearing.
+- WHEN A JUDGE SPEAKS, PREPEND THEIR DIALOGUE WITH THEIR NAME IN BRACKETS, e.g. "[${(panel[0] && panel[0].name) || 'Justice'}] Counsel, …"
 - Do NOT act as a narrator, only speak as the judges.
 
-Begin the hearing by having one of the judges ask a challenging opening question tailored to this issue and stance. Keep it short and intimidating.`;
+Begin the hearing by having one of the judges ask a challenging opening question tailored to this issue and stance. Keep it short.` : `YOU ARE ${judge ? judge.name.toUpperCase() : 'THE PRESIDING JUDGE'}, SITTING ALONE.
+Speak only as ${judge ? judge.name : 'the presiding judge'}, in your own manner, from your own remit. Do not name yourself before each turn and do not speak for any other judge.
+
+Begin the hearing with one opening question tailored to this issue and stance. Keep it short.`}`;
 
       voiceWebSocket.send(JSON.stringify({
         type: "text",

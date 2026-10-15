@@ -408,6 +408,7 @@ const ORAL_EVAL_PROMPT = require("./prompts/oralEvalPrompt");
 const { buildJudgePrompt } = require("./prompts/benchJudgePrompt");
 const buildEvaluationPrompt = require("./prompts/benchEvaluationPrompt");
 const { buildJudgeDirective, listJudgeProfiles, listIntensityProfiles } = require("./prompts/judgeProfiles");
+const { resolveVoiceJudge } = require("./prompts/judgePersona");
 const ARGUMENT_BUILDER_PROMPT = require("./prompts/argumentBuilderPrompt");
 const buildClaimExtractionPrompt = require("./prompts/claimExtractionPrompt");
 const { buildIndianLegalDirective } = require("./prompts/indianLegalFramework");
@@ -2174,6 +2175,8 @@ wss.on("connection", (ws, req) => {
     let voiceGender = 'male';
     let judgeType = '';
     let intensity = '';
+    let judgeId = '';
+    let rosterKey = '';
 
     try {
       // The req.url might look like /ws/voice?bench=hard&summary=...&ctx=...&judgeType=...&intensity=...
@@ -2184,6 +2187,8 @@ wss.on("connection", (ws, req) => {
       voiceGender = url.searchParams.get('voice') || 'male';
       judgeType = url.searchParams.get('judgeType') || '';
       intensity = url.searchParams.get('intensity') || '';
+      judgeId = (url.searchParams.get('judge') || '').slice(0, 40);
+      rosterKey = (url.searchParams.get('roster') || '').slice(0, 20);
     } catch (e) {
       console.error("Error parsing WebSocket URL:", e);
     }
@@ -2197,8 +2202,11 @@ wss.on("connection", (ws, req) => {
 
     // Prepend the backend judge/intensity directive, then the forum/judge/depth
     // directives the client already embedded, so the voice judge adapts to the forum.
-    const voiceSummary = [backendJudgeDirective, benchContext, propositionSummary].filter(Boolean).join('\n\n');
-    handleLiveVoiceConnection(ws, benchLevel, voiceSummary, voiceGender);
+    // The judge the student picked: their own voice, accent and manner, from
+    // the same judges.json the judge cards are drawn from.
+    const voiceJudge = resolveVoiceJudge({ judgeId, rosterKey, gender: voiceGender });
+    const voiceSummary = [voiceJudge.persona, backendJudgeDirective, benchContext, propositionSummary].filter(Boolean).join('\n\n');
+    handleLiveVoiceConnection(ws, benchLevel, voiceSummary, voiceGender, voiceJudge);
     }
   } else {
     ws.close();

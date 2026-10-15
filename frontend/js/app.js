@@ -519,8 +519,13 @@ onAuthChanged(async (user) => {
   isInitialAuthCheck = false;
 });
 
-// Setup DOM Event Listeners
-document.addEventListener('DOMContentLoaded', () => {
+// Setup DOM Event Listeners.
+// The judge roster is fetched before the module graph finishes evaluating
+// (config/benchProfiles.js awaits judges.json), so this can run after
+// DOMContentLoaded has already fired. Run now in that case instead of waiting
+// for an event that will never come.
+const whenDomReady = fn => (document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', fn) : fn());
+whenDomReady(() => {
   // Wake the backend while the visitor is still reading the landing page.
   // An idle host can take tens of seconds to start, and that wait used to
   // land on their first AI request instead. Fire and forget.

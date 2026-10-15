@@ -19,7 +19,7 @@ import {
 } from '../services/audioEngine.js';
 import { logSessionSecurely, requestJson } from '../services/api.js';
 import { getCurrentSelectedSide, selectedAuthorities } from './argumentBuilder.js';
-import { DEPTH_PROFILES, JUDGE_ROSTERS, COURT_ROSTERS, FULL_BENCH } from '../config/benchProfiles.js';
+import { DEPTH_PROFILES, JUDGE_ROSTERS, COURT_ROSTERS, FULL_BENCH, personaDirective, fullBenchDirective, rosterKeyOf } from '../config/benchProfiles.js';
 
 // Simulator State
 export let benchConversation = [];
@@ -175,15 +175,25 @@ export function getActiveRoster(mode) {
     && !fp.isConstitutionalMatter
     && (level === 'trial' || level === 'appellate');
 
-  const base = fp.isArbitration
+  const list = (activeRosterBase(fp, isCivilTrack)).slice();
+  if ((mode || benchDifficultyMode) === 'hard') list.push(FULL_BENCH);
+  return list;
+}
+
+function activeRosterBase(fp, isCivilTrack) {
+  return fp.isArbitration
     ? JUDGE_ROSTERS.tribunal
     : isCivilTrack
       ? COURT_ROSTERS.indiaCivil
       : (COURT_ROSTERS[fp.courtJurisdiction] || COURT_ROSTERS.generic);
-  const list = base.slice();
-  if ((mode || benchDifficultyMode) === 'hard') list.push(FULL_BENCH);
-  return list;
 }
+
+/** The roster the bench is drawn from right now ('india', 'tribunal', …). */
+export function getActiveRosterKey() {
+  const first = getActiveRoster('easy')[0];
+  return (first && rosterKeyOf(first.id)) || 'generic';
+}
+window.getActiveRosterKey = getActiveRosterKey;
 
 function findJudge(id) {
   if (id === FULL_BENCH.id) return FULL_BENCH;
@@ -266,8 +276,8 @@ window.renderJudgeCards = renderJudgeCards;
 // Directives injected into the simulate-bench context.
 export function getJudgeDirective() {
   const j = getPresidingJudge();
-  if (!j) return '';
-  return `[Presiding: ${j.name} (${j.archetype}). ${j.directive}]`;
+  if (j && j.id === FULL_BENCH.id) return fullBenchDirective(getActiveRosterKey());
+  return personaDirective(j);
 }
 export function getDepthDirective() {
   const d = DEPTH_PROFILES[benchDifficultyMode] || DEPTH_PROFILES.moderate;
@@ -283,6 +293,13 @@ export function getBenchContextString() {
   return `${getForumDirective()}\n${getJudgeDirective()}\n${getDepthDirective()}`;
 }
 window.getBenchContextString = getBenchContextString;
+// The VOICE round: the server builds the judge's persona, voice and accent from
+// the judge id, so only the forum and depth travel in the context here.
+export function getVoiceContextString() {
+  return `${getForumDirective()}\n${getDepthDirective()}`;
+}
+window.getVoiceContextString = getVoiceContextString;
+window.getPresidingJudge = getPresidingJudge;
 
 export function setBenchDifficulty(mode) {
   benchDifficultyMode = mode;
