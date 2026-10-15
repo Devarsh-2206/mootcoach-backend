@@ -26,7 +26,13 @@ const CASE = `[Forum: High Court of Karnataka — writ / quashing jurisdiction] 
 Case: Kashinath & Mallappa seek to quash proceedings. A civil court granted an injunction in a tenancy dispute although the Karnataka Land Reforms Act bars civil courts from deciding tenancy questions, and the issue was pending before the Land Tribunal. Counsel appears for the petitioners.`;
 
 // Each turn is what counsel says; the check is what a real bench would do with it.
-const TURNS = [
+const OFFTOPIC = process.argv.includes('--offtopic');
+const TURNS = OFFTOPIC ? [
+  { say: 'My Lord, I appear for the petitioners. The Civil Court acted within its jurisdiction in granting the injunction.', expect: 'a pointed question' },
+  { say: 'I want the capital of India.', expect: 'does NOT answer; rebukes and returns to the case' },
+  { say: 'How many states are there in India?', expect: 'does NOT answer; sharper rebuke / warning' },
+  { say: "What's the population of India?", expect: 'does NOT answer' },
+] : [
   { say: 'My Lord, I appear for the petitioners. The Civil Court acted within its jurisdiction in granting the injunction.', expect: 'a pointed question on the statutory bar' },
   { say: "I'm sorry my lord.", expect: 'an apology is not an answer; deals with the point' },
   { say: "I don't know.", expect: 'treats it as a concession and draws its consequence; does NOT re-ask the same question' },
@@ -78,6 +84,7 @@ async function run(model) {
       words(reply) <= 90 ? 'length ok' : `TOO LONG (${words(reply)} words)`,
       overlap(reply, prev) > 0.7 ? 'REPEATS previous question' : 'new ground',
     ];
+    if (/capital|states are|population/.test(t.say)) checks.push(/(delhi|twenty|28|1\.4|billion|crore)/i.test(reply) ? 'ANSWERED THE TRIVIA' : 'refused the trivia');
     if (/don't know/.test(t.say)) checks.push(/(don'?t know|do not know|conce|accept|no answer|unprepared|then )/i.test(reply) ? 'reacts to the admission' : 'DOES NOT react to the admission');
     if (/sorry/.test(t.say)) checks.push(/(apolog|sorry|not an answer|answer the)/i.test(reply) ? 'reacts to the apology' : 'ignores the apology');
     console.log(`\nCOUNSEL: ${t.say}\nJUDGE:   ${reply}\n  expected: ${t.expect}\n  checks:   ${checks.join(' · ')}`);
@@ -127,6 +134,7 @@ async function runText() {
   for (const t of TURNS) {
     const reply = await judge(t.say);
     const checks = [words(reply) <= 90 ? 'length ok' : `TOO LONG (${words(reply)} words)`, prev && overlap(reply, prev) > 0.7 ? 'REPEATS previous question' : 'new ground'];
+    if (/capital|states are|population/.test(t.say)) checks.push(/(delhi|twenty|28|1\.4|billion|crore)/i.test(reply) ? 'ANSWERED THE TRIVIA' : 'refused the trivia');
     if (/don't know/.test(t.say)) checks.push(/(don'?t know|do not know|conce|accept|no answer|unprepared|then )/i.test(reply) ? 'reacts to the admission' : 'DOES NOT react to the admission');
     if (/sorry/.test(t.say)) checks.push(/(apolog|sorry|not an answer|answer the)/i.test(reply) ? 'reacts to the apology' : 'ignores the apology');
     console.log(`\nCOUNSEL: ${t.say}\nJUDGE:   ${reply}\n  expected: ${t.expect}\n  checks:   ${checks.join(' · ')}`);
