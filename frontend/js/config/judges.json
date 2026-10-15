@@ -10,7 +10,7 @@
   },
   "neutral": {
    "languageCode": null,
-   "instruction": "Speak in clear, neutral international English."
+   "instruction": "Speak in clear, neutral international English, measured and formal, as a judge of an international court."
   }
  },
  "rosters": {
@@ -331,7 +331,7 @@
    ]
   },
   "generic": {
-   "label": "Generic bench",
+   "label": "International / generic bench",
    "accent": "neutral",
    "members": [
     {

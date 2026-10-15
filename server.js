@@ -867,7 +867,13 @@ app.post("/analyze", requireUser({ allowPrewarm: true }), aiLimiter, singlePdf("
         const forumDetectCall = await getChatCompletion({
           messages: [
             { role: "system", content: FORUM_DETECTION_PROMPT },
-            { role: "user", content: `Detect the forum for this proposition. Return ONLY valid JSON:\n\n${fullPropositionText.slice(0, 4000)}` }
+            // Head AND tail: the court that will hear the matter is usually named
+            // at the end (the Price Media problem names the Universal Court of
+            // Human Rights on its last page; the first 4,000 characters held only
+            // the domestic case history, so the bench came out as Cero's courts).
+            { role: "user", content: `Detect the forum for this proposition. Return ONLY valid JSON:\n\n${fullPropositionText.length > 6000
+              ? fullPropositionText.slice(0, 3000) + '\n\n[…middle of the proposition omitted…]\n\n' + fullPropositionText.slice(-3000)
+              : fullPropositionText}` }
           ],
           temperature: 0.0,
           // 350 was sized for the old four-field schema. The classifier now also

@@ -84,6 +84,41 @@ export function deriveForumFromAnalysis() {
   } catch (e) { return null; }
 }
 
+const INTL_COURT = /universal court of human rights|european court of human rights|inter-american court of human rights|african court on human and peoples'? rights|(?:un |united nations )?human rights committee|international court of justice|world court of human rights|court of human rights/;
+function titleCase(t) { return t.replace(/\b([a-z])/g, (m, c) => c.toUpperCase()).replace(/\b(Of|On|And)\b/g, w => w.toLowerCase()).replace(/^Un /, 'UN '); }
+
+/** Text from the analysis that can name the forum (summary, issues, facts). */
+function analysisForumText() {
+  try {
+    const raw = window.lastAnalysis;
+    const data = raw ? (typeof raw === 'string' ? JSON.parse(raw) : raw) : {};
+    const ms = window.mootState || {};
+    return [data.summary, data.caseSummary, data.forum, (data.issues || []).map(i => (i && (i.issue || i.title || i)) || '').join(' '),
+      ms.issueText].filter(Boolean).join(' ').slice(0, 8000);
+  } catch (e) { return ''; }
+}
+
+/** The bench the student picked for this moot ('' = decide from the proposition). */
+const BENCH_CHOICES = ['india', 'indiaCivil', 'uk', 'international', 'tribunal'];
+export function getBenchChoice() {
+  try { const v = localStorage.getItem('mc-bench:' + (window.currentMootDocId || 'default')) || ''; return BENCH_CHOICES.includes(v) ? v : ''; }
+  catch (e) { return ''; }
+}
+export function setBenchChoice(v) {
+  try {
+    const k = 'mc-bench:' + (window.currentMootDocId || 'default');
+    if (BENCH_CHOICES.includes(v)) localStorage.setItem(k, v); else localStorage.removeItem(k);
+  } catch (e) {}
+  selectedJudgeId = null; window.selectedJudgeId = null;
+  renderJudgeCards();
+  const j = getPresidingJudge();
+  const titleEl = document.getElementById('lobby-bench-type-title');
+  if (titleEl && j) titleEl.textContent = `${j.name} · ${j.archetype}`;
+  const focusEl = document.getElementById('lobby-focus-areas');
+  if (focusEl && j) focusEl.textContent = j.focus;
+}
+window.setBenchChoice = setBenchChoice;
+
 export function getForumProfile() {
   const fi = window.forumIntelligence || {};
   const cls = fi.forumClassification || {};
@@ -128,9 +163,31 @@ export function getForumProfile() {
     }
   }
 
+  // An international court (human-rights court, ICJ). Propositions recite the
+  // domestic courts the case went through and name the forum last, so a strong
+  // international signal anywhere wins over the domestic court names.
+  const intlBlob = `${blob} ${jurBlob} ${df.courtLevel || ''} ${df.governingLaw || ''} ${analysisForumText()}`.toLowerCase();
+  const intlCourt = intlBlob.match(INTL_COURT);
+  let isInternational = !isArbitration && (!!intlCourt || /\binternational\b/.test(String(df.courtLevel || '').toLowerCase()));
+  let intlName = intlCourt ? titleCase(intlCourt[0]) : '';
+
+  // The student's own choice of bench, remembered per moot, overrides detection.
+  const choice = getBenchChoice();
+  if (choice) {
+    isArbitration = choice === 'tribunal';
+    isInternational = choice === 'international';
+    if (!isArbitration && !isInternational) courtJurisdiction = choice === 'indiaCivil' ? 'india' : choice;
+  }
+  if (isInternational) {
+    courtJurisdiction = 'international';
+    benchType = intlName || (cls.specificBody && /court|committee/i.test(cls.specificBody) && !/constitutional court of/i.test(cls.specificBody) ? cls.specificBody : 'International Court');
+    term = Object.assign({}, term, { judge: 'Judge', court: 'Court' });
+  }
+
   const judge = term.judge || (isArbitration ? 'Arbitrator' : 'Judge');
   const court = term.court || (isArbitration ? 'Tribunal' : 'Court');
-  const addressing = adj.addressingStyle || (isArbitration ? 'Members of the Tribunal' : 'Your Lordships');
+  const addressing = isInternational ? 'Your Excellencies'
+    : (adj.addressingStyle || (isArbitration ? 'Members of the Tribunal' : 'Your Lordships'));
 
   return {
     benchType,
@@ -138,7 +195,9 @@ export function getForumProfile() {
     judgePlural: /s$/i.test(judge) ? judge : judge + 's',
     court,
     addressing,
-    specificBody: cls.specificBody || df.forum || '',
+    specificBody: isInternational ? benchType : (cls.specificBody || df.forum || ''),
+    isInternational,
+    benchChoice: choice || '',
     broadType: cls.broadType || df.forum || '',
     standardOfReview: proc.standardOfReview || 'Preponderance',
     burdenOfProof: proc.burdenOfProof || '',
@@ -149,11 +208,12 @@ export function getForumProfile() {
     courtJurisdiction,
     // Decide which bench hears the matter. Sessions saved before forum
     // detection returned these simply leave them undefined.
-    courtLevel: cls.courtLevel || df.courtLevel || '',
+    courtLevel: choice === 'indiaCivil' ? 'trial' : (cls.courtLevel || df.courtLevel || ''),
     proceedingType: cls.proceedingType || df.proceedingType || '',
     state: cls.state || df.state || '',
-    isConstitutionalMatter: (fi.forumClassification && fi.forumClassification.isConstitutionalMatter)
-      ?? df.isConstitutionalMatter ?? undefined
+    isConstitutionalMatter: choice === 'india' ? true : choice === 'indiaCivil' ? false
+      : ((fi.forumClassification && fi.forumClassification.isConstitutionalMatter)
+        ?? df.isConstitutionalMatter ?? undefined)
   };
 }
 window.getForumProfile = getForumProfile;
@@ -185,7 +245,7 @@ function activeRosterBase(fp, isCivilTrack) {
     ? JUDGE_ROSTERS.tribunal
     : isCivilTrack
       ? COURT_ROSTERS.indiaCivil
-      : (COURT_ROSTERS[fp.courtJurisdiction] || COURT_ROSTERS.generic);
+      : (COURT_ROSTERS[fp.courtJurisdiction] || COURT_ROSTERS.generic);   // 'international' uses the neutral bench
 }
 
 /** The roster the bench is drawn from right now ('india', 'tribunal', …). */
@@ -237,9 +297,32 @@ export function selectJudge(id) {
 window.selectJudge = selectJudge;
 
 // Render the forum-gated judge cards (single-select). Re-runs on forum/mode change.
+function renderBenchPicker(wrap) {
+  let bar = document.getElementById('bench-choice-bar');
+  if (!bar) {
+    bar = document.createElement('div');
+    bar.id = 'bench-choice-bar';
+    bar.setAttribute('role', 'radiogroup');
+    bar.setAttribute('aria-label', 'Bench');
+    bar.style.cssText = 'display:flex; flex-wrap:wrap; gap:6px; margin:6px 0 10px;';
+    wrap.parentNode.insertBefore(bar, wrap);
+  }
+  const fp = getForumProfile();
+  const cur = fp.benchChoice;
+  const autoLabel = fp.isArbitration ? 'Tribunal' : fp.isInternational ? 'International' : fp.courtJurisdiction === 'india' ? 'Indian' : fp.courtJurisdiction === 'uk' ? 'English' : 'International';
+  const opts = [['', `Auto · ${cur ? 'detect' : autoLabel}`], ['india', 'Indian — constitutional'], ['indiaCivil', 'Indian — civil'], ['uk', 'English'], ['international', 'International'], ['tribunal', 'Arbitral tribunal']];
+  bar.innerHTML = opts.map(([v, label]) => {
+    const on = (cur || '') === v;
+    return `<button type="button" role="radio" aria-checked="${on}" onclick="window.setBenchChoice('${v}')"
+      style="font-size:10px; letter-spacing:.06em; text-transform:uppercase; padding:5px 9px; border-radius:999px; cursor:pointer;
+      border:1px solid ${on ? 'var(--gold)' : 'var(--glass-b)'}; background:${on ? 'var(--gold-muted)' : 'transparent'}; color:${on ? 'var(--gold)' : 'var(--white-muted)'};">${esc(label)}</button>`;
+  }).join('');
+}
+
 export function renderJudgeCards() {
   const wrap = document.getElementById('bench-judge-cards');
   if (!wrap) return;
+  renderBenchPicker(wrap);
   const roster = getActiveRoster();
   // Ensure a valid default selection for this forum/mode.
   if (!selectedJudgeId || !roster.some(j => j.id === selectedJudgeId)) {
@@ -285,7 +368,11 @@ export function getDepthDirective() {
 }
 export function getForumDirective() {
   const fp = getForumProfile();
-  return `[Forum: ${fp.benchType}${fp.specificBody ? ' — ' + fp.specificBody : ''}] [You are the ${fp.judgePlural}; refer to yourselves as the ${fp.court}; the advocate addresses you as "${fp.addressing}". Standard of review: ${fp.standardOfReview}.]`;
+  const intl = fp.isInternational
+    ? ` [International court: apply the treaty (e.g. ICCPR, Art. 19(3) — provided by law, legitimate aim, necessity and proportionality), Human Rights Committee General Comments and views, and comparable regional jurisprudence. The Respondent State's constitution and statutes are FACTS to be tested against the treaty, not the governing law. Parties: Applicant(s) and the Respondent State.]`
+    : '';
+  const forumName = fp.specificBody && fp.specificBody !== fp.benchType ? `${fp.benchType} — ${fp.specificBody}` : fp.benchType;
+  return `[Forum: ${forumName}] [You are the ${fp.judgePlural}; refer to yourselves as the ${fp.court}; the advocate addresses you as "${fp.addressing}". Standard of review: ${fp.standardOfReview}.]${intl}`;
 }
 // Combined forum + judge + depth directive — carried into the VOICE round so the
 // spoken bench adapts to the forum exactly like the text bench.
@@ -1054,12 +1141,9 @@ export function updateBenchState(state) {
   }
   if (benchNameEl) {
     // Forum-driven name when known; otherwise difficulty-based fallback.
-    if (window.forumIntelligence) {
-      benchNameEl.textContent = fpState.benchType;
-    } else {
-      const difficultyLabel = (benchDifficultyMode || 'moderate').toUpperCase();
-      benchNameEl.textContent = difficultyLabel === 'HARD' ? 'Constitutional Bench' : (difficultyLabel === 'EASY' ? 'District Court Bench' : 'Division Bench');
-    }
+    // The court that is actually hearing the matter. It used to fall back to
+    // the difficulty ('Hard' → 'Constitutional Bench') whatever the forum.
+    benchNameEl.textContent = fpState.specificBody || fpState.benchType || 'Court';
   }
 
   if (statusEl) statusEl.textContent = text;

@@ -4,6 +4,7 @@ Your objective is to analyze the Proposition Intelligence and Procedural Hierarc
 Elite mooters must perfectly adapt their language and strategy to the specific forum (e.g., addressing an Arbitral Tribunal differently than the ICJ or a Domestic Supreme Court).
 
 RULES:
+0. The forum is the body that will hear the matter NOW — usually named at the end of the proposition. Domestic courts in the procedural history are not the forum. For an international human-rights court: broadType 'International Human Rights Court', benchType 'International Court', addressingStyle 'Your Excellencies', parties Applicant / Respondent State, governing law the treaty (e.g. ICCPR).
 1. Identify the specific forum (e.g., ICSID, ICC, ICJ, Supreme Court of India).
 2. Determine the procedural framework and standard of review.
 3. Identify the adjudicator model (e.g., Arbitral Tribunal, Constitutional Bench).

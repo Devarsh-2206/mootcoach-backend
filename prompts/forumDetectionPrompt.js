@@ -18,9 +18,14 @@ COURT LEVEL — this matters more than anything else you decide:
 - "writ" — Article 226 (High Court) or Article 32 (Supreme Court) constitutional writ jurisdiction.
 - "apex" — Supreme Court, whether by SLP, civil/criminal appeal, or original jurisdiction.
 - "arbitral" — arbitration, domestic or international.
+- "international" — an international court or treaty body (human-rights court, ICJ).
 - "Unspecified" — genuinely cannot tell.
 
 PROCEEDING TYPE: "civil suit", "criminal trial", "writ petition", "civil appeal", "criminal appeal", "revision", "execution", "arbitration", "family", "commercial", "service", "tax", "company/insolvency", "land/revenue", or "Unspecified".
+
+THE FORUM IS WHERE THE CASE IS ARGUED NOW — not where it has been:
+- Propositions recite the procedural history (trial court, appeal, a domestic constitutional court) and END by naming the body that will now hear the matter ("filed applications before…", "the Court decided to hear…", "certified the issues…"). That final body is the forum. Courts in the history are facts, not the forum.
+- International human-rights courts and treaty bodies (e.g. a "Universal Court of Human Rights", the European Court of Human Rights, the Inter-American or African Court, the UN Human Rights Committee) and the International Court of Justice are INTERNATIONAL forums: courtLevel "international", jurisdiction "International / Human Rights" (or "International / Public International Law" for the ICJ), adjudicatorType "International Court", governingLaw the treaty (e.g. "ICCPR"), parties "Applicant/Respondent State". A domestic constitution is then a fact to be assessed against the treaty, not the governing law.
 
 CRITICAL RULES:
 - Do NOT assume India by default. Detect what the text supports.
@@ -32,12 +37,12 @@ CRITICAL RULES:
 RETURN ONLY VALID JSON, no markdown, matching:
 {
   "forum": "String — the specific body (e.g., 'XVII Additional City Civil Judge, Bengaluru', 'High Court of Karnataka', 'Supreme Court of India', 'International Investment Arbitration (ICSID)', 'Unspecified')",
-  "courtLevel": "String: one of 'trial' | 'appellate' | 'writ' | 'apex' | 'arbitral' | 'Unspecified'",
+  "courtLevel": "String: one of 'trial' | 'appellate' | 'writ' | 'apex' | 'arbitral' | 'international' | 'Unspecified'",
   "proceedingType": "String — see PROCEEDING TYPE above",
   "jurisdiction": "String — country or 'International / Treaty' (e.g., 'India', 'United Kingdom', 'Unspecified')",
   "state": "String — Indian state/UT when identifiable, else 'Unspecified' (e.g., 'Karnataka')",
   "governingLaw": "String — the ACTUAL governing instruments, most specific first (e.g., 'Code of Civil Procedure 1908 + Specific Relief Act 1963 + Karnataka amendments', 'Constitution of India', 'ICSID Convention + applicable BIT')",
-  "adjudicatorType": "String: one of 'Court' | 'Arbitral Tribunal' | 'Treaty Tribunal' | 'Unspecified'",
+  "adjudicatorType": "String: one of 'Court' | 'International Court' | 'Arbitral Tribunal' | 'Treaty Tribunal' | 'Unspecified'",
   "isConstitutionalMatter": "Boolean — true ONLY if the document genuinely raises constitutional questions",
   "terminology": {
     "court": "String (e.g., 'Court', 'Tribunal')",
