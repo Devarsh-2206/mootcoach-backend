@@ -45,7 +45,8 @@ import {
   renderStage4OralNotes,
   selectIssueFromCard,
   renderStage2Issues,
-  refreshAdditionalIssuesCard
+  refreshAdditionalIssuesCard,
+  confirmDialog
 } from './components/ui.js';
 
 import {
@@ -415,6 +416,19 @@ async function handleOverlayForgotPassword() {
 }
 
 async function handleLogout() {
+  // An analysis still running would be lost (it saves to this account).
+  if (window.mcWait && window.mcWait.isRunning()) {
+    const choice = await confirmDialog({
+      title: 'An analysis is still running',
+      body: 'Signing out now cancels it, and the proposition will not be saved. You can upload it again later.',
+      actions: [
+        { label: 'Keep it running', value: null, primary: true },
+        { label: 'Sign out anyway', value: 'out' },
+      ],
+    });
+    if (choice !== 'out') return;
+    if (window.cancelAnalysis) window.cancelAnalysis();
+  }
   // Close this person's work before the account goes, so the next person to
   // sign in on this browser does not find it loaded.
   if (typeof window.resetWorkspace === 'function') window.resetWorkspace();

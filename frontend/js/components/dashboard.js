@@ -1,4 +1,5 @@
 import { analyzeProposition, logSessionSecurely } from '../services/api.js';
+import { mcWait } from './waitRoom.js';
 import { UPLOAD_LIMITS } from '../config.js';
 import { currentUser } from '../services/firebase.js';
 import { 
@@ -188,35 +189,64 @@ function sleep(ms) {
   return new Promise(r=>setTimeout(r,ms)); 
 }
 
+/* Each run gets a token; cancelling (sign-out) bumps it, and a run whose
+   token is stale drops its result instead of saving or showing it. */
+let runToken = 0;
+export function cancelAnalysis() {
+  runToken++;
+  stopSteps();
+  mcWait.cancel();
+  hideLoading();
+}
+window.cancelAnalysis = cancelAnalysis;
+
 export async function runAnalysis() {
   if (!selectedFile) {
     console.warn("[UPLOAD_DEBUG] runAnalysis triggered but selectedFile is null.");
     return;
   }
+  // One analysis at a time. The student may be working elsewhere while one
+  // runs (the wait room's "keep working"); say so instead of starting another.
+  if (mcWait.isRunning()) {
+    showToast('An analysis is already running. It will tell you when it is ready.', 'info');
+    if (mcWait.isMinimized()) mcWait.restore();
+    return;
+  }
 
   const analyzeBtn = document.getElementById('analyze-submit-btn');
   const loadingOverlay = document.getElementById('loading-overlay');
+  // Read now: the student can move around the app while this runs, and the
+  // file and name fields may have changed by the time it returns.
+  const file = selectedFile;
+  const typedName = document.getElementById('ws-moot-name')?.value;
+  const token = ++runToken;
 
   if (loadingOverlay) loadingOverlay.classList.add('show');
+  // The steps start hidden in the page and only the saved-moot loader ever
+  // turned them on, so a first upload after a fresh load showed none.
+  const stepsEl = document.querySelector('#loading-overlay .lo-steps');
+  if (stepsEl) stepsEl.style.display = 'flex';
   startSteps();
+  mcWait.start();
   if (analyzeBtn) analyzeBtn.disabled = true;
 
   const formData = new FormData();
-  formData.append('file', selectedFile);
+  formData.append('file', file);
 
-  console.log(`[UPLOAD_DEBUG] Upload started for file: ${selectedFile.name}`);
+  console.log(`[UPLOAD_DEBUG] Upload started for file: ${file.name}`);
 
   try {
     const data = await analyzeProposition(formData);
+    if (token !== runToken) return;   // cancelled meanwhile
     console.log("[UPLOAD_DEBUG] Upload completed.");
     console.log("[UPLOAD_DEBUG] Parsing started.");
 
     if (data.isRejection) {
       console.log(`[UPLOAD_DEBUG] Parsing completed with rejection: ${data.error}`);
       stopSteps();
-      await sleep(400);
-      hideLoading();
-      showRejection(data.error, data.documentType);
+      if (!mcWait.isMinimized()) await sleep(400);
+      mcWait.finish(() => { hideLoading(); showRejection(data.error, data.documentType); },
+        { failed: true, message: 'The file was not accepted as a proposition' });
       return;
     }
 
@@ -242,8 +272,8 @@ export async function runAnalysis() {
       if (currentUser) {
         try {
           const mootName = deriveMootName({
-            mootName: document.getElementById('ws-moot-name')?.value,
-            fileName: selectedFile.name,
+            mootName: typedName,
+            fileName: file.name,
             analysisData: data.response,
             propositionIntelligence: data.propositionIntelligence,
           });
@@ -251,7 +281,7 @@ export async function runAnalysis() {
           const logRes = await logSessionSecurely({
             type: 'analysis',
             mootName: mootName,
-            fileName: selectedFile.name,
+            fileName: file.name,
             score: data.response.overallScore || 0,
             analysisData: data.response,
             detectedForum: data.detectedForum || null,
@@ -270,15 +300,19 @@ export async function runAnalysis() {
         }
       }
 
+      if (token !== runToken) return;
       stopSteps();
-      await sleep(400);
-      hideLoading();
-      
-      if (newMootId) {
-        await loadSavedSession(newMootId);
-      } else {
-        showStructuredResults(data.response);
-      }
+      if (!mcWait.isMinimized()) await sleep(400);
+      // Opens now if the student is watching; if they went to work elsewhere,
+      // the pill offers "Analysis ready → Open" instead of pulling them away.
+      mcWait.finish(async () => {
+        hideLoading();
+        if (newMootId) {
+          await loadSavedSession(newMootId);
+        } else {
+          showStructuredResults(data.response);
+        }
+      });
       return;
     }
 
@@ -291,16 +325,15 @@ export async function runAnalysis() {
     
     console.log("[UPLOAD_DEBUG] Parsing completed successfully (Raw text response).");
     stopSteps();
-    await sleep(400);
-    hideLoading();
-    showResults(rawStr);
+    if (!mcWait.isMinimized()) await sleep(400);
+    mcWait.finish(() => { hideLoading(); showResults(rawStr); });
 
   } catch(err) {
     console.error(`[UPLOAD_DEBUG] Parsing completed with error: ${err.message}`);
+    if (token !== runToken) return;
     stopSteps();
-    await sleep(400);
-    hideLoading();
-    showError(err.message);
+    if (!mcWait.isMinimized()) await sleep(400);
+    mcWait.finish(() => { hideLoading(); showError(err.message); }, { failed: true, message: 'Something went wrong — see why' });
   } finally {
     if (analyzeBtn) analyzeBtn.disabled = false;
   }

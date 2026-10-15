@@ -1003,6 +1003,56 @@ p  { color:var(--white-2); }
 /* Only while it is on screen: no work for a hidden overlay. */
 .loading-overlay:not(.show) .mc-scales * { animation-play-state: paused; }
 @media (prefers-reduced-motion: reduce) { .mc-scales * { animation: none !important; } }
+/* ── Wait room (components/waitRoom.js) ── */
+.loading-overlay.wr-on #lo-card { max-width: 560px !important; display: grid !important; grid-template-columns: 150px 1fr; column-gap: 20px; row-gap: 0 !important; align-items: center; padding: 24px 26px !important; max-height: calc(100vh - 32px); overflow-y: auto; }
+.loading-overlay.wr-on #lo-card > .mc-scales { width: 150px; grid-row: 1 / span 2; margin: 0; }
+.loading-overlay.wr-on #lo-card > .lo-label { grid-column: 2; grid-row: 1; text-align: left !important; font-size: 1.15rem !important; margin-bottom: 6px; }
+.loading-overlay.wr-on #lo-card > .lo-steps { grid-column: 2; grid-row: 2; align-items: flex-start; gap: 5px; margin: 0; }
+.loading-overlay.wr-on #lo-card > #wr-room { grid-column: 1 / -1; grid-row: 3; }
+.wr-time { margin-top: 16px; display: flex; align-items: center; gap: 12px; font-size: 12.5px; color: var(--white-2); }
+.wr-time.slow { color: var(--acc-amber, #9A6A12); }
+.wr-bar { flex: 1; min-width: 60px; height: 4px; border-radius: 2px; background: var(--glass-b); overflow: hidden; }
+.wr-bar b { display: block; height: 100%; background: var(--gold); transition: width 1s linear; }
+.wr-time.slow .wr-bar b { background: var(--acc-amber, #9A6A12); }
+.wr-panel { margin-top: 16px; border-top: 1px solid var(--glass-b); padding-top: 14px; }
+.wr-head { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 10px; letter-spacing: .12em; color: var(--white-muted); }
+.wr-dots i { display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: var(--glass-b); margin-left: 4px; }
+.wr-dots i.on { background: var(--gold); }
+.wr-score { color: var(--success, #2F7A55); }
+.wr-tip, .wr-q { font-family: var(--serif); font-size: 1.12rem; line-height: 1.4; color: var(--white); margin: 8px 0 2px; text-align: left; }
+.wr-opts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+.wr-opt { display: flex; gap: 10px; align-items: center; text-align: left; font-size: 13.5px; color: var(--white); background: transparent; border: 1px solid var(--glass-b); border-radius: 10px; padding: 9px 11px; cursor: pointer; }
+.wr-opt:hover:not([disabled]) { border-color: var(--gold); }
+.wr-opt[disabled] { cursor: default; }
+.wr-opt .k { flex: none; font-family: var(--mono); font-size: 11px; width: 22px; height: 22px; border-radius: 50%; border: 1px solid var(--glass-b); display: grid; place-items: center; color: var(--white-muted); }
+.wr-opt.correct { border-color: var(--success, #2F7A55); background: color-mix(in srgb, var(--success, #2F7A55) 10%, transparent); }
+.wr-opt.correct .k { background: var(--success, #2F7A55); color: #fff; border-color: transparent; }
+.wr-opt.wrong { border-color: var(--acc-red); background: color-mix(in srgb, var(--acc-red) 8%, transparent); }
+.wr-opt.wrong .k { background: var(--acc-red); color: #fff; border-color: transparent; }
+.wr-expl { margin-top: 10px; font-size: 13px; line-height: 1.55; color: var(--white-2); border-left: 3px solid var(--gold); padding: 2px 0 2px 12px; text-align: left; }
+.wr-actions { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+.wr-link { background: none; border: 0; padding: 0; font-size: 13px; color: var(--gold); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.wr-btn { font: 600 11.5px var(--sans, inherit); letter-spacing: .06em; text-transform: uppercase; background: var(--gold); color: #fff; border: 0; border-radius: 999px; padding: 9px 15px; cursor: pointer; }
+.wr-ghost { background: transparent; color: var(--white); border: 1px solid var(--glass-b); }
+/* The pill: above the Previous / Next bar, so it never covers Next. */
+.wr-pill { position: fixed; right: 24px; bottom: 84px; z-index: 100050; display: flex; align-items: center; gap: 12px; background: var(--navy-3); border: 1px solid var(--glass-b); border-radius: 999px; padding: 7px 8px 7px 7px; box-shadow: 0 10px 30px rgba(0,0,0,.18); color: var(--white); max-width: calc(100vw - 32px); }
+.wr-pill-body { display: flex; align-items: center; gap: 12px; background: none; border: 0; padding: 0 8px 0 0; color: inherit; cursor: pointer; text-align: left; }
+.wr-mini { flex: none; width: 38px; height: 38px; border-radius: 50%; overflow: hidden; display: grid; place-items: center; background: var(--sheet); font-weight: 700; }
+.wr-mini .mc-scales { width: 48px !important; margin: 0 !important; }
+.wr-pill-t b { display: block; font-size: 13px; }
+.wr-pill-t span { font-size: 11.5px; color: var(--white-muted); }
+.wr-pill.wr-ready { border-color: var(--success, #2F7A55); box-shadow: 0 0 0 4px color-mix(in srgb, var(--success, #2F7A55) 18%, transparent), 0 10px 30px rgba(0,0,0,.18); padding-left: 7px; }
+.wr-pill.wr-ready .wr-mini { background: var(--success, #2F7A55); color: #fff; font-size: 18px; }
+.wr-pill.wr-failed { border-color: var(--acc-red); }
+.wr-pill.wr-failed .wr-mini { background: var(--acc-red); color: #fff; font-size: 18px; }
+@media (max-width: 560px) {
+  .loading-overlay.wr-on #lo-card { grid-template-columns: 96px 1fr; column-gap: 12px; padding: 18px !important; }
+  .loading-overlay.wr-on #lo-card > .mc-scales { width: 96px; }
+  .loading-overlay.wr-on #lo-card > .lo-steps .lo-step { font-size: .74rem; }
+  .wr-opts { grid-template-columns: 1fr; }
+  .wr-pill { left: 16px; right: 16px; bottom: 76px; justify-content: space-between; }
+}
+
 
 .lo-glow {
   width:110px; height:110px; border-radius:50%;
@@ -4297,7 +4347,7 @@ input.sr-only { position: absolute !important; width: 1px !important; height: 1p
 
 <!-- LOADING OVERLAY -->
 <div class="loading-overlay" id="loading-overlay">
-  <div style="width: 100%; max-width: 500px; padding: 32px; background: var(--navy-3); border: 1px solid var(--glass-b); border-radius: var(--rl); display: flex; flex-direction: column; gap: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.5);">
+  <div id="lo-card" style="width: 100%; max-width: 500px; padding: 32px; background: var(--navy-3); border: 1px solid var(--glass-b); border-radius: var(--rl); display: flex; flex-direction: column; gap: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.5);">
     <!-- Scales of justice: both sides weighed while the proposition is analysed.
          Replaces grey placeholder bars. Petitioner blue, Respondent red, as on
          the memorial covers; colours follow the light and dark themes. -->
@@ -4345,6 +4395,12 @@ input.sr-only { position: absolute !important; width: 1px !important; height: 1p
     </div>
     
     <div class="lo-label" id="lo-label" style="text-align: center; font-family: var(--serif); font-size: 1.25rem; color: var(--white-2);">Analyzing your proposition…</div>
+    <!-- The wait room (components/waitRoom.js): an honest clock, moot tips,
+         an optional quiz, and "keep working" while the analysis runs. -->
+    <div id="wr-room" hidden>
+      <div id="wr-time" class="wr-time"></div>
+      <div id="wr-panel" class="wr-panel"></div>
+    </div>
   </div>
 </div>
 
