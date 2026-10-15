@@ -627,8 +627,8 @@ export async function loadSavedSession(docId) {
   try {
     // See loadRecentSessions() for why this goes first.
     await currentUser.getIdToken();
-    const doc = await db.collection('artifacts').doc('moot.coach')
-      .collection('users').doc(currentUser.uid).collection('analyses').doc(docId).get();
+    const doc = await getWithReconnect(db.collection('artifacts').doc('moot.coach')
+      .collection('users').doc(currentUser.uid).collection('analyses').doc(docId), labelEl);
       
     if (!doc.exists) throw new Error("Analysis not found.");
     
@@ -678,6 +678,7 @@ export async function loadSavedSession(docId) {
   } catch (e) {
     hideLoading();
     if (stepsDiv) stepsDiv.style.display = 'flex'; 
+    if (isConnectionError(e)) { showOpenError(docId); return; }
     showError("Could not load saved session: " + e.message);
     showToast("Failed to load saved session: " + e.message, "err");
   }
@@ -1469,6 +1470,42 @@ export function renderMarkdown(text) {
       return t ? `<p>${t}</p>` : '';
     })
     .join('\n');
+}
+
+/* Firestore in the browser reports "the client is offline" when its
+   connection drops for a moment, which happened right after a long upload:
+   the analysis was saved, but opening it failed once and the page said
+   "Analysis Failed". The connection usually returns within seconds, so ask
+   again a few times before giving up. */
+function isConnectionError(e) {
+  return /offline|unavailable|network|Failed to get document|deadline/i.test(String((e && (e.code || e.message)) || ''));
+}
+async function getWithReconnect(ref, labelEl) {
+  const waits = [1500, 3000, 5000];
+  for (let i = 0; ; i++) {
+    try {
+      return await ref.get();
+    } catch (e) {
+      if (!isConnectionError(e) || i >= waits.length) throw e;
+      if (labelEl) labelEl.textContent = 'Reconnecting to your saved moots…';
+      try { if (typeof db.enableNetwork === 'function') await db.enableNetwork(); } catch (_) {}
+      await new Promise(r => setTimeout(r, waits[i]));
+    }
+  }
+}
+/* The analysis is saved; only opening it failed. Say so, and retry the open
+   rather than sending the student back to upload it again. */
+function showOpenError(docId) {
+  document.getElementById('res-empty').style.display = 'none';
+  document.getElementById('res-filled').style.display = 'flex';
+  document.getElementById('analysis-output').innerHTML = `
+    <div class="error-box">
+      <div class="error-box-title">Couldn't open this moot just now</div>
+      <div class="error-box-msg">Your analysis is saved to your account. The connection dropped while opening it.
+        Try again in a moment, or open it from Recent Moots in the sidebar.</div>
+      <button class="btn-retry" onclick="loadSavedSession('${esc(docId)}')">Try again</button>
+    </div>`;
+  showWsPanel('results');
 }
 
 export function showError(msg) {
