@@ -992,7 +992,14 @@ app.post("/analyze", requireUser({ allowPrewarm: true }), aiLimiter, singlePdf("
         // request ceiling, so a bad run ends in a clear 504 rather than the
         // socket being cut with nothing to show.
         totalBudgetMs: 135000,
-        geminiMaxOutputTokens: 16000,
+        // 32,000, not 16,000. Production: a two-issue proposition stopped at
+        // MAX_TOKENS after 25,977 characters on gemini-2.5-flash, whose
+        // reasoning ("thinking") is counted against the same ceiling as the
+        // answer. The cut-off JSON could not parse, Groq cannot take the
+        // request, and the student got the reduced analysis every time for
+        // that proposition. A ceiling is not a target: a shorter answer costs
+        // nothing extra.
+        geminiMaxOutputTokens: 32000,
       requestLabel: "Full Legal Analysis"
       })
         // Captured rather than thrown, so a failure here can be answered
