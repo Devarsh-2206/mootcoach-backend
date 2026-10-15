@@ -276,6 +276,32 @@ function convertMessagesToGemini(messages) {
   return { systemInstruction, contents };
 }
 
+/**
+ * Which Gemini models have just refused, and until when to stop asking them.
+ *
+ * Observed in production: an analysis took ~140s because gemini-2.5-flash
+ * and then gemini-3.6-flash each answered "503 high demand" (a 503 arrives
+ * only after 30-40s) before gemini-3.8-flash did the work. Every request
+ * walked the chain from the top and paid that again. A model that refused
+ * now goes to the back of the line for a few minutes; it comes back on its
+ * own when the cool-down ends. Memory only: one server, and a restart simply
+ * starts optimistic again.
+ */
+const modelCooldownUntil = new Map();
+const COOLDOWN_MS = { overload: 3 * 60e3, quota: 60 * 60e3 };
+function coolDown(model, reason) {
+  const ms = COOLDOWN_MS[reason];
+  if (!ms) return;
+  modelCooldownUntil.set(model, Date.now() + ms);
+  console.warn(`[AI TRACE] ${model} cooling down for ${Math.round(ms / 60e3)} min (${reason}).`);
+}
+/** Healthy models first, in their configured order; cooling ones last. */
+function orderByHealth(models) {
+  const now = Date.now();
+  const cooling = m => (modelCooldownUntil.get(m) || 0) > now;
+  return models.filter(m => !cooling(m)).concat(models.filter(cooling));
+}
+
 async function getChatCompletion({
   messages,
   temperature = 0.1,
@@ -534,12 +560,16 @@ async function getChatCompletion({
   const runGemini = async () => {
     let lastError = null;
     const chainStart = Date.now();
+    const chain = orderByHealth(GEMINI_MODELS);
+    if (chain[0] !== GEMINI_MODELS[0]) {
+      console.log(`[AI TRACE] [${requestLabel}] Skipping cooling model(s) for now; starting with ${chain[0]}.`);
+    }
     // Below this there is no point starting another model: it cannot finish,
     // and the time is better spent failing cleanly than being cut mid-flight.
     const MIN_USEFUL_MS = 8000;
 
-    for (let i = 0; i < GEMINI_MODELS.length; i++) {
-      const model = GEMINI_MODELS[i];
+    for (let i = 0; i < chain.length; i++) {
+      const model = chain[i];
 
       let attemptMs = geminiTimeoutMs;
       if (totalBudgetMs > 0) {
@@ -603,9 +633,10 @@ async function getChatCompletion({
           : /UNAVAILABLE|\b503\b|high demand|overloaded/i.test(msg) ? 'overload'
           : null;
 
-        const MAX_MODELS_FOR = { quota: GEMINI_MODELS.length, overload: 3, filter: 2 };
+        const MAX_MODELS_FOR = { quota: chain.length, overload: 3, filter: 2 };
         const tried = i + 1;
-        const more = i < GEMINI_MODELS.length - 1;
+        const more = i < chain.length - 1;
+        if (reason === 'overload' || reason === 'quota') coolDown(model, reason);
 
         if (!reason || !more) throw err;
         if (tried >= MAX_MODELS_FOR[reason]) {
@@ -613,7 +644,7 @@ async function getChatCompletion({
             `refusal is not worth spending the rest of the chain's daily allowance on.`);
           throw err;
         }
-        console.warn(`[AI TRACE] [${requestLabel}] ${model} unavailable (${msg.slice(0, 80)}). Trying ${GEMINI_MODELS[i + 1]}...`);
+        console.warn(`[AI TRACE] [${requestLabel}] ${model} unavailable (${msg.slice(0, 80)}). Trying ${chain[i + 1]}...`);
       }
     }
     throw lastError || new Error("Gemini call failed on every model");
@@ -646,4 +677,4 @@ async function getChatCompletion({
   }
 }
 
-module.exports = { generateAIResponse, handleLiveVoiceConnection, getChatCompletion };
+module.exports = { generateAIResponse, handleLiveVoiceConnection, getChatCompletion, _orderByHealth: orderByHealth, _coolDown: coolDown };
