@@ -1302,14 +1302,32 @@ export function refreshAdditionalIssuesCard() {
   }
 }
 
+/* What the drafting, coaching and simulator calls are told about the case:
+   the summary, then the issues, so it is never empty when the analysis
+   exists. */
+function buildPropositionContext(data) {
+  const parts = [];
+  const summary = data.summary || data.caseSummary || data.executiveSummary || '';
+  if (summary) parts.push(String(summary));
+  const issues = (Array.isArray(data.legalIssues) ? data.legalIssues : [])
+    .map(i => typeof i === 'string' ? i : (i && (i.issue || i.title || i.question)) || '')
+    .filter(Boolean);
+  if (issues.length) parts.push('Issues: ' + issues.map((t, n) => `(${n + 1}) ${t}`).join(' '));
+  return parts.join('\n').slice(0, 2400);
+}
+
 export function showStructuredResults(data) {
   if (!data || Object.keys(data).length === 0) {
     showError("No structured analysis data available for this session.");
     return;
   }
   try {
+    // A reduced analysis names its summary "caseSummary". Reading only
+    // "summary" left the proposition context empty for those moots, so the
+    // draft, Oral Coach, briefing and simulator all ran without the facts.
+    if (!data.summary && data.caseSummary) data.summary = data.caseSummary;
     lastAnalysis = JSON.stringify(data, null, 2);
-    currentPropositionContext = data.summary || '';
+    currentPropositionContext = buildPropositionContext(data);
     populateIssuesFromAnalysis();
 
     // Legacy: Ensure the Stage 2 issue sidebar always populates from the analysis

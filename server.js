@@ -1044,6 +1044,10 @@ app.post("/analyze", requireUser({ allowPrewarm: true }), aiLimiter, singlePdf("
       try {
         analysisData = await runLiteAnalysis(fullPropositionText, forumDirective);
         reduced = true;
+        // The reduced prompt names its summary "caseSummary"; everything
+        // downstream reads "summary", and without it the proposition context
+        // was empty, so drafting refused with "Insufficient factual material".
+        if (analysisData && !analysisData.summary && analysisData.caseSummary) analysisData.summary = analysisData.caseSummary;
         // Carried inside the analysis itself, because that is the object the
         // client renders and saves. The advocate should be told their
         // analysis is the short one wherever they next look at it, including
