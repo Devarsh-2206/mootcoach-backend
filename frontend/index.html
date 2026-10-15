@@ -1927,6 +1927,27 @@ p  { color:var(--white-2); }
   filter: blur(0) !important;
 }
 
+/* The side panels (Rebuttal, Citations, Oral notes, Memorial viewer) are
+   parchment like the page in light mode. Set in plain CSS as well: the old
+   Tailwind class bg-[#FCF9EF]/97 was never generated, which left the panel
+   see-through or grey. Dark mode re-themes them through its own rules. */
+#aux-panel, #memorial-panel { background-color: #FCF9EF; overflow: hidden; }
+:root:not([data-theme="dark"]) #aux-panel,
+:root:not([data-theme="dark"]) #memorial-panel { color: #1C1710; border-color: rgba(28,23,16,.14); }
+:root:not([data-theme="dark"]) #aux-panel > div:nth-child(1),
+:root:not([data-theme="dark"]) #memorial-panel > div:nth-child(1) { background-color: #EFE6D2; }
+:root:not([data-theme="dark"]) #aux-panel > div:nth-child(2),
+:root:not([data-theme="dark"]) #memorial-panel > div:nth-child(2) { background-color: #F6EFDF; }
+:root:not([data-theme="dark"]) #aux-panel-close-btn,
+:root:not([data-theme="dark"]) #memorial-panel-close-btn { color: rgba(28,23,16,.6); }
+:root:not([data-theme="dark"]) #aux-panel-close-btn:hover,
+:root:not([data-theme="dark"]) #memorial-panel-close-btn:hover { color: #1C1710; }
+:root:not([data-theme="dark"]) #aux-panel-content .text-red-400 { color: #A3342A; }
+:root:not([data-theme="dark"]) #aux-panel-content .text-emerald-400 { color: #2F6B45; }
+:root:not([data-theme="dark"]) #aux-panel-content .text-gray-500 { color: #6B5E4B; }
+:root[data-theme="dark"] #aux-panel, :root[data-theme="dark"] #memorial-panel { color: var(--white); }
+:root[data-theme="dark"] #aux-panel-content .text-gray-500 { color: var(--white-muted); }
+
 /* Background overlay transition */
 .overlay-transition {
   opacity: 0 !important;
@@ -4417,7 +4438,7 @@ input.sr-only { position: absolute !important; width: 1px !important; height: 1p
 
 <!-- AUXILIARY SLIDE-OVER PANEL -->
 <div id="aux-panel-overlay" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 hidden overlay-transition"></div>
-<div id="aux-panel" class="fixed top-1/2 left-1/2 w-[92%] md:w-[80%] lg:w-[70%] xl:w-[60%] max-w-[850px] h-[85vh] md:h-auto md:max-h-[85vh] bg-[#FCF9EF]/97 border border-black/10 z-50 flex flex-col shadow-2xl shadow-black/80 rounded-2xl panel-transition hidden" role="dialog" aria-modal="true" aria-labelledby="aux-panel-title">
+<div id="aux-panel" class="fixed top-1/2 left-1/2 w-[92%] md:w-[80%] lg:w-[70%] xl:w-[60%] max-w-[850px] h-[85vh] md:h-auto md:max-h-[85vh] bg-[#FCF9EF] border border-black/10 z-50 flex flex-col shadow-2xl shadow-black/80 rounded-2xl panel-transition hidden" role="dialog" aria-modal="true" aria-labelledby="aux-panel-title">
   <!-- Header -->
   <div class="p-5 border-b border-black/10 flex justify-between items-center bg-black/20">
     <h3 id="aux-panel-title" class="font-serif text-lg text-[#1C1710] font-medium">Auxiliary View</h3>
@@ -4439,7 +4460,7 @@ input.sr-only { position: absolute !important; width: 1px !important; height: 1p
 </div>
 
 <!-- MEMORIAL SLIDE-OVER PANEL -->
-<div id="memorial-panel" class="fixed top-1/2 left-1/2 w-[92%] md:w-[80%] lg:w-[70%] xl:w-[60%] max-w-[850px] h-[85vh] md:h-auto md:max-h-[85vh] bg-[#FCF9EF]/97 border border-black/10 z-50 flex flex-col shadow-2xl shadow-black/80 rounded-2xl panel-transition hidden" role="dialog" aria-modal="true" aria-labelledby="memorial-panel-title">
+<div id="memorial-panel" class="fixed top-1/2 left-1/2 w-[92%] md:w-[80%] lg:w-[70%] xl:w-[60%] max-w-[850px] h-[85vh] md:h-auto md:max-h-[85vh] bg-[#FCF9EF] border border-black/10 z-50 flex flex-col shadow-2xl shadow-black/80 rounded-2xl panel-transition hidden" role="dialog" aria-modal="true" aria-labelledby="memorial-panel-title">
   <!-- Header -->
   <div class="p-5 border-b border-black/10 flex justify-between items-center bg-black/20">
     <h3 id="memorial-panel-title" class="font-serif text-lg text-[#1C1710] font-medium">Appellate Memorial Viewer</h3>
