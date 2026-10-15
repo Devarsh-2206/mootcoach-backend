@@ -19,6 +19,26 @@ carry `verified: 2026-10-09`.
 
 ## Re-check log
 
+### 2026-10-14 (daily re-check)
+
+All ten entries re-checked; `verified` set to 2026-10-14 on all ten. **No date moved.**
+
+- Surana-Raffles Labour Law (priority, clarifications due 15 Oct): rules PDF
+  byte-identical to the 9 Oct copy; body text still "before 15th October, 2026";
+  Important Dates row still reads 15 Oct clarification, 22 Oct registration,
+  30 Oct memorials, 13-15 Nov orals. moot.in landing page shows "Registrations
+  Open" and no notice, extension or postponement. Invitation PDF unchanged.
+- Vis East: cisgmoot.org still links the "...27-July-2026-1.pdf" file; it is
+  byte-identical to yesterday's reissue and reads "Saturday, 7 November 2026 at
+  6:59 a.m. (HKT)". Other dates match.
+- Vis 34th page still lists "Friday, 6 November 2026" for Requests for
+  Clarification (fourth run). Not added (not authorised).
+- Stetson (both PDFs), UPES, Luthra schedule and rules, NAPMCC brochure and the
+  invitations: byte-identical to earlier downloads. IISL, ICRC and NLSIU pages
+  re-read; dates and editions match.
+- ilsa.org (Jessup) still HTTP 403. Bonavero: South Asia Rounds still "TBC",
+  International Rounds 12-16 April 2027. Neither confirmable.
+
 ### 2026-10-13 (daily re-check)
 
 All ten entries re-checked; `verified` set to 2026-10-13 on all ten. **One change,
