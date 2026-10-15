@@ -101,6 +101,11 @@ async function runText() {
     // through that proxy and Node's fetch does not.
     const { execFileSync } = require('child_process');
     let j = null, lastErr = '';
+    // Google answers 503 "high demand" in bursts. Walk the chain (as the site
+    // does), and if every model is busy, wait and walk it again — up to 4
+    // rounds — so one busy spell does not leave a hole in the exchange.
+    for (let round = 0; round < 4 && !j; round++) {
+    if (round) { const wait = 8000 * round; console.error(`  (all models busy; retrying in ${wait / 1000}s)`); require('child_process').execSync(`sleep ${wait / 1000}`); }
     for (const model of CHAIN) {   // same order as the site: a busy model hands over to the next
       const args = ['-s', '--max-time', '120', '-X', 'POST', '-H', 'content-type: application/json', '--data-binary', '@-',
         `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`];
@@ -110,7 +115,8 @@ async function runText() {
       if (j.error) { lastErr = `${model}: ${j.error.code} ${j.error.message.slice(0, 60)}`; j = null; continue; }
       used.add(model); break;
     }
-    if (!j) return `(all models failed — last: ${lastErr})`;
+    }
+    if (!j) { history.pop(); return `(all models failed — last: ${lastErr})`; }
     const raw = (((j.candidates || [])[0] || {}).content || {}).parts?.map(p => p.text).join('') || '';
     let reply = raw; try { const o = JSON.parse(raw); reply = o.judgeResponse || raw; } catch (e) {}
     history.push({ role: 'model', parts: [{ text: raw }] }); asked.push(reply);
