@@ -1680,7 +1680,9 @@ function startSpeechRecognition() {
 
   recognition.continuous = true;
   recognition.interimResults = true;
-  recognition.lang = 'en-US';
+  // Indian English: most advocates using MootCoach speak it, and en-US heard
+  // "Cero" as "syrup", "Una" as "Munna" and "Article 19(3)" as "particle 193".
+  recognition.lang = 'en-IN';
 
   recognition.onstart = () => {
     isRecognizing = true;
