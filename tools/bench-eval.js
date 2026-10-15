@@ -2,7 +2,11 @@
 /**
  * Real-model check of the bench: does the judge react to what counsel said?
  *
- *   GEMINI_API_KEY=... node tools/bench-eval.js [judgeId] [easy|moderate|hard]
+ *   GEMINI_API_KEY=... node tools/bench-eval.js [judgeId] [easy|moderate|hard] [--text]
+ *
+ * --text runs the same exchange through the TEXT bench (buildJudgePrompt on
+ * gemini-3.8-flash, as /simulate-bench does) over plain HTTPS — useful where
+ * the key is injected by a proxy that does not reach WebSockets.
  *
  * Runs one scripted exchange through the LIVE voice model (text in, the
  * judge's spoken words read back from the transcription) using exactly the
@@ -10,11 +14,12 @@
  * automatic checks. It calls Google for real; nothing is mocked.
  */
 const { GoogleGenAI } = require('@google/genai');
-const { buildLiveJudgePrompt } = require('../prompts/benchJudgePrompt');
+const { buildLiveJudgePrompt, buildJudgePrompt } = require('../prompts/benchJudgePrompt');
 const { resolveVoiceJudge } = require('../prompts/judgePersona');
 
 const judgeId = process.argv[2] || 'in-rao';
 const level = process.argv[3] || 'hard';
+const TEXT = process.argv.includes('--text');
 const MODELS = (process.env.GEMINI_LIVE_MODELS || 'gemini-3.8-live,gemini-3.1-flash-live-preview').split(',');
 
 const CASE = `[Forum: High Court of Karnataka — writ / quashing jurisdiction] [You are the Judges; the advocate addresses you as "My Lord/My Lady".]
@@ -81,7 +86,51 @@ async function run(model) {
   session.close();
 }
 
+
+async function runText() {
+  const vj = resolveVoiceJudge({ judgeId });
+  const ctx = [vj.persona, CASE].join('\n\n');
+  const CHAIN = (process.env.GEMINI_MODELS || 'gemini-3.8-flash,gemini-2.5-flash,gemini-3.6-flash,gemini-3-flash-preview').split(',');
+  const used = new Set();
+  const key = /^AIza/.test(process.env.GEMINI_API_KEY || '') ? process.env.GEMINI_API_KEY : null;
+  const history = [], asked = [];
+  async function judge(say) {
+    history.push({ role: 'user', parts: [{ text: say }] });
+    const body = { systemInstruction: { parts: [{ text: buildJudgePrompt(level, ctx, [], asked, []) }] }, contents: history, generationConfig: { responseMimeType: 'application/json' } };
+    // curl, not fetch: in a sandbox whose proxy injects the key, curl goes
+    // through that proxy and Node's fetch does not.
+    const { execFileSync } = require('child_process');
+    let j = null, lastErr = '';
+    for (const model of CHAIN) {   // same order as the site: a busy model hands over to the next
+      const args = ['-s', '--max-time', '120', '-X', 'POST', '-H', 'content-type: application/json', '--data-binary', '@-',
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`];
+      if (key) args.splice(args.length - 1, 0, '-H', `x-goog-api-key: ${key}`);
+      const out = execFileSync('curl', args, { input: JSON.stringify(body), maxBuffer: 1 << 24 }).toString();
+      try { j = JSON.parse(out); } catch (e) { lastErr = out.slice(0, 80); j = null; continue; }
+      if (j.error) { lastErr = `${model}: ${j.error.code} ${j.error.message.slice(0, 60)}`; j = null; continue; }
+      used.add(model); break;
+    }
+    if (!j) return `(all models failed — last: ${lastErr})`;
+    const raw = (((j.candidates || [])[0] || {}).content || {}).parts?.map(p => p.text).join('') || '';
+    let reply = raw; try { const o = JSON.parse(raw); reply = o.judgeResponse || raw; } catch (e) {}
+    history.push({ role: 'model', parts: [{ text: raw }] }); asked.push(reply);
+    return reply;
+  }
+  console.log(`\n=== ${vj.name} · ${level} bench · TEXT bench (chain ${CHAIN.join(' > ')}) ===`);
+  let prev = '';
+  for (const t of TURNS) {
+    const reply = await judge(t.say);
+    const checks = [words(reply) <= 90 ? 'length ok' : `TOO LONG (${words(reply)} words)`, prev && overlap(reply, prev) > 0.7 ? 'REPEATS previous question' : 'new ground'];
+    if (/don't know/.test(t.say)) checks.push(/(don'?t know|do not know|conce|accept|no answer|unprepared|then )/i.test(reply) ? 'reacts to the admission' : 'DOES NOT react to the admission');
+    if (/sorry/.test(t.say)) checks.push(/(apolog|sorry|not an answer|answer the)/i.test(reply) ? 'reacts to the apology' : 'ignores the apology');
+    console.log(`\nCOUNSEL: ${t.say}\nJUDGE:   ${reply}\n  expected: ${t.expect}\n  checks:   ${checks.join(' · ')}`);
+    prev = reply;
+  }
+  console.log(`\nModels that answered: ${[...used].join(', ') || 'none'}`);
+}
+
 (async () => {
+  if (TEXT) { await runText(); process.exit(0); }
   if (!process.env.GEMINI_API_KEY) { console.error('Set GEMINI_API_KEY to run this against the real model.'); process.exit(1); }
   for (const model of MODELS) {
     try { await run(model); break; }
