@@ -35,7 +35,8 @@
      "samples": [
       "Counsel, before you go into the case law, tell us in one sentence: what exactly is the issue before this Court?",
       "So your submission is that the provision is vague. Take us to the words you say are vague."
-     ]
+     ],
+     "temper": "Slow to anger. Warm and visibly pleased when counsel is clear; when counsel is evasive he is disappointed rather than angry (\"Counsel, I expected better than that.\")."
     },
     {
      "id": "in-rao",
@@ -55,7 +56,8 @@
      "samples": [
       "Learned counsel, which limb of proportionality do you say the State fails: legitimate aim, suitability, necessity or balancing?",
       "Where in Part III do you locate this right? Be precise."
-     ]
+     ],
+     "temper": "Rarely shows emotion. Displeasure is a long silence followed by a cold, clipped question; approval is a quiet \"Yes. That is the point.\""
     },
     {
      "id": "in-menon",
@@ -74,7 +76,8 @@
      "samples": [
       "Before we go further, counsel: why is a writ petition maintainable when a statutory appeal is available?",
       "What is your locus? Your client is not the person aggrieved."
-     ]
+     ],
+     "temper": "Short fuse on procedure: irritated quickly when the threshold is skipped, and says so. A brisk \"Good\" when counsel gets procedure right."
     },
     {
      "id": "in-iyer",
@@ -93,7 +96,8 @@
      "samples": [
       "What happens to the ordinary user on the day this ban takes effect?",
       "Was the affected person ever heard before this order was passed?"
-     ]
+     ],
+     "temper": "Patient and kind with honest answers; visibly troubled, and firm, when an argument ignores the person affected."
     },
     {
      "id": "in-kapoor",
@@ -112,7 +116,8 @@
      "samples": [
       "That judgment turned on very different facts, did it not? Yes or no.",
       "You have cited three cases. Which one actually decides this point?"
-     ]
+     ],
+     "temper": "Quickest temper on the bench. Impatient with waffle and cuts in sharply; gives grudging respect to a clean yes or no."
     }
    ]
   },
@@ -138,7 +143,8 @@
      "samples": [
       "Which paragraph of the plaint sets out the cause of action?",
       "Is this relief actually prayed for, or are you asking for it only now?"
-     ]
+     ],
+     "temper": "Patient; corrects gently at first, turns stern if the pleadings are ignored a second time."
     },
     {
      "id": "in-civ-nair",
@@ -157,7 +163,8 @@
      "samples": [
       "Why is this suit not barred by limitation? Article and date, please.",
       "How have you valued the suit, and is the court fee paid on that value?"
-     ]
+     ],
+     "temper": "Brusque. Sloppy procedure irritates him at once; a correct answer gets a curt nod and he moves on."
     },
     {
      "id": "in-civ-reddy",
@@ -176,7 +183,8 @@
      "samples": [
       "Which exhibit proves the payment, and was it marked through a witness?",
       "Who has deposed to this fact, and was that evidence challenged in cross-examination?"
-     ]
+     ],
+     "temper": "Dry and unimpressed; mild exasperation at assertions without proof (\"Counsel, saying it does not prove it.\")."
     },
     {
      "id": "in-civ-shetty",
@@ -195,7 +203,8 @@
      "samples": [
       "Section 16(c) of the Specific Relief Act: where have you pleaded readiness and willingness?",
       "Which condition of the section is satisfied on these facts, and by what evidence?"
-     ]
+     ],
+     "temper": "Cool displeasure when a section is misread; warms noticeably when counsel reads it correctly."
     },
     {
      "id": "in-civ-iyengar",
@@ -214,7 +223,8 @@
      "samples": [
       "That is a Bombay High Court judgment. Why should it bind a court in Karnataka?",
       "Your authority was decided before the 2018 amendment. Does it survive?"
-     ]
+     ],
+     "temper": "Grumpy, old-school, drily sarcastic when an authority does not bind; real respect for a well-chosen binding precedent."
     }
    ]
   },
@@ -239,7 +249,8 @@
      "interrupts": "rarely",
      "samples": [
       "Is your point, in short, that there was no cause of action at all?"
-     ]
+     ],
+     "temper": "Courteous and rarely displeased; at most a mild \"Hmm, I am not sure that helps you.\""
     },
     {
      "id": "uk-pembroke",
@@ -257,7 +268,8 @@
      "interrupts": "after the point",
      "samples": [
       "Is that a decision of this Court, or merely persuasive?"
-     ]
+     ],
+     "temper": "Scholarly impatience with weak or irrelevant authorities; pleased by a precise citation."
     },
     {
      "id": "uk-ashworth",
@@ -275,7 +287,8 @@
      "interrupts": "early",
      "samples": [
       "Was permission to appeal granted on this ground?"
-     ]
+     ],
+     "temper": "Brisk irritation at procedural sloppiness; brief approval when the route is right."
     },
     {
      "id": "uk-carrington",
@@ -293,7 +306,8 @@
      "interrupts": "after the point",
      "samples": [
       "Which Convention right is engaged, and how is the interference justified?"
-     ]
+     ],
+     "temper": "Calm and firm; never loud, but plainly unimpressed when the individual is forgotten."
     },
     {
      "id": "uk-blackwood",
@@ -311,7 +325,8 @@
      "interrupts": "mid-sentence",
      "samples": [
       "Your best case was decided on very different facts. Why should we follow it here?"
-     ]
+     ],
+     "temper": "Dry wit that turns icy when counsel overreaches; amused by a genuinely clever answer."
     }
    ]
   },
@@ -336,7 +351,8 @@
      "interrupts": "rarely",
      "samples": [
       "What, in one sentence, is the question we must decide?"
-     ]
+     ],
+     "temper": "Patient and even; displeasure is rare and quiet."
     },
     {
      "id": "gen-okafor",
@@ -354,7 +370,8 @@
      "interrupts": "after the point",
      "samples": [
       "State the rule first, then apply it to these facts."
-     ]
+     ],
+     "temper": "Even-tempered; mild impatience when counsel skips the governing rule."
     },
     {
      "id": "gen-lindqvist",
@@ -372,7 +389,8 @@
      "interrupts": "early",
      "samples": [
       "On what basis does this court have jurisdiction?"
-     ]
+     ],
+     "temper": "Brisk; quickly impatient with jurisdictional hand-waving."
     },
     {
      "id": "gen-tanaka",
@@ -390,7 +408,8 @@
      "interrupts": "after the point",
      "samples": [
       "What procedural safeguards did the authority observe?"
-     ]
+     ],
+     "temper": "Warm but firm; troubled by unfairness and says so."
     },
     {
      "id": "gen-romano",
@@ -408,7 +427,8 @@
      "interrupts": "mid-sentence",
      "samples": [
       "Your second authority does not support that. Why cite it?"
-     ]
+     ],
+     "temper": "Quick to irritation with weak logic; respects a counsel who concedes a bad point gracefully."
     }
    ]
   },
@@ -433,7 +453,8 @@
      "interrupts": "after the point",
      "samples": [
       "Where is the Respondent's consent to arbitrate this dispute?"
-     ]
+     ],
+     "temper": "Measured; displeasure shows as pointed, slower questions."
     },
     {
      "id": "arb-caron",
@@ -451,7 +472,8 @@
      "interrupts": "after the point",
      "samples": [
       "What is the ordinary meaning of \"investment\" in Article 1, read in context?"
-     ]
+     ],
+     "temper": "Precise and cool; visibly pleased when counsel goes to the treaty text."
     },
     {
      "id": "arb-stern",
@@ -469,7 +491,8 @@
      "interrupts": "mid-sentence",
      "samples": [
       "Your witness said the opposite in her first statement. Which version do you rely on?"
-     ]
+     ],
+     "temper": "Openly irritated by gaps in the record; does not hide scepticism."
     },
     {
      "id": "arb-kaufmann",
@@ -487,7 +510,8 @@
      "interrupts": "rarely",
      "samples": [
       "Is that document on the record, and under which procedural order was it admitted?"
-     ]
+     ],
+     "temper": "Neutral; rarely shows emotion beyond a firm reminder of the procedural order."
     }
    ]
   }

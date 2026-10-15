@@ -79,6 +79,7 @@ export function personaDirective(j) {
     j.temperament && `Temperament: ${j.temperament}`,
     j.style && `How you speak: ${j.style} You address counsel like this: ${j.address}`,
     j.habits && `Your habit: ${j.habits}`,
+    j.temper && `Your temper: ${j.temper}`,
     j.interrupts && `When you interrupt: ${j.interrupts}.`,
     j.samples && j.samples.length && `Questions in your style (examples of tone only; never read them out verbatim): ${j.samples.map(q => `"${q}"`).join(' ')}`,
     accent && accent.instruction && `Register: ${accent.instruction}`,
