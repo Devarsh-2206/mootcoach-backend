@@ -28,7 +28,7 @@ const generateAIResponse = async (prompt, retries = 2) => {
     try {
       const result = await withTimeout(
         ai.models.generateContent({
-          model: "gemini-2.5-flash",
+          model: "gemini-3.8-flash",
           contents: prompt,
           config: {
             responseMimeType: "application/json",
@@ -61,6 +61,14 @@ const generateAIResponse = async (prompt, retries = 2) => {
   }
 };
 
+/**
+ * Live (voice bench) models, newest first. gemini-3.8-live is the current Live
+ * model; 3.1-flash-live-preview is what the bench ran on before and stays as the
+ * fallback, so a key or region without 3.8 Live still gets a working round.
+ */
+const LIVE_MODELS = (process.env.GEMINI_LIVE_MODELS || 'gemini-3.8-live,gemini-3.1-flash-live-preview')
+  .split(',').map(s => s.trim()).filter(Boolean);
+
 const handleLiveVoiceConnection = async (ws, benchLevel = 'moderate', propositionSummary = '', voiceGender = 'male') => {
   console.log(`🎙️ New voice connection requested by client. Bench: ${benchLevel} | Voice: ${voiceGender}`);
 
@@ -88,35 +96,47 @@ const handleLiveVoiceConnection = async (ws, benchLevel = 'moderate', propositio
   console.log(liveSystemInstruction);
   console.log("=========================================");
 
-  try {
-    session = await ai.live.connect({
-      model: "gemini-3.1-flash-live-preview",
-      config: {
-        responseModalities: ["AUDIO"],
-        speechConfig: {
-          voiceConfig: {
-            prebuiltVoiceConfig: { voiceName }
-          }
-        },
-        systemInstruction: {
-          parts: [
-            {
-              text: liveSystemInstruction
-            }
-          ]
-        },
-        realtimeInputConfig: {
-          automaticActivityDetection: {
-            disabled: false
-          }
+  // Newest first; the next one is used only if this one refuses before the
+  // session is set up. Override with GEMINI_LIVE_MODELS (comma-separated).
+  let modelIndex = 0, setupDone = false, liveAttempt = 0, clientGone = false;
+  ws.on("close", () => { clientGone = true; });
+  const liveConfig = {
+    responseModalities: ["AUDIO"],
+    speechConfig: {
+      voiceConfig: {
+        prebuiltVoiceConfig: { voiceName }
+      }
+    },
+    systemInstruction: {
+      parts: [
+        {
+          text: liveSystemInstruction
         }
-      },
+      ]
+    },
+    realtimeInputConfig: {
+      automaticActivityDetection: {
+        disabled: false
+      }
+    }
+  };
+  async function openLive() {
+    const attemptId = ++liveAttempt;
+    const model = LIVE_MODELS[modelIndex];
+    setupDone = false;
+    console.log(`🎙️ Opening Gemini Live session on ${model}`);
+    session = await ai.live.connect({
+      model,
+      config: liveConfig,
       callbacks: {
         onopen: () => {
+          if (liveAttempt !== attemptId) return;
           console.log("🔗 Live connection established with Gemini API.");
           ws.send(JSON.stringify({ type: "status", status: "connected" }));
         },
         onmessage: (message) => {
+          if (liveAttempt !== attemptId) return;
+          if (message.setupComplete || message.serverContent) setupDone = true;
           try {
             if (message.serverContent) {
               console.log("[DEBUG TRACE] Raw serverContent:", JSON.stringify(message.serverContent, null, 2));
@@ -180,22 +200,45 @@ const handleLiveVoiceConnection = async (ws, benchLevel = 'moderate', propositio
           }
         },
         onerror: (error) => {
-          console.error("❌ Gemini Live Session Error:", error);
+          if (liveAttempt !== attemptId) return;
+          console.error(`❌ Gemini Live Session Error (${model}):`, error);
+          if (!setupDone && modelIndex < LIVE_MODELS.length - 1) return;   // onclose will try the next model
           ws.send(JSON.stringify({ type: "error", message: "Gemini voice session error." }));
         },
         onclose: (event) => {
-          console.log("🔌 Gemini Live Session Closed:", event.reason || "No reason given");
+          if (liveAttempt !== attemptId) return;
+          console.log(`🔌 Gemini Live Session Closed (${model}):`, event?.reason || "No reason given");
+          // Closed before the session was ever set up: this model refused (not
+          // available on this key, wrong name, overloaded). Try the next one
+          // instead of ending the student's round.
+          if (!setupDone && !clientGone && modelIndex < LIVE_MODELS.length - 1) {
+            modelIndex++;
+            console.warn(`[AI TRACE] Live model ${model} closed before setup; falling back to ${LIVE_MODELS[modelIndex]}.`);
+            openLive().catch(e => {
+              console.error("❌ Failed to establish Gemini Live Session:", e);
+              ws.send(JSON.stringify({ type: "error", message: "Failed to connect to the AI Judge. Please try again." }));
+              ws.close();
+            });
+            return;
+          }
           ws.send(JSON.stringify({ type: "status", status: "disconnected" }));
           ws.close();
         }
       }
     });
+  }
 
-  } catch (err) {
-    console.error("❌ Failed to establish Gemini Live Session:", err);
-    ws.send(JSON.stringify({ type: "error", message: "Failed to connect to the AI Judge. Please check your API key." }));
-    ws.close();
-    return;
+  for (;;) {
+    try {
+      await openLive();
+      break;
+    } catch (err) {
+      console.error(`❌ Failed to establish Gemini Live Session on ${LIVE_MODELS[modelIndex]}:`, err);
+      if (modelIndex < LIVE_MODELS.length - 1) { modelIndex++; continue; }
+      ws.send(JSON.stringify({ type: "error", message: "Failed to connect to the AI Judge. Please check your API key." }));
+      ws.close();
+      return;
+    }
   }
 
   ws.on("message", async (message, isBinary) => {
@@ -451,11 +494,13 @@ async function getChatCompletion({
    * (3,000 output tokens; a smaller probe wrongly failed the reasoning models,
    * which spend their budget thinking before they emit anything).
    *
-   * 2.5-flash stays first because its output is the known quantity the prompts
-   * were tuned against; the rest are capacity behind it.
+   * 3.8-flash leads: it is the current stable Flash model, and in production
+   * it was the one that finished the work while 2.5-flash and 3.6-flash were
+   * answering "503 high demand". 2.5-flash, which the prompts were first tuned
+   * against, is the first fallback; the rest are capacity behind them.
    */
   const GEMINI_MODELS = (process.env.GEMINI_MODELS ||
-    'gemini-2.5-flash,gemini-3.6-flash,gemini-3.8-flash,gemini-3-flash-preview,gemini-3.1-flash-lite,gemini-3.5-flash-lite')
+    'gemini-3.8-flash,gemini-2.5-flash,gemini-3.6-flash,gemini-3-flash-preview,gemini-3.1-flash-lite,gemini-3.5-flash-lite')
     .split(',').map(s => s.trim()).filter(Boolean);
 
   const runGeminiOn = async (model, attemptTimeoutMs) => {

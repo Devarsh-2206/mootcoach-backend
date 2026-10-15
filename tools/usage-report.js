@@ -39,7 +39,7 @@ const usageMeter = require('../services/usageMeter');
 
 // Kept identical to the default in services/geminiService.js.
 const DEFAULT_GEMINI_MODELS =
-  'gemini-2.5-flash,gemini-3.6-flash,gemini-3.8-flash,gemini-3-flash-preview,gemini-3.1-flash-lite,gemini-3.5-flash-lite';
+  'gemini-3.8-flash,gemini-2.5-flash,gemini-3.6-flash,gemini-3-flash-preview,gemini-3.1-flash-lite,gemini-3.5-flash-lite';
 
 const GEMINI_RPD = Number(process.env.GEMINI_RPD || 20);
 const GROQ_RPD = Number(process.env.GROQ_RPD || 1000);
