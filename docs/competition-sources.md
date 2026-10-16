@@ -19,6 +19,35 @@ carry `verified: 2026-10-09`.
 
 ## Re-check log
 
+### 2026-10-16 (daily re-check; no run on the 15th)
+
+All ten entries re-checked; `verified` set to 2026-10-16 on all ten. **No date moved.**
+
+- Surana-Raffles Labour Law (priority, clarifications were due 15 Oct, now passed):
+  rules PDF and invitation PDF byte-identical to the 9 Oct downloads; body still
+  "before 15th October, 2026", registration 22 Oct, memorials 30 Oct 5:00 PM, orals
+  13-15 Nov. moot.in landing page still lists the competition as "Registrations Open"
+  with no notice, extension or postponement. `clarifications.pdf` is still HTTP 404
+  (so are results.pdf and gallery.pdf); the landing page links it but nothing is
+  published. Remaining dates stand.
+- Vis East: cisgmoot.org still links the "...27-July-2026-1.pdf" file (same URL);
+  it reads "Saturday, 7 November 2026 at 6:59 a.m. (HKT)". Other dates match.
+- Vis 34th page still lists "Friday, 6 November 2026" for Requests for Clarification
+  (fifth run). Not added (not authorised).
+- Stetson (both PDFs and invitation), UPES (rules, invitation), Luthra schedule and
+  rules, NAPMCC brochure: byte-identical to earlier downloads. IISL, ICRC and NLSIU
+  pages re-read; dates and editions match.
+- **Jessup: ilsa.org now returns HTTP 200** (was 403 on every earlier run). The
+  Jessup 2027 page reads: registration opened 3 Aug; clarification requests due
+  17 Oct 2026; eligibility inquiries 6 Nov; registration, payment and roster due
+  20 Nov 2026; memorials due 12 Jan 2027; national and friendly rounds Jan-Mar
+  2027; International Rounds opening ceremony 27 Mar, Cup match 3 Apr 2027
+  (Toronto). Matches the search summaries logged on 9 Oct. India national rounds
+  dates not on the page. NOT written (new competition; not authorised). Awaiting
+  a person's go-ahead.
+- Price Media: Bonavero page still draft; South Asia Rounds "TBC", International
+  Rounds 12-16 April 2027, "subject to change". Not confirmable.
+
 ### 2026-10-14 (daily re-check)
 
 All ten entries re-checked; `verified` set to 2026-10-14 on all ten. **No date moved.**
