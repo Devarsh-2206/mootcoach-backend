@@ -19,6 +19,62 @@ carry `verified: 2026-10-09`.
 
 ## Re-check log
 
+### 2026-10-16 (daily re-check; no run on the 15th)
+
+All ten entries re-checked; `verified` set to 2026-10-16 on all ten. **No date moved.**
+
+- Surana-Raffles Labour Law (priority, clarifications were due 15 Oct, now passed):
+  rules PDF and invitation PDF byte-identical to the 9 Oct downloads; body still
+  "before 15th October, 2026", registration 22 Oct, memorials 30 Oct 5:00 PM, orals
+  13-15 Nov. moot.in landing page still lists the competition as "Registrations Open"
+  with no notice, extension or postponement. `clarifications.pdf` is still HTTP 404
+  (so are results.pdf and gallery.pdf); the landing page links it but nothing is
+  published. Remaining dates stand.
+- Vis East: cisgmoot.org still links the "...27-July-2026-1.pdf" file (same URL);
+  it reads "Saturday, 7 November 2026 at 6:59 a.m. (HKT)". Other dates match.
+- Vis 34th page still lists "Friday, 6 November 2026" for Requests for Clarification
+  (fifth run). Not added (not authorised).
+- Stetson (both PDFs and invitation), UPES (rules, invitation), Luthra schedule and
+  rules, NAPMCC brochure: byte-identical to earlier downloads. IISL, ICRC and NLSIU
+  pages re-read; dates and editions match.
+- **Jessup: ilsa.org now returns HTTP 200** (was 403 on every earlier run).
+
+  Source: <https://www.ilsa.org/jessup/competition-schedule/>, headed "Jessup
+  2027", read 2026-10-16. Reached from the Jessup 2027 Rules Released post;
+  note that <https://www.ilsa.org/jessup/> itself carries NO dates and only
+  points here, so a re-check must follow this link rather than the landing page.
+
+  ILSA distinguishes its own confirmed deadlines from its anticipated releases,
+  and the distinction decides which would be written `tent: true`:
+
+  | Date | Label | Marked anticipated? |
+  |---|---|---|
+  | 2026-08-03 | Team registration opens | no |
+  | 2026-10-17 | Deadline for requests for corrections and clarifications | **no** |
+  | 2026-11-06 | Deadline for eligibility inquiries | **no** |
+  | 2026-11-17 | Release of corrections and clarifications | yes |
+  | 2026-11-20 | Deadline for registration, payment and team roster | **no** |
+  | 2027-01-12 | Deadline for submission of memorials | **no** |
+  | 2027-01/03 | National and friendly rounds | no (month range only) |
+  | 2027-03-27 | International Rounds opening ceremony | no |
+  | 2027-04-03 | Jessup Cup world championship match | no |
+
+  So the four deadlines a team acts on are stated flatly, not anticipated. The
+  release dates above them are the anticipated ones.
+
+  **No India national rounds dates appear anywhere on the page** — India is
+  listed only as a jurisdiction that has consistently held qualifying rounds.
+  An Indian team's actual route in is therefore still undated, even though the
+  ILSA deadlines apply to them regardless.
+
+  Confirmed independently against the organiser's page, not from the search
+  summaries logged on 9 Oct, which happened to agree.
+
+  **NOT written** — adding a competition is not authorised unattended. Awaiting
+  a person's go-ahead.
+- Price Media: Bonavero page still draft; South Asia Rounds "TBC", International
+  Rounds 12-16 April 2027, "subject to change". Not confirmable.
+
 ### 2026-10-14 (daily re-check)
 
 All ten entries re-checked; `verified` set to 2026-10-14 on all ten. **No date moved.**
