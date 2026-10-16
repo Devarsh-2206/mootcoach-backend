@@ -26,8 +26,8 @@ import { currentUser, db } from '../services/firebase.js';
 const STATUS = { PENDING: 'pending', ADDED: 'added', DISMISSED: 'dismissed' };
 
 const RISK = {
-  Safe:       { cls: 'badge-green', dot: '#4caf82', note: 'a bench would expect this to be raised' },
-  Arguable:   { cls: 'badge-gold',  dot: '#c9a227', note: 'genuinely open — needs a clean authority' },
+  Safe:       { cls: 'badge-green', dot: 'var(--acc-green)', note: 'a bench would expect this to be raised' },
+  Arguable:   { cls: 'badge-ink',   dot: 'var(--white-muted)', note: 'genuinely open — needs a clean authority' },
   Aggressive: { cls: 'badge-red',   dot: '#B0392E', note: 'a stretch the bench may reject' },
 };
 
@@ -147,7 +147,7 @@ function card(a, index, framedCount, ordinal) {
 
   const field = (label, val) => val
     ? '<div style="display:flex;gap:9px;margin-top:9px;font-size:.78rem;line-height:1.62;">'
-      + '<span style="color:var(--white-muted);flex:0 0 94px;">' + label + '</span>'
+      + '<span class="ei-label" style="color:var(--white-muted);flex:0 0 94px;font-size:.66rem;text-transform:uppercase;padding-top:2px;">' + label + '</span>'
       + '<span style="color:var(--white-2);flex:1;">' + esc(val) + '</span></div>'
     : '';
 
@@ -156,9 +156,9 @@ function card(a, index, framedCount, ordinal) {
     : 'Suggestion.';
 
   return ''
-    + '<div style="border:1px solid ' + (added ? 'rgba(76,175,130,.45)' : 'var(--glass-b)') + ';'
+    + '<div style="border:1px solid ' + (added ? 'var(--gold-border)' : 'var(--glass-b)') + ';'
     +   'border-radius:12px;padding:15px 17px;margin-bottom:13px;'
-    +   'background:' + (added ? 'rgba(76,175,130,.07)' : 'var(--glass)') + ';">'
+    +   'background:' + (added ? 'var(--gold-muted)' : 'var(--glass)') + ';">'
     + '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">'
     +   '<div style="font-size:.88rem;line-height:1.6;color:var(--white);font-weight:500;flex:1;">'
     +     '<span style="color:var(--white-muted);font-weight:400;">' + numberLabel + '</span> ' + esc(a.issue)

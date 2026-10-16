@@ -11,6 +11,19 @@
       }
     } catch (e) {}
   })();
+  // The app module can take a few seconds to start (it waits for the judge
+  // roster and Firebase). A CTA clicked in that window used to do nothing,
+  // or jump to "#start". Hold the click and replay it once the app is ready.
+  document.addEventListener('click', function (e) {
+    if (window.__appReady) return;
+    var a = e.target.closest && e.target.closest('#nav-btn-get-started,#nav-btn-login,#hero-btn-start,#bottom-btn-practice,#beta-btn-signup,.btn-login-nav');
+    if (!a) return;
+    e.preventDefault(); e.stopPropagation();
+    window.__queuedClick = a.id ? '#' + a.id : null;
+    document.documentElement.style.cursor = 'progress';
+  }, true);
+  // Never hold clicks forever if the app fails to start.
+  setTimeout(function () { if (!window.__appReady) { window.__appReady = true; document.documentElement.style.cursor = ''; } }, 15000);
 </script>
 <script>
   const _log = console.log;
@@ -96,14 +109,14 @@
   --surface-rgb: 246,241,228;  /* RGB channels of --navy, for rgba() blur-bar backgrounds */
   /* Accent text. Dark enough to read on cream; the dark theme swaps in the
      pale versions these components were originally designed with. */
-  --acc-amber:  #8A5A00;
-  --acc-blue:   #2E5A88;
-  --acc-indigo: #4A4594;
-  --acc-green:  #2F6B4A;
-  --acc-teal:   #1F6F66;
+  --acc-amber:  #B0392E;
+  --acc-blue:   #1C1710;
+  --acc-indigo: #1C1710;
+  --acc-green:  #2F7D52;
+  --acc-teal:   #1C1710;
   --acc-red:    #A8362A;
-  --acc-purple: #6B3F8A;
-  --acc-orange: #9A4A12;
+  --acc-purple: #B0392E;
+  --acc-orange: #B0392E;
   --serif: 'Cormorant Garamond', Georgia, serif;
   --sans:  'EB Garamond', Georgia, serif;
   --mono:  'IBM Plex Mono', ui-monospace, monospace;
@@ -146,14 +159,14 @@
   --rule:        rgba(239,230,211,.16);
   --faint:       rgba(239,230,211,.5);
   --surface-rgb: 22,18,13;
-  --acc-amber:  #FBBF24;
-  --acc-blue:   #60A5FA;
-  --acc-indigo: #A5B4FC;
+  --acc-amber:  #DD6656;
+  --acc-blue:   #EFE6D3;
+  --acc-indigo: #EFE6D3;
   --acc-green:  #4FAE7C;
-  --acc-teal:   #2DD4BF;
-  --acc-red:    #F87171;
-  --acc-purple: #C4B5FD;
-  --acc-orange: #FB923C;
+  --acc-teal:   #EFE6D3;
+  --acc-red:    #DD6656;
+  --acc-purple: #DD6656;
+  --acc-orange: #DD6656;
 }
 
 html { scroll-behavior:smooth; }
@@ -812,10 +825,11 @@ p  { color:var(--white-2); }
   padding:15px; border-radius:var(--r); transition: all 0.2s ease-in-out;
 }
 .btn-analyze:hover:not(:disabled) { background:var(--gold-light); transform:translateY(-1px); }
-.btn-analyze:disabled { opacity:.4; cursor:not-allowed; }
+/* Disabled: a readable outline, not a 40%-faded fill (cream on pale pink). */
+.btn-analyze:disabled { opacity:1; cursor:not-allowed; background:transparent !important; color:var(--white-muted) !important; border:1px dashed var(--glass-b) !important; transform:none; }
 
 .upload-limits { font-size:.74rem; color:var(--white-muted); text-align:center; margin:.6rem 0 0; line-height:1.5; }
-.upload-note { font-size:.72rem; color:var(--white-muted); opacity:.45; text-align:center; margin-top:1rem; line-height:1.6; }
+.upload-note { font-size:.72rem; color:var(--white-muted); opacity:1; text-align:center; margin-top:1rem; line-height:1.6; }
 
 /* ── TOAST ── */
 .toast-stack { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); z-index:9999; display:flex; flex-direction:column; gap:10px; pointer-events:none; }
@@ -1170,8 +1184,8 @@ p  { color:var(--white-2); }
 .sf-gold   { background: linear-gradient(90deg,var(--gold),var(--gold-light)); }
 .sf-blue   { background: linear-gradient(90deg,var(--gold),var(--gold-light)); }
 .sf-green  { background: linear-gradient(90deg,var(--success),#5E9C78); }
-.sf-red    { background: linear-gradient(90deg,#e05252,#f87171); }
-.sf-purple { background: linear-gradient(90deg,#9A7B3F,#C2A468); }
+.sf-red    { background: linear-gradient(90deg,var(--gold),var(--gold-light)); }
+.sf-purple { background: linear-gradient(90deg,var(--gold),var(--gold-light)); }
 
 /* Section cards */
 .analysis-section-card {
@@ -1214,6 +1228,8 @@ p  { color:var(--white-2); }
   font-size: .58rem; font-weight: 500; letter-spacing: .12em;
   text-transform: uppercase; padding: 3px 8px; border-radius: 100px; border: 1px solid;
 }
+.badge-ink    { color: var(--white-2); background: rgba(28,23,16,.05); border-color: var(--rule); }
+:root[data-theme="dark"] .badge-ink { background: rgba(239,230,211,.06); border-color: rgba(239,230,211,.18); }
 .badge-gold   { color: var(--gold);  background: var(--gold-muted);         border-color: var(--gold-border); }
 .badge-blue   { color: var(--acc-blue);      background: rgba(96,165,250,.1);       border-color: rgba(96,165,250,.25); }
 .badge-green  { color: var(--acc-green);      background: rgba(76,175,130,.1);       border-color: rgba(76,175,130,.25); }
@@ -1263,11 +1279,11 @@ p  { color:var(--white-2); }
 }
 .insight-item:hover { background: rgba(28, 23, 16, .04); border-color: rgba(28, 23, 16, .09); transform: translateX(3px); }
 .insight-bullet { width: 5px; height: 5px; border-radius: 50%; background: var(--gold); opacity: .65; flex-shrink: 0; margin-top: 8px; }
-.ib-blue   { background: #60a5fa; }
-.ib-green  { background: #4caf82; }
-.ib-red    { background: #e05252; }
-.ib-purple { background: #a78bfa; }
-.ib-teal   { background: #2dd4bf; }
+.ib-blue   { background: var(--ink); opacity: .5; }
+.ib-green  { background: var(--success); }
+.ib-red    { background: var(--gold); }
+.ib-purple { background: var(--gold-light); }
+.ib-teal   { background: var(--white-muted); }
 .insight-text { font-size: .85rem; color: var(--white-2); line-height: 1.72; }
 .insight-text strong { color: var(--white); font-weight: 500; }
 .insight-text em { color: var(--gold); font-style: italic; }
@@ -1480,9 +1496,10 @@ p  { color:var(--white-2); }
   .ws-sidebar { 
     position:fixed; top:62px; bottom:0; left:0; z-index:90; 
     transform:translateX(-100%); transition:transform .3s cubic-bezier(.22,.68,0,1.2); 
-    display:flex !important; box-shadow: 10px 0 30px rgba(0,0,0,.5);
+    display:flex !important; box-shadow: none;
   }
-  .ws-sidebar.show { transform:translateX(0); }
+  /* The shadow only while open: closed, it bled a dark strip down the edge. */
+  .ws-sidebar.show { transform:translateX(0); box-shadow: 10px 0 30px rgba(0,0,0,.35); }
   
   .res-topbar { padding:16px 16px 12px; }
   .res-body { padding:16px 16px 32px; }
@@ -1688,8 +1705,8 @@ p  { color:var(--white-2); }
   opacity: 1;
 }
 .cr-avatar.speaking-user {
-  border-color: #60a5fa;
-  box-shadow: 0 0 20px rgba(96, 165, 250, 0.4);
+  border-color: var(--gold);
+  box-shadow: 0 0 20px var(--gold-muted);
 }
 .cr-avatar.speaking-user::after {
   border-color: rgba(96, 165, 250, 0.4);
@@ -1746,7 +1763,7 @@ p  { color:var(--white-2); }
   background: #e05252;
 }
 .cr-visualizer-bar.active.user .cr-wave-bar {
-  background: #60a5fa;
+  background: var(--gold);
 }
 
 /* Stagger animations for wave bars */
@@ -1947,6 +1964,14 @@ p  { color:var(--white-2); }
 :root:not([data-theme="dark"]) #aux-panel-content .text-gray-500 { color: #6B5E4B; }
 :root[data-theme="dark"] #aux-panel, :root[data-theme="dark"] #memorial-panel { color: var(--white); }
 :root[data-theme="dark"] #aux-panel-content .text-gray-500 { color: var(--white-muted); }
+
+/* Dialogs sit above ALL page chrome — the step bar (1000), the theme toggle
+   (10001) and the Previous/Next footer — as the Memorial Review dialog
+   (13000) already did. They used Tailwind z-40/z-50/z-[200], so the chrome
+   drew over the dialog's top and bottom edges. */
+#aux-panel-overlay { z-index: 12990 !important; }
+#aux-panel, #memorial-panel { z-index: 13000 !important; }
+#authority-detail-modal, #advocacy-arsenal-modal { z-index: 13000 !important; }
 
 /* Background overlay transition */
 .overlay-transition {
@@ -2213,6 +2238,7 @@ p  { color:var(--white-2); }
 .authority-arsenal-card {
   transition: all 0.3s ease;
 }
+.armory-actions > button { white-space: nowrap; }
 .authority-arsenal-card:hover {
   transform: translateY(-1px);
 }
@@ -2649,7 +2675,7 @@ p  { color:var(--white-2); }
 #view-landing .sheet{
   background:var(--sheet);border:1px solid var(--rule);
   box-shadow:0 30px 60px -30px rgba(28,23,16,.35),0 2px 0 rgba(28,23,16,.05);
-  padding:54px 60px 46px 84px;position:relative;min-height:520px;
+  padding:54px 60px 40px 84px;position:relative;min-height:440px;
 }
 #view-landing .sheet::before{ /* internal red margin */
   content:"";position:absolute;top:0;bottom:0;left:60px;width:1px;background:rgba(176,57,46,.4);
@@ -2672,7 +2698,7 @@ p  { color:var(--white-2); }
 #view-landing .sheet .footnote .fn-text{opacity:0;transition:opacity .6s}
 #view-landing .sheet .footnote .fn-text.on{opacity:1}
 #view-landing .margin-note{
-  position:absolute;right:-14px;top:200px;width:190px;transform:rotate(2deg);
+  position:absolute;right:22px;top:190px;width:170px;transform:rotate(2deg);
   font-family:var(--lv-hand);font-size:19px;line-height:1.35;color:var(--red);
   opacity:0;transition:opacity .8s ease .2s;
 }
@@ -2685,8 +2711,8 @@ p  { color:var(--white-2); }
 
 /* bench strip under sheet */
 #view-landing .bench-strip{
-  margin-top:46px;display:grid;grid-template-columns:auto 1fr;gap:26px;align-items:start;
-  border-top:1px solid var(--rule);padding-top:30px;
+  margin-top:30px;display:grid;grid-template-columns:auto 1fr;gap:26px;align-items:start;
+  border-top:1px solid var(--rule);padding-top:22px;
 }
 #view-landing .bench-strip .mono-label{padding-top:6px;white-space:nowrap}
 #view-landing .bench-q{font-family:var(--lv-display);font-style:italic;font-size:23px;font-weight:500;line-height:1.6;min-height:64px;max-width:640px}
@@ -2789,7 +2815,9 @@ p  { color:var(--white-2); }
 
 #view-landing footer{border-top:2px solid var(--ink);padding:34px 0;background:var(--paper)}
 #view-landing .foot{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:18px;font-family:var(--lv-mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-soft)}
-#view-landing .foot .links{display:flex;gap:26px}
+#view-landing .foot .links{display:flex;flex-wrap:wrap;gap:12px 26px;min-width:0}
+#view-landing .foot .links a{white-space:nowrap}
+@media(max-width:640px){#view-landing .foot{flex-direction:column;align-items:flex-start;padding-bottom:64px}#view-landing .foot .links{gap:10px 18px}}
 #view-landing .foot .links a:hover{color:var(--red)}
 
 @media(max-width:640px){
@@ -3137,6 +3165,8 @@ body.intro-hold #view-landing .swear{animation-play-state:paused!important}
   padding: 8px 24px;
 }
 #view-workspace .ws-floating-nav #wizard-next-btn { margin-left: auto; }
+/* Both buttons hidden (upload stage): no empty footer strip. */
+#view-workspace .ws-floating-nav:not(:has(> button:not([style*="display: none"]):not([style*="display:none"]))) { display: none; }
 
 /* Theme toggle: the top-right corner, level with the step bar, while the
    workspace is open. The landing page keeps its own placement, and phones
@@ -3151,7 +3181,16 @@ body.intro-hold #view-landing .swear{animation-play-state:paused!important}
 /* The step bar is centred; give it compact labels until there is room for
    both it and the corner toggle. */
 @media (max-width: 900px) {
-  .di-step-text, .di-docket-name, .di-step .step-label { display: none; }
+  .di-docket-name { display: none; }
+}
+@media (max-width: 760px) {
+  .di-step-text, .di-step .step-label { display: none; }
+}
+/* Tablet: the sidebar is still beside the page, so centre the step bar in
+   the main column instead of the window (it overlapped the sidebar). */
+@media (min-width: 721px) and (max-width: 1180px) {
+  body:has(#view-workspace.active) .dynamic-island-nav { left: calc(255px + (100vw - 255px) / 2); max-width: calc(100vw - 255px - 90px); }
+  body:has(#view-workspace.active) .di-step .step-label, body:has(#view-workspace.active) .di-step-text { font-size: 10px; }
 }
 
 /* ── Analysis layout ──
@@ -3159,9 +3198,19 @@ body.intro-hold #view-landing .swear{animation-play-state:paused!important}
    ones simply looked cut off: wrap them instead. Section bodies scrolled
    inside a 450px box, which trapped the mouse wheel mid-page: let the page
    scroll (sections still collapse). */
-@media (min-width: 641px) {
-  .res-sticky-nav { overflow-x: visible; padding-top: 2px; padding-bottom: 2px; }
-  #res-sticky-nav-inner { flex-wrap: wrap; }
+/* One row that scrolls sideways (wrapping took up to six rows, ~430px at
+   tablet width, leaving little room for the analysis). Faded edges and a
+   thin scrollbar show that more tabs are there. */
+.res-sticky-nav { overflow-x: auto !important; scrollbar-width: thin; scrollbar-color: var(--glass-b) transparent;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 24px, #000 calc(100% - 32px), transparent 100%);
+          mask-image: linear-gradient(90deg, transparent 0, #000 24px, #000 calc(100% - 32px), transparent 100%); }
+.res-sticky-nav::-webkit-scrollbar { display: block; height: 4px; }
+.res-sticky-nav::-webkit-scrollbar-thumb { background: var(--glass-b); border-radius: 2px; }
+#res-sticky-nav-inner { flex-wrap: nowrap !important; padding-right: 24px; }
+.rn-item { font-family: var(--mono); }
+@media (max-width: 900px) {
+  .res-topbar { padding: 14px 18px 10px; }
+  .res-title { font-size: 1.35rem; }
 }
 .rn-item { padding: 10px 10px; }
 .asc-body { max-height: none; overflow: visible; }
@@ -3264,6 +3313,136 @@ input.sr-only { position: absolute !important; width: 1px !important; height: 1p
 .ws-recent-del:hover { color: var(--error); background: var(--gold-muted); }
 @media (hover: none) { .ws-recent-del { opacity: .7; } }
 #ws-recent-list { max-height: 40vh; overflow-y: auto; }
+
+/* ════════════════════════════════════════════════════════════════════
+   THEME GUARD — one pass over everything the UI audit found off-theme.
+   Light = legal pad (paper / cream sheet / ink / one red accent);
+   dark  = warm ink. Fonts: Cormorant headings, EB Garamond body,
+   IBM Plex Mono labels and buttons.
+   ════════════════════════════════════════════════════════════════════ */
+
+/* Form controls don't inherit fonts by default and fell back to Arial
+   (sign-in, Moot Calendar names and arrows, the bench choice row, ×). */
+button, input, select, textarea, optgroup { font-family: inherit; }
+#auth-overlay-submit, #forgot-password-btn, #btn-generate-forecast, #btn-prepare-briefing,
+#bench-choice-bar button, .theme-toggle, .ws-recent-del, .cal-nav button, #cal-close {
+  font-family: var(--mono) !important;
+}
+#auth-email, #auth-password, #auth-name, #auth-overlay input { font-family: var(--sans); font-size: 15px; }
+#auth-overlay input { border-bottom-color: var(--rule) !important; }
+
+/* Every unclassed small button gets the house style instead of the
+   browser's grey #F0F0F0 / black. */
+.btn-sm:not(.btn-sm-ghost):not(.btn-sm-gold) {
+  font-family: var(--mono); color: var(--gold); background: var(--gold-muted);
+  border: 1px solid var(--gold-border) !important;
+}
+.btn-sm:not(.btn-sm-ghost):not(.btn-sm-gold):hover:not([disabled]) { background: var(--gold); color: var(--navy-3); }
+.btn-sm[disabled] { opacity: .6; cursor: default; }
+
+/* Generate Forecast: same treatment as the other primary-tint buttons. */
+#btn-generate-forecast { background: var(--gold-muted) !important; border-color: var(--gold-border) !important; color: var(--gold) !important; border-radius: 6px !important; }
+#btn-generate-forecast:hover { background: var(--gold) !important; color: var(--navy-3) !important; }
+
+/* Tailwind tints written for the old dark theme: blue/indigo/purple/teal/
+   amber washes and borders become the theme's own. */
+[class*="bg-indigo-"], [class*="bg-blue-"], [class*="bg-purple-"], [class*="bg-violet-"], [class*="bg-teal-"], [class*="bg-sky-"], [class*="bg-cyan-"] { background-color: var(--glass) !important; }
+[class*="bg-amber-"], [class*="bg-yellow-"], [class*="bg-orange-"], [class*="bg-red-500"], [class*="bg-red-950"], [class*="bg-rose-"] { background-color: var(--gold-muted) !important; }
+[class*="bg-emerald-"], [class*="bg-green-"] { background-color: rgba(47,125,82,.08) !important; }
+[class*="border-indigo-"], [class*="border-blue-"], [class*="border-purple-"], [class*="border-violet-"], [class*="border-teal-"], [class*="border-sky-"] { border-color: var(--glass-b) !important; }
+[class*="border-amber-"], [class*="border-yellow-"], [class*="border-orange-"], [class*="border-red-"], [class*="border-rose-"] { border-color: var(--gold-border) !important; }
+[class*="border-emerald-"], [class*="border-green-"] { border-color: rgba(47,125,82,.35) !important; }
+.text-gray-400, .text-gray-500, .text-slate-500 { color: var(--white-muted) !important; }
+.text-slate-800, .text-amber-800, .text-emerald-700 { color: var(--ink) !important; }
+
+/* Panels that were translucent black (read as grey on cream) are cream. */
+:root:not([data-theme="dark"]) :is(#view-workspace, #aux-panel, #memorial-panel, #authority-detail-modal, #advocacy-arsenal-modal) :is(.bg-black\/5, .bg-black\/\[0\.02\], .bg-black\/\[0\.03\]):not(.mc-paper *) { background-color: var(--navy-3) !important; }
+:root:not([data-theme="dark"]) :is(#view-workspace, #aux-panel, #memorial-panel, #authority-detail-modal, #advocacy-arsenal-modal) :is(.bg-black\/10, .bg-black\/20, .bg-black\/30):not(.mc-paper *) { background-color: var(--navy-4) !important; }
+/* Panels nested inside a cream panel sit one step down, not three greys deep. */
+:root:not([data-theme="dark"]) :is(.bg-black\/5, .bg-black\/10) :is(.bg-black\/5, .bg-black\/10, .bg-black\/20) { background-color: var(--navy-2) !important; }
+
+/* Analysis summary cards: body paragraphs were 10.9px accent red. */
+.sc-sub { font-family: var(--sans); font-size: .9rem; line-height: 1.55; color: var(--white-2); }
+
+/* Difficulty: one accent for the selected state, not traffic lights. */
+.diff-btn.active-easy, .diff-btn.active-moderate, .diff-btn.active-hard {
+  background: var(--gold-muted) !important; border-color: var(--gold-border) !important; color: var(--gold) !important;
+}
+
+/* The memorial is a document: cream sheet, ink, EB Garamond, warm rules —
+   it stays paper in dark mode, like a printed exhibit. */
+.mc-paper { background: #FCF9EF !important; color: #1C1710 !important; border-color: #D9CFB8 !important; font-family: var(--sans); }
+.mc-paper p, .mc-paper li, .mc-paper div { font-family: var(--sans); }
+.mc-paper .text-slate-800, .mc-paper [class*="text-slate-"], .mc-paper [class*="text-gray-"] { color: #1C1710 !important; }
+.mc-paper [class*="bg-\[\#dcdad5\]"], .mc-paper .bg-\[\#dcdad5\] { background: #D9CFB8 !important; }
+:root[data-theme="dark"] .mc-paper { box-shadow: 0 0 0 1px rgba(239,230,211,.12), 0 20px 50px rgba(0,0,0,.45); }
+
+/* Dark mode: the step bar's and progress tracks' borders used the light
+   ink at 8% and disappeared. */
+:root[data-theme="dark"] .dynamic-island-nav { border-color: rgba(239,230,211,.16) !important; }
+:root[data-theme="dark"] .di-divider { background: rgba(239,230,211,.16) !important; }
+:root[data-theme="dark"] .sc-bar, :root[data-theme="dark"] .wr-bar { background: rgba(239,230,211,.12) !important; }
+
+/* Placeholders readable in both themes (18% in dark mode before). */
+#view-workspace input::placeholder, #view-workspace textarea::placeholder, #auth-overlay input::placeholder { color: var(--white-muted) !important; opacity: .85; }
+
+/* Keyboard focus: a themed ring everywhere. */
+:focus-visible { outline: 2px solid var(--gold) !important; outline-offset: 2px; }
+
+/* Sidebar: Sign Out in the same mono as its neighbours. */
+.ws-sb-bottom .logout { font-family: var(--mono) !important; }
+
+/* Small uppercase labels and chips are mono everywhere (Issues side
+   selector, "1. Select Side", MERITS / SUGGESTED / ARGUABLE chips,
+   extra-issue field labels). Chips wrap instead of clipping mid-word. */
+.text-\[8px\].uppercase, .text-\[9px\].uppercase, .text-\[10px\].uppercase,
+label.uppercase, #stage-2-container .tracking-widest.uppercase,
+.ei-label { font-family: var(--mono) !important; letter-spacing: .08em; }
+span.text-\[9px\].uppercase.rounded, div.text-\[9px\].uppercase.rounded {
+  white-space: normal; overflow-wrap: anywhere; max-width: 100%; line-height: 1.35;
+}
+
+/* Simulator lobby: on narrow screens the Start buttons follow the bench
+   and judge choice instead of sitting above it. */
+.bench-start-actions-mobile { display: none; }
+@media (max-width: 1023px) {
+  .bench-start-actions > button { display: none; }
+  .bench-start-actions-mobile { display: flex; flex-direction: column; gap: 8px; width: 100%; }
+}
+
+/* Phone: nested paddings squeezed issue text to ~170px and inset analysis
+   cards ~55px a side. Trim each layer so content gets the width. */
+@media (max-width: 480px) {
+  #analysis-output.analysis-content { padding-left: 12px; padding-right: 12px; }
+  #analysis-output .result-grid { padding-left: 4px; padding-right: 4px; }
+  #analysis-output .score-card { padding-left: 16px; padding-right: 16px; }
+  #stage-2-container .max-w-\[800px\] { margin-left: -16px; margin-right: -16px; width: auto; }
+  #stage-2-container .rounded-xl.p-6 { padding: 16px 14px; }
+  #stage-2-container .issue-card { padding: 14px 12px; }
+  #stage-2-container .issue-card .gap-3 { gap: 10px; }
+  #stage-2-container .issue-card .gap-4 { gap: 8px; }
+}
+
+/* Landing stamps: the dark-mode red was too dim at stamp size, and the
+   scoresheet stamp hung past the screen edge at tablet width. */
+:root[data-theme="dark"] #view-landing .stamp { color: #E8806F; border-color: #E8806F; }
+@media (max-width: 1000px) { #view-landing .scoresheet .stamp { right: 10px; top: -18px; } }
+@media (max-width: 1240px) { #view-landing .margin-note { right: 14px; width: 150px; font-size: 17px; } }
+
+/* Phone landing: the floating theme toggle sat over hero and footer text.
+   Smaller, tucked into the corner, hidden while scrolling down (shown again
+   on scroll up or at rest), and the footer leaves room for it. */
+#theme-toggle-icon { font-family: 'Segoe UI Symbol', 'Noto Sans Symbols 2', var(--serif), serif; }
+@media (max-width: 640px) {
+  body:has(#view-landing.active) .theme-toggle { bottom: 12px; right: 12px; width: 36px; height: 36px; font-size: 15px;
+    transition: opacity .25s, transform .25s; }
+  body:has(#view-landing.active) .theme-toggle.tt-away { opacity: 0; transform: translateY(16px); pointer-events: none; }
+  #view-landing footer { padding-bottom: 64px; }
+}
+
+/* One radius system: actions 6px, chips/badges stay pills, cards 12px. */
+.btn-primary, .btn-outline, .btn-sm, .diff-btn, .ws-floating-nav button,
+.btn-analyze, #wizard-next-btn, #wizard-prev-btn, .asc-copy { border-radius: 6px !important; }
 </style>
 </head>
 <body class="intro-hold">
@@ -3306,6 +3485,19 @@ input.sr-only { position: absolute !important; width: 1px !important; height: 1p
     });
   }
 })();
+
+  // Phone landing: step out of the way while the reader scrolls down.
+  (function () {
+    var btn = document.getElementById('theme-toggle'), last = window.scrollY, t;
+    window.addEventListener('scroll', function () {
+      if (!btn || window.innerWidth > 640) return;
+      var y = window.scrollY;
+      btn.classList.toggle('tt-away', y > last + 4 && y > 80);
+      last = y;
+      clearTimeout(t);
+      t = setTimeout(function () { btn.classList.remove('tt-away'); }, 900);
+    }, { passive: true });
+  })();
 </script>
 
 <div id="intro" aria-hidden="true">
@@ -3596,7 +3788,7 @@ input.sr-only { position: absolute !important; width: 1px !important; height: 1p
     <aside class="login-brand">
       <a class="login-brand-logo" id="login-nav-logo" style="cursor:pointer">Moot<span style="color:var(--gold)">Coach</span></a>
       <div class="login-brand-body">
-        <div class="login-crest">⚖</div>
+        <div class="login-crest">⚖︎</div>
         <h2 class="login-brand-head">Walk in prepared.<br/>Walk out unshakable.</h2>
         <p class="login-brand-sub">AI moot-court preparation that adapts to your forum — case analysis, an authority arsenal, and a live adversarial bench that questions your actual submissions.</p>
         <ul class="login-brand-points">
@@ -3774,7 +3966,7 @@ input.sr-only { position: absolute !important; width: 1px !important; height: 1p
         <div class="ws-sb-divider"></div>
         <div class="ws-sb-section">
           <div class="ws-sb-label">Review</div>
-          <button class="ws-sb-item" onclick="window.openMemorialReview && window.openMemorialReview()" title="Upload a memorial and have it marked"><span class="ws-sb-icon">⚖</span> Memorial Review</button>
+          <button class="ws-sb-item" onclick="window.openMemorialReview && window.openMemorialReview()" title="Upload a memorial and have it marked"><span class="ws-sb-icon">⚖︎</span> Memorial Review</button>
         </div>
       </div>
       <div class="ws-sb-bottom">
@@ -3805,7 +3997,7 @@ input.sr-only { position: absolute !important; width: 1px !important; height: 1p
             </div>
             <p class="upload-limits" id="ws-upload-limits">Max 25 MB · text-based PDF · the first ~45 pages are analysed</p>
             <div class="file-pill" id="ws-file-pill">
-              <div class="fp-icon">📄</div>
+              <div class="fp-icon">▤</div>
               <div class="fp-details">
                 <div class="fp-name" id="fp-name">—</div>
                 <div class="fp-size" id="fp-size">—</div>
@@ -3944,7 +4136,7 @@ input.sr-only { position: absolute !important; width: 1px !important; height: 1p
             <!-- Recommended Authorities -->
             <div class="bg-black/5 border border-black/10 rounded-xl p-4 backdrop-blur-md flex flex-col gap-3">
               <div class="text-xs uppercase tracking-wider text-moot-accent font-semibold flex items-center gap-1.5 font-sans mb-1">
-                <span>💡</span> Authority Armory
+                <span>✦</span> Authority Armory
               </div>
               <div class="text-[10px] text-white-muted leading-relaxed font-sans">
                 Toggle supporting authorities to feed into the AI drafting engine.
@@ -3957,7 +4149,7 @@ input.sr-only { position: absolute !important; width: 1px !important; height: 1p
             <!-- Bench Attack Forecast -->
             <div class="bg-black/5 border border-black/10 rounded-xl p-4 backdrop-blur-md flex flex-col gap-3">
               <div class="text-xs uppercase tracking-wider text-red-400 font-semibold flex items-center gap-1.5 font-sans mb-1">
-                <span>🎯</span> Bench Attack Forecast
+                <span>◎</span> Bench Attack Forecast
               </div>
               <div class="text-[10px] text-white-muted leading-relaxed font-sans">
                 Predict the specific hostile questions the bench will ask on this issue.
@@ -4013,7 +4205,7 @@ input.sr-only { position: absolute !important; width: 1px !important; height: 1p
               <div class="flex-1 bg-black/5 border border-black/10 rounded-xl p-5 flex flex-col transition-all duration-300 hover:border-black/15 overflow-y-auto">
                 <!-- Empty state -->
                 <div id="builder-empty-state" class="flex flex-col items-center justify-center text-center p-6 h-full min-h-[300px]">
-                  <div class="text-moot-accent text-4xl mb-4 animate-[pulse_2s_infinite]">⚖️</div>
+                  <div class="text-moot-accent text-4xl mb-4 animate-[pulse_2s_infinite]">⚖︎</div>
                   <h3 class="text-md font-serif text-[#1C1710] font-normal">AI Drafter</h3>
                   <p class="text-[11px] text-white-muted mt-2 max-w-sm mb-4">Complete the drafting steps or select recommended authorities, then click Generate Draft.</p>
                 </div>
@@ -4092,7 +4284,7 @@ input.sr-only { position: absolute !important; width: 1px !important; height: 1p
             <!-- CHAMBER BRIEFING / ADVOCACY ARSENAL -->
             <div class="bg-black/5 border border-black/10 rounded-xl p-5 backdrop-blur-md flex flex-col mt-4">
               <div class="text-xs uppercase tracking-wider text-moot-accent font-semibold mb-3 flex items-center gap-1.5 font-sans">
-                <span>🎙️</span> CHAMBERS BRIEFING
+                <span>◉</span> CHAMBERS BRIEFING
               </div>
               
               <div id="stage4-chamber-briefing" class="text-xs text-white-2 space-y-4 max-h-[400px] overflow-y-auto pr-2">
@@ -4139,14 +4331,14 @@ input.sr-only { position: absolute !important; width: 1px !important; height: 1p
           <div class="courtroom-view" id="courtroom-view">
             <!-- Bench Header -->
             <div class="cr-bench-header flex flex-col items-center justify-center p-6 border-b border-moot-border bg-[#F3ECDA]/70">
-              <div id="cr-judge-name" class="font-serif text-xl text-[#1C1710] mb-1">⚖️ Presiding Judge</div>
+              <div id="cr-judge-name" class="font-serif text-xl text-[#1C1710] mb-1">⚖︎ Presiding Judge</div>
               <div id="cr-bench-name" class="text-xs text-moot-accent tracking-widest uppercase">Constitutional Bench</div>
               <div id="cr-session-status" class="text-xs text-moot-muted mt-2">Connecting to Bench...</div>
             </div>
 
             <!-- Speech Recognition Diagnostics Panel -->
             <div id="mic-diagnostics-panel" class="hidden mx-4 my-2 p-3 bg-[#F3ECDA] border border-[#D9CFB8] rounded-lg text-xs font-mono space-y-1">
-              <div class="text-[10px] uppercase tracking-wider text-[#8C8270] font-semibold mb-1">🎙️ Voice Diagnostics (Dev Mode)</div>
+              <div class="text-[10px] uppercase tracking-wider text-[#8C8270] font-semibold mb-1">◉ Voice Diagnostics (Dev Mode)</div>
               <div>Browser: <span id="diag-browser" class="text-[#1C1710]">-</span></div>
               <div>SpeechRecognition Available: <span id="diag-available" class="text-[#1C1710]">-</span></div>
               <div>Microphone Permission: <span id="diag-permission" class="text-[#1C1710]">-</span></div>
@@ -4191,7 +4383,7 @@ input.sr-only { position: absolute !important; width: 1px !important; height: 1p
             <!-- Action controls -->
             <div class="cr-action-section p-3 border-t border-moot-border/50 bg-black/30 flex justify-center">
               <button class="btn-sm btn-sm-ghost bg-red-950/20 border border-red-900/50 hover:bg-red-900/40 hover:border-red-800 text-red-400 font-medium tracking-widest uppercase py-2 px-6 rounded transition-all duration-200" onclick="exitChambers()">
-                🛑 End Oral Round
+                ■ End Oral Round
               </button>
             </div>
           </div>
@@ -4202,7 +4394,7 @@ input.sr-only { position: absolute !important; width: 1px !important; height: 1p
               <!-- LEFT PANEL: Controls (40%) -->
               <div class="w-full lg:w-[40%] bg-black/[0.03] border border-black/10 rounded-2xl p-6 flex flex-col justify-between hover:border-black/15 transition-all duration-200" style="display: flex; flex-direction: column; justify-content: space-between;">
                 <div>
-                  <div class="be-icon text-left mb-2" style="font-size: 2.2rem; color: var(--gold); margin-bottom: 12px;">⚖️</div>
+                  <div class="be-icon text-left mb-2" style="font-size: 2.2rem; color: var(--gold); margin-bottom: 12px;">⚖︎</div>
                   <h3 class="font-serif text-2xl text-[#1C1710] font-medium mb-2" style="font-family: var(--serif); font-size: 1.5rem; margin-bottom: 8px;">Courtroom Chambers</h3>
                   <p class="text-xs text-white-muted leading-relaxed mb-6" style="color:var(--white-muted); font-size: 11px; line-height: 1.5;">Practice appellate advocacy under intense Socratic questioning. Face a simulated AI Bench that probes your argument's logic, precedents, and structure.</p>
                 </div>
@@ -4219,16 +4411,16 @@ input.sr-only { position: absolute !important; width: 1px !important; height: 1p
                 <!-- What the bench will be given. Filled when the stage opens. -->
                 <div id="bench-lobby-brief" class="bench-ctx" style="margin-bottom:24px;"></div>
 
-                <div class="flex flex-col gap-2 mt-auto" style="display: flex; flex-direction: column; gap: 8px;">
+                <div class="bench-start-actions flex flex-col gap-2 mt-auto" style="display: flex; flex-direction: column; gap: 8px;">
                   <button class="btn-primary tracking-widest font-medium py-3 text-xs w-full text-center" onclick="startOralRound()" style="width: 100%; padding: 12px 0; text-transform: uppercase; font-size: 11px;">
-                    🎙️ Start Oral Round (Voice)
+                    ◉ Start Oral Round (Voice)
                   </button>
                   <button class="btn-outline tracking-widest font-medium py-3 text-xs w-full text-center" onclick="startBenchSession()" style="width: 100%; padding: 12px 0; text-transform: uppercase; font-size: 11px;">
-                    ✍️ Start Text Session
+                    ✎ Start Text Session
                   </button>
                   
                   <div id="bench-no-context" class="be-notice mt-4" style="display:none; font-size: 10px; color: #8a6d1f; background: rgba(251,191,36,0.14); border: 1px solid rgba(180,131,15,0.35); padding: 10px 14px; border-radius: 8px; margin-top: 16px; line-height: 1.4;">
-                    <span>⚠ No proposition loaded. The simulator will run with a general constitutional law docket. Upload a PDF first for a custom case briefing.</span>
+                    <span>△ No proposition loaded. The simulator will run with a general constitutional law docket. Upload a PDF first for a custom case briefing.</span>
                   </div>
                 </div>
               </div>
@@ -4258,6 +4450,13 @@ input.sr-only { position: absolute !important; width: 1px !important; height: 1p
                     <!-- Judge cards rendered dynamically (forum-gated, single-select) -->
                   </div>
                 </div>
+              </div>
+
+              <!-- Phone/tablet: the Start buttons come after the bench and judge
+                   choice, so the choice is made before the round begins. -->
+              <div class="bench-start-actions-mobile">
+                <button class="btn-primary tracking-widest font-medium py-3 text-xs w-full text-center" onclick="startOralRound()" style="width: 100%; padding: 12px 0; text-transform: uppercase; font-size: 11px;">◉ Start Oral Round (Voice)</button>
+                <button class="btn-outline tracking-widest font-medium py-3 text-xs w-full text-center" onclick="startBenchSession()" style="width: 100%; padding: 12px 0; text-transform: uppercase; font-size: 11px;">✎ Start Text Session</button>
               </div>
 
             </div>
@@ -4292,7 +4491,7 @@ input.sr-only { position: absolute !important; width: 1px !important; height: 1p
     <aside class="ao-brand">
       <div class="ao-logo">Moot<span>Coach</span></div>
       <div class="ao-brand-body">
-        <div class="login-crest">⚖</div>
+        <div class="login-crest">⚖︎</div>
         <h2 class="ao-brand-head">Walk in prepared.<br/>Walk out unshakable.</h2>
         <p class="ao-brand-sub">AI moot-court preparation that adapts to your forum — case analysis, an authority arsenal, and a live adversarial bench that questions your actual submissions.</p>
         <ul class="login-brand-points">
@@ -4448,10 +4647,10 @@ input.sr-only { position: absolute !important; width: 1px !important; height: 1p
   <!-- Toolbar -->
   <div class="px-5 py-3 border-b border-black/10 bg-black/10 flex gap-2">
     <button id="btn-aux-copy" class="btn-sm btn-sm-ghost text-xs tracking-wider flex items-center gap-1.5 font-sans border border-black/10 hover:bg-black/5 cursor-pointer">
-      📋 Copy Content
+      ❐ Copy Content
     </button>
     <button id="btn-aux-print" class="btn-sm btn-sm-ghost text-xs tracking-wider flex items-center gap-1.5 font-sans border border-black/10 hover:bg-black/5 cursor-pointer">
-      📄 Export PDF
+      ▤ Export PDF
     </button>
   </div>
   
@@ -4470,10 +4669,10 @@ input.sr-only { position: absolute !important; width: 1px !important; height: 1p
   <!-- Toolbar -->
   <div class="px-5 py-3 border-b border-black/10 bg-black/10 flex gap-2">
     <button id="btn-memorial-copy" class="btn-sm btn-sm-ghost text-xs tracking-wider flex items-center gap-1.5 font-sans border border-black/10 hover:bg-black/5 cursor-pointer">
-      📋 Copy Memorial
+      ❐ Copy Memorial
     </button>
     <button id="btn-memorial-print" class="btn-sm btn-sm-ghost text-xs tracking-wider flex items-center gap-1.5 font-sans border border-black/10 hover:bg-black/5 cursor-pointer">
-      📄 Export PDF
+      ▤ Export PDF
     </button>
   </div>
   
@@ -4604,7 +4803,7 @@ input.sr-only { position: absolute !important; width: 1px !important; height: 1p
   (function(){
     const l = $('lv-sheetlines');
     if (!l) return;
-    for (let i = 1; i <= 16; i++){
+    for (let i = 1; i <= 12; i++){
       const s = document.createElement('span');
       s.textContent = i;
       l.appendChild(s);

@@ -141,11 +141,11 @@ export function renderOralResults(data) {
   const defectsHTML = (data.defectsFound || []).length
     ? (data.defectsFound).map(d => {
         const sev  = (d.severity || 'minor').toLowerCase();
-        const sCol = sev === 'fatal' ? '#e05252' : sev === 'significant' ? '#fbbf24' : '#2dd4bf';
+        const sCol = sev === 'fatal' ? 'var(--gold)' : sev === 'significant' ? 'var(--gold-light)' : 'var(--white-muted)';
         return `
           <div style="margin-bottom:10px;padding:13px 15px;background:rgba(28,23,16,.02);border:1px solid var(--glass-b);border-left:3px solid ${sCol};border-radius:0 8px 8px 0;">
             <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:7px;">
-              <span style="font-size:.58rem;padding:2px 7px;border-radius:3px;background:rgba(28,23,16,.04);color:var(--white-muted);">${esc(d.type || '')}</span>
+              <span style="font-size:.58rem;padding:2px 7px;border-radius:3px;background:rgba(28,23,16,.04);color:var(--white-muted);">${esc((v => (/\s/.test(String(v||'')) ? String(v||'') : String(v||'').replace(/([a-z])([A-Z])/g,'$1 $2').replace(/_/g,' ').replace(/^./,c=>c.toUpperCase()).replace(/ ([A-Z])(?=[a-z])/g,(m,c)=>' '+c.toLowerCase())))(d.type))}</span>
               <span style="font-size:.58rem;padding:2px 7px;border-radius:3px;color:${sCol};background:rgba(28,23,16,.03);">${sev}</span>
             </div>
             ${d.quote ? `<div style="font-size:.76rem;color:var(--gold);font-style:italic;margin-bottom:6px;">"${esc(d.quote)}"</div>` : ''}
@@ -157,7 +157,7 @@ export function renderOralResults(data) {
   const VERDICT = {
     yes: ['Recognised', '#4caf82'],
     no: ['Could not be identified', '#e05252'],
-    unsure: ['Not verified — check on SCC Online', '#fbbf24'],
+    unsure: ['Not verified — check on SCC Online', 'var(--gold-light)'],
   };
   const citesHTML = (data.citations || []).map(c => {
     const [label, col] = VERDICT[c.exists] || VERDICT.unsure;
@@ -238,7 +238,7 @@ export function renderOralResults(data) {
         <div class="asc-header-left"><div class="asc-icon asc-icon-blue">↯</div><div class="asc-title">Immediate Corrections</div></div>
         <div class="asc-header-right"><span class="asc-badge badge-blue">Action Items</span><span class="asc-chevron" id="asc-ch-oral-fix">▾</span></div>
       </div>
-      <div class="asc-body" id="asc-b-oral-fix" style="padding:14px 22px;">${listHTML(data.immediateCorrections,'#60a5fa')}</div>
+      <div class="asc-body" id="asc-b-oral-fix" style="padding:14px 22px;">${listHTML(data.immediateCorrections,'var(--gold)')}</div>
     </div>` : ''}
   `;
 

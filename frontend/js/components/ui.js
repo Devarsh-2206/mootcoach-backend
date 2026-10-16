@@ -1,5 +1,5 @@
 import { BASE_URL } from '../config.js';
-import { currentUser, db, firebaseRef } from '../services/firebase.js';
+import { currentUser, db, firebaseRef, hasCheckedAuth } from '../services/firebase.js';
 import { logSessionSecurely, checkBackendHealth, prepareOralBriefing } from '../services/api.js';
 import { storedOralNotes, storedRebuttals, lastBuiltArgument, populateIssuesFromAnalysis } from './argumentBuilder.js';
 
@@ -137,6 +137,7 @@ export function openLegalModal(type) {
     `;
   }
   
+  body.scrollTop = 0;
   modal.classList.add('show');
   document.body.style.overflow = 'hidden';
 }
@@ -209,6 +210,15 @@ export function toggleMobileSidebar() {
 }
 
 export function navigate(view) {
+  // Firebase has not said yet whether someone is signed in (the first second
+  // or so after a load). Showing the sign-in form now flashed it at signed-in
+  // users and then dropped them on the landing page, so the click looked
+  // dead. Remember the intent; the auth observer finishes it.
+  if ((view === 'workspace' || view === 'login') && !currentUser && !hasCheckedAuth) {
+    window.__openWorkspaceOnSignIn = true;
+    window.__pendingAuthView = view;
+    return;
+  }
   if (view === 'workspace' && !currentUser) {
     // Show Auth UI overlay
     const overlay = document.getElementById('auth-overlay');
@@ -261,6 +271,10 @@ export function navigate(view) {
     // Locked/ticked steps and the Next button reflect what is loaded from
     // the moment the workspace opens, not only after the first stage change.
     refreshStepper();
+    // The list loads on sign-in; if that read was lost (token lag right after
+    // a load), entering the workspace fetches it again.
+    const recent = document.getElementById('ws-recent-list');
+    if (currentUser && recent && !recent.children.length) loadRecentSessions();
     const nextBtn = document.getElementById('wizard-next-btn');
     if (nextBtn && currentStage === 1) nextBtn.style.display = (window.lastAnalysis || lastAnalysis) ? 'block' : 'none';
   }
@@ -287,10 +301,10 @@ export async function triggerBackendCheck() {
   const online = await checkBackendHealth();
   if (online) {
     statusEl.className = 'backend-status online';
-    labelEl.textContent = '🟢 Server Online';
+    labelEl.textContent = '● Server Online';
   } else {
     statusEl.className = 'backend-status offline';
-    labelEl.textContent = '🔴 Server Offline';
+    labelEl.textContent = '● Server Offline';
   }
 }
 
@@ -484,7 +498,12 @@ export function deriveMootName({ mootName, fileName, analysisData, propositionIn
 }
 window.deriveMootName = deriveMootName;
 
-export async function loadRecentSessions() {
+let recentLoading = null;
+export function loadRecentSessions() {
+  if (!recentLoading) recentLoading = loadRecentSessionsOnce().finally(() => { recentLoading = null; });
+  return recentLoading;
+}
+async function loadRecentSessionsOnce(attempt = 0) {
   if (!currentUser) return;
   const sec = document.getElementById('ws-recent-section');
   const list = document.getElementById('ws-recent-list');
@@ -532,7 +551,7 @@ export async function loadRecentSessions() {
       const label = full ? `${r.title} — uploaded ${full}` : r.title;
       html += `<div class="ws-recent-row">
         <button class="ws-sb-item" onclick="loadSavedSession('${r.id}')" title="${esc(label)}">
-          <span class="ws-sb-icon">📄</span>
+          <span class="ws-sb-icon">▤</span>
           <span style="display:flex;flex-direction:column;min-width:0;flex:1;text-align:left;line-height:1.25;">
             <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(r.title)}</span>
             ${short ? `<span class="ws-recent-date" style="font-size:10px;color:var(--white-muted);white-space:nowrap;letter-spacing:.02em;">${esc(short)}</span>` : ''}
@@ -543,6 +562,12 @@ export async function loadRecentSessions() {
     });
     list.innerHTML = html;
   } catch (e) {
+    // Right after a load Firestore's auth can lag the user object; one quiet
+    // retry covers that before anything is shown.
+    if (attempt < 2) {
+      await new Promise(r => setTimeout(r, 1200 * (attempt + 1)));
+      return loadRecentSessionsOnce(attempt + 1);
+    }
     console.error("Failed to load history", e);
     showToast("Failed to load history: " + e.message, "err");
   }
@@ -593,6 +618,9 @@ window.deleteSavedSession = deleteSavedSession;
 
 export async function loadSavedSession(docId) {
   console.log("[DEBUG] loadSavedSession invoked with docId:", docId);
+  // On a phone the moot list is a drawer; picking a moot closes it.
+  const sbEl = document.getElementById('ws-sidebar');
+  if (sbEl && sbEl.classList.contains('show')) toggleMobileSidebar();
   // Reopening the moot already open keeps its unsaved draft; any other moot
   // starts clean.
   const previousDocId = window.currentMootDocId;
@@ -687,7 +715,7 @@ export async function loadSavedSession(docId) {
 /* ─── RENDERERS & UTILS ─── */
 export const SECTION_CONFIGS = {
   summary:      { icon:'◈', iconCls:'asc-icon-gold',   badgeTxt:'Overview',   badgeCls:'badge-gold',   title:'Case Summary'                 },
-  legal:        { icon:'⚖', iconCls:'asc-icon-blue',   badgeTxt:'Issues',     badgeCls:'badge-blue',   title:'Issues Framed in the Proposition' },
+  legal:        { icon:'⚖︎', iconCls:'asc-icon-blue',   badgeTxt:'Issues',     badgeCls:'badge-blue',   title:'Issues Framed in the Proposition' },
   petitioner:   { icon:'▲', iconCls:'asc-icon-green',  badgeTxt:'Applicant',  badgeCls:'badge-green',  title:'Petitioner Arguments'         },
   respondent:   { icon:'▼', iconCls:'asc-icon-red',    badgeTxt:'Opposition', badgeCls:'badge-red',    title:'Respondent Arguments'         },
   cases:        { icon:'◉', iconCls:'asc-icon-purple', badgeTxt:'Precedents', badgeCls:'badge-purple', title:'Cases & Precedents'           },
@@ -807,6 +835,13 @@ export function fmtInline(text) {
   // Clean redundant IRAC headings inside contents
   escaped = escaped.replace(/^\s*(?:ISSUE|RULE|APPLICATION|CONCLUSION)\s*[:\-–—]*\s*$/gmi, '');
 
+  // Orphan markdown asterisks left by the model ("Issue:*") and doubled punctuation (".:", ".".")
+  escaped = escaped.replace(/(:|<\/strong>|<\/em>)\*+(?=\s|$)/gm, '$1');
+  escaped = escaped.replace(/(^|\s)\*+(?=\s|$)/gm, '$1');
+  escaped = escaped.replace(/([.!?]):(?=\s|$|<)/g, '$1');
+  escaped = escaped.replace(/(?<!\.)\.\.(?!\.)/g, '.');
+  escaped = escaped.replace(/\.(&quot;|"|”)\./g, '.$1');
+
   return escaped;
 }
 
@@ -841,7 +876,7 @@ export function renderCases(content, rawCasesArray) {
       const conf = c.confidenceLevel || 'medium';
       const borderStyle = conf === 'high' ? '' : conf === 'low' ? 'style="border-color:rgba(224,82,82,.2)"' : 'style="border-color:rgba(251,191,36,.2)"';
       const caveatHTML  = (c.caveat && c.caveat !== 'null' && c.caveat !== null)
-        ? `<span style="font-size:.65rem;color:#fbbf24;background:rgba(251,191,36,.07);border:1px solid rgba(251,191,36,.2);border-radius:4px;padding:2px 7px;margin-top:5px;display:inline-block;">⚠ ${esc(String(c.caveat))}</span>`
+        ? `<span style="font-size:.65rem;color:var(--gold);background:var(--gold-muted);border:1px solid var(--gold-border);border-radius:4px;padding:2px 7px;margin-top:5px;display:inline-block;">△ ${esc(String(c.caveat))}</span>`
         : '';
       const jBadge = c.jurisdiction
         ? `<span style="font-size:.6rem;color:var(--white-muted);background:rgba(28,23,16,.04);border:1px solid var(--glass-b);border-radius:3px;padding:1px 6px;margin-left:5px;">${esc(c.jurisdiction)}</span>`
@@ -1057,10 +1092,24 @@ export function copySectionText(i, btn) {
   });
 }
 
+// Jumps land the section's heading just below the top of the scroll area
+// (offsetTop is measured from a different ancestor, so headings ended up
+// hidden or the next section showed). The clicked tab is marked at once and
+// the scroll-spy waits until the smooth scroll has finished.
+let spyPausedUntil = 0;
+function markNav(i) {
+  document.querySelectorAll('.rn-item').forEach(n => n.classList.toggle('active', n.id === `rn-${i}`));
+  const btn = document.getElementById(`rn-${i}`);
+  if (btn && btn.scrollIntoView) btn.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' });
+}
 export function scrollToSection(i) {
   const el = document.getElementById(`asc-card-${i}`);
   const body = document.querySelector('.ws-results-panel .res-body');
-  if (el && body) body.scrollTo({ top: el.offsetTop - 50, behavior: 'smooth' });
+  if (!el || !body) return;
+  const top = el.getBoundingClientRect().top - body.getBoundingClientRect().top + body.scrollTop - 16;
+  spyPausedUntil = Date.now() + 900;
+  markNav(i);
+  body.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
 }
 
 export function animateBars() {
@@ -1077,13 +1126,19 @@ export function initScrollSpy() {
   const resBody = document.querySelector('.ws-results-panel .res-body');
   const navBtns = document.querySelectorAll('.rn-item');
   if (!resBody || !navBtns.length) return;
+  if (resBody.dataset.spy) return;
+  resBody.dataset.spy = '1';
   resBody.addEventListener('scroll', () => {
-    let closest = 0, minDist = Infinity;
+    if (Date.now() < spyPausedUntil) return;
+    // The current section is the last one whose top has passed the top of
+    // the scroll area (measured against the area, not a fixed 120px).
+    const line = resBody.getBoundingClientRect().top + 40;
+    let current = null;
     document.querySelectorAll('.analysis-section-card[id^="asc-card-"]').forEach(card => {
-      const dist = Math.abs(card.getBoundingClientRect().top - 120);
-      if (dist < minDist) { minDist = dist; closest = +card.id.replace('asc-card-',''); }
+      if (card.getBoundingClientRect().top <= line) current = +card.id.replace('asc-card-', '');
     });
-    navBtns.forEach((n, i) => n.classList.toggle('active', i === closest));
+    if (current === null) current = 0;
+    document.querySelectorAll('.rn-item').forEach(n => n.classList.toggle('active', n.id === `rn-${current}`));
   }, { passive: true });
 }
 
@@ -1158,7 +1213,7 @@ export function renderArgumentDefects(defectsData) {
     return `<div style="font-size:.82rem;color:#4caf82;padding:6px 0;">No significant argument defects identified in this proposition.</div>`;
   }
 
-  const sevBorder = { fatal:'#e05252', significant:'#fbbf24', minor:'#2dd4bf' };
+  const sevBorder = { fatal:'var(--gold)', significant:'var(--gold-light)', minor:'var(--rule)' };
   const sevStyle  = {
     fatal:       'background:rgba(224,82,82,.1);border:1px solid rgba(224,82,82,.28);color:var(--acc-red);',
     significant: 'background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.22);color:var(--acc-amber);',
@@ -1177,7 +1232,7 @@ export function renderArgumentDefects(defectsData) {
             <div style="font-size:.78rem;font-weight:500;color:var(--white-2);flex:1;font-style:italic;">"${fmtInline(d.argument || '')}"</div>
             <div style="display:flex;gap:5px;flex-shrink:0;">
               <span style="font-size:.56rem;padding:2px 7px;border-radius:4px;letter-spacing:.08em;text-transform:uppercase;font-weight:500;${bsty}">${esc(sev)}</span>
-              <span style="font-size:.56rem;padding:2px 7px;border-radius:4px;background:rgba(28,23,16,.04);border:1px solid var(--glass-b);color:var(--white-muted);">${esc(d.defectType || '')}</span>
+              <span style="font-size:.56rem;padding:2px 7px;border-radius:4px;background:rgba(28,23,16,.04);border:1px solid var(--glass-b);color:var(--white-muted);">${esc((v => (/\s/.test(String(v||'')) ? String(v||'') : String(v||'').replace(/([a-z])([A-Z])/g,'$1 $2').replace(/_/g,' ').replace(/^./,c=>c.toUpperCase()).replace(/ ([A-Z])(?=[a-z])/g,(m,c)=>' '+c.toLowerCase())))(d.defectType))}</span>
             </div>
           </div>
           <div style="font-size:.79rem;color:var(--white-muted);line-height:1.67;">${fmtInline(d.explanation || '')}</div>
@@ -1362,7 +1417,7 @@ export function showStructuredResults(data) {
       (data.missingAngles || []).length        && { type:'missing',       heading:'Missing Legal Angles',      content: toList(data.missingAngles) },
       data.mostContestableIssue && {
         type:'strategy', heading:'Strategic Insights',
-        content: `**Most Contestable Issue:** ${data.mostContestableIssue}`
+        content: `**Most Contestable Issue:** ${String(data.mostContestableIssue).replace(/^[\s*]+|[\s*]+$/g, "")}`
       },
     ].filter(Boolean);
 
@@ -1955,56 +2010,56 @@ export function renderStage4OralNotes() {
         title: 'Bench Questions',
         description: 'Anticipated questions from the bench with strategic responses.',
         readTime: '3 min',
-        icon: '❓'
+        icon: '?'
       },
       {
         id: 'key-authorities',
         title: 'Key Authorities',
         description: 'Precedents and their ratios to cite during oral arguments.',
         readTime: '4 min',
-        icon: '📖'
+        icon: '§'
       },
       {
         id: 'judicial-traps',
         title: 'Judicial Traps',
         description: 'Vulnerable points in your argument and 30-second escape routes.',
         readTime: '2 min',
-        icon: '⚠️'
+        icon: '△'
       },
       {
         id: 'rebuttal-strategy',
         title: 'Rebuttal Strategy',
         description: 'Counter-arguments and strategies to demolish the opposition\'s claims.',
         readTime: '3 min',
-        icon: '⚔️'
+        icon: '⚔︎'
       },
       {
         id: 'emergency-rescue',
         title: 'Emergency Rescue',
         description: 'Last-resort constitutional principles to salvage a collapsing case.',
         readTime: '1 min',
-        icon: '🔥'
+        icon: '▲'
       },
       {
         id: 'closing-prayer',
         title: 'Closing Prayer',
         description: 'A formal demand for relief tailored to the bench structure.',
         readTime: '1 min',
-        icon: '⏱️'
+        icon: '◷'
       },
       {
         id: 'follow-up-questions',
         title: 'Follow-Up Questions',
         description: 'Secondary queries the judges may use to probe deep into your logic.',
         readTime: '2 min',
-        icon: '🎯'
+        icon: '◎'
       },
       {
         id: 'fallback-position',
         title: 'Fallback Position',
         description: 'A secondary legal ground to fall back on if the main submission is rejected.',
         readTime: '2 min',
-        icon: '🛡️'
+        icon: '◈'
       }
     ];
 
@@ -2051,14 +2106,14 @@ export function renderStage4OralNotes() {
     } else if (hasContext) {
       modulesHTML = `
         <div class="text-white-muted italic p-4 bg-black/[0.02] border border-dashed border-black/10 rounded-xl font-sans text-center">
-          <div class="text-lg mb-1">🎙️</div>
+          <div class="text-lg mb-1">◉</div>
           No generated submissions found. Complete Stage 3 first to automatically populate your Chambers Briefing & Battle Plan.
         </div>
       `;
     } else {
       modulesHTML = `
         <div class="text-white-muted italic p-4 bg-black/[0.02] border border-dashed border-black/10 rounded-xl font-sans text-center">
-          <div class="text-lg mb-1">🎙️</div>
+          <div class="text-lg mb-1">◉</div>
           Draft your submissions in Stage 3 to populate your custom Battle Plan here.
         </div>
       `;
@@ -2119,7 +2174,7 @@ export function openArsenalModule(moduleId) {
         <div class="space-y-3 font-sans">
           ${(oralAdvocacy.precedents || []).map(p => `
             <div class="p-3 bg-black/[0.03] border border-black/5 rounded-lg text-xs" style="margin-bottom: 10px;">
-              <strong class="text-[#1C1710] block mb-1" style="font-size: 12px; color: var(--white);">⚖️ ${esc(p.name)} (${esc(p.bench || 'Constitutional Bench')})</strong>
+              <strong class="text-[#1C1710] block mb-1" style="font-size: 12px; color: var(--white);">⚖︎ ${esc(p.name)} (${esc(p.bench || 'Constitutional Bench')})</strong>
               <div class="text-white-muted mt-1.5" style="font-size: 11px;"><span class="text-[#B0392E] font-semibold uppercase text-[9px] tracking-wider" style="color: var(--gold); font-size: 9px; font-weight: bold; margin-right: 4px;">Ratio:</span> ${esc(p.ratio)}</div>
               <div class="text-white-muted mt-1.5" style="font-size: 11px;"><span class="text-[#4caf82] font-semibold uppercase text-[9px] tracking-wider" style="color:var(--acc-green); font-size: 9px; font-weight: bold; margin-right: 4px;">Application:</span> ${esc(p.strategicValue || p.why)}</div>
               <div class="text-white-muted mt-1.5" style="font-size: 11px;"><span class="text-[#B0392E] font-semibold uppercase text-[9px] tracking-wider" style="color: var(--gold); font-size: 9px; font-weight: bold; margin-right: 4px;">Usage:</span> <span class="italic font-serif" style="color:var(--white);">"${esc(p.usage)}"</span></div>
@@ -2133,8 +2188,8 @@ export function openArsenalModule(moduleId) {
       content = `
         <div class="space-y-3 font-sans">
           ${(oralAdvocacy.traps || []).map(trap => `
-            <div class="p-3 bg-red-950/10 border border-red-900/20 rounded-lg text-xs leading-relaxed text-[#4a4030]" style="margin-bottom: 10px; border-left: 3px solid #f87171;">
-              <strong class="text-red-400 block mb-1" style="color:var(--acc-red); font-size: 12px;">⚠️ ${esc(trap.title || 'Judicial Trap')}</strong>
+            <div class="p-3 bg-red-950/10 border border-red-900/20 rounded-lg text-xs leading-relaxed text-[#4a4030]" style="margin-bottom: 10px; border-left: 3px solid var(--gold);">
+              <strong class="text-red-400 block mb-1" style="color:var(--acc-red); font-size: 12px;">△ ${esc(trap.title || 'Judicial Trap')}</strong>
               <div class="text-gray-400 mb-1" style="font-size: 11px; margin-top: 4px;"><strong style="color:var(--white);">Danger:</strong> ${esc(trap.description)}</div>
               <div class="mt-2 italic text-[#4a4030] font-serif" style="font-size: 11px; color:var(--white-muted); padding-top: 4px; border-t: 1px solid rgba(28,23,16,0.05);">Escape Route: "${esc(trap.escapeResponse)}"</div>
             </div>
@@ -2176,7 +2231,7 @@ export function openArsenalModule(moduleId) {
       title = 'Closing Prayer';
       const prayerArg = oralAdvocacy.closingPrayer || '';
       content = !prayerArg ? notPrepared : `
-        <div class="p-4 bg-indigo-950/10 border border-indigo-900/20 rounded-xl font-sans" style="border-left: 3px solid #6366f1;">
+        <div class="p-4 bg-indigo-950/10 border border-indigo-900/20 rounded-xl font-sans" style="border-left: 3px solid var(--gold);">
           <p class="text-[#4a4030] leading-relaxed font-serif italic" style="font-size: 12px; color:var(--white-muted); line-height: 1.6;">
             "${esc(prayerArg)}"
           </p>
@@ -2200,7 +2255,7 @@ export function openArsenalModule(moduleId) {
       title = 'Fallback Position';
       const fallbackArg = rebuttals.planB || '';
       content = !fallbackArg ? notPrepared : `
-        <div class="p-4 bg-indigo-950/10 border border-indigo-900/20 rounded-xl font-sans" style="border-left: 3px solid #6366f1;">
+        <div class="p-4 bg-indigo-950/10 border border-indigo-900/20 rounded-xl font-sans" style="border-left: 3px solid var(--gold);">
           <p class="text-[#4a4030] leading-relaxed font-serif italic" style="font-size: 12px; color:var(--white-muted); line-height: 1.6;">
             "${esc(fallbackArg)}"
           </p>

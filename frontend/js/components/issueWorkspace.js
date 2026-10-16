@@ -338,7 +338,7 @@ function renderStrategyPanel() {
       <div class="flex flex-wrap gap-2">
         ${pool.map(a => {
           const on = pinnedNames.indexOf(a.name) >= 0;
-          return `<button onclick="window.togglePinAuthority('${String(a.name).replace(/'/g, "\\'")}')" title="${esc(a.ratio || '')}" class="text-[11px] px-3 py-1.5 rounded-full border ${on ? 'border-moot-accent text-[#F6F1E4] bg-moot-accent font-semibold' : 'border-black/15 text-white-2 bg-black/5 hover:border-black/30'}">${on ? '📌 ' : ''}${esc(a.name)}${a.jurisdiction ? ` · ${esc(a.jurisdiction)}` : ''}</button>`;
+          return `<button onclick="window.togglePinAuthority('${String(a.name).replace(/'/g, "\\'")}')" title="${esc(a.ratio || '')}" class="text-[11px] px-3 py-1.5 rounded-full border ${on ? 'border-moot-accent text-[#F6F1E4] bg-moot-accent font-semibold' : 'border-black/15 text-white-2 bg-black/5 hover:border-black/30'}">${on ? '• ' : ''}${esc(a.name)}${a.jurisdiction ? ` · ${esc(a.jurisdiction)}` : ''}</button>`;
         }).join('')}
       </div>
     </div>` : '';
@@ -513,7 +513,7 @@ function renderAdvocacyMatrix(issueId) {
         authoritySlotHtml = `
           <div class="mt-2 p-3 bg-navy-4 border border-dashed border-moot-accent/30 rounded flex items-center justify-between cursor-pointer hover:border-moot-accent hover:bg-moot-accent/5 transition-all group">
              <div class="flex flex-col gap-1">
-               <div class="text-[10px] font-sans text-white-muted uppercase tracking-widest"><span class="text-moot-accent">⚡ Authority Mission:</span> Priority High</div>
+               <div class="text-[10px] font-sans text-white-muted uppercase tracking-widest"><span class="text-moot-accent">↯ Authority Mission:</span> Priority High</div>
                <div class="text-xs font-serif text-[#1C1710]/80 group-hover:text-[#1C1710] transition-colors">
                  ${sub.authorityNeeded || 'Landmark precedent confirming this application'}
                </div>

@@ -18,7 +18,7 @@ import {
   sendSpeechText
 } from '../services/audioEngine.js';
 import { logSessionSecurely, requestJson } from '../services/api.js';
-import { getCurrentSelectedSide, selectedAuthorities } from './argumentBuilder.js';
+import { getCurrentSelectedSide, selectedAuthorities, isHypotheticalAuthority } from './argumentBuilder.js';
 import { DEPTH_PROFILES, JUDGE_ROSTERS, COURT_ROSTERS, FULL_BENCH, personaDirective, fullBenchDirective, rosterKeyOf } from '../config/benchProfiles.js';
 
 // Simulator State
@@ -342,7 +342,7 @@ export function renderJudgeCards() {
     return `
       <button type="button" onclick="window.selectJudge('${j.id}')" title="${esc(j.focus)}"
         style="display:flex; align-items:flex-start; gap:12px; width:100%; text-align:left; padding:10px 12px; border-radius:8px; cursor:pointer; transition:all .15s; font-family:var(--sans); ${rowStyle}">
-        <div style="width:30px; height:30px; border-radius:50%; background:rgba(176,57,46,0.1); border:1px solid rgba(176,57,46,0.3); display:flex; align-items:center; justify-content:center; color:var(--gold); flex-shrink:0; font-size:13px;">⚖️</div>
+        <div style="width:30px; height:30px; border-radius:50%; background:rgba(176,57,46,0.1); border:1px solid rgba(176,57,46,0.3); display:flex; align-items:center; justify-content:center; color:var(--gold); flex-shrink:0; font-size:13px;">⚖︎</div>
         <div style="flex:1; min-width:0;">
           <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
             <span style="font-size:12px; font-weight:600; color:var(--white);">${esc(j.name)}</span>
@@ -450,7 +450,7 @@ export function renderLobbyBrief() {
   const rows = [
     ['Arguing as', sel.stance],
     ['Issue', sel.issue],
-    ['Authorities', sel.authorities.map(a => a.name).join('; ')],
+    ['Authorities', sel.authorities.map(a => a.name + (isHypotheticalAuthority(a.name) ? ' (hypothetical — not a reported case)' : '')).join('; ')],
     ['Draft', sel.memorialDraft ? 'Attached — the bench will question it' : ''],
   ];
   el.innerHTML = `<div class="bench-ctx-title">Your case before the bench</div><dl>${rows.map(([k, v]) =>
@@ -515,7 +515,7 @@ export function startBenchSession() {
   const ctxHasMemorial = !!sel.memorialDraft;
   const ctxHasOral = !!sel.oralDraft;
   if (sessionMetaEl) {
-    sessionMetaEl.textContent = `${ctxStance.toUpperCase()} · ${benchDifficultyMode.toUpperCase()} ${benchWord} · ${fp.benchType.toUpperCase()}`;
+    sessionMetaEl.textContent = `${ctxStance.toUpperCase()} · ${benchDifficultyMode.toUpperCase()} ${benchWord} · ${String(fp.specificBody || fp.benchType || 'Court').toUpperCase()}`;
   }
   const ctxPlan = ms.plan || {};
   const ctxPredicted = ((ctxPlan.fatalQuestions || []).length) + ((ctxPlan.benchQuestions || []).length);
@@ -544,7 +544,7 @@ export function startBenchSession() {
   let opening = openingMap[benchDifficultyMode] || openingMap.moderate;
   // Open on the advocate's ACTUAL case so it's immediately their session, not generic.
   if (ctxIssue && ctxIssue !== 'General appellate docket') {
-    opening = `Counsel for the ${ctxStance}, we are taking up your issue — "${ctxIssue}". ${opening}`;
+    opening = `Counsel for the ${ctxStance}, we are taking up your issue — "${String(ctxIssue).trim().replace(/[.:;,!?\s]+$/, "")}." ${opening}`;
   }
   appendBenchMessage('judge', opening, null, 'Opening the session', 1, getPresidingJudgeName());
   benchConversation.push({ role: 'judge', content: opening });
@@ -590,6 +590,22 @@ export async function exitChambers() {
     return;
   }
 
+  // Same bar requestOralReview applies, so the dialog never promises a
+  // scoresheet the bench will then refuse to write.
+  const chars = turns.filter(t => t.role === 'advocate').reduce((n, t) => n + String(t.content || '').length, 0);
+  if (argued < 2 || chars < 200) {
+    const short = await confirmDialog({
+      title: 'Too short to mark yet',
+      body: `You have made ${argued} submission${argued === 1 ? '' : 's'}. The bench needs at least two substantive submissions before it can mark a round.`,
+      actions: [
+        { label: 'Keep arguing', value: 'stay', primary: true },
+        { label: 'Leave without a score', value: 'leave', danger: true },
+      ],
+    });
+    if (short === 'leave') clearBenchSession();
+    return;
+  }
+
   const choice = await confirmDialog({
     title: 'End this round?',
     body: `You have made ${argued} submission${argued === 1 ? '' : 's'}. End the round now and the bench will mark it on a scoresheet.`,
@@ -613,7 +629,7 @@ export async function exitChambers() {
   window.benchActive = false;
   const input = document.getElementById('bench-input');
   const sendBtn = document.getElementById('btn-bench-send');
-  if (input) { input.disabled = true; input.placeholder = 'Round ended. The scoresheet is below.'; }
+  if (input) { input.disabled = true; input.placeholder = 'Round ended. The bench is marking it.'; }
   if (sendBtn) sendBtn.disabled = true;
   const seconds = textSessionStartTime ? Math.floor((Date.now() - textSessionStartTime) / 1000) : 0;
   await requestOralReview(seconds, benchConversation.slice());
@@ -674,7 +690,7 @@ export function appendBenchMessage(role, text, pressureLevel, targetWeakness, di
     if (role === 'judge') {
       const judgeNameEl = document.getElementById('cr-judge-name');
       if (judgeNameEl) {
-        judgeNameEl.textContent = `⚖️ ${speakingJudge ? esc(speakingJudge) : 'Presiding Judge'}`;
+        judgeNameEl.textContent = `⚖︎ ${speakingJudge ? esc(speakingJudge) : 'Presiding Judge'}`;
       }
     }
 
@@ -684,7 +700,7 @@ export function appendBenchMessage(role, text, pressureLevel, targetWeakness, di
       ? `<div class="pressure-dots">${[1, 2, 3, 4, 5].map(n => `<div class="pressure-dot${n <= pressure ? ' filled' : ''}"></div>`).join('')}</div>`
       : '';
     const weaknessHTML = (targetWeakness && role === 'judge')
-      ? `<div class="bm-weakness">↳ ${esc(targetWeakness)}</div>`
+      ? `<div class="bm-weakness">↳ ${esc((v => (/\s/.test(String(v||'')) ? String(v||'') : String(v||'').replace(/([a-z])([A-Z])/g,'$1 $2').replace(/_/g,' ').replace(/^./,c=>c.toUpperCase()).replace(/ ([A-Z])(?=[a-z])/g,(m,c)=>' '+c.toLowerCase())))(targetWeakness))}</div>`
       : '';
 
     div.innerHTML = `
@@ -822,7 +838,7 @@ export function appendBenchPerformanceReview(review, source = 'bench') {
       <!-- Strongest Moment -->
       <div style="background:var(--navy-4); border:1px solid var(--glass-b); border-radius:10px; padding:16px;">
         <div style="font-size:.65rem; letter-spacing:.1em; text-transform:uppercase; color:var(--acc-green); font-weight:700; margin-bottom:10px; display:flex; align-items:center; gap:6px;">
-          <span>🏆</span> Strongest Moment
+          <span>✦</span> Strongest Moment
         </div>
         <div style="font-family:var(--serif); font-size:.9rem; color:var(--white-2); font-style:italic; line-height:1.5; margin-bottom:10px; border-left:2px solid #4caf82; padding-left:10px;">
           "${fmtInline(s_moment.statement || 'N/A')}"
@@ -835,7 +851,7 @@ export function appendBenchPerformanceReview(review, source = 'bench') {
       <!-- Most Dangerous Moment -->
       <div style="background:var(--navy-4); border:1px solid var(--glass-b); border-radius:10px; padding:16px;">
         <div style="font-size:.65rem; letter-spacing:.1em; text-transform:uppercase; color:var(--acc-red); font-weight:700; margin-bottom:10px; display:flex; align-items:center; gap:6px;">
-          <span>⚠️</span> Most Dangerous Moment
+          <span>△</span> Most Dangerous Moment
         </div>
         <div style="font-family:var(--serif); font-size:.9rem; color:var(--white-2); font-style:italic; line-height:1.5; margin-bottom:10px; border-left:2px solid #e05252; padding-left:10px;">
           "${fmtInline(d_moment.statement || 'N/A')}"
@@ -854,12 +870,12 @@ export function appendBenchPerformanceReview(review, source = 'bench') {
       <!-- Judicial Concerns -->
       <div style="background:var(--navy-4); border:1px solid var(--glass-b); border-radius:10px; padding:16px;">
         <div style="font-size:.65rem; letter-spacing:.1em; text-transform:uppercase; color:#B0392E; font-weight:700; margin-bottom:10px; display:flex; align-items:center; gap:6px;">
-          <span>🏛️</span> Judicial Concerns
+          <span>§</span> Judicial Concerns
         </div>
         <div style="margin-bottom:10px;">${concernsHTML || '<span style="color:var(--white-muted);font-size:.8rem;">None</span>'}</div>
         
         <div style="font-size:.65rem; letter-spacing:.1em; text-transform:uppercase; color:var(--white-muted); font-weight:700; margin-top:16px; margin-bottom:8px; display:flex; align-items:center; gap:6px;">
-          <span>💡</span> Missed Opportunity
+          <span>✦</span> Missed Opportunity
         </div>
         <div style="font-size:.8rem; color:var(--white-2); line-height:1.5;">
           ${fmtInline(review.missedOpportunity || 'None identified.')}
@@ -869,7 +885,7 @@ export function appendBenchPerformanceReview(review, source = 'bench') {
       <!-- Consistency Analysis -->
       <div style="background:var(--navy-4); border:1px solid var(--glass-b); border-radius:10px; padding:16px;">
         <div style="font-size:.65rem; letter-spacing:.1em; text-transform:uppercase; color:var(--acc-purple); font-weight:700; margin-bottom:10px; display:flex; align-items:center; gap:6px;">
-          <span>⚖️</span> Consistency Analysis
+          <span>⚖︎</span> Consistency Analysis
         </div>
         <div style="font-size:.8rem; color:var(--white-2); line-height:1.6;">
           ${fmtInline(review.consistencyAnalysis || 'No major inconsistencies detected.')}
@@ -880,7 +896,7 @@ export function appendBenchPerformanceReview(review, source = 'bench') {
     <!-- Bottom: Training Priorities -->
     <div style="background:var(--navy-4); border:1px solid var(--glass-b); border-radius:10px; padding:16px;">
       <div style="font-size:.65rem; letter-spacing:.1em; text-transform:uppercase; color:var(--acc-blue); font-weight:700; margin-bottom:12px; display:flex; align-items:center; gap:6px;">
-        <span>🎯</span> Training Priorities Before Next Round
+        <span>◎</span> Training Priorities Before Next Round
       </div>
       <div>
         ${prioritiesHTML || '<div style="font-size:.8rem;color:var(--white-muted);">Keep practicing.</div>'}
@@ -999,7 +1015,7 @@ export async function submitToBench() {
     if (data.isSessionEnd) {
       appendBenchPerformanceReview(data.performanceReview);
       roundMarked = true;
-      setExitLabel('Leave Chambers');
+      setExitLabel('Exit Chambers');
       benchActive = false;
       window.benchActive = false;
       if (input) {
@@ -1106,7 +1122,7 @@ export function updateBenchState(state) {
       break;
     case 'mic_ready':
       text = 'Waiting for Microphone Permission...';
-      dotColor = 'bg-[#fbbf24]';
+      dotColor = 'bg-[var(--gold-light)]';
       break;
     case 'ready':
       text = 'Bench Ready';
@@ -1118,7 +1134,7 @@ export function updateBenchState(state) {
       break;
     case 'processing':
       text = 'Processing Argument...';
-      dotColor = 'bg-[#a78bfa]';
+      dotColor = 'bg-[var(--white-muted)]';
       break;
     case 'speaking':
       text = 'Judge Speaking';
@@ -1137,7 +1153,7 @@ export function updateBenchState(state) {
   const benchNameEl = document.getElementById('cr-bench-name');
   const fpState = getForumProfile();
   if (judgeNameEl && state === 'connecting') {
-    judgeNameEl.textContent = `⚖️ Presiding ${fpState.judge}`;
+    judgeNameEl.textContent = `⚖︎ Presiding ${fpState.judge}`;
   }
   if (benchNameEl) {
     // Forum-driven name when known; otherwise difficulty-based fallback.
@@ -1184,7 +1200,7 @@ export async function startOralRound() {
 
   let benchAdjourned = false;
   let fullJudgeResponse = '';
-  console.log("🎙️ Initiating oral round...");
+  console.log("◉ Initiating oral round...");
   console.log("[DEBUG AUDIT] Starting oral round...");
   benchConversation = [];
   voiceSessionActive = true;
@@ -1347,7 +1363,7 @@ export async function startOralRound() {
 
 export async function stopOralRound({ mark = true } = {}) {
   if (!voiceSessionActive) return;
-  console.log("🎙️ Stopping oral round...");
+  console.log("◉ Stopping oral round...");
   voiceSessionActive = false;
 
   const btnOral = document.getElementById('btn-bench-oral');
@@ -1421,7 +1437,7 @@ export async function stopOralRound({ mark = true } = {}) {
         mootName: mootName,
         durationSeconds: duration
       }, idToken);
-      console.log("💾 Voice session metadata logged to secure backend.");
+      console.log("▣ Voice session metadata logged to secure backend.");
       showToast("Oral round saved to account.", "ok");
     } catch (err) {
       console.error("Failed to log voice session securely:", err);
@@ -1445,7 +1461,7 @@ async function requestOralReview(durationSeconds, transcript) {
   if (advocateTurns.length < 2 || advocateTurns.reduce((n, t) => n + t.content.length, 0) < 200) {
     appendBenchSystemNote('That round was too short to mark. Argue for a few exchanges and the bench will have something to assess.');
     roundMarked = true;           // nothing to lose by leaving now
-    setExitLabel('Leave Chambers');
+    setExitLabel('Exit Chambers');
     return;
   }
 
@@ -1470,7 +1486,7 @@ async function requestOralReview(durationSeconds, transcript) {
       if (data.performanceReview) {
         appendBenchPerformanceReview(data.performanceReview, 'voice');
         roundMarked = true;
-        setExitLabel('Leave Chambers');
+        setExitLabel('Exit Chambers');
       } else {
         throw new Error('The report came back empty.');
       }
@@ -1574,7 +1590,7 @@ export function appendTranscript(role, text, isChunk = false) {
 
     const crJudgeNameEl = document.getElementById('cr-judge-name');
     if (crJudgeNameEl) {
-      crJudgeNameEl.textContent = `⚖️ ${finalJudgeName.toUpperCase()}`;
+      crJudgeNameEl.textContent = `⚖︎ ${finalJudgeName.toUpperCase()}`;
     }
 
     div.className = 'bench-msg bench-msg-judge';
@@ -1739,9 +1755,9 @@ function safeStartRecognition() {
       console.error("[VOICE] Recognition error: Permission denied");
       updateBenchState('permission_denied');
       const statusEl = document.getElementById('cr-session-status');
-      if (statusEl) statusEl.textContent = '🔴 Permission Required';
+      if (statusEl) statusEl.textContent = '● Permission Required';
       const footerLabel = document.getElementById('cr-indicator-label');
-      if (footerLabel) footerLabel.textContent = '🔴 Permission Required';
+      if (footerLabel) footerLabel.textContent = '● Permission Required';
       updateDiagPermission('denied');
       stopSpeechRecognition();
     } else {
@@ -1780,7 +1796,7 @@ function startSpeechRecognition() {
 
   recognition.onstart = () => {
     isRecognizing = true;
-    console.log("🎙️ Local Speech Recognition active.");
+    console.log("◉ Local Speech Recognition active.");
     console.log("[VOICE] Recognition started");
     console.log('[MIC] Started');
     updateDiagActive(true);
@@ -1865,9 +1881,9 @@ function startSpeechRecognition() {
       updateDiagPermission('denied');
       updateBenchState('permission_denied');
       const statusEl = document.getElementById('cr-session-status');
-      if (statusEl) statusEl.textContent = '🔴 Permission Required';
+      if (statusEl) statusEl.textContent = '● Permission Required';
       const footerLabel = document.getElementById('cr-indicator-label');
-      if (footerLabel) footerLabel.textContent = '🔴 Permission Required';
+      if (footerLabel) footerLabel.textContent = '● Permission Required';
       stopSpeechRecognition();
       return;
     }

@@ -56,7 +56,7 @@ export function updateProfile(user, data) {
   return user.updateProfile(data);
 }
 
-let hasCheckedAuth = false;
+export let hasCheckedAuth = false;
 export let currentUser = null;
 const authListeners = [];
 

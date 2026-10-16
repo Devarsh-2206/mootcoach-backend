@@ -14,6 +14,17 @@ import { printMemorial } from './memorialPrint.js';
 // Argument Builder State
 export let selectedAuthorities = [];
 export let lastBuiltArgument = null;
+
+/** Models sometimes write HTML entities ("Equity &amp; Good Conscience") into
+ *  plain text. Decode them once, as the draft arrives, so every view — page,
+ *  copy, PDF — gets the real characters. */
+function decodeEntitiesDeep(v) {
+  if (typeof v === 'string') return v.replace(/&(amp|lt|gt|quot|#39|apos);/g, (m, e) => ({ amp: '&', lt: '<', gt: '>', quot: '"', '#39': "'", apos: "'" })[e]);
+  if (Array.isArray(v)) return v.map(decodeEntitiesDeep);
+  if (v && typeof v === 'object') { const o = {}; for (const k of Object.keys(v)) o[k] = decodeEntitiesDeep(v[k]); return o; }
+  return v;
+}
+
 export let builtArgumentSide = 'Petitioner';
 
 /**
@@ -49,10 +60,10 @@ window.restoreSelectedAuthorities = (list) => {
 };
 window.restoreBuiltArgument = (arg, side) => {
   if (!arg || typeof arg !== 'object') return;
-  lastBuiltArgument = arg;
+  lastBuiltArgument = decodeEntitiesDeep(arg);
   builtArgumentSide = /respondent/i.test(side || '') ? 'Respondent' : 'Petitioner';
   try {
-    renderIRAC(arg);
+    renderIRAC(lastBuiltArgument);
     document.getElementById('builder-empty-state')?.classList.add('hidden');
     document.getElementById('builder-loading-state')?.classList.add('hidden');
     document.getElementById('builder-output-state')?.classList.remove('hidden');
@@ -718,7 +729,7 @@ async function generateArgument() {
     const data = await buildArgument(stance, issue, notesToSend, currentPropositionContext);
     
     if (data.success && data.response) {
-      lastBuiltArgument = data.response;
+      lastBuiltArgument = decodeEntitiesDeep(data.response);
       builtArgumentSide = stance;
       // A new draft makes any prepared briefing stale.
       if (window.clearChambersBriefing) window.clearChambersBriefing();
@@ -739,7 +750,7 @@ async function generateArgument() {
       if (window.setBuilderButtonsState) {
         window.setBuilderButtonsState(false);
       }
-      renderIRAC(data.response);
+      renderIRAC(lastBuiltArgument);
       
       if (loadingState) loadingState.classList.add('hidden');
       if (outputState) outputState.classList.remove('hidden');
@@ -882,7 +893,7 @@ function renderIRAC(iracData) {
   if (iracData.citations && iracData.citations.weaklySupportedClaims && iracData.citations.weaklySupportedClaims.length > 0) {
     const weakClaim = iracData.citations.weaklySupportedClaims[0];
     dynamicStrength = "Structured legal contentions aligned with constitutional requirements.";
-    dynamicWeakness = `${weakClaim.claim}: ${weakClaim.suggestion}`;
+    dynamicWeakness = `${String(weakClaim.claim || '').trim().replace(/[.:;,\s]+$/, '')}: ${weakClaim.suggestion || ''}`;
   } else if (casesCount === 0) {
     dynamicWeakness = "No case law authorities detected. Add supporting precedent citations to enhance authority.";
   } else if (statutesCount === 0) {
@@ -954,6 +965,11 @@ function renderIRAC(iracData) {
 
   const strategicImprovement = iracData.citations?.weaklySupportedClaims?.[0]?.suggestion || "Trace proportionality prongs and buttress with additional binding precedents.";
 
+  // AI-derived text: escape, and tidy doubled punctuation the model leaves behind
+  const tidy = (v) => esc(String(v ?? '').replace(/([.!?]):(?=\s|$)/g, '$1').replace(/(?<!\.)\.\.(?!\.)/g, '.').replace(/\.(["”])\./g, '.$1'));
+  weakestPoint = tidy(weakestPoint); benchRisk = tidy(benchRisk); recommendedFix = tidy(recommendedFix);
+  const [sStrongest, sLeverage, sConcern, sMissing, sImprove] = [strongestArg, precedentLeverage, judicialConcern, missingAuth, strategicImprovement].map(tidy);
+
   outputState.innerHTML = `
 <div class="flex flex-col gap-5 w-full h-full font-sans">
   
@@ -968,16 +984,16 @@ function renderIRAC(iracData) {
     </div>
     <div class="flex flex-wrap gap-2" id="draft-quick-actions">
       <button id="btn-builder-copy" class="btn-sm btn-sm-ghost text-xs tracking-wider flex items-center gap-1.5 font-sans cursor-pointer" onclick="copyBuilderArgument()">
-        📋 Copy Draft
+        ❐ Copy Draft
       </button>
       <button class="btn-sm btn-sm-ghost text-xs tracking-wider flex items-center gap-1.5 font-sans cursor-pointer" onclick="exportAsPDF('memorial')">
-        📄 Export PDF
+        ▤ Export PDF
       </button>
       <button class="btn-sm btn-sm-ghost text-xs tracking-wider flex items-center gap-1.5 font-sans cursor-pointer" onclick="openAuxPanel('rebuttal', this)">
-        🛡️ Rebuttal
+        ◈ Rebuttal
       </button>
       <button class="btn-sm btn-sm-ghost text-xs tracking-wider flex items-center gap-1.5 font-sans cursor-pointer" onclick="openAuxPanel('citations', this)">
-        📖 Strengthen Citations
+        § Strengthen Citations
       </button>
     </div>
   </div>
@@ -1007,23 +1023,23 @@ function renderIRAC(iracData) {
     <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 text-xs pt-1">
       <div class="flex flex-col">
         <span class="text-[8px] text-white-muted uppercase tracking-widest font-sans font-semibold">Strongest Argument</span>
-        <span class="text-[#1C1710] mt-0.5 leading-relaxed font-sans">${strongestArg}</span>
+        <span class="text-[#1C1710] mt-0.5 leading-relaxed font-sans">${sStrongest}</span>
       </div>
       <div class="flex flex-col">
         <span class="text-[8px] text-white-muted uppercase tracking-widest font-sans font-semibold">Precedent Leverage</span>
-        <span class="text-[#1C1710] mt-0.5 leading-relaxed font-sans">${precedentLeverage}</span>
+        <span class="text-[#1C1710] mt-0.5 leading-relaxed font-sans">${sLeverage}</span>
       </div>
       <div class="flex flex-col">
         <span class="text-[8px] text-white-muted uppercase tracking-widest font-sans font-semibold">Judicial Concern</span>
-        <span class="text-[#1C1710] mt-0.5 leading-relaxed font-sans">${judicialConcern}</span>
+        <span class="text-[#1C1710] mt-0.5 leading-relaxed font-sans">${sConcern}</span>
       </div>
       <div class="flex flex-col">
         <span class="text-[8px] text-white-muted uppercase tracking-widest font-sans font-semibold">Missing Authorities</span>
-        <span class="text-[#1C1710] mt-0.5 leading-relaxed font-sans">${missingAuth}</span>
+        <span class="text-[#1C1710] mt-0.5 leading-relaxed font-sans">${sMissing}</span>
       </div>
       <div class="flex flex-col">
         <span class="text-[8px] text-white-muted uppercase tracking-widest font-sans font-semibold">Strategic Improvement</span>
-        <span class="text-[#1C1710] mt-0.5 leading-relaxed font-sans">${strategicImprovement}</span>
+        <span class="text-[#1C1710] mt-0.5 leading-relaxed font-sans">${sImprove}</span>
       </div>
       <div class="flex flex-col">
         <span class="text-[8px] text-white-muted uppercase tracking-widest font-sans font-semibold">Probability of Challenge</span>
@@ -1075,12 +1091,15 @@ function renderMemorial(memorialData) {
   const m = memorialData || {};
   const has = v => v !== undefined && v !== null && String(v).trim() !== '';
   const arr = v => Array.isArray(v) ? v : [];
+  // Models sometimes write HTML entities themselves ("Equity &amp; Good
+  // Conscience"); decode those first, or the page shows "&amp;" literally.
   const esc = v => String(v == null ? '' : v)
+    .replace(/&(amp|lt|gt|quot|#39|apos);/g, (m, e) => ({ amp: '&', lt: '<', gt: '>', quot: '"', '#39': "'", apos: "'" })[e])
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
   const H = (title, inner, accent) => `
       <div>
-        <h4 class="text-xs uppercase tracking-widest font-sans font-bold mb-2" style="color:${accent || '#2c3e50'}">${esc(title)}</h4>
+        <h4 class="text-xs uppercase tracking-widest font-sans font-bold mb-2" style="color:${accent || 'var(--ink)'}">${esc(title)}</h4>
         <div class="h-[1px] bg-[#dcdad5] w-full mb-4"></div>
         ${inner}
       </div>
@@ -1246,8 +1265,8 @@ function renderMemorial(memorialData) {
   if (!parts.length) {
     const four = [
       ['Issue', cleanSectionText(m.issue || '', 'issue'), '#B0392E'],
-      ['Rule', cleanSectionText(m.rule || '', 'rule'), '#2c3e50'],
-      ['Application', cleanSectionText(m.application || '', 'application'), '#2c3e50'],
+      ['Rule', cleanSectionText(m.rule || '', 'rule'), 'var(--ink)'],
+      ['Application', cleanSectionText(m.application || '', 'application'), 'var(--ink)'],
       ['Conclusion', cleanSectionText(m.conclusion || '', 'conclusion'), '#B0392E'],
     ];
     for (const [t, v, c] of four) {
@@ -1374,7 +1393,7 @@ export function copyBuilderArgument() {
       btn.textContent = '✓ Copied';
       btn.classList.add('copied');
       setTimeout(() => {
-        btn.textContent = '📋 Copy Draft';
+        btn.textContent = '❐ Copy Draft';
         btn.classList.remove('copied');
       }, 2000);
     }
@@ -1993,7 +2012,7 @@ export function copyMemorial() {
     if (btn) {
       btn.textContent = '✓ Copied';
       setTimeout(() => {
-        btn.textContent = '📋 Copy Memorial';
+        btn.textContent = '❐ Copy Memorial';
       }, 2000);
     }
     showToast("Memorial copied to clipboard!", "ok");
@@ -2012,11 +2031,11 @@ export function renderOralAdvocacySuite(container) {
 
   // Construct tab bar and contents
   const tabs = [
-    { id: 'speech', label: '🎙️ Speech' },
-    { id: 'submissions', label: '⚖️ Submissions' },
-    { id: 'qa', label: '❓ Q&A & Traps' },
-    { id: 'rebuttals', label: '🛡️ Rebuttals' },
-    { id: 'precedents', label: '📖 Precedents' }
+    { id: 'speech', label: '◉ Speech' },
+    { id: 'submissions', label: '⚖︎ Submissions' },
+    { id: 'qa', label: '? Q&A & Traps' },
+    { id: 'rebuttals', label: '◈ Rebuttals' },
+    { id: 'precedents', label: '§ Precedents' }
   ];
 
   const tabHeadersHTML = tabs.map(t => {
@@ -2293,7 +2312,7 @@ export function renderOralAdvocacySuite(container) {
         <!-- Card 1: Bench Opening -->
         <div class="p-5 bg-black/5 border border-black/10 rounded-xl backdrop-blur-md flex flex-col gap-4">
           <div class="flex items-center gap-2 border-b border-black/5 pb-2">
-            <span class="text-lg">🎙️</span>
+            <span class="text-lg">◉</span>
             <h4 class="text-xs uppercase tracking-wider text-moot-accent font-bold">1. Bench Opening (Ready to Speak)</h4>
           </div>
           
@@ -2316,7 +2335,7 @@ export function renderOralAdvocacySuite(container) {
         <!-- Card 2: Closing Prayer -->
         <div class="p-5 bg-black/5 border border-black/10 rounded-xl backdrop-blur-md flex flex-col gap-4">
           <div class="flex items-center gap-2 border-b border-black/5 pb-2">
-            <span class="text-lg">🎯</span>
+            <span class="text-lg">◎</span>
             <h4 class="text-xs uppercase tracking-wider text-moot-accent font-bold">2. Closing Prayer (Relief sought)</h4>
           </div>
           
@@ -2345,7 +2364,7 @@ export function renderOralAdvocacySuite(container) {
         <div class="p-5 bg-black/5 border border-black/10 rounded-xl backdrop-blur-md flex flex-col gap-3">
           <div class="flex justify-between items-center border-b border-black/5 pb-2 mb-1">
             <div class="flex items-center gap-2">
-              <span class="text-lg">⚖️</span>
+              <span class="text-lg">⚖︎</span>
               <h4 class="text-xs uppercase tracking-wider text-moot-accent font-bold">${esc(sub.title || `Submission ${idx + 1}`)}</h4>
             </div>
             <span class="px-2 py-0.5 text-[8px] font-sans font-bold bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 rounded uppercase tracking-wider">${idx === 0 ? 'Primary Ground' : 'Procedural Ground'}</span>
@@ -2384,7 +2403,7 @@ export function renderOralAdvocacySuite(container) {
         <!-- Section 1: Collapsible Questions -->
         <div class="flex flex-col gap-3">
           <div class="flex items-center gap-2 border-b border-black/5 pb-2">
-            <span class="text-lg">❓</span>
+            <span class="text-lg">?</span>
             <h4 class="text-xs uppercase tracking-wider text-moot-accent font-bold">1. Top likely judicial questions</h4>
           </div>
           
@@ -2406,7 +2425,7 @@ export function renderOralAdvocacySuite(container) {
         <!-- Section 2: Judicial Traps Warning Cards -->
         <div class="flex flex-col gap-3 mt-2">
           <div class="flex items-center gap-2 border-b border-black/5 pb-2">
-            <span class="text-lg">🔥</span>
+            <span class="text-lg">▲</span>
             <h4 class="text-xs uppercase tracking-wider text-red-400 font-bold">2. Judicial Traps & Escape Routes</h4>
           </div>
 
@@ -2432,12 +2451,12 @@ export function renderOralAdvocacySuite(container) {
         <!-- Section 3: Judge Attack Mode (Hostile Interventions) -->
         <div class="flex flex-col gap-3 mt-2">
           <div class="flex items-center gap-2 border-b border-black/5 pb-2">
-            <span class="text-lg">🚨</span>
+            <span class="text-lg">!</span>
             <h4 class="text-xs uppercase tracking-wider text-red-400 font-bold font-sans">3. Judge Attack Mode (Hostile Interventions)</h4>
           </div>
           
           <div class="p-3 bg-red-500/10 border border-red-500/20 rounded-xl mb-3 flex flex-col gap-1 font-sans">
-            <span class="text-[10px] font-bold text-red-400 uppercase tracking-widest font-sans">⚡ WARNING: Hostile Bench Simulation Active</span>
+            <span class="text-[10px] font-bold text-red-400 uppercase tracking-widest font-sans">↯ WARNING: Hostile Bench Simulation Active</span>
             <span class="text-[9px] text-white-muted leading-tight font-sans">Prepare for immediate interruption on the following prongs during oral arguments.</span>
           </div>
 
@@ -2466,7 +2485,7 @@ export function renderOralAdvocacySuite(container) {
     tabContentHTML = `
       <div class="flex flex-col gap-5 font-sans">
         <div class="flex items-center gap-2 border-b border-black/5 pb-2">
-          <span class="text-lg">🛡️</span>
+          <span class="text-lg">◈</span>
           <h4 class="text-xs uppercase tracking-wider text-moot-accent font-bold">Rebuttal War Room</h4>
         </div>
 
@@ -2476,7 +2495,7 @@ export function renderOralAdvocacySuite(container) {
               <!-- Opponent Argument Card -->
               <div class="flex flex-col gap-2 border-r border-black/5 pr-3 font-sans">
                 <div class="flex items-center gap-1.5 text-[9px] uppercase tracking-widest text-red-400 font-bold font-sans">
-                  <span>❌</span> Opponent Argument ${idx + 1}
+                  <span>✕</span> Opponent Argument ${idx + 1}
                 </div>
                 <p class="text-xs text-[#4a4030] leading-relaxed font-serif italic">
                   "${esc(item.opponent)}"
@@ -2486,7 +2505,7 @@ export function renderOralAdvocacySuite(container) {
               <!-- Your Rebuttal Card -->
               <div class="flex flex-col gap-2 pl-2">
                 <div class="flex items-center gap-1.5 text-[9px] uppercase tracking-widest text-emerald-400 font-bold font-sans">
-                  <span>✔</span> Demolition Rebuttal Strategy
+                  <span>✓</span> Demolition Rebuttal Strategy
                 </div>
                 <p class="text-xs text-[#1C1710]/95 leading-relaxed font-sans">
                   ${esc(item.rebuttal)}
@@ -2501,7 +2520,7 @@ export function renderOralAdvocacySuite(container) {
     tabContentHTML = `
       <div class="flex flex-col gap-5 font-sans">
         <div class="flex items-center gap-2 border-b border-black/5 pb-2">
-          <span class="text-lg">📖</span>
+          <span class="text-lg">§</span>
           <h4 class="text-xs uppercase tracking-wider text-moot-accent font-bold font-sans">Authorities Snapshot</h4>
         </div>
 
@@ -2515,7 +2534,7 @@ export function renderOralAdvocacySuite(container) {
                 class="px-3 py-1.5 rounded-full text-xs font-medium border border-black/10 hover:border-moot-accent hover:text-[#1C1710] bg-black/5 text-[#4a4030] transition-all cursor-pointer font-sans"
                 onclick="togglePrecedentCard(${idx})"
               >
-                ⚖️ ${esc(p.name)}
+                ⚖︎ ${esc(p.name)}
               </button>
             `).join('')}
           </div>
@@ -2661,7 +2680,7 @@ function copyPanelContent() {
     if (btn) {
       btn.textContent = '✓ Copied';
       setTimeout(() => {
-        btn.textContent = '📋 Copy Content';
+        btn.textContent = '❐ Copy Content';
       }, 2000);
     }
     showToast("Content copied to clipboard!", "ok");
@@ -2683,7 +2702,7 @@ function getUpgradedOralNotes(oralAdvocacy, stance, issue) {
       <div class="flex flex-col gap-5">
         <div class="p-4 bg-black/5 border border-black/10 rounded-xl">
           <h4 class="text-xs uppercase tracking-wider text-moot-accent font-semibold mb-2 flex items-center gap-1.5 font-sans">
-            <span>🎙️</span> 1. Bench Opening (Ready to Speak)
+            <span>◉</span> 1. Bench Opening (Ready to Speak)
           </h4>
           <p class="text-xs text-white-muted italic font-serif leading-relaxed bg-black/20 p-3 rounded-lg border-l-2 ${borderCls}">
             ${openingSpeech}
@@ -2715,7 +2734,7 @@ function getUpgradedOralNotes(oralAdvocacy, stance, issue) {
 
   const precedentsHTML = (oralAdvocacy.precedents || []).map(p => `
     <div class="p-3 bg-black/[0.03] border border-black/5 rounded-lg text-xs font-sans mb-2">
-      <strong class="text-[#1C1710] block mb-1">⚖️ ${esc(p.name)} (${esc(p.bench || 'Constitutional Bench')})</strong>
+      <strong class="text-[#1C1710] block mb-1">⚖︎ ${esc(p.name)} (${esc(p.bench || 'Constitutional Bench')})</strong>
       <div class="text-white-muted mt-1"><span class="text-[#B0392E] font-semibold uppercase text-[9px] tracking-wider font-sans">Ratio:</span> ${esc(p.ratio)}</div>
       <div class="text-white-muted mt-1"><span class="text-[#4caf82] font-semibold uppercase text-[9px] tracking-wider font-sans">Application:</span> ${esc(p.strategicValue || p.why)}</div>
       <div class="text-white-muted mt-1"><span class="text-[#B0392E] font-semibold uppercase text-[9px] tracking-wider font-sans">Usage:</span> <span class="italic font-serif">"${esc(p.usage)}"</span></div>
@@ -2724,7 +2743,7 @@ function getUpgradedOralNotes(oralAdvocacy, stance, issue) {
 
   const trapsHTML = (oralAdvocacy.traps || []).map(trap => `
     <div class="p-3 bg-red-950/10 border border-red-900/20 rounded-lg text-xs leading-relaxed text-[#4a4030] font-sans mb-2">
-      <strong class="text-red-400 block mb-1">⚠️ ${esc(trap.title || 'Judicial Trap')}</strong>
+      <strong class="text-red-400 block mb-1">△ ${esc(trap.title || 'Judicial Trap')}</strong>
       <span class="block text-gray-400 mb-1"><strong>Danger:</strong> ${esc(trap.description)}</span>
       <span class="block mt-2 italic text-[#4a4030] font-serif">Escape Route: "${esc(trap.escapeResponse)}"</span>
     </div>
@@ -2734,7 +2753,7 @@ function getUpgradedOralNotes(oralAdvocacy, stance, issue) {
     <div class="flex flex-col gap-5">
       <div class="p-4 bg-black/5 border border-black/10 rounded-xl">
         <h4 class="text-xs uppercase tracking-wider text-moot-accent font-semibold mb-2 flex items-center gap-1.5 font-sans">
-          <span>🎙️</span> 1. Bench Opening (Ready to Speak)
+          <span>◉</span> 1. Bench Opening (Ready to Speak)
         </h4>
         <p class="text-xs text-white-muted italic font-serif leading-relaxed bg-black/20 p-3 rounded-lg border-l-2 ${borderCls}">
           "${esc(openingSpeech)}"
@@ -2743,7 +2762,7 @@ function getUpgradedOralNotes(oralAdvocacy, stance, issue) {
 
       <div class="p-4 bg-black/5 border border-black/10 rounded-xl">
         <h4 class="text-xs uppercase tracking-wider text-moot-accent font-semibold mb-3 flex items-center gap-1.5 font-sans">
-          <span>⚖️</span> 2. Core Submissions (Oral Flow)
+          <span>⚖︎</span> 2. Core Submissions (Oral Flow)
         </h4>
         <div class="space-y-3 text-xs leading-relaxed text-[#4a4030] font-sans">
           ${submissionsHTML}
@@ -2752,7 +2771,7 @@ function getUpgradedOralNotes(oralAdvocacy, stance, issue) {
 
       <div class="p-4 bg-black/5 border border-black/10 rounded-xl">
         <h4 class="text-xs uppercase tracking-wider text-moot-accent font-semibold mb-3 flex items-center gap-1.5 font-sans">
-          <span>❓</span> 3. Likely Bench Questions & Answers
+          <span>?</span> 3. Likely Bench Questions & Answers
         </h4>
         <div class="space-y-2 text-xs font-sans">
           ${qaHTML}
@@ -2761,7 +2780,7 @@ function getUpgradedOralNotes(oralAdvocacy, stance, issue) {
 
       <div class="p-4 bg-black/5 border border-black/10 rounded-xl">
         <h4 class="text-xs uppercase tracking-wider text-moot-accent font-semibold mb-3 flex items-center gap-1.5 font-sans">
-          <span>📖</span> 4. Key Precedent Ratios (Memorizer)
+          <span>§</span> 4. Key Precedent Ratios (Memorizer)
         </h4>
         <div class="space-y-3">
           ${precedentsHTML}
@@ -2770,12 +2789,12 @@ function getUpgradedOralNotes(oralAdvocacy, stance, issue) {
 
       <div class="p-4 bg-black/5 border border-black/10 rounded-xl">
         <h4 class="text-xs uppercase tracking-wider text-moot-accent font-semibold mb-3 flex items-center gap-1.5 font-sans">
-          <span>🔥</span> 5. Judicial Traps & 30-Second Rescue
+          <span>▲</span> 5. Judicial Traps & 30-Second Rescue
         </h4>
         <div class="space-y-3 text-xs leading-relaxed text-[#4a4030] font-sans">
           ${trapsHTML}
           <div class="p-3 bg-indigo-950/10 border border-indigo-900/20 rounded-lg">
-            <strong class="text-indigo-400 block mb-1">⏱️ Closing Prayer</strong>
+            <strong class="text-indigo-400 block mb-1">◷ Closing Prayer</strong>
             <span>${esc(closingPrayer)}</span>
           </div>
         </div>
@@ -2793,7 +2812,7 @@ function getUpgradedRebuttals(rebuttalsData, stance) {
       <div class="flex flex-col gap-5 font-sans">
         <div class="p-4 bg-black/5 border border-black/10 rounded-xl font-sans">
           <h4 class="text-xs uppercase tracking-wider text-red-400 font-semibold mb-3 flex items-center gap-1.5 font-sans">
-            <span>⚔️</span> Strongest Opposition Arguments
+            <span>⚔︎</span> Strongest Opposition Arguments
           </h4>
           <ul class="space-y-2 text-xs text-[#4a4030] leading-relaxed list-disc pl-4 font-sans">
             <li><strong>Discretionary Privilege:</strong> The State claims administrative policies enjoy a wide latitude of immunity.</li>
@@ -2823,7 +2842,7 @@ function getUpgradedRebuttals(rebuttalsData, stance) {
     <div class="flex flex-col gap-5 font-sans">
       <div class="p-4 bg-black/5 border border-black/10 rounded-xl font-sans">
         <h4 class="text-xs uppercase tracking-wider text-red-400 font-semibold mb-3 flex items-center gap-1.5 font-sans">
-          <span>⚔️</span> Strongest Opposition Arguments
+          <span>⚔︎</span> Strongest Opposition Arguments
         </h4>
         <ul class="space-y-2 text-xs text-[#4a4030] leading-relaxed list-disc pl-4 font-sans">
           ${oppHTML || '<li class="italic text-gray-500">No opposition arguments identified.</li>'}
@@ -2832,7 +2851,7 @@ function getUpgradedRebuttals(rebuttalsData, stance) {
 
       <div class="p-4 bg-black/5 border border-black/10 rounded-xl font-sans">
         <h4 class="text-xs uppercase tracking-wider text-emerald-400 font-semibold mb-3 flex items-center gap-1.5 font-sans">
-          <span>🛡️</span> Response Strategy & Demolition
+          <span>◈</span> Response Strategy & Demolition
         </h4>
         <div class="space-y-3 text-xs leading-relaxed text-[#4a4030] font-sans">
           ${demoHTML || '<p class="italic text-gray-500">No demolition strategy prepared.</p>'}
@@ -2841,7 +2860,7 @@ function getUpgradedRebuttals(rebuttalsData, stance) {
 
       <div class="p-4 bg-black/5 border border-black/10 rounded-xl font-sans">
         <h4 class="text-xs uppercase tracking-wider text-[#B0392E] font-semibold mb-3 flex items-center gap-1.5 font-sans">
-          <span>🎯</span> Bench Follow-Up Questions
+          <span>◎</span> Bench Follow-Up Questions
         </h4>
         <div class="space-y-3 text-xs text-[#4a4030] font-sans">
           ${followHTML || '<p class="italic text-gray-500">No follow-up questions prepared.</p>'}
@@ -2850,7 +2869,7 @@ function getUpgradedRebuttals(rebuttalsData, stance) {
 
       <div class="p-4 bg-black/5 border border-black/10 rounded-xl font-sans">
         <h4 class="text-xs uppercase tracking-wider text-indigo-400 font-semibold mb-2 flex items-center gap-1.5 font-sans">
-          <span>⚠️</span> Fallback Position (Plan B)
+          <span>△</span> Fallback Position (Plan B)
         </h4>
         <p class="text-xs text-[#4a4030] leading-relaxed bg-black/20 p-3 rounded-lg border-l-2 border-indigo-500/30 font-serif italic">
           "${esc(planB)}"
@@ -2859,7 +2878,7 @@ function getUpgradedRebuttals(rebuttalsData, stance) {
 
       <div class="p-4 bg-black/5 border border-black/10 rounded-xl bg-red-950/10 border-red-900/30 font-sans">
         <h4 class="text-xs uppercase tracking-wider text-red-400 font-semibold mb-2 flex items-center gap-1.5 font-sans">
-          <span>🚨</span> Emergency Rescue Arguments
+          <span>!</span> Emergency Rescue Arguments
         </h4>
         <p class="text-xs text-[#4a4030] leading-relaxed font-serif italic">
           "${esc(emergencyRescue)}"
@@ -2910,7 +2929,7 @@ function getUpgradedCitations(citationsData, notes) {
     const scoreGainText = `+${sg.authorityStrength || 0} Authority Strength, +${sg.constitutionalDepth || 0} Constitutional Depth, +${sg.benchResistance || 0} Bench Resistance | Potential Gain: +${sg.potentialScoreGain || 0}`;
     return `
       <div class="p-3 bg-black/[0.03] border border-black/5 rounded-lg mb-2 text-left">
-        <strong class="text-red-400 block mb-1">⚖️ ${esc(auth.name)}</strong>
+        <strong class="text-red-400 block mb-1">⚖︎ ${esc(auth.name)}</strong>
         <div class="text-xs text-[#4a4030]"><strong>Why Needed:</strong> ${esc(auth.whyNeeded)}</div>
         <div class="text-xs text-[#4a4030] mt-1"><strong>Strategic Impact:</strong> ${esc(auth.expectedStrategicImpact)}</div>
         <div class="text-[10px] text-moot-accent mt-1 uppercase font-semibold">${esc(scoreGainText)}</div>
@@ -2920,7 +2939,7 @@ function getUpgradedCitations(citationsData, notes) {
 
   const constBenchHTML = (citationsData.constitutionalBenchAuthorities || []).map(p => `
     <div class="p-3 bg-black/[0.03] border border-black/5 rounded-lg mb-2 text-left">
-      <strong class="text-[#1C1710] block mb-1">⚖️ ${esc(p.name)} (${esc(p.bench || 'Constitutional Bench')})</strong>
+      <strong class="text-[#1C1710] block mb-1">⚖︎ ${esc(p.name)} (${esc(p.bench || 'Constitutional Bench')})</strong>
       <div class="text-xs text-[#4a4030]"><strong>Ratio Decidendi:</strong> ${esc(p.ratio)}</div>
       <div class="text-xs text-[#4a4030] mt-1"><strong>Strategic Value:</strong> ${esc(p.strategicValue)}</div>
       <div class="text-xs text-[#1C1710] italic mt-1">Usage: "${esc(p.usage)}"</div>
@@ -2949,7 +2968,7 @@ function getUpgradedCitations(citationsData, notes) {
 
       <div class="p-4 bg-black/5 border border-black/10 rounded-xl font-sans">
         <h4 class="text-xs uppercase tracking-wider text-red-400 font-semibold mb-3 flex items-center gap-1.5 font-sans">
-          <span>❌</span> Missing Authorities
+          <span>✕</span> Missing Authorities
         </h4>
         <div class="space-y-2 text-xs text-[#4a4030] font-sans">
           ${missingHTML || '<p class="italic text-gray-500">No missing authorities identified.</p>'}
@@ -2958,7 +2977,7 @@ function getUpgradedCitations(citationsData, notes) {
 
       <div class="p-4 bg-black/5 border border-black/10 rounded-xl font-sans">
         <h4 class="text-xs uppercase tracking-wider text-[#B0392E] font-semibold mb-3 flex items-center gap-1.5 font-sans">
-          <span>🏛️</span> Constitutional Bench Authorities
+          <span>§</span> Constitutional Bench Authorities
         </h4>
         <div class="space-y-2 text-xs text-[#4a4030] font-sans">
           ${constBenchHTML || '<p class="italic text-gray-500">No constitutional bench authorities suggested.</p>'}
@@ -2967,7 +2986,7 @@ function getUpgradedCitations(citationsData, notes) {
 
       <div class="p-4 bg-black/5 border border-black/10 rounded-xl font-sans">
         <h4 class="text-xs uppercase tracking-wider text-indigo-400 font-semibold mb-3 flex items-center gap-1.5 font-sans">
-          <span>💡</span> Strategic Citations
+          <span>✦</span> Strategic Citations
         </h4>
         <div class="space-y-2 text-xs text-[#4a4030] font-sans">
           ${strategicHTML || '<p class="italic text-gray-500">No strategic citations suggested.</p>'}
@@ -2976,7 +2995,7 @@ function getUpgradedCitations(citationsData, notes) {
 
       <div class="p-4 bg-black/5 border border-black/10 rounded-xl bg-amber-950/10 border-amber-900/30 font-sans">
         <h4 class="text-xs uppercase tracking-wider text-[#B0392E] font-semibold mb-3 flex items-center gap-1.5 font-sans">
-          <span>⚠️</span> Weakly Supported Claims
+          <span>△</span> Weakly Supported Claims
         </h4>
         <div class="space-y-2 text-xs text-[#4a4030] font-sans text-left">
           ${weaklyHTML || '<p class="italic text-gray-500">No weakly supported claims identified.</p>'}
@@ -3210,15 +3229,17 @@ export function renderPreDraftAuthorities() {
 
   container.innerHTML = authorities.map((auth) => {
     const isSelected = selectedAuthorities.some(a => a.name === auth.name);
+    const hypothetical = isHypotheticalAuthority(auth.display || auth.name);
 
     return `
-      <div class="authority-arsenal-card bg-black/[0.03] border border-black/10 rounded-xl p-4 flex flex-col gap-3 transition-all hover:border-moot-accent/30 relative">
-        <div class="flex justify-between items-start gap-2">
-          <div>
+      <div class="authority-arsenal-card bg-black/[0.03] border border-black/10 rounded-xl p-4 flex flex-col gap-3 transition-all hover:border-moot-accent/30 relative min-w-0">
+        <div class="flex justify-between items-start gap-2 min-w-0">
+          <div class="min-w-0 flex-1">
             <span class="text-[9px] uppercase tracking-wider px-2 py-0.5 rounded bg-moot-accent/10 text-moot-accent border border-moot-accent/20 font-sans font-semibold">${esc(auth.section || 'Constitutional Law')}</span>
-            <h4 class="text-xs font-semibold text-[#1C1710] mt-1.5 leading-snug font-sans">${esc(auth.display || auth.name)}</h4>
+            ${hypothetical ? `<span class="text-[9px] uppercase tracking-wider px-2 py-0.5 rounded border border-dashed border-black/25 text-white-muted font-sans font-semibold ml-1" title="Not a reported case. It stands for an argument the proposition supports; find a real authority before you cite it.">Hypothetical · verify</span>` : ''}
+            <h4 class="text-xs font-semibold text-[#1C1710] mt-1.5 leading-snug font-sans" style="overflow-wrap:anywhere;">${esc(auth.display || auth.name)}</h4>
           </div>
-          <button type="button" aria-pressed="${isSelected}" title="${isSelected ? 'Included in the draft and given to the bench. Click to remove.' : 'Include this authority in the draft and the simulator.'}" onclick="window.toggleAuthority('${auth.name.replace(/'/g, "\\'")}', '${auth.ratio.replace(/'/g, "\\'")}')" class="btn-weapon-toggle text-[10px] font-bold uppercase tracking-wider py-1 px-2.5 rounded border transition-all ${
+          <button type="button" aria-pressed="${isSelected}" title="${isSelected ? 'Included in the draft and given to the bench. Click to remove.' : 'Include this authority in the draft and the simulator.'}" onclick="window.toggleAuthority('${auth.name.replace(/'/g, "\\'")}', '${auth.ratio.replace(/'/g, "\\'")}')" class="btn-weapon-toggle shrink-0 whitespace-nowrap text-[10px] font-bold uppercase tracking-wider py-1 px-2.5 rounded border transition-all ${
             isSelected ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-black/5 border border-black/10 text-white-muted hover:text-[#1C1710] hover:bg-black/10'
           }">
             ${isSelected ? '✓ In draft' : '+ Add to draft'}
@@ -3229,16 +3250,23 @@ export function renderPreDraftAuthorities() {
           ${esc(auth.whyItMatters || auth.ratio.substring(0, 120) + '...')}
         </p>
         
-        <div class="flex gap-2 pt-2 border-t border-black/5">
-          <button type="button" onclick="window.openAuthorityModal('${auth.name.replace(/'/g, "\\'")}', 'ratio')" class="text-[10px] font-medium text-moot-accent hover:underline bg-transparent border-none cursor-pointer p-0 flex items-center gap-1">👁️ Ratio</button>
+        <div class="armory-actions flex flex-wrap pt-2 border-t border-black/5" style="column-gap:8px;row-gap:4px;">
+          <button type="button" onclick="window.openAuthorityModal('${auth.name.replace(/'/g, "\\'")}', 'ratio')" class="text-[10px] font-medium text-moot-accent hover:underline bg-transparent border-none cursor-pointer p-0 flex items-center gap-1">◉ Ratio</button>
           <span class="text-[#1C1710]/20 text-[10px]">•</span>
-          <button type="button" onclick="window.openAuthorityModal('${auth.name.replace(/'/g, "\\'")}', 'usage')" class="text-[10px] font-medium text-moot-accent hover:underline bg-transparent border-none cursor-pointer p-0 flex items-center gap-1">💡 How To Use</button>
+          <button type="button" onclick="window.openAuthorityModal('${auth.name.replace(/'/g, "\\'")}', 'usage')" class="text-[10px] font-medium text-moot-accent hover:underline bg-transparent border-none cursor-pointer p-0 flex items-center gap-1">✦ How To Use</button>
           <span class="text-[#1C1710]/20 text-[10px]">•</span>
-          <button type="button" onclick="window.openAuthorityModal('${auth.name.replace(/'/g, "\\'")}', 'courtroom')" class="text-[10px] font-medium text-moot-accent hover:underline bg-transparent border-none cursor-pointer p-0 flex items-center gap-1">🗣️ Courtroom Usage</button>
+          <button type="button" onclick="window.openAuthorityModal('${auth.name.replace(/'/g, "\\'")}', 'courtroom')" class="text-[10px] font-medium text-moot-accent hover:underline bg-transparent border-none cursor-pointer p-0 flex items-center gap-1">❝ Courtroom Usage</button>
         </div>
       </div>
     `;
   }).join('');
+}
+
+// Analyses sometimes name a placeholder ("Cero Constitutional Court,
+// (Hypothetical Case on Article 9 Interpretation)") where no real authority
+// was found. Show it as such, never as a citable case.
+export function isHypotheticalAuthority(name) {
+  return /\bhypothetical\b|\billustrative\b|\bplaceholder\b|\bfictional\b|\[case name\]|\bX v\.? Y\b/i.test(String(name || ''));
 }
 
 export function renderStage3Workspace() {
@@ -3250,9 +3278,9 @@ export function renderStage3Workspace() {
   if (sideBadge) {
     sideBadge.textContent = stance.toUpperCase();
     if (stance.toLowerCase() === 'petitioner') {
-      sideBadge.className = 'text-xs font-semibold tracking-widest text-center py-2 px-3 rounded-md border bg-indigo-500/10 border-indigo-500 text-indigo-400';
+      sideBadge.className = 'text-xs font-semibold tracking-widest text-center py-2 px-3 rounded-md border bg-black/[0.04] border-black/20 text-[#1C1710]';
     } else {
-      sideBadge.className = 'text-xs font-semibold tracking-widest text-center py-2 px-3 rounded-md border bg-rose-500/10 border-rose-500 text-rose-400';
+      sideBadge.className = 'text-xs font-semibold tracking-widest text-center py-2 px-3 rounded-md border bg-moot-accent/10 border-moot-accent/40 text-moot-accent';
     }
   }
 
@@ -3762,7 +3790,7 @@ window.generateAdvocacyDraft = async function() {
       // lastBuiltArgument, so merge the memorial in and leave the rest of that
       // object exactly as the main Build left it. (Export also reads the cover
       // page from here.)
-      lastBuiltArgument = Object.assign({}, lastBuiltArgument, { memorial: m });
+      lastBuiltArgument = Object.assign({}, lastBuiltArgument, { memorial: decodeEntitiesDeep(m) });
       if (window.saveMootProgress) window.saveMootProgress();
 
       const st = data.stats || {};
@@ -3874,7 +3902,7 @@ function getImprovementPathwayHTML(notes, casesCount, statutesCount, scoring, fi
   return `
     <div class="p-4 bg-black/5 border border-black/10 rounded-xl flex flex-col gap-3 font-sans md:col-span-2">
       <div class="flex justify-between items-center border-b border-black/5 pb-2">
-        <span class="text-xs uppercase tracking-wider text-white-2 font-semibold font-sans">📈 Appellate Improvement Pathway</span>
+        <span class="text-xs uppercase tracking-wider text-white-2 font-semibold font-sans">↗ Appellate Improvement Pathway</span>
         <span class="text-[10px] font-bold text-moot-accent uppercase tracking-widest font-sans">Progress to Elite Status</span>
       </div>
 
@@ -3908,7 +3936,7 @@ function getImprovementPathwayHTML(notes, casesCount, statutesCount, scoring, fi
             const badgeCls = item.met 
               ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' 
               : 'bg-red-500/10 text-red-400 border border-red-500/20';
-            const icon = item.met ? '✔' : '⚠';
+            const icon = item.met ? '✓' : '△';
             return `
               <div class="p-2.5 rounded border ${badgeCls} flex flex-col gap-0.5 font-sans">
                 <span class="text-[10px] font-semibold flex items-center gap-1 font-sans">
@@ -4058,8 +4086,9 @@ export async function openAuthorityModal(caseName, initialTab = 'ratio') {
         notes: notes
       } }).catch(() => ({}));
     if (data.success && data.response) {
-      currentModalDetails = data.response;
-      currentModalDetails.isAiGenerated = true;
+      // Keep the local card underneath, so any field the AI leaves out still
+      // shows real text instead of "undefined".
+      currentModalDetails = Object.assign(getDetailedAuthorityDetails(auth), data.response, { isAiGenerated: true });
     } else {
       currentModalDetails = getDetailedAuthorityDetails(auth);
     }
@@ -4101,35 +4130,48 @@ export function switchAuthModalTab(tab, skipRender = false) {
   const contentEl = document.getElementById('auth-modal-tab-content');
   if (contentEl && currentModalDetails) {
     let html = '';
-    const isAi = currentModalDetails.isAiGenerated;
+    // Each tab reads the AI field first, then the local card's field; neither
+    // ever renders as "undefined", and model text is escaped.
+    const d = currentModalDetails;
+    const escA = v => String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    const pick = (...keys) => { for (const k of keys) { const v = d[k]; if (typeof v === 'string' && v.trim() && v.trim() !== 'undefined') return escA(v.trim()); } return 'Not available for this authority yet.'; };
+    const isAi = false;   // fields are merged above; pick() chooses per field
+    const PICK = {
+      ratioDecidendi: pick('ratioDecidendi', 'ratio'), ratio: pick('ratioDecidendi', 'ratio'),
+      selectionRationale: pick('selectionRationale', 'relatedIssues'), relatedIssues: pick('selectionRationale', 'relatedIssues'),
+      usageStrategy: pick('usageStrategy', 'application'), application: pick('usageStrategy', 'application'),
+      courtroomUsageExample: pick('courtroomUsageExample', 'courtroomUsage'), courtroomUsage: pick('courtroomUsageExample', 'courtroomUsage'),
+      opponentAttack: pick('opponentAttack', 'counterarguments'), counterarguments: pick('opponentAttack', 'counterarguments'),
+      distinguishingStrategy: pick('distinguishingStrategy', 'practicalStrategy'), practicalStrategy: pick('distinguishingStrategy', 'practicalStrategy'),
+    };
 
     switch(tab) {
       case 'ratio':
-        html = `<div><strong class="text-moot-accent tracking-wider uppercase text-[10px]">Ratio Decidendi:</strong><p class="mt-2 text-white-2 font-serif italic leading-relaxed text-sm bg-black/20 p-3 rounded-lg border-l-2 border-moot-accent/50">"${isAi ? currentModalDetails.ratioDecidendi : currentModalDetails.ratio}"</p></div>`;
+        html = `<div><strong class="text-moot-accent tracking-wider uppercase text-[10px]">Ratio Decidendi:</strong><p class="mt-2 text-white-2 font-serif italic leading-relaxed text-sm bg-black/20 p-3 rounded-lg border-l-2 border-moot-accent/50">"${PICK.ratioDecidendi}"</p></div>`;
         break;
       case 'rationale':
-        const rationaleText = isAi ? currentModalDetails.selectionRationale : currentModalDetails.relatedIssues;
+        const rationaleText = PICK.selectionRationale;
         html = `<div><strong class="text-indigo-400 tracking-wider uppercase text-[10px]">Why MootCoach Selected This:</strong><p class="mt-2 text-white-muted leading-relaxed">${rationaleText}</p></div>`;
         break;
       case 'usage':
-        const usageText = isAi ? currentModalDetails.usageStrategy : currentModalDetails.application;
+        const usageText = PICK.usageStrategy;
         html = `<div><strong class="text-emerald-400 tracking-wider uppercase text-[10px]">How It Supports Your Side:</strong><p class="mt-2 text-white-muted leading-relaxed">${usageText}</p></div>`;
         break;
       case 'courtroom':
-        const courtroomText = isAi ? currentModalDetails.courtroomUsageExample : currentModalDetails.courtroomUsage;
+        const courtroomText = PICK.courtroomUsageExample;
         html = `<div><strong class="text-moot-accent tracking-wider uppercase text-[10px]">Courtroom Usage Example:</strong><p class="mt-3 text-white-2 font-serif italic bg-black/30 p-4 rounded-xl border border-black/5 border-l-2 border-l-moot-accent shadow-inner text-sm leading-relaxed">"${courtroomText}"</p></div>`;
         break;
       case 'counter':
-        const counterText = isAi ? currentModalDetails.opponentAttack : currentModalDetails.counterarguments;
+        const counterText = PICK.opponentAttack;
         html = `<div><strong class="text-red-400 tracking-wider uppercase text-[10px]">Likely Opponent Attack:</strong><p class="mt-2 text-white-muted leading-relaxed">${counterText}</p></div>`;
         break;
       case 'strategy':
-        const strategyText = isAi ? currentModalDetails.distinguishingStrategy : currentModalDetails.practicalStrategy;
+        const strategyText = PICK.distinguishingStrategy;
         html = `<div><strong class="text-amber-400 tracking-wider uppercase text-[10px]">Distinguishing Strategy / Chamber Notes:</strong><p class="mt-2 text-white-muted leading-relaxed">${strategyText}</p></div>`;
         break;
       case 'bench':
-        if (isAi && currentModalDetails.benchQuestion) {
-          html = `<div><strong class="text-red-500 tracking-wider uppercase text-[10px]">Bench Trap (Judge Question):</strong><p class="mt-3 text-red-200 font-serif italic bg-red-950/20 p-4 rounded-xl border border-red-900/30 text-sm leading-relaxed">"${currentModalDetails.benchQuestion}"</p></div>`;
+        if (typeof d.benchQuestion === 'string' && d.benchQuestion.trim()) {
+          html = `<div><strong class="text-red-500 tracking-wider uppercase text-[10px]">Bench Trap (Judge Question):</strong><p class="mt-3 text-red-200 font-serif italic bg-red-950/20 p-4 rounded-xl border border-red-900/30 text-sm leading-relaxed">"${escA(d.benchQuestion.trim())}"</p></div>`;
         } else {
           html = `<div><strong class="text-white-muted tracking-wider uppercase text-[10px]">Bench Trap:</strong><p class="mt-2 text-white-muted italic leading-relaxed">No specific bench trap generated for this authority.</p></div>`;
         }

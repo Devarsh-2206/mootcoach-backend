@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const { getChatCompletion } = require("../services/geminiService");
-const AUTHORITY_INTELLIGENCE_PROMPT = require("../prompts/authorityIntelligencePrompt");
+const AUTHORITY_CARD_PROMPT = require("../prompts/authorityCardPrompt");
 
 // We need the extractAndParseJSON utility. It's currently in server.js.
 // Since it's in server.js and not exported, we should probably just duplicate the robust logic or require a util file.
@@ -49,7 +49,7 @@ ${notes || 'None'}
   try {
     const aiCall = await getChatCompletion({
       messages: [
-        { role: "system", content: AUTHORITY_INTELLIGENCE_PROMPT },
+        { role: "system", content: AUTHORITY_CARD_PROMPT },
         { role: "user", content: userPrompt }
       ],
       temperature: 0.2,
@@ -59,7 +59,11 @@ ${notes || 'None'}
     });
 
     const parsedData = extractAndParseJSON(aiCall.text);
-    return res.json({ success: true, response: parsedData });
+    const FIELDS = ['ratioDecidendi', 'selectionRationale', 'usageStrategy', 'courtroomUsageExample', 'opponentAttack', 'distinguishingStrategy', 'benchQuestion'];
+    const card = {};
+    for (const f of FIELDS) if (typeof parsedData[f] === 'string' && parsedData[f].trim()) card[f] = parsedData[f].trim();
+    if (!Object.keys(card).length) throw new Error('Authority card came back without any of its fields');
+    return res.json({ success: true, response: card });
   } catch (error) {
     console.error("Authority Intelligence route error:", error);
     return res.status(500).json({ success: false, error: "Failed to generate advocacy card." });

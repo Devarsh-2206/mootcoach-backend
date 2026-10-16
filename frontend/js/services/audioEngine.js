@@ -204,7 +204,7 @@ function setupWebSocketHandlers(callbacks, onOpenCallback = null) {
   const { onStatusChange, onAudio, onText, onInterrupted, onTurnComplete, onPlaybackComplete, onError, onClose } = callbacks;
 
   voiceWebSocket.onopen = () => {
-    console.log("🎙️ Voice WebSocket opened.");
+    console.log("◉ Voice WebSocket opened.");
     console.log('[RECOVERY] WebSocket onopen fired');
     console.log(`[RECOVERY] voiceAudioContext state is: ${voiceAudioContext ? voiceAudioContext.state : 'null'}`);
     if (voiceAudioContext && voiceAudioContext.state === 'suspended') {
@@ -226,7 +226,7 @@ function setupWebSocketHandlers(callbacks, onOpenCallback = null) {
     if (heartbeatInterval) clearInterval(heartbeatInterval);
     heartbeatInterval = setInterval(() => {
       if (voiceWebSocket && voiceWebSocket.readyState === WebSocket.OPEN) {
-        console.log("💓 Heartbeat ping");
+        console.log("• Heartbeat ping");
         voiceWebSocket.send(JSON.stringify({ type: "ping" }));
       }
     }, 5000);
@@ -304,7 +304,7 @@ Begin the hearing with one opening question tailored to this issue and stance. K
           if (onText) onText(msg.text);
         }
       } else if (msg.type === 'interrupted') {
-        console.log("⚡ Judge interrupted. Stop audio playback.");
+        console.log("↯ Judge interrupted. Stop audio playback.");
         stopVoicePlayback();
         onStatusChange('listening', 'Listening...');
         if (onInterrupted) onInterrupted();
@@ -336,7 +336,7 @@ Begin the hearing with one opening question tailored to this issue and stance. K
   };
 
   voiceWebSocket.onclose = (ev) => {
-    console.log("🎙️ Voice WebSocket closed.");
+    console.log("◉ Voice WebSocket closed.");
     if (ev && ev.code === 4401) {
       // Refused for sign-in: reconnecting would only be refused again.
       voiceSessionActive = false;
@@ -374,7 +374,7 @@ async function reconnectWebSocket(callbacks = activeCallbacks, onOpenCallback = 
     if (onOpenCallback) onOpenCallback();
     return;
   }
-  console.log("🔄 Reconnecting voice WebSocket...");
+  console.log("↻ Reconnecting voice WebSocket...");
 
   if (voiceWebSocket) {
     try {
@@ -448,7 +448,7 @@ export async function sendSpeechText(text) {
 export async function startOralRound(callbacks) {
   const { onStatusChange, onAudio, onText, onInterrupted, onTurnComplete, onPlaybackComplete, onError, onClose } = callbacks;
 
-  console.log("🎙️ Initiating oral round...");
+  console.log("◉ Initiating oral round...");
   voiceSessionActive = true;
   voiceSessionStartTime = Date.now();
   voiceNextPlayTime = 0;
@@ -546,7 +546,7 @@ export async function startOralRound(callbacks) {
             const val = micDataArray[index % micBufferLength] || 0;
             const height = Math.max(4, Math.round((val / 255) * 24));
             bar.style.height = `${height}px`;
-            bar.style.backgroundColor = '#60a5fa'; // Blue for Counsel
+            bar.style.backgroundColor = 'var(--gold)'; // accent for Counsel
           });
         } else if (isOpen && window.voiceStatus === 'processing') {
           // Processing -> Purple pulsing wave
@@ -554,7 +554,7 @@ export async function startOralRound(callbacks) {
           waveBars.forEach((bar, index) => {
             const height = Math.max(4, Math.round(14 + Math.sin(time + index * 0.8) * 10));
             bar.style.height = `${height}px`;
-            bar.style.backgroundColor = '#a78bfa'; // Purple for Processing
+            bar.style.backgroundColor = 'var(--white-muted)'; // muted ink while processing
           });
         } else {
           // Idle/Disconnected/Connecting -> Small static bars
@@ -598,7 +598,7 @@ export async function startOralRound(callbacks) {
 
 export function stopOralRound() {
   if (!voiceSessionActive) return 0;
-  console.log("🎙️ Stopping oral round...");
+  console.log("◉ Stopping oral round...");
   voiceSessionActive = false;
 
   const durationSec = Math.floor((Date.now() - voiceSessionStartTime) / 1000);

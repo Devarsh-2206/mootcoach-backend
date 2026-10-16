@@ -689,13 +689,13 @@ function renderBody() {
             Nothing is scheduled yet. Deadlines will appear on this grid as competitions are added.
           </div>`}
         <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;flex-wrap:wrap;">
-          <div style="display:flex;align-items:center;gap:8px;">
+          ${state.view === 'list' ? `<span style="font-family:var(--serif),Georgia,serif;font-size:1.15rem;color:var(--white);">Upcoming dates</span>` : `<div style="display:flex;align-items:center;gap:8px;">
             <button type="button" id="cal-prev" aria-label="Previous month"
               style="width:34px;height:34px;cursor:pointer;border:1px solid var(--glass-b);background:transparent;color:var(--white-2);">‹</button>
             <span style="font-family:var(--serif),Georgia,serif;font-size:1.15rem;color:var(--white);min-width:160px;text-align:center;">${MONTH_FULL[state.m]} ${state.y}</span>
             <button type="button" id="cal-next" aria-label="Next month"
               style="width:34px;height:34px;cursor:pointer;border:1px solid var(--glass-b);background:transparent;color:var(--white-2);">›</button>
-          </div>
+          </div>`}
           <div style="display:flex;border:1px solid var(--glass-b);">${viewBtn('month', 'Month')}${viewBtn('list', 'List')}</div>
         </div>
         <div style="margin-bottom:12px;">${renderPills()}</div>
@@ -787,9 +787,10 @@ function buildOverlay() {
       style="position:fixed;inset:0;z-index:12000;background:rgba(20,16,12,.55);backdrop-filter:blur(3px);
              display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:28px 16px;">
       <div style="background:var(--navy-3);color:var(--white);max-width:1180px;width:100%;border-radius:14px;
-             box-shadow:0 24px 70px rgba(0,0,0,.4);overflow:hidden;">
+             box-shadow:0 24px 70px rgba(0,0,0,.4);overflow:hidden;
+             max-height:calc(100dvh - 56px);display:flex;flex-direction:column;">
         <div style="display:flex;justify-content:space-between;align-items:center;padding:15px 22px;
-             background:var(--navy-2);border-bottom:1px solid var(--glass-b);">
+             background:var(--navy-2);border-bottom:1px solid var(--glass-b);flex:none;">
           <div>
             <div style="${MONO}font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--white-muted);">MootCoach</div>
             <div style="font-family:var(--serif),Georgia,serif;font-size:1.3rem;">Moot Calendar</div>
@@ -797,7 +798,7 @@ function buildOverlay() {
           <button id="cal-close" aria-label="Close"
             style="background:none;border:none;font-size:26px;line-height:1;cursor:pointer;color:var(--white-muted);">&times;</button>
         </div>
-        <div id="cal-body" style="padding:20px 22px 26px;">
+        <div id="cal-body" style="padding:20px 22px 26px;overflow-y:auto;min-height:0;flex:1 1 auto;">
           <div style="padding:52px 24px;text-align:center;color:var(--white-muted);font-size:.86rem;">Loading competitions…</div>
         </div>
       </div>

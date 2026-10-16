@@ -515,7 +515,15 @@ onAuthChanged(async (user) => {
         authView.classList.remove('show');
       }
     }
+    // A CTA clicked before auth had resolved: now we know they are signed
+    // out, show the sign-in form it asked for.
+    if (window.__pendingAuthView) {
+      const v = window.__pendingAuthView;
+      window.__pendingAuthView = null;
+      navigate(v);
+    }
   }
+  window.__pendingAuthView = null;
   isInitialAuthCheck = false;
 });
 
@@ -844,3 +852,13 @@ async function triggerWelcomeEmail() {
     console.warn('[WELCOME EMAIL] not sent:', err && err.message);
   }
 }
+
+// Last listener wired: release any CTA click held by the early-click guard
+// in index.html <head>.
+whenDomReady(() => {
+  window.__appReady = true;
+  document.documentElement.style.cursor = '';
+  const q = window.__queuedClick;
+  window.__queuedClick = null;
+  if (q) document.querySelector(q)?.click();
+});
