@@ -407,7 +407,6 @@ const ANALYSIS_LITE_PROMPT = require("./prompts/analysisLitePrompt");
 const ORAL_EVAL_PROMPT = require("./prompts/oralEvalPrompt");
 const { buildJudgePrompt } = require("./prompts/benchJudgePrompt");
 const buildEvaluationPrompt = require("./prompts/benchEvaluationPrompt");
-const { buildJudgeDirective, listJudgeProfiles, listIntensityProfiles } = require("./prompts/judgeProfiles");
 const { resolveVoiceJudge } = require("./prompts/judgePersona");
 const ARGUMENT_BUILDER_PROMPT = require("./prompts/argumentBuilderPrompt");
 const buildClaimExtractionPrompt = require("./prompts/claimExtractionPrompt");
@@ -1522,7 +1521,7 @@ function normaliseScorecard(review) {
 }
 
 app.post("/simulate-bench", signedIn, benchLimiter, express.json(), async (req, res) => {
-  const { conversationHistory, propositionSummary, difficulty, intensity, judgeType, studentStatement, claimLedger } = req.body;
+  const { conversationHistory, propositionSummary, difficulty, intensity, studentStatement, claimLedger } = req.body;
 
   if (!studentStatement || studentStatement.trim().length < 3) {
     return res.status(400).json({ success: false, error: "Statement required." });
@@ -1536,23 +1535,13 @@ app.post("/simulate-bench", signedIn, benchLimiter, express.json(), async (req, 
     : (['easy','moderate','hard'].includes(difficulty) ? difficulty : 'moderate');
   const history = conversationHistory || [];
 
-  // Backend-authoritative judge persona + intensity layer — opt-in. Only
-  // engages when the client sends `judgeType` and/or `intensity`; a client
-  // that only ever sent `difficulty` (the existing frontend) gets an
-  // identical propositionSummary to before, so nothing about its behavior
-  // changes. When engaged, this directive is prepended ahead of whatever
-  // forum/judge/depth directives the client already embedded in
-  // propositionSummary — the prompt builders already read every bracketed
-  // directive in that string, so the two layers simply stack.
-  const judgeDirective = (judgeType || intensity) ? buildJudgeDirective(judgeType, validDifficulty) : '';
-
   // Ground an Indian bench in the law that actually governs the matter. The
   // client embeds [Forum: ...] style directives in propositionSummary; forumHint
   // lets it also say which level/proceeding/state, so a civil judge asks about
   // the CPC and the Specific Relief Act rather than about Article 19.
   const indianDirective = buildIndianLegalDirective(req.body.forumHint || null);
 
-  const contextualPropositionSummary = [judgeDirective, indianDirective, propositionSummary || '']
+  const contextualPropositionSummary = [indianDirective, propositionSummary || '']
     .filter(Boolean).join('\n\n');
   
   // Count advocate turns (previous turns in history + current turn)
@@ -1689,20 +1678,6 @@ app.post("/simulate-bench", signedIn, benchLimiter, express.json(), async (req, 
         : "Bench simulation failed. Please try again."
     });
   }
-});
-
-/* ─── /api/judge-profiles — metadata for the "Constitution of the Bench" ──
-   selector (the 10 judge personas + 3 intensity levels). Returns display
-   metadata only (id/code/name/label/archetype/temperament/focus) — the
-   prompt-engineering `directive` text stays server-side. Send the chosen
-   `id` back as `judgeType` (and the intensity `id` as `intensity`) to
-   /simulate-bench or the /ws/voice query string to activate it. ─── */
-app.get("/api/judge-profiles", (req, res) => {
-  res.json({
-    success: true,
-    judges: listJudgeProfiles(),
-    intensities: listIntensityProfiles()
-  });
 });
 
 /* ─── /api/build-argument ─── */
@@ -2179,39 +2154,26 @@ wss.on("connection", (ws, req) => {
     let propositionSummary = '';
     let benchContext = '';
     let voiceGender = 'male';
-    let judgeType = '';
-    let intensity = '';
     let judgeId = '';
     let rosterKey = '';
 
     try {
-      // The req.url might look like /ws/voice?bench=hard&summary=...&ctx=...&judgeType=...&intensity=...
+      // The req.url looks like /ws/voice?bench=hard&summary=...&ctx=...&voice=...&judge=...&roster=...
       const url = new URL(req.url, `ws://${req.headers.host || 'localhost'}`);
       benchLevel = url.searchParams.get('bench') || 'moderate';
       propositionSummary = url.searchParams.get('summary') || '';
       benchContext = url.searchParams.get('ctx') || '';
       voiceGender = url.searchParams.get('voice') || 'male';
-      judgeType = url.searchParams.get('judgeType') || '';
-      intensity = url.searchParams.get('intensity') || '';
       judgeId = (url.searchParams.get('judge') || '').slice(0, 40);
       rosterKey = (url.searchParams.get('roster') || '').slice(0, 20);
     } catch (e) {
       console.error("Error parsing WebSocket URL:", e);
     }
 
-    // Backend-authoritative judge persona + intensity layer — opt-in, same
-    // as /simulate-bench. Only engages when the client sends judgeType/
-    // intensity query params; old clients (bench/summary/ctx/voice only)
-    // get an identical voiceSummary to before.
-    const resolvedIntensity = ['easy','moderate','hard'].includes(intensity) ? intensity : benchLevel;
-    const backendJudgeDirective = (judgeType || intensity) ? buildJudgeDirective(judgeType, resolvedIntensity) : '';
-
-    // Prepend the backend judge/intensity directive, then the forum/judge/depth
-    // directives the client already embedded, so the voice judge adapts to the forum.
     // The judge the student picked: their own voice, accent and manner, from
     // the same judges.json the judge cards are drawn from.
     const voiceJudge = resolveVoiceJudge({ judgeId, rosterKey, gender: voiceGender });
-    const voiceSummary = [voiceJudge.persona, backendJudgeDirective, benchContext, propositionSummary].filter(Boolean).join('\n\n');
+    const voiceSummary = [voiceJudge.persona, benchContext, propositionSummary].filter(Boolean).join('\n\n');
     handleLiveVoiceConnection(ws, benchLevel, voiceSummary, voiceGender, voiceJudge);
     }
   } else {
