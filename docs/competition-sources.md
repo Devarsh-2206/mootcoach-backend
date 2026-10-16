@@ -37,13 +37,40 @@ All ten entries re-checked; `verified` set to 2026-10-16 on all ten. **No date m
 - Stetson (both PDFs and invitation), UPES (rules, invitation), Luthra schedule and
   rules, NAPMCC brochure: byte-identical to earlier downloads. IISL, ICRC and NLSIU
   pages re-read; dates and editions match.
-- **Jessup: ilsa.org now returns HTTP 200** (was 403 on every earlier run). The
-  Jessup 2027 page reads: registration opened 3 Aug; clarification requests due
-  17 Oct 2026; eligibility inquiries 6 Nov; registration, payment and roster due
-  20 Nov 2026; memorials due 12 Jan 2027; national and friendly rounds Jan-Mar
-  2027; International Rounds opening ceremony 27 Mar, Cup match 3 Apr 2027
-  (Toronto). Matches the search summaries logged on 9 Oct. India national rounds
-  dates not on the page. NOT written (new competition; not authorised). Awaiting
+- **Jessup: ilsa.org now returns HTTP 200** (was 403 on every earlier run).
+
+  Source: <https://www.ilsa.org/jessup/competition-schedule/>, headed "Jessup
+  2027", read 2026-10-16. Reached from the Jessup 2027 Rules Released post;
+  note that <https://www.ilsa.org/jessup/> itself carries NO dates and only
+  points here, so a re-check must follow this link rather than the landing page.
+
+  ILSA distinguishes its own confirmed deadlines from its anticipated releases,
+  and the distinction decides which would be written `tent: true`:
+
+  | Date | Label | Marked anticipated? |
+  |---|---|---|
+  | 2026-08-03 | Team registration opens | no |
+  | 2026-10-17 | Deadline for requests for corrections and clarifications | **no** |
+  | 2026-11-06 | Deadline for eligibility inquiries | **no** |
+  | 2026-11-17 | Release of corrections and clarifications | yes |
+  | 2026-11-20 | Deadline for registration, payment and team roster | **no** |
+  | 2027-01-12 | Deadline for submission of memorials | **no** |
+  | 2027-01/03 | National and friendly rounds | no (month range only) |
+  | 2027-03-27 | International Rounds opening ceremony | no |
+  | 2027-04-03 | Jessup Cup world championship match | no |
+
+  So the four deadlines a team acts on are stated flatly, not anticipated. The
+  release dates above them are the anticipated ones.
+
+  **No India national rounds dates appear anywhere on the page** — India is
+  listed only as a jurisdiction that has consistently held qualifying rounds.
+  An Indian team's actual route in is therefore still undated, even though the
+  ILSA deadlines apply to them regardless.
+
+  Confirmed independently against the organiser's page, not from the search
+  summaries logged on 9 Oct, which happened to agree.
+
+  **NOT written** — adding a competition is not authorised unattended. Awaiting
   a person's go-ahead.
 - Price Media: Bonavero page still draft; South Asia Rounds "TBC", International
   Rounds 12-16 April 2027, "subject to change". Not confirmable.
