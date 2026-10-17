@@ -19,6 +19,31 @@ carry `verified: 2026-10-09`.
 
 ## Re-check log
 
+### 2026-10-17 (daily re-check)
+
+All ten entries re-checked; `verified` set to 2026-10-17 on all ten. **No date moved.**
+
+- **Jessup (not written):** ilsa.org reachable (HTTP 200). Schedule page
+  <https://www.ilsa.org/jessup/competition-schedule/> ("Jessup 2027") unchanged from
+  16 Oct: corrections/clarifications requests 17 Oct 2026 (not extended; still
+  stated flatly), eligibility inquiries 6 Nov, corrections release 17 Nov (still
+  ANTICIPATED), registration/payment/roster 20 Nov, memorials 12 Jan 2027,
+  International Rounds opening 27 Mar and Cup match 3 Apr 2027. National rounds
+  page <https://www.ilsa.org/jessup/national-and-friendly-rounds/>: India is listed
+  with administrator Anjali Chawla and NO dates, format or rules supplement.
+  The page says it is updated on a rolling basis. New news item "Jessup 2027
+  Problem Panel" (13 Oct) not opened.
+- Surana-Raffles: rules PDF byte-identical; landing page still "Registrations Open",
+  no notice. `clarifications.pdf` still HTTP 404 (File Not Found page). Dates stand.
+- Vis East: cisgmoot.org still links the "...27-July-2026-1.pdf" file; byte-identical
+  to 13/14 Oct copy, reads 7 November 2026.
+- Vis 34th page still lists "Friday, 6 November 2026" for Requests for Clarification
+  (sixth run). Not added (not authorised).
+- Stetson, UPES, Luthra schedule and rules, NAPMCC: byte-identical to earlier
+  downloads. IISL, ICRC, NLSIU pages re-read; dates and editions match.
+- Price Media: Bonavero page still South Asia Rounds "TBC"; International Rounds
+  12-16 April 2027. Not confirmable.
+
 ### 2026-10-16 (daily re-check; no run on the 15th)
 
 All ten entries re-checked; `verified` set to 2026-10-16 on all ten. **No date moved.**
