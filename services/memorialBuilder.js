@@ -237,32 +237,65 @@ function renumber(argumentsAdvanced) {
  * @param {number} opts.maxIssues     Cap on argued issues (each costs a call).
  * @param {function} opts.onProgress  Called with ({stage, issue, of}) as it goes.
  */
-async function buildMemorial(opts) {
-  const {
-    stance, propositionContext, notes = '', instructions = '', authorities = [],
-    forumLine = '', indianDirective = '', maxIssues = 4, depth = 'standard', onProgress = () => {},
-  } = opts;
+/**
+ * Makes a client-edited plan safe to draft from: bounded sizes, strings only,
+ * no stray keys. The plan is the student's to edit, but it goes back into a
+ * prompt, so nothing in it is trusted.
+ */
+function sanitizeSkeleton(sk, maxIssues = 5) {
+  const str = (v, n) => (typeof v === 'string' ? v : v == null ? '' : String(v)).slice(0, n);
+  const deep = (v, depth = 0) => {
+    if (depth > 4) return undefined;
+    if (typeof v === 'string') return v.slice(0, 4000);
+    if (typeof v === 'number' || typeof v === 'boolean') return v;
+    if (Array.isArray(v)) return v.slice(0, 40).map(x => deep(x, depth + 1));
+    if (v && typeof v === 'object') { const o = {}; for (const k of Object.keys(v).slice(0, 30)) o[k] = deep(v[k], depth + 1); return o; }
+    return undefined;
+  };
+  const src = (sk && typeof sk === 'object') ? sk : {};
+  const plan = (Array.isArray(src.argumentPlan) ? src.argumentPlan : []).slice(0, maxIssues)
+    .filter(p => p && str(p.heading, 600).trim())
+    .map((p, i) => ({
+      numeral: str(p.numeral, 8) || ['I', 'II', 'III', 'IV', 'V'][i],
+      heading: str(p.heading, 600).trim(),
+      roadmap: str(p.roadmap, 1500),
+      subGrounds: (Array.isArray(p.subGrounds) ? p.subGrounds : []).slice(0, 6)
+        .filter(g => g && str(g.heading, 400).trim())
+        .map((g, k) => ({ label: str(g.label, 8) || String.fromCharCode(65 + k), heading: str(g.heading, 400).trim(), thrust: str(g.thrust, 800) })),
+    }));
+  return {
+    coverPage: deep(src.coverPage) || {},
+    listOfAbbreviations: deep(src.listOfAbbreviations) || [],
+    statementOfJurisdiction: str(src.statementOfJurisdiction, 6000),
+    statementOfFacts: deep(src.statementOfFacts) || [],
+    statementOfIssues: deep(src.statementOfIssues) || [],
+    summaryOfArguments: deep(src.summaryOfArguments) || [],
+    argumentPlan: plan,
+    prayer: deep(src.prayer) || {},
+    instructionsNotFollowed: deep(src.instructionsNotFollowed) || [],
+  };
+}
 
+function memorialContext(opts) {
+  const { stance, propositionContext, notes = '', instructions = '', authorities = [], forumLine = '', indianDirective = '' } = opts;
   const instructionBlock = String(instructions).trim()
     ? `\nADVOCATE'S DRAFTING INSTRUCTIONS (BINDING — directives, not material to summarise.\n`
       + `Follow them. Keep the fixed section order; everything else bends to what is asked.\n`
       + `Anything you cannot carry out goes in instructionsNotFollowed):\n${String(instructions).trim().slice(0, 4000)}\n`
     : '';
-
   const authorityBlock = (Array.isArray(authorities) && authorities.length)
     ? `\nAUTHORITIES SELECTED BY THE ADVOCATE (must be used, marked source:"advocate"):\n`
       + authorities.slice(0, 40).map(a =>
           `- ${a.name || a.case || 'Unnamed'}${a.citation ? ', ' + a.citation : ''}`
           + `${a.ratio ? ' — ' + String(a.ratio).slice(0, 300) : ''}`).join('\n') + '\n'
     : '';
-
-  const context = `PROPOSITION FACTS / RECORD:\n${String(propositionContext).trim()}\n`
+  return `PROPOSITION FACTS / RECORD:\n${String(propositionContext).trim()}\n`
     + `${forumLine}${indianDirective}${instructionBlock}${authorityBlock}\n`
     + `STANCE / SIDE: ${stance}\n`
     + `ADVOCATE'S NOTES: ${String(notes).trim().slice(0, 4000)}\n`;
+}
 
-  // ── PASS A: structure ──
-  onProgress({ stage: 'skeleton' });
+async function skeletonPass(context) {
   const skeletonCall = await getChatCompletion({
     messages: [
       { role: 'system', content: buildMemorialSkeletonPrompt() },
@@ -276,7 +309,43 @@ async function buildMemorial(opts) {
     geminiMaxAttempts: 1,
     requestLabel: 'Memorial Pass A (structure)',
   });
-  const skeleton = parseJson(skeletonCall.text, 'Memorial structure pass');
+  return parseJson(skeletonCall.text, 'Memorial structure pass');
+}
+
+/**
+ * Step one of plan-then-draft: the structure only (issues, sub-grounds, front
+ * matter), for the advocate to read, edit and approve before anything is
+ * written. One model call; the long drafting passes run only after approval.
+ */
+async function planMemorial(opts) {
+  const skeleton = sanitizeSkeleton(await skeletonPass(memorialContext(opts)), opts.maxIssues || 4);
+  if (!skeleton.argumentPlan.length) throw new Error('Memorial structure pass returned no issues to argue');
+  return skeleton;
+}
+
+async function buildMemorial(opts) {
+  const {
+    maxIssues = 4, depth = 'standard', onProgress = () => {}, approvedSkeleton = null,
+  } = opts;
+
+  const context = memorialContext(opts);
+
+  // ── PASS A: structure ── skipped when the advocate approved a plan.
+  let skeleton;
+  if (approvedSkeleton) {
+    skeleton = sanitizeSkeleton(approvedSkeleton, maxIssues);
+    // The headings may have been edited: the Statement of Issues follows the
+    // approved plan, and summaries follow their issue (dropped with it).
+    const oldSummaries = Array.isArray(skeleton.summaryOfArguments) ? skeleton.summaryOfArguments : [];
+    skeleton.statementOfIssues = skeleton.argumentPlan.map(p => `ISSUE ${p.numeral}: ${p.heading}`);
+    skeleton.summaryOfArguments = skeleton.argumentPlan.map((p, i) => {
+      const old = oldSummaries.find(x => x && norm(x.issue) === norm(p.heading)) || oldSummaries[i];
+      return { issue: p.heading, summary: (old && old.summary) || '' };
+    });
+  } else {
+    onProgress({ stage: 'skeleton' });
+    skeleton = await skeletonPass(context);
+  }
 
   const plan = Array.isArray(skeleton.argumentPlan) ? skeleton.argumentPlan.slice(0, maxIssues) : [];
   if (!plan.length) throw new Error('Memorial structure pass returned no issues to argue');
@@ -436,10 +505,11 @@ async function buildMemorial(opts) {
       issuesFailed: argumentsAdvanced.filter(a => a.failed).length,
       paragraphs: paragraphCount,
       authorities: authorityCount,
-      passes: 1 + plan.length,
+      passes: (approvedSkeleton ? 0 : 1) + plan.length,
+      fromApprovedPlan: !!approvedSkeleton,
       depth,
     },
   };
 }
 
-module.exports = { buildMemorial, mergeAuthorities, renumber, sortIndex, parseJson, harvestFootnotes, sameCase, similar };
+module.exports = { buildMemorial, planMemorial, sanitizeSkeleton, mergeAuthorities, renumber, sortIndex, parseJson, harvestFootnotes, sameCase, similar };

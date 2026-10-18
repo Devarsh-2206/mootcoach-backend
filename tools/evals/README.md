@@ -7,7 +7,7 @@ a student.
 ```
 npm run eval          # everything (about 10 minutes, calls Gemini for real)
 npm run eval:fast     # validation + forum detection only (about 4 minutes)
-npm run test:verifier # citation-check logic, offline, no API calls
+npm run test:offline  # citation checks + plan-then-draft logic, offline, no API calls
 node tools/evals/run.js --only uk-jr-deportation
 node tools/evals/run.js --update-baseline   # accept this run as the new baseline
 ```
@@ -36,7 +36,7 @@ turn under 90 words.
 Google Search grounding) on four authorities: a real case cited with the wrong
 year and a misspelt name, two correctly cited real cases, and an invented one.
 The invented case must never come back as found. Offline unit tests for the
-same logic run without any API: `npm run test:verifier`.
+same logic run without any API: `npm run test:offline`.
 
 ## Reading the result
 

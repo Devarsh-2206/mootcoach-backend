@@ -137,6 +137,11 @@ export async function buildArgument(stance, issue, notes, propositionContext, fo
  * depth 'standard' makes one call per issue (~100s); 'full' makes one per
  * sub-ground, which roughly doubles the body but takes a few minutes.
  */
+// Plan-then-draft, step one: the structure only, for the advocate to approve.
+export async function planMemorial(payload) {
+  return requestJson('/api/memorial-plan', { body: payload, timeoutMs: 150000 });
+}
+
 export async function buildMemorial(payload) {
   // Several passes; 'full' depth can run past the default wait.
   return requestJson('/api/build-memorial', { body: payload, timeoutMs: 400000 });

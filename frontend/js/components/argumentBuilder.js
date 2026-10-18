@@ -1,4 +1,4 @@
-import { buildArgument, buildMemorial, requestJson } from '../services/api.js';
+import { buildArgument, buildMemorial, planMemorial, requestJson } from '../services/api.js';
 import { 
   currentPropositionContext,
   lastAnalysis, 
@@ -3730,6 +3730,124 @@ function renderMemorialText(m, stance) {
 }
 
 
+/**
+ * Plan review: the memorial's structure, editable, before anything is drafted.
+ * Resolves to the edited plan, 'replan', or null (cancel).
+ */
+function reviewMemorialPlan(plan, authorities, stance) {
+  return new Promise(resolve => {
+    const prev = document.activeElement;
+    const ov = document.createElement('div');
+    ov.className = 'plan-overlay';
+    ov.innerHTML = `
+      <div class="plan-dialog" role="dialog" aria-modal="true" aria-labelledby="plan-title">
+        <header class="plan-head">
+          <div>
+            <div class="plan-eyebrow">Memorial plan · ${esc(stance)}</div>
+            <h2 id="plan-title">Approve the plan before drafting</h2>
+            <p>This is what the memorial will argue, in this order. Edit any heading, drop or add a ground, then draft. Nothing is written until you approve.</p>
+          </div>
+          <button type="button" class="plan-x" data-act="cancel" aria-label="Close">&times;</button>
+        </header>
+        <div class="plan-body">
+          <div class="plan-issues"></div>
+          <section class="plan-auth">
+            <h3>Your authorities</h3>
+            ${authorities.length
+              ? `<ul>${authorities.map(a => `<li>${esc(a.name || '')}${a.citation ? `, <span>${esc(a.citation)}</span>` : ''}</li>`).join('')}</ul>
+                 <p class="plan-note">These will be used in the draft. Others MootCoach adds are checked against the web, and any it cannot trace are marked [VERIFY].</p>`
+              : `<p class="plan-note">You have not picked any authorities. MootCoach will propose some, checks them against the web, and marks any it cannot trace [VERIFY]. Pick your own in the Authority Armory for a stronger draft.</p>`}
+          </section>
+        </div>
+        <footer class="plan-foot">
+          <button type="button" class="btn-sm" data-act="cancel">Cancel</button>
+          <button type="button" class="btn-sm" data-act="replan">Plan again</button>
+          <button type="button" class="btn-sm btn-sm-gold" data-act="approve">Draft memorial from this plan</button>
+        </footer>
+      </div>`;
+    document.body.appendChild(ov);
+    const list = ov.querySelector('.plan-issues');
+
+    const sgRow = g => `
+      <div class="plan-sg">
+        <span class="plan-label">${esc(g.label || '')}</span>
+        <div class="plan-sg-fields">
+          <input type="text" class="plan-sg-h" aria-label="Sub-ground heading" value="${esc(g.heading || '')}">
+          <textarea class="plan-sg-t" rows="2" aria-label="What this ground must establish">${esc(g.thrust || '')}</textarea>
+        </div>
+        <button type="button" class="plan-mini" data-act="del-sg" aria-label="Remove this ground">Remove</button>
+      </div>`;
+    const issueBlock = p => `
+      <article class="plan-issue">
+        <div class="plan-issue-top">
+          <span class="plan-num"></span>
+          <textarea class="plan-h" rows="2" aria-label="Issue heading">${esc(p.heading || '')}</textarea>
+          <div class="plan-tools">
+            <button type="button" class="plan-mini" data-act="up" aria-label="Move issue up">↑</button>
+            <button type="button" class="plan-mini" data-act="down" aria-label="Move issue down">↓</button>
+            <button type="button" class="plan-mini" data-act="del-issue" aria-label="Remove issue">Remove</button>
+          </div>
+        </div>
+        <label class="plan-rm-l">Roadmap<textarea class="plan-rm" rows="2">${esc(p.roadmap || '')}</textarea></label>
+        <div class="plan-sgs">${(p.subGrounds || []).map(sgRow).join('')}</div>
+        <button type="button" class="plan-mini plan-add" data-act="add-sg">+ Add a ground</button>
+      </article>`;
+    list.innerHTML = (plan.argumentPlan || []).map(issueBlock).join('');
+
+    const ROMAN = ['I', 'II', 'III', 'IV', 'V'];
+    const renumber = () => {
+      list.querySelectorAll('.plan-issue').forEach((el, i) => {
+        el.querySelector('.plan-num').textContent = ROMAN[i] || String(i + 1);
+        el.querySelectorAll('.plan-sg .plan-label').forEach((l, k) => { l.textContent = String.fromCharCode(65 + k); });
+      });
+      ov.querySelector('[data-act="approve"]').disabled = !list.querySelector('.plan-issue');
+    };
+    renumber();
+
+    const collect = () => {
+      const issues = [...list.querySelectorAll('.plan-issue')].map((el, i) => ({
+        numeral: ROMAN[i] || String(i + 1),
+        heading: el.querySelector('.plan-h').value.trim(),
+        roadmap: el.querySelector('.plan-rm').value.trim(),
+        subGrounds: [...el.querySelectorAll('.plan-sg')].map((g, k) => ({
+          label: String.fromCharCode(65 + k), heading: g.querySelector('.plan-sg-h').value.trim(), thrust: g.querySelector('.plan-sg-t').value.trim(),
+        })).filter(g => g.heading),
+      })).filter(p => p.heading);
+      return Object.assign({}, plan, { argumentPlan: issues });
+    };
+
+    const close = v => { document.removeEventListener('keydown', onKey); ov.remove(); if (prev && prev.focus) prev.focus(); resolve(v); };
+    const onKey = e => { if (e.key === 'Escape') close(null); };
+    document.addEventListener('keydown', onKey);
+
+    ov.addEventListener('click', e => {
+      const b = e.target.closest('[data-act]');
+      if (!b) { if (e.target === ov) close(null); return; }
+      const issue = b.closest('.plan-issue');
+      switch (b.dataset.act) {
+        case 'cancel': return close(null);
+        case 'replan': return close('replan');
+        case 'approve': {
+          const out = collect();
+          if (!out.argumentPlan.length) { showToast('Keep at least one issue to argue.', 'err'); return; }
+          return close(out);
+        }
+        case 'up': if (issue.previousElementSibling) issue.parentNode.insertBefore(issue, issue.previousElementSibling); break;
+        case 'down': if (issue.nextElementSibling) issue.parentNode.insertBefore(issue.nextElementSibling, issue); break;
+        case 'del-issue': issue.remove(); break;
+        case 'del-sg': b.closest('.plan-sg').remove(); break;
+        case 'add-sg': {
+          issue.querySelector('.plan-sgs').insertAdjacentHTML('beforeend', sgRow({ heading: '', thrust: '' }));
+          issue.querySelector('.plan-sg:last-child .plan-sg-h').focus();
+          break;
+        }
+      }
+      renumber();
+    });
+    (list.querySelector('.plan-h') || ov.querySelector('[data-act="approve"]')).focus();
+  });
+}
+
 // Stage 3 "Generate Structured Draft" — turns the advocate's notes + selected
 // authorities into a full memorial via the existing /api/build-argument endpoint,
 // writing the result straight into the Written Memorial field. No new endpoint.
@@ -3770,15 +3888,33 @@ window.generateAdvocacyDraft = async function() {
     governingLaw: df.governingLaw || ''
   };
 
-  if (btn) { btn.disabled = true; btn.dataset.label = btn.textContent; btn.textContent = 'Generating…'; }
+  const payload = {
+    stance, propositionContext: currentPropositionContext, notes: notesToSend,
+    instructions, authorities: auths, forum: forumPayload,
+    maxIssues: 3, depth: (window.mootState && window.mootState.memorialDepth) || 'standard',
+  };
+
+  if (btn) { btn.disabled = true; btn.dataset.label = btn.textContent; btn.textContent = 'Planning…'; }
   try {
+    // Plan-then-draft: the structure comes first, for the advocate to read,
+    // edit and approve. The long drafting passes run only on an approved plan,
+    // so a wrong issue or a missing limb costs one quick call, not a draft.
+    let approved = null;
+    for (;;) {
+      const planned = await planMemorial(payload);
+      if (!planned || !planned.success || !planned.plan) throw new Error((planned && planned.error) || 'Could not plan the memorial.');
+      if (btn) btn.textContent = 'Waiting for your approval…';
+      const decision = await reviewMemorialPlan(planned.plan, auths, stance);
+      if (decision === 'replan') { if (btn) btn.textContent = 'Planning again…'; continue; }
+      approved = decision;
+      break;
+    }
+    if (!approved) return;   // cancelled: nothing drafted, nothing changed
+
+    if (btn) btn.textContent = 'Drafting from your plan…';
     // Multi-pass builder. One generation caps around 13-23 numbered paragraphs;
     // building the memorial in passes reaches 45, against 65 in a filed one.
-    const data = await buildMemorial({
-      stance, propositionContext: currentPropositionContext, notes: notesToSend,
-      instructions, authorities: auths, forum: forumPayload,
-      maxIssues: 3, depth: (window.mootState && window.mootState.memorialDepth) || 'standard',
-    });
+    const data = await buildMemorial({ ...payload, plan: approved, maxIssues: approved.argumentPlan.length });
     if (data && data.success && data.memorial) {
       const m = data.memorial;
       // Pass the stance so the cover page is colour-coded by side.

@@ -416,7 +416,7 @@ const { applyCitationGuard, verifyFlaggedAuthorities } = require("./services/cit
 const { verifyAuthorities } = require("./services/authorityVerifier");
 const { auditMemorial } = require("./services/memorialAudit");
 const MEMORIAL_REVIEW_PROMPT = require("./prompts/memorialReviewPrompt");
-const { buildMemorial } = require("./services/memorialBuilder");
+const { buildMemorial, planMemorial } = require("./services/memorialBuilder");
 
 // const app = express();
 // app.set('trust proxy', 1);
@@ -1868,23 +1868,64 @@ Authorities. Cite nothing you cannot stand behind: mark anything uncertain with
    one call per issue argues it out, then services/memorialBuilder stitches them
    together. /api/build-argument stays as it is, because the oral-advocacy,
    rebuttal and citation panels still read its combined response. */
-app.post("/api/build-memorial", signedIn, aiLimiter, express.json(), async (req, res) => {
-  const { stance, propositionContext, notes, instructions, authorities, forum, maxIssues, depth } = req.body;
-
-  if (!stance) {
-    return res.status(400).json({ success: false, error: "Pick a side first." });
-  }
+/* Inputs shared by /api/memorial-plan and /api/build-memorial. Returns the
+   builder options, or { error } with the message to send. */
+function memorialOptions(body) {
+  const { stance, propositionContext, notes, instructions, authorities, forum, maxIssues, depth } = body || {};
+  if (!stance) return { error: "Pick a side first." };
   if (!propositionContext || propositionContext.trim().length < 20 ||
       /not set|no file uploaded/i.test(propositionContext)) {
-    return res.status(400).json({ success: false, error: "Upload and analyse a proposition first — a memorial has to be drafted from the record." });
+    return { error: "Upload and analyse a proposition first — a memorial has to be drafted from the record." };
   }
-
   const forumLine = (forum && (forum.forum || forum.benchType || forum.broadType))
     ? `\nFORUM CONTEXT (authoritative): ${forum.forum || forum.benchType || forum.broadType}`
       + `${forum.jurisdiction ? ' | Jurisdiction: ' + forum.jurisdiction : ''}`
       + `${forum.governingLaw ? ' | Governing law: ' + forum.governingLaw : ''}`
       + `\nUse ONLY authorities and terminology appropriate to this forum.\n`
     : '';
+  return {
+    stance,
+    propositionContext,
+    notes: notes || '',
+    instructions: instructions || '',
+    authorities: Array.isArray(authorities) ? authorities : [],
+    forumLine,
+    indianDirective: buildIndianLegalDirective(forum || null),
+    maxIssues: Math.min(Math.max(Number(maxIssues) || 3, 1), 5),
+    // 'standard' = one call per issue (~100s). 'full' = one per sub-ground,
+    // which roughly doubles the body but takes several minutes.
+    depth: depth === 'full' ? 'full' : 'standard',
+    forum,
+  };
+}
+
+/* ─── /api/memorial-plan ───
+   Plan-then-draft, step one: the memorial's structure only (issues,
+   sub-grounds, front matter) for the advocate to edit and approve. One model
+   call; the long drafting passes wait for approval. */
+app.post("/api/memorial-plan", signedIn, aiLimiter, express.json(), async (req, res) => {
+  const opts = memorialOptions(req.body);
+  if (opts.error) return res.status(400).json({ success: false, error: opts.error });
+  try {
+    const plan = await planMemorial(opts);
+    return res.json({ success: true, plan });
+  } catch (error) {
+    const msg = String((error && error.message) || '');
+    console.error("/api/memorial-plan error:", msg.slice(0, 200));
+    const quota = /RESOURCE_EXHAUSTED|free_tier|quota|PerDay/i.test(msg);
+    const overloaded = /UNAVAILABLE|\b503\b|high demand|overloaded|Timeout/i.test(msg);
+    return res.status(quota ? 429 : overloaded ? 503 : 500).json({ success: false, code: quota ? 'quota' : overloaded ? 'busy' : 'failed',
+      error: quota ? "Today's AI allowance is used up. Try again tomorrow."
+        : overloaded ? 'The AI service is busy. Try again in a moment.'
+        : 'Could not plan the memorial. Try again.' });
+  }
+});
+
+app.post("/api/build-memorial", signedIn, aiLimiter, express.json({ limit: '300kb' }), async (req, res) => {
+  const opts0 = memorialOptions(req.body);
+  if (opts0.error) return res.status(400).json({ success: false, error: opts0.error });
+  const { stance, propositionContext, notes, instructions, authorities, forum, maxIssues, depth } = req.body;
+  const forumLine = opts0.forumLine;
 
   try {
     const started = Date.now();
@@ -1901,6 +1942,8 @@ app.post("/api/build-memorial", signedIn, aiLimiter, express.json(), async (req,
       // which roughly doubles the body but takes several minutes.
       depth: depth === 'full' ? 'full' : 'standard',
       onProgress: p => console.log('[MEMORIAL] ' + JSON.stringify(p)),
+      // Plan-then-draft: the structure the advocate approved (and maybe edited).
+      approvedSkeleton: req.body.plan && typeof req.body.plan === 'object' ? req.body.plan : null,
     });
 
     applyCitationGuard(memorial.indexOfAuthorities, authorities);
