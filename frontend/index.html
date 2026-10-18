@@ -3558,6 +3558,25 @@ span.text-\[9px\].uppercase.rounded, div.text-\[9px\].uppercase.rounded {
 
 /* Feature switches: controls for switched-off features stay hidden */
 #sb-ask-mootcoach[hidden], .rt-ask[hidden]{display:none!important}
+
+/* Stage 2 side selector. Its selected state used Tailwind indigo classes, which
+   the tint clean-up above flattens, so a chosen Petitioner showed no highlight.
+   Own classes now: blue for Petitioner, red for Respondent (the memorial cover
+   convention), plus a check mark so the choice does not rest on colour alone. */
+:root{ --side-pet:#2F4E8C; --side-pet-bg:rgba(47,78,140,.10); --side-res:#B0392E; --side-res-bg:rgba(176,57,46,.10); }
+:root[data-theme="dark"]{ --side-pet:#9DB4E0; --side-pet-bg:rgba(157,180,224,.14); --side-res:#E07A6E; --side-res-bg:rgba(224,122,110,.14); }
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ --side-pet:#9DB4E0; --side-pet-bg:rgba(157,180,224,.14); --side-res:#E07A6E; --side-res-bg:rgba(224,122,110,.14); } }
+.side-opt{width:100%;padding:10px 8px;font:500 12px var(--mono);letter-spacing:.12em;text-transform:uppercase;text-align:center;white-space:nowrap;
+  border:1px solid var(--rule);border-radius:6px;color:var(--white-muted);background:transparent;transition:background .2s,border-color .2s,color .2s,box-shadow .2s}
+label:hover > .side-opt{border-color:var(--white-muted);color:var(--white-2)}
+.peer:focus-visible + .side-opt{outline:2px solid var(--ring, var(--gold));outline-offset:2px}
+.peer:checked + .side-opt.side-pet{background:var(--side-pet-bg)!important;border-color:var(--side-pet)!important;color:var(--side-pet)!important;box-shadow:inset 0 0 0 1px var(--side-pet)}
+.peer:checked + .side-opt.side-res{background:var(--side-res-bg)!important;border-color:var(--side-res)!important;color:var(--side-res)!important;box-shadow:inset 0 0 0 1px var(--side-res)}
+.peer:checked + .side-opt::before{content:"✓ ";font-weight:700}
+@media (max-width:420px){ .side-opt{white-space:normal;letter-spacing:.06em} }
+
+/* Selected state for controls whose old indigo highlight the tint clean-up flattens */
+.is-on{background:var(--gold-muted)!important;border-color:var(--gold)!important;color:var(--gold)!important}
 </style>
 </head>
 <body class="intro-hold">
@@ -4180,13 +4199,13 @@ span.text-\[9px\].uppercase.rounded, div.text-\[9px\].uppercase.rounded {
               <div class="grid grid-cols-2 gap-2 w-full mt-1">
                 <label class="cursor-pointer flex-1">
                   <input type="radio" name="stance" value="petitioner" class="peer sr-only" checked>
-                  <div class="w-full py-2.5 px-2 text-xs font-semibold tracking-widest text-center whitespace-nowrap rounded-md border border-moot-border text-moot-muted peer-checked:bg-indigo-500/10 peer-checked:border-indigo-500 peer-checked:text-indigo-400 transition-all duration-200 flex items-center justify-center">
+                  <div class="side-opt side-pet">
                     PETITIONER / APPELLANT
                   </div>
                 </label>
                 <label class="cursor-pointer flex-1">
                   <input type="radio" name="stance" value="respondent" class="peer sr-only">
-                  <div class="w-full py-2.5 px-2 text-xs font-semibold tracking-widest text-center whitespace-nowrap rounded-md border border-moot-border text-moot-muted peer-checked:bg-rose-500/10 peer-checked:border-rose-500 peer-checked:text-rose-400 transition-all duration-200 flex items-center justify-center">
+                  <div class="side-opt side-res">
                     RESPONDENT / OPPOSITION
                   </div>
                 </label>

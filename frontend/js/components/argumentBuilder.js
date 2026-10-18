@@ -2436,14 +2436,14 @@ export function renderOralAdvocacySuite(container) {
       if (i === idx) {
         const isHidden = document.getElementById(`precedent-card-${idx}`).classList.contains('hidden');
         if (isHidden) {
-          chip.classList.remove('bg-indigo-500/20', 'border-indigo-500', 'text-[#1C1710]');
+          chip.classList.remove('bg-indigo-500/20', 'border-indigo-500', 'text-[#1C1710]', 'is-on');
           chip.classList.add('bg-black/5', 'border-black/10', 'text-[#4a4030]');
         } else {
-          chip.classList.add('bg-indigo-500/20', 'border-indigo-500', 'text-[#1C1710]');
+          chip.classList.add('bg-indigo-500/20', 'border-indigo-500', 'text-[#1C1710]', 'is-on');
           chip.classList.remove('bg-black/5', 'border-black/10', 'text-[#4a4030]');
         }
       } else {
-        chip.classList.remove('bg-indigo-500/20', 'border-indigo-500', 'text-[#1C1710]');
+        chip.classList.remove('bg-indigo-500/20', 'border-indigo-500', 'text-[#1C1710]', 'is-on');
         chip.classList.add('bg-black/5', 'border-black/10', 'text-[#4a4030]');
       }
     });

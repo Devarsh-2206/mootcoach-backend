@@ -2330,6 +2330,7 @@ export function switchStage5Tab(tab) {
     const content = document.getElementById(`stage5-content-${t}`);
     if (btn) {
       btn.classList.toggle('bg-indigo-500/10', t === tab);
+      btn.classList.toggle('is-on', t === tab);   // the indigo tint is neutralised by the theme; this carries the state
       btn.classList.toggle('text-indigo-400', t === tab);
       btn.classList.toggle('bg-transparent', t !== tab);
       btn.classList.toggle('text-white-muted', t !== tab);
