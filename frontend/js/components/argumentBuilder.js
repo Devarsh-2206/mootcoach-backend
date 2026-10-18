@@ -2505,7 +2505,7 @@ function copyPanelContent() {
 
 function getUpgradedOralNotes(oralAdvocacy, stance, issue) {
   const isPetitioner = stance.toLowerCase().includes('petitioner') || stance.toLowerCase().includes('appellant');
-  const borderCls = isPetitioner ? 'border-indigo-500/30' : 'border-rose-500/30';
+  const borderCls = isPetitioner ? 'side-stripe-pet' : 'side-stripe-res';
 
   if (!oralAdvocacy) {
     const openingSpeech = isPetitioner 

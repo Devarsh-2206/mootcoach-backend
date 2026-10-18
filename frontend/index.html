@@ -3576,6 +3576,11 @@ label:hover > .side-opt{border-color:var(--white-muted);color:var(--white-2)}
 @media (max-width:420px){ .side-opt{white-space:normal;letter-spacing:.06em} }
 
 /* Selected state for controls whose old indigo highlight the tint clean-up flattens */
+/* Selected issue card: the panel recolours above (.bg-black/5, .border-black/10)
+   outrank .issue-card.selected, so in dark mode the chosen issue looked like
+   the rest. This selector outranks them. */
+html:root #view-workspace .issue-card.selected:not(.mc-paper *){background:var(--gold-muted)!important;border-color:var(--gold)!important;box-shadow:inset 3px 0 0 var(--gold)!important}
+.side-stripe-pet{border-left-color:var(--side-pet)!important}.side-stripe-res{border-left-color:var(--side-res)!important}
 .is-on{background:var(--gold-muted)!important;border-color:var(--gold)!important;color:var(--gold)!important}
 </style>
 </head>
