@@ -946,7 +946,7 @@ function renderIRAC(iracData) {
   let recommendedFix = rebuttalText;
 
   // Refine for Puttaswamy / Privacy if applicable
-  if (lowerNotes.includes("puttaswamy") || lowerNotes.includes("privacy")) {
+  if (lowerNotes.includes("puttaswamy")) {   // only when the advocate relies on it themselves
     if (!lowerNotes.includes("proportional") && !lowerNotes.includes("proportion")) {
       weakestPoint = "Lack of proportionality analysis under Puttaswamy.";
       benchRisk = "Judge may challenge necessity requirement of the privacy restriction.";
@@ -2056,256 +2056,67 @@ export function renderOralAdvocacySuite(container) {
   const oral = iracData.oralAdvocacy || {};
   const rebuttalsObj = iracData.rebuttals || {};
 
+  // Every section below comes from the argument the model built for THIS
+  // proposition. Where the model left a section out, it says so; it used to
+  // be filled with stock Indian constitutional content (Puttaswamy, Maneka
+  // Gandhi, Royappa, Articles 14/19/21, an imaginary "regulation"), which
+  // appeared in arbitrations and English-law moots as if it were advice.
+  const NOT_GENERATED = 'Not generated for this argument. Rebuild the argument to get it.';
+  const issueText = cleanSectionText(iracData.issue || currentIssue, 'issue');
+  const sideName = isPetitioner ? 'the Petitioner' : 'the Respondent';
+  const caseNames = (iracData.precedentsNeeded || []).map(c => typeof c === 'string' ? c : (c && c.caseName) || '').filter(Boolean);
+
   // Section 1 & 7: Opening Speeches and Closing Prayers
-  const openingLine = oral.openingSpeech || (isPetitioner 
-    ? `May it please this Honorable Court. My name is Counsel representing the Petitioner. We stand before this Court to challenge the validity of the impugned action concerning the key issue of law, namely ${esc(iracData.issue || currentIssue)}.`
-    : `May it please this Honorable Court. My name is Counsel representing the Respondent. We stand before this Court to oppose the petition in its entirety and defend the constitutionality of the impugned action.`);
+  const openingLine = oral.openingSpeech
+    || `May it please this Court. Counsel appears for ${sideName} on the issue: ${esc(issueText)}.`;
+  const opening30s = oral.opening30s || NOT_GENERATED;
+  const opening60s = oral.opening60s || NOT_GENERATED;
+  const closing15s = oral.closing15s || NOT_GENERATED;
+  const closing30s = oral.closing30s || NOT_GENERATED;
+  const closingFull = oral.closingPrayer || NOT_GENERATED;
 
-  const opening30s = oral.opening30s || (isPetitioner
-    ? "My Lords, the violation here is not merely technical, but goes to the root of Part III rights. If this court does not intervene, the petitioner faces irreparable injury for which damages are no remedy. The state cannot bypass the rule of law under the banner of convenience."
-    : "My Lords, the State's action was necessitated by public welfare. It enjoys the presumption of constitutionality and fits strictly within the legislative competence. The restriction is reasonable, proportional, and leaves alternative remedies open.");
+  // Section 2: Submissions — from the built IRAC when the oral pack omitted them
+  const submissions = (oral.submissions && oral.submissions.length > 0) ? oral.submissions : [{
+    title: 'Submission I',
+    issue: issueText,
+    precedent: caseNames[0] || 'No authority given. Add one in the Authority Armory.',
+    rule: iracData.rule ? cleanSectionText(iracData.rule, 'rule') : NOT_GENERATED,
+    application: iracData.application ? cleanSectionText(iracData.application, 'application') : '',
+    conclusion: iracData.conclusion ? cleanSectionText(iracData.conclusion, 'conclusion') : '',
+  }];
 
-  const opening60s = oral.opening60s || (isPetitioner
-    ? "My Lords, the petition raises a vital question of constitutional fair play. First, the impugned regulation bypasses natural justice. Second, it violates the proportionality test by imposing an absolute bar where narrower means were practicable. Under Maneka Gandhi, any procedure must be fair, just, and reasonable. We pray that this Court strikes down the provision."
-    : "My Lords, the Respondent submits that the petition is both procedurally barred and substantively meritless. The petitioner failed to exhaust the statutory appeal mechanism. Furthermore, the restriction is reasonable under Article 19(6) to protect public safety. A regulatory vacuum would cause public harm. We pray that the petition be dismissed.");
+  // Section 3: likely bench questions — the analysis's own questions if the pack has none
+  const qaList = (oral.qa && oral.qa.length > 0) ? oral.qa
+    : (Array.isArray(iracData.benchQuestions) && iracData.benchQuestions.length)
+      ? iracData.benchQuestions.slice(0, 6).map(q => ({ q: String(q), a: 'Prepare your answer to this. No model answer was generated.' }))
+      : [{ q: 'No likely questions were generated for this argument.', a: 'Rebuild the argument, or run the Bench Attack Forecast.' }];
 
-  const closing15s = oral.closing15s || (isPetitioner
-    ? "In conclusion, My Lords, because the impugned regulation violates the tests of proportionality and natural justice, we pray that this petition be allowed. We thank this Court."
-    : "In conclusion, My Lords, because the regulation is a reasonable and necessary restriction in public interest, we pray that the petition be dismissed. We thank this Court.");
-
-  const closing30s = oral.closing30s || (isPetitioner
-    ? "My Lords, a constitutional democracy cannot permit administrative convenience to override fundamental rights. Since the regulation bypasses notice, lacks guidelines, and is disproportionate, we pray that this Court strike it down. We thank this Court."
-    : "My Lords, the state acted in good faith to protect public welfare. To strike down this rule would create a regulatory vacuum. Since the restriction is proportional and constitutional, we pray that the petition be dismissed. We thank this Court.");
-
-  const closingFull = oral.closingPrayer || (isPetitioner
-    ? "May it please this Court. For the reasons submitted, the Petitioner prays that this Court: First, declare the impugned regulation unconstitutional and void under Articles 14, 19, and 21. Second, direct the State to reinstate the Petitioner's status. And pass any other order that this Court deems fit in the interest of justice. We thank this Court."
-    : "May it please this Court. For the reasons submitted, the Respondent prays that this Court: First, uphold the validity of the impugned regulation. Second, dismiss the petition with costs as a meritless challenge to policy discretion. And pass any other order that this Court deems fit. We thank this Court.");
-
-  // Section 2: Submissions
-  const submissions = (oral.submissions && oral.submissions.length > 0) ? oral.submissions : [
-    {
-      title: "Submission I: Substantive Legality",
-      issue: cleanSectionText(iracData.issue || currentIssue, 'issue'),
-      precedent: isPetitioner ? 'K.S. Puttaswamy v. Union of India (2017)' : 'E.P. Royappa v. State of Tamil Nadu (1974) (State Defense)',
-      rule: cleanSectionText(iracData.rule || 'Equal protection under Article 14 requires state actions to be free from manifest arbitrariness.', 'rule'),
-      application: cleanSectionText(iracData.application || 'The state action was taken without notice or guidelines, violating Article 14.', 'application'),
-      conclusion: cleanSectionText(iracData.conclusion || 'Strike down the arbitrary regulatory rule.', 'conclusion')
-    },
-    {
-      title: "Submission II: Procedural Fairness",
-      issue: "Whether the procedure adopted by the State violates Article 21 and the principles of natural justice.",
-      precedent: "Maneka Gandhi v. Union of India (1978)",
-      rule: "Any procedure affecting fundamental rights under Article 21 must be fair, just, and reasonable, incorporating prior notice and hearing.",
-      application: isPetitioner ? 'The State completely bypassed both pre-decisional and post-decisional hearings, causing absolute procedural failure.' : 'Urgent regulatory conditions required immediate public interest measures, which are cured by post-decisional hearings.',
-      conclusion: isPetitioner ? 'Read down the unilateral power to require prior hearings, or set aside the order.' : 'Uphold the validity of the procedure, directing a post-decisional hearing if deemed necessary.'
-    }
-  ];
-
-  // Section 3: likely bench questions
-  const qaList = (oral.qa && oral.qa.length > 0) ? oral.qa : (isPetitioner ? [
-    {
-      q: "Counsel, isn't the regulation of this domain purely within the policy discretion of the Executive?",
-      a: "Most Respectfully, My Lords, while policy discretion lies with the Executive, its exercise is bounded by constitutional limits. Once an action exceeds those limits or is manifestly arbitrary, this Court is fully empowered—indeed required—to intervene under Article 14, as established in Royappa."
-    },
-    {
-      q: "Why should we bypass the statutory alternative remedies available to your client?",
-      a: "It is well-settled by this Court in Whirlpool Corporation v. Registrar of Trade Marks that the existence of an alternative remedy is a rule of discretion and not a bar to jurisdiction, particularly where there is a violation of fundamental rights or principles of natural justice."
-    },
-    {
-      q: "Where is the specific, documented prejudice caused to the Petitioner?",
-      a: "The prejudice is immediate and absolute. The state action directly impairs the Petitioner's livelihood and personal liberty without notice or hearing, which is a per se violation of Article 19(1)(g) and Article 21, causing irreparable harm."
-    },
-    {
-      q: "Aren't you asking this Court to act as a court of appeal over administrative policy decisions?",
-      a: "Not at all, My Lords. Counsel does not ask this Court to substitute its wisdom for that of the executive, but to review the legality, procedural propriety, and proportionality of the decision-making process under the Wednesbury principle."
-    },
-    {
-      q: "Is there any direct precedent holding this precise rule unconstitutional?",
-      a: "While there may not be a factual mirror-image case, the core legal principle is firmly governed by the Constitutional Bench holding in Puttaswamy, which established that any state encroachment on individual rights must pass the strict four-pronged test of proportionality."
-    },
-    {
-      q: "Isn't the state regulation a reasonable restriction under Article 19(6) in public interest?",
-      a: "My Lords, a restriction cannot be 'reasonable' if it lacks procedural safeguards. The absence of notice or any appeal mechanism makes the restriction disproportionate and excessive."
-    },
-    {
-      q: "What if striking down this provision causes regulatory chaos?",
-      a: "My Lords, constitutional rights cannot be sacrificed for administrative convenience. The state remains free to draft a new, constitutionally compliant rule that incorporates natural justice."
-    },
-    {
-      q: "Can the state not claim a public safety emergency to justify immediate action?",
-      a: "Even in emergencies, the state must adopt the least restrictive means. Here, no threat was shown to justify bypassing a post-decisional hearing."
-    },
-    {
-      q: "Does your client have a clean record of compliance under the prior rules?",
-      a: "Yes, My Lords, the Petitioner has operated in full compliance. The sudden enforcement actions were taken without any prior citation or warning."
-    },
-    {
-      q: "If we find the provision valid, what alternative relief do you seek?",
-      a: "In the alternative, we pray that this Court reads down the provision to exclude its application where prior notice is practicable, or directs a post-decisional hearing within a strict timeline."
-    }
-  ] : [
-    {
-      q: "Counsel, how do you justify the apparent lack of notice or hearing before this action was taken?",
-      a: "My Lords, the urgency of the situation and the protection of public interest necessitated immediate action. The statute implicitly permits post-decisional hearings, which completely satisfies the requirements of natural justice under these exceptional circumstances."
-    },
-    {
-      q: "Does this action not violate the basic principles of proportionality laid down in Puttaswamy?",
-      a: "No, My Lords. The restriction passes the proportionality test: it has a legitimate goal (public welfare), a rational nexus (preventing harm), is necessary as no less restrictive means exist, and the public benefit far outweighs any private inconvenience."
-    },
-    {
-      q: "Is the presumption of constitutionality sufficient to save a provision that is prima facie arbitrary?",
-      a: "The provision is not arbitrary. It is a carefully crafted legislative response to a complex socioeconomic issue. The legislature has broad latitude, and the burden remains strictly on the Petitioner to prove unconstitutionality beyond reasonable doubt."
-    },
-    {
-      q: "How can the State argue that this doesn't encroach upon the Petitioner's Article 19(1)(g) rights?",
-      a: "Article 19(1)(g) is not absolute. Under Article 19(6), the State is competent to impose reasonable restrictions in the interest of the general public. The restrictions here are fully reasonable and public-interest oriented."
-    },
-    {
-      q: "If this Court strikes down this provision, what is the State's fallback plan?",
-      a: "We submit that the provision is constitutional. Striking it down would create a regulatory vacuum, endangering public safety. If the Court finds any ambiguity, we pray that it read down the provision rather than strike it down."
-    },
-    {
-      q: "How does a post-decisional hearing cure the initial lack of natural justice?",
-      a: "My Lords, as held in Charan Lal Sahu, in cases of administrative urgency, a post-decisional hearing cures any prior procedural defect, providing a full opportunity to present their case."
-    },
-    {
-      q: "Isn't the Wednesbury unreasonableness standard satisfied here by the sheer lack of guidelines?",
-      a: "No, My Lords. The guidelines are found in the statutory purpose and context. The executive has applied this power in a targeted manner to address specific harms."
-    },
-    {
-      q: "Why should we not follow the precedent of Maneka Gandhi and strike this down?",
-      a: "Maneka Gandhi held that procedure must be fair. A post-decisional hearing framework in a public welfare context is fair, just, and reasonable, fitting the Maneka Gandhi standard."
-    },
-    {
-      q: "Can public interest completely override fundamental rights?",
-      a: "No, My Lords. Fundamental rights are not overridden; they are balanced. Article 19(6) explicitly allows this balance in the interest of the general public."
-    },
-    {
-      q: "If we find in favor of the Petitioner, will the state provide compensation?",
-      a: "My Lords, the state acted in good faith for public safety. No malice is alleged. Therefore, public interest precludes any liability for damages."
-    }
-  ]);
-
-  // Section 2: traps
-  const trapsList = (oral.traps && oral.traps.length > 0) ? oral.traps : [
-    {
-      title: "The 'Policy Exception' Trap",
-      description: "Judges will try to make you agree that policy decisions are completely immune from judicial review, locking you out of your core argument.",
-      escapeResponse: "With respect, My Lords, this ruling will not affect legitimate policy discretion. It merely reinforces that policy must remain within Part III boundaries. Public trust is enhanced when policy is constitutional."
-    },
-    {
-      title: "The 'Literal Statutory Wording' Trap",
-      description: "If you agree that statutory wording has absolute supremacy regardless of constitutional rights, you lose your Article 21/14 ground.",
-      escapeResponse: "My Lords, when a statutory power affects fundamental rights of citizens, the word 'may' is construed as 'shall' to preserve its validity, as held in the landmark case of Delhi Administration v. I.K. Nangia."
-    }
-  ];
-
-  // Section 3: Judge Attack Mode (Interventions)
-  const attackList = (oral.judgeAttackMode && oral.judgeAttackMode.length > 0) ? oral.judgeAttackMode : (isPetitioner ? [
-    {
-      intervention: "Counsel, you are asking this Court to micro-manage security protocols. If we accept your argument, the government won't be able to disable communication channels during security situations. How do you respond to that?",
-      trapType: "Policy Exception",
-      advocateEscape: "My Lords, with respect, Counsel does not invite this Court to govern. We simply ask this Court to enforce the clear limits set by Anuradha Bhasin, which mandate that any shutdown must be temporary, necessary, and subject to regular oversight. Administrative convenience cannot override Part III rights."
-    },
-    {
-      intervention: "Counsel, the statute explicitly says the Director 'may authorize interception.' There is no provision for a prior hearing in the text. Are we supposed to rewrite the legislation?",
-      trapType: "Literal Statutory Wording",
-      advocateEscape: "My Lords, it is a cardinal principle of constitutional interpretation that when a statutory power infringes on fundamental liberties under Article 21, the procedural requirements of natural justice must be read into the silent statute to preserve its constitutionality, as established in Maneka Gandhi."
-    }
-  ] : [
-    {
-      intervention: "Counsel, how can the state argue that bypassing prior notice and hearing completely satisfies due process? Is natural justice optional when the government is in a hurry?",
-      trapType: "Manifest Arbitrariness",
-      advocateEscape: "My Lords, natural justice is not optional, but its application is flexible. In situations of public order threat, post-decisional hearings satisfy due process under Charan Lal Sahu. The State has provided a post-decisional review process, curing any initial procedural grievance."
-    },
-    {
-      intervention: "Counsel, the restriction in this case has shut down normal business operations for three weeks. How can this satisfy the proportionality test when the threat was localized and resolved in two days?",
-      trapType: "Proportionality Balancing",
-      advocateEscape: "My Lords, the assessment of when a threat is resolved lies in the unique domain of executive intelligence, not judicial assessment. The localized threat had a clear threat profile that justified continued restrictions to prevent flare-ups, satisfying the public order necessity standard under Article 19(6)."
-    }
-  ]);
+  // Traps and judge attack mode
+  const trapsList = (oral.traps && oral.traps.length > 0) ? oral.traps
+    : [{ title: 'Not generated', description: NOT_GENERATED, escapeResponse: '' }];
+  const attackList = (oral.judgeAttackMode && oral.judgeAttackMode.length > 0) ? oral.judgeAttackMode
+    : [{ intervention: 'No bench interventions were generated for this argument.', trapType: '', advocateEscape: 'Rebuild the argument, or practise in the Simulator.' }];
 
   // Section 5: Rebuttal War Room
   let rebuttalsList = [];
   const oppArgs = rebuttalsObj.opponentArguments || [];
   const demoStrats = rebuttalsObj.demolitionStrategy || [];
   for (let i = 0; i < Math.max(oppArgs.length, demoStrats.length); i++) {
-    rebuttalsList.push({
-      opponent: oppArgs[i] || "Opponent argument",
-      rebuttal: demoStrats[i] || "Response strategy"
-    });
+    rebuttalsList.push({ opponent: oppArgs[i] || 'Opponent argument', rebuttal: demoStrats[i] || 'Response strategy' });
   }
-  if (rebuttalsList.length === 0) {
-    rebuttalsList = isPetitioner ? [
-      {
-        opponent: "The state regulation is a policy decision and is not reviewable by the Court.",
-        rebuttal: "Policy discretion is bounded by the Constitution. Under Royappa, arbitrary policy is ultra vires Article 14."
-      },
-      {
-        opponent: "The petitioner failed to exhaust the alternative remedy of administrative appeal.",
-        rebuttal: "Alternate remedies do not bar writ jurisdiction when fundamental rights are violated, as held in Whirlpool."
-      },
-      {
-        opponent: "No hearing is required because the state is acting in an emergency public safety role.",
-        rebuttal: "Emergency claims do not suspend Article 14 or 21. Natural justice (at least post-decisional) must be provided."
-      }
-    ] : [
-      {
-        opponent: "The state regulation violates Article 14 because it was issued without prior notice.",
-        rebuttal: "Urgency and public welfare justify post-decisional hearing, satisfying natural justice."
-      },
-      {
-        opponent: "The regulation is disproportionate and violates Article 19(1)(g).",
-        rebuttal: "Under Article 19(6), the state is competent to impose reasonable restrictions for public safety."
-      },
-      {
-        opponent: "The guidelines are unguided and therefore arbitrary.",
-        rebuttal: "Guidelines are implicitly defined by the statutory framework and target public welfare objectives."
-      }
-    ];
-  }
+  if (rebuttalsList.length === 0) rebuttalsList = [{ opponent: 'No opposing arguments were generated.', rebuttal: NOT_GENERATED }];
 
-  // Section 6: Authorities Snapshot
+  // Section 6: Authorities Snapshot — the argument's own authorities only
   let precedentsList = oral.precedents || (iracData.citations && iracData.citations.constitutionalBenchAuthorities) || [];
   if (!precedentsList || precedentsList.length === 0) {
-    precedentsList = [
-      {
-        name: "K.S. Puttaswamy v. Union of India (2017)",
-        bench: "9-Judge Bench",
-        benchStrength: "9-Judge Constitutional Bench",
-        constitutionalImportance: "★★★★★ (Critical Article 21 Privacy Foundation)",
-        courtroomUsage: "My Lords, the constitutional proportionality test laid down in Puttaswamy requires the state to choose the least restrictive measure, which it has failed to do here.",
-        strategicValue: "Serves as the foundation to challenge the proportionality of the state restrictions under Article 21.",
-        authorityWeight: "★★★★★ (Highest Binding Authority)",
-        ratio: "Right to privacy and personal liberty are fundamental under Article 21, and state limitation of these rights must satisfy the three-fold test of legality, necessity, and proportionality.",
-        why: "Serves as the foundation to challenge the proportionality of the state restrictions under Article 21.",
-        usage: "My Lords, the constitutional proportionality test laid down in Puttaswamy requires the state to choose the least restrictive measure, which it has failed to do here."
-      },
-      {
-        name: "Maneka Gandhi v. Union of India (1978)",
-        bench: "7-Judge Bench",
-        benchStrength: "7-Judge Constitutional Bench",
-        constitutionalImportance: "★★★★★ (Due Process & Natural Justice Landmark)",
-        courtroomUsage: "Under the authority of Maneka Gandhi, any administrative procedure that lacks notice and hearing violates natural justice per se.",
-        strategicValue: "Key precedent to argue that bypassing prior notice and hearing constitutes absolute procedural invalidity.",
-        authorityWeight: "★★★★★ (Highest Binding Authority)",
-        ratio: "Any procedure affecting Article 21 rights must be 'fair, just, and reasonable' and cannot be arbitrary, fanciful, or oppressive. Natural justice is a mandatory requirement.",
-        why: "Key precedent to argue that bypassing prior notice and hearing constitutes absolute procedural invalidity.",
-        usage: "Under the authority of Maneka Gandhi, any administrative procedure that lacks notice and hearing violates natural justice per se."
-      },
-      {
-        name: "E.P. Royappa v. State of Tamil Nadu (1974)",
-        bench: "5-Judge Bench",
-        benchStrength: "5-Judge Constitutional Bench",
-        constitutionalImportance: "★★★★☆ (Article 14 Anti-Arbitrariness Standard)",
-        courtroomUsage: "Royappa establishes that state action lacking reasoned guidelines is manifestly arbitrary and violates Article 14.",
-        strategicValue: "Provides the legal basis to strike down executive policy decisions that are taken without guidelines or reasons.",
-        authorityWeight: "★★★★☆ (Binding Constitutional Bench)",
-        ratio: "Equality is a dynamic concept. Manifest arbitrariness in state action is the absolute antithesis of the rule of law under Article 14.",
-        why: "Provides the legal basis to strike down executive policy decisions that are taken without guidelines or reasons.",
-        usage: "Royappa establishes that state action lacking reasoned guidelines is manifestly arbitrary and violates Article 14."
-      }
-    ];
+    precedentsList = (iracData.precedentsNeeded || []).filter(c => c && (c.caseName || typeof c === 'string')).map(c => {
+      const name = typeof c === 'string' ? c : c.caseName;
+      const held = (c && c.holdingRelevant) || '';
+      return { name, bench: '', benchStrength: '', constitutionalImportance: '', courtroomUsage: '', strategicValue: held,
+        authorityWeight: c && c.confidenceLevel ? `Confidence: ${c.confidenceLevel}` : '', ratio: held || 'Holding not given.', why: held, usage: '' };
+    });
+    if (!precedentsList.length) precedentsList = [{ name: 'No authorities in this argument yet', bench: '', benchStrength: '', constitutionalImportance: '', courtroomUsage: '',
+      strategicValue: '', authorityWeight: '', ratio: 'Add authorities in the Authority Armory and rebuild.', why: '', usage: '' }];
   }
 
   let tabContentHTML = '';
@@ -3012,23 +2823,6 @@ function getUpgradedCitations(citationsData, notes) {
 //   SHARED PRE-DRAFTING & TRANSITIONAL HELPERS
 // ==========================================
 
-function resolveIssueKey(selectValue) {
-  if (!selectValue) return "Issue 3";
-  const selectStr = selectValue.toLowerCase();
-  
-  if (selectStr.includes("issue 1")) return "Issue 1";
-  if (selectStr.includes("issue 2")) return "Issue 2";
-  if (selectStr.includes("issue 3")) return "Issue 3";
-  if (selectStr.includes("issue 4")) return "Issue 4";
-  
-  // Keyword fallback mappings
-  if (selectStr.includes("jurisdiction") || selectStr.includes("maintainability")) return "Issue 1";
-  if (selectStr.includes("validity") || selectStr.includes("constitutionality") || selectStr.includes("ultra vires")) return "Issue 2";
-  if (selectStr.includes("merits") || selectStr.includes("shutdown") || selectStr.includes("breach") || selectStr.includes("privacy") || selectStr.includes("speech") || selectStr.includes("rights")) return "Issue 3";
-  if (selectStr.includes("remedy") || selectStr.includes("relief") || selectStr.includes("compensation") || selectStr.includes("damages") || selectStr.includes("prayer")) return "Issue 4";
-  
-  return "Issue 3";
-}
 
 // Map a Stage 1 precedentsNeeded entry to the authority card shape the
 // Advocacy renderers expect. Guarantees `name` and `ratio` are strings.
@@ -3081,107 +2875,13 @@ window.getCasesFromAnalysis = getCasesFromAnalysis;
 // Prefers the Stage 1 analysis cases (case continuity); only falls back to the
 // static demo registry when no proposition has been analysed yet.
 function getAuthoritiesForIssueAndStance(issueVal, stance) {
-  const analysisCases = getCasesFromAnalysis();
-  if (analysisCases.length > 0) return analysisCases;
-  return getAuthoritiesFromStaticRegistry(issueVal, stance);
-}
-
-function getAuthoritiesFromStaticRegistry(issueVal, stance) {
-  let matchedAuthorities = [];
-  const selectStr = (issueVal || "").toLowerCase();
-  
-  // Define matched registry keys
-  let matchedKeys = new Set();
-  
-  // 1. Maintainability / Jurisdiction
-  if (selectStr.includes("jurisdiction") || selectStr.includes("maintainability") || selectStr.includes("alternative remedy") || selectStr.includes("art. 226") || selectStr.includes("article 226") || selectStr.includes("art. 32") || selectStr.includes("article 32") || selectStr.includes("bar")) {
-    matchedKeys.add("Issue 1");
-  }
-  
-  // 2. Arbitrariness / Equality / Article 14
-  if (selectStr.includes("validity") || selectStr.includes("constitutionality") || selectStr.includes("ultra vires") || selectStr.includes("arbitrary") || selectStr.includes("arbitrariness") || selectStr.includes("article 14") || selectStr.includes("art. 14") || selectStr.includes("equality") || selectStr.includes("bias")) {
-    matchedKeys.add("Issue 2");
-  }
-  
-  // 3. Privacy / Article 21 / Speech / Article 19 / Merits / AI profiling
-  if (selectStr.includes("merits") || selectStr.includes("shutdown") || selectStr.includes("breach") || selectStr.includes("privacy") || selectStr.includes("speech") || selectStr.includes("rights") || selectStr.includes("article 19") || selectStr.includes("art. 19") || selectStr.includes("article 21") || selectStr.includes("art. 21") || selectStr.includes("liberty") || selectStr.includes("profiling") || selectStr.includes("algorithm") || selectStr.includes("security") || selectStr.includes("natural justice") || selectStr.includes("process") || selectStr.includes("procedure")) {
-    matchedKeys.add("Issue 3");
-  }
-  
-  // 4. Remedy / Relief / Damages
-  if (selectStr.includes("remedy") || selectStr.includes("relief") || selectStr.includes("compensation") || selectStr.includes("damages") || selectStr.includes("prayer") || selectStr.includes("direct")) {
-    matchedKeys.add("Issue 4");
-  }
-  
-  // Fallback to option index if no keywords matched
-  if (matchedKeys.size === 0) {
-    const issueKey = resolveIssueKey(issueVal);
-    matchedKeys.add(issueKey);
-  }
-  
-  // Collect all registry authorities from matched keys
-  const seenNames = new Set();
-  matchedKeys.forEach(key => {
-    const authList = (SHARED_AUTHORITY_REGISTRY[key] && SHARED_AUTHORITY_REGISTRY[key][stance]) || [];
-    authList.forEach(auth => {
-      if (!seenNames.has(auth.name.toLowerCase())) {
-        seenNames.add(auth.name.toLowerCase());
-        matchedAuthorities.push({ ...auth });
-      }
-    });
-  });
-  
-  // Merge dynamic precedents from lastAnalysis if available
-  try {
-    const analysisStr = window.lastAnalysis || lastAnalysis;
-    if (analysisStr) {
-      const data = JSON.parse(analysisStr);
-      const dynamicPrecedents = data.precedentsNeeded || [];
-      dynamicPrecedents.forEach(dp => {
-        const caseName = dp.caseName || dp.name || "";
-        if (!caseName) return;
-        
-        const lowerCaseName = caseName.toLowerCase();
-        let alreadyAdded = false;
-        seenNames.forEach(name => {
-          if (name.includes(lowerCaseName) || lowerCaseName.includes(name)) {
-            alreadyAdded = true;
-          }
-        });
-        if (alreadyAdded) return;
-        
-        const dpText = `${caseName} ${dp.holdingRelevant || ""} ${dp.citation || ""}`.toLowerCase();
-        let relevant = false;
-        
-        if (matchedKeys.has("Issue 3") && (dpText.includes("privacy") || dpText.includes("article 21") || dpText.includes("personal liberty") || dpText.includes("speech") || dpText.includes("article 19") || dpText.includes("hearing") || dpText.includes("natural justice") || dpText.includes("procedure"))) {
-          relevant = true;
-        }
-        if (matchedKeys.has("Issue 2") && (dpText.includes("arbitrary") || dpText.includes("article 14") || dpText.includes("equality") || dpText.includes("classification"))) {
-          relevant = true;
-        }
-        if (matchedKeys.has("Issue 1") && (dpText.includes("jurisdiction") || dpText.includes("maintainability") || dpText.includes("writ") || dpText.includes("article 226") || dpText.includes("article 32") || dpText.includes("alternative remedy"))) {
-          relevant = true;
-        }
-        if (matchedKeys.has("Issue 4") && (dpText.includes("remedy") || dpText.includes("relief") || dpText.includes("compensation") || dpText.includes("damages"))) {
-          relevant = true;
-        }
-        
-        if (relevant || matchedKeys.size === 0) {
-          seenNames.add(lowerCaseName);
-          matchedAuthorities.push({
-            name: caseName,
-            display: caseName,
-            ratio: dp.holdingRelevant || "Relevant constitutional holding for this dispute.",
-            section: dp.citation || "Citation unverified"
-          });
-        }
-      });
-    }
-  } catch (e) {
-    console.error("Error merging dynamic precedents in getAuthoritiesForIssueAndStance:", e);
-  }
-  
-  return matchedAuthorities;
+  // Only the cases the analysis found for THIS proposition. There used to be a
+  // fallback to a fixed list of Indian constitutional landmarks, picked by
+  // loose keyword matching ("rights", "process", "merits"...), which put
+  // Puttaswamy and Maneka Gandhi in front of nearly every moot, arbitrations
+  // and English-law problems included. No cases now means an honest empty
+  // state, not a default that looks like advice.
+  return getCasesFromAnalysis();
 }
 
 export function validateDraftForm() {
@@ -3226,7 +2926,7 @@ export function renderPreDraftAuthorities() {
   const authorities = getAuthoritiesForIssueAndStance(issueVal, stance);
 
   if (authorities.length === 0) {
-    container.innerHTML = `<div class="text-[11px] text-white-muted italic py-1 font-sans text-center bg-black/[0.02] border border-dashed border-black/10 rounded-xl p-4">No key recommended weapons for this issue.</div>`;
+    container.innerHTML = `<div class="text-[11px] text-white-muted italic py-1 font-sans text-center bg-black/[0.02] border border-dashed border-black/10 rounded-xl p-4">No authorities found for this issue yet. Re-run the analysis, or add your own in the draft notes and check them with “Check these citations”.</div>`;
     return;
   }
 
@@ -3348,7 +3048,7 @@ function renderAdvocacyAuthorities(issue) {
   const authorities = getAuthoritiesForIssueAndStance(issueTitle, stance);
 
   if (authorities.length === 0) {
-    dock.innerHTML = `<div class="text-xs text-white-muted italic py-4">No key recommended authorities for this issue.</div>`;
+    dock.innerHTML = `<div class="text-xs text-white-muted italic py-4">No authorities found for this issue yet. Re-run the analysis, or add your own in the draft notes.</div>`;
     return;
   }
 

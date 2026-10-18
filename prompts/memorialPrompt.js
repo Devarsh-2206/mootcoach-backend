@@ -26,7 +26,7 @@ with invented ones.
 - NEVER invent a case name, year, reporter, volume or page. Never pad the Index to
   make it look fuller.
 - Give the citation in SCC form where you are confident, e.g.
-  "Surya Dev Rai v. Ram Chander Rai, (2003) 6 SCC 675". AIR or the official reporter
+  "Party A v. Party B, (Year) Volume SCC Page". AIR or the official reporter
   is fine where SCC does not apply.
 - If you know the case but not the exact reference, give name and year only, set
   "verify": true, and say in "citationNote" what needs checking. Do NOT guess a

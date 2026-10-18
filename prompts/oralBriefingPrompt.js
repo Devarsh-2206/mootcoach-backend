@@ -44,9 +44,9 @@ QUANTITIES — exact minimums, every one of them is checked:
 
 LEGAL PRECISION:
 - State a test by its components exactly as the judgment does. Do not relabel a
-  multi-part test as one of its own parts. For example, K.S. Puttaswamy v. Union of India
-  (2017) requires legality, a legitimate aim and proportionality — proportionality is one
-  limb of that test, not the name of the whole.
+  multi-part test as one of its own parts. For example, where a judgment requires legality,
+  a legitimate aim and proportionality, proportionality is one limb of that test, not the
+  name of the whole.
 - If you are not sure of a holding, describe what the case is generally relied on for and
   say "verify the exact ratio" rather than inventing one. Never invent a case or citation.
 
