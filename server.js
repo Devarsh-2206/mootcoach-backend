@@ -412,7 +412,8 @@ const ARGUMENT_BUILDER_PROMPT = require("./prompts/argumentBuilderPrompt");
 const buildClaimExtractionPrompt = require("./prompts/claimExtractionPrompt");
 const { buildIndianLegalDirective } = require("./prompts/indianLegalFramework");
 const { buildForumDirective } = require("./prompts/forumDirective");
-const { applyCitationGuard } = require("./services/citationGuard");
+const { applyCitationGuard, verifyFlaggedAuthorities } = require("./services/citationGuard");
+const { verifyAuthorities } = require("./services/authorityVerifier");
 const { auditMemorial } = require("./services/memorialAudit");
 const MEMORIAL_REVIEW_PROMPT = require("./prompts/memorialReviewPrompt");
 const { buildMemorial } = require("./services/memorialBuilder");
@@ -1665,6 +1666,27 @@ app.post("/simulate-bench", signedIn, benchLimiter, express.json(), async (req, 
 });
 
 /* ─── /api/build-argument ─── */
+/* ─── /api/verify-authorities ───
+   Checks authorities against the web (Gemini + Google Search grounding) and
+   returns, per authority, verified / corrected / unverified with sources.
+   An authority is never "verified" on the model's word alone: see
+   services/authorityVerifier.js. Cached, so re-checking a case costs nothing. */
+app.post("/api/verify-authorities", signedIn, aiLimiter, express.json({ limit: '32kb' }), async (req, res) => {
+  const list = Array.isArray(req.body && req.body.authorities) ? req.body.authorities : null;
+  if (!list || !list.length) return res.status(400).json({ success: false, error: 'Send the authorities to check.' });
+  const forum = typeof req.body.forum === 'string' ? req.body.forum.slice(0, 200) : '';
+  try {
+    const results = await verifyAuthorities(list.map(a => ({ name: String((a && (a.name || a.caseName)) || ''), citation: String((a && a.citation) || '') })), { forum });
+    return res.json({ success: true, results });
+  } catch (error) {
+    const msg = String((error && error.message) || '');
+    const quota = /RESOURCE_EXHAUSTED|quota|PerDay|\b429\b/i.test(msg);
+    console.error('/api/verify-authorities error:', msg.slice(0, 200));
+    return res.status(quota ? 429 : 502).json({ success: false, code: quota ? 'quota' : 'provider',
+      error: quota ? 'The daily allowance for checking citations is used up. Try again tomorrow.' : 'Could not check the citations just now. Try again in a moment.' });
+  }
+});
+
 app.post("/api/build-argument", signedIn, aiLimiter, express.json(), async (req, res) => {
   const { stance, issue, notes, propositionContext, forum, instructions, authorities, memorialFocus } = req.body;
 
@@ -1806,6 +1828,7 @@ Authorities. Cite nothing you cannot stand behind: mark anything uncertain with
     // Shared with /api/build-memorial. See services/citationGuard.js for why the
     // model's own verify flag is not trusted.
     applyCitationGuard(data && data.memorial && data.memorial.indexOfAuthorities, authorities);
+    if (data && data.memorial) await verifyFlaggedAuthorities(data.memorial, { timeoutMs: 25000 });
 
     return res.json({ success: true, response: data });
   } catch (error) {
@@ -1881,6 +1904,9 @@ app.post("/api/build-memorial", signedIn, aiLimiter, express.json(), async (req,
     });
 
     applyCitationGuard(memorial.indexOfAuthorities, authorities);
+    // Then actually check what the guard flagged, instead of leaving it all to
+    // the student. Bounded: a slow or failed check leaves the marks as they were.
+    stats.citationCheck = await verifyFlaggedAuthorities(memorial, { forum: forum && (forum.forum || forum.specificBody || forum.name) });
 
     stats.seconds = Math.round((Date.now() - started) / 1000);
     console.log('[MEMORIAL] built: ' + JSON.stringify(stats));

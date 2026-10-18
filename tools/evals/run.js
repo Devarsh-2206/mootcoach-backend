@@ -27,6 +27,7 @@ const ANALYSIS_SYSTEM_PROMPT = require('../../prompts/analysisSystemPrompt');
 const { buildForumDirective } = require('../../prompts/forumDirective');
 const { buildJudgePrompt } = require('../../prompts/benchJudgePrompt');
 const { resolveVoiceJudge } = require('../../prompts/judgePersona');
+const { interpret, buildPrompt } = require('../../services/authorityVerifier');
 
 const argv = process.argv.slice(2);
 const flag = f => argv.includes(f);
@@ -101,7 +102,7 @@ function runCase(c) {
   const prec = Array.isArray(a.precedentsNeeded) ? a.precedentsNeeded : [];
   const malformed = prec.filter(p => !p || !/\bv\.?\s/i.test(p.caseName || '') || !String(p.citation || '').trim());
   record('analysis', c.id, 'authorities are named and cited', prec.length > 0 && !malformed.length,
-    `${prec.length} authorities${malformed.length ? `, ${malformed.length} malformed` : ''}`);
+    `${prec.length} authorities${malformed.length ? `, malformed: ${malformed.map(p => `"${(p && p.caseName) || '?'}" [${(p && p.citation) || 'no citation'}]`).join('; ')}` : ''}`);
   const unverified = prec.filter(p => /unverified/i.test(p.citation || '')).length;
   // Not a failure: honesty about an unverifiable citation is the behaviour we want. Reported for the trend.
   record('analysis', c.id, 'authorities flagged unverified (info)', true, `${unverified}/${prec.length}`);
@@ -145,10 +146,36 @@ function runBench() {
   }
 }
 
+/* ─────────────────────────── citation suite ───────────────────────────
+   Real grounded check (Google Search), same prompt and interpretation as
+   /api/verify-authorities. One known-wrong citation, two real cases, one
+   invention. */
+const CITATIONS = [
+  { name: 'Suryadev Rai v. Ram Chander Rai', citation: '(2008) 12 SCC 1', expect: s => s === 'corrected' || s === 'verified', label: 'misspelt, wrongly cited real case is found (ideally corrected to (2003) 6 SCC 675)' },
+  { name: 'K.S. Puttaswamy v. Union of India', citation: '(2017) 10 SCC 1', expect: s => s === 'verified', label: 'real case with the right citation is verified' },
+  { name: 'Anuradha Bhasin v. Union of India', citation: '(2020) 3 SCC 637', expect: s => s === 'verified', label: 'real case with the right citation is verified' },
+  { name: 'Ravindra Kesharwani v. State of Mandara', citation: '(2019) 4 SCC 912', expect: s => s === 'unverified', label: 'invented case is NOT verified' },
+];
+function runCitations() {
+  console.log('\n▸ citations (grounded web check)');
+  try {
+    const r = generate({ user: buildPrompt(CITATIONS, 'Supreme Court of India'), tools: [{ google_search: {} }], temperature: 0, json: false, maxOutputTokens: 4000 });
+    const res = interpret(CITATIONS, r.text, r.groundingMetadata);
+    res.forEach((v, i) => record('citations', 'citations', `${CITATIONS[i].name}: ${CITATIONS[i].label}`, CITATIONS[i].expect(v.status),
+      `${v.status}${v.foundCitation ? ' · ' + v.foundCitation : ''}${v.sources[0] ? ' · ' + v.sources[0].title : ''}`));
+  } catch (err) { record('citations', 'citations', 'citation check ran', false, err.message); }
+}
+
 /* ─────────────────────────── run + report ─────────────────────────── */
 const started = Date.now();
-for (const c of CASES) if (!only || only === c.id) runCase(c);
-if (!flag('--no-bench') && (!only || only.startsWith('bench-'))) runBench();
+const quotaGone = () => require('./gemini').CHAIN.every(m => require('./gemini').exhausted.has(m));
+for (const c of CASES) {
+  if (only && only !== c.id) continue;
+  if (quotaGone()) { console.log(`\n✗ Stopping: every model's daily Gemini quota is spent. Nothing after this point was tested.`); break; }
+  runCase(c);
+}
+if (!flag('--no-bench') && (!only || only.startsWith('bench-')) && !quotaGone()) runBench();
+if (!flag('--no-citations') && (!only || only === 'citations') && !quotaGone()) runCitations();
 
 const key = r => `${r.suite}|${r.case}|${r.check}`;
 const pass = results.filter(r => r.pass).length;
@@ -159,7 +186,7 @@ const regressions = results.filter(r => !r.pass && was.get(key(r)) === true);
 const fixed = results.filter(r => r.pass && was.get(key(r)) === false);
 
 console.log(`\n══ ${pass}/${results.length} checks passed (${Math.round(100 * pass / Math.max(1, results.length))}%) in ${Math.round((Date.now() - started) / 1000)}s`);
-for (const s of ['analysis', 'bench']) {
+for (const s of ['analysis', 'bench', 'citations']) {
   const rs = results.filter(r => r.suite === s); if (!rs.length) continue;
   console.log(`   ${s}: ${rs.filter(r => r.pass).length}/${rs.length}`);
 }
@@ -171,5 +198,11 @@ if (baseline) {
 const report = { when: new Date().toISOString(), passed: pass, total: results.length, results };
 fs.mkdirSync(path.join(DIR, 'reports'), { recursive: true });
 fs.writeFileSync(path.join(DIR, 'reports', 'latest.json'), JSON.stringify(report, null, 2));
-if (flag('--update-baseline')) { fs.writeFileSync(baselinePath, JSON.stringify(report, null, 2)); console.log('   baseline updated'); }
+const apiFailures = results.filter(r => /all models failed/.test(r.detail)).length;
+if (flag('--update-baseline')) {
+  // A baseline taken from a run the API cut short would mark real checks as
+  // failing and hide every later regression on them.
+  if (apiFailures || quotaGone()) console.log(`   baseline NOT updated: ${apiFailures} check(s) failed on API errors — re-run when the quota resets`);
+  else { fs.writeFileSync(baselinePath, JSON.stringify(report, null, 2)); console.log('   baseline updated'); }
+}
 process.exit(regressions.length ? 1 : 0);

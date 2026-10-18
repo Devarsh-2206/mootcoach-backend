@@ -1167,10 +1167,13 @@ function renderMemorial(memorialData) {
           const bits = [e.name, e.citation, e.provisions].filter(has).map(esc).join(has(e.citation) ? ', ' : ' &mdash; ');
           const yours = e.source === 'advocate'
             ? `<span class="text-[10px] font-sans text-emerald-700 ml-2">(your authority)</span>` : '';
+          const src = Array.isArray(e.sources) && e.sources[0];
           const verify = e.verify
-            ? `<span class="text-[10px] font-sans font-bold text-amber-700 ml-2">[VERIFY]</span>` : '';
+            ? `<span class="text-[10px] font-sans font-bold text-amber-700 ml-2">[VERIFY]</span>`
+            : e.source === 'verified'
+              ? `<span class="cite-badge ok ml-2">✓ Found${src ? ` · <a href="${esc(src.url)}" target="_blank" rel="noopener noreferrer">${esc(src.title)}</a>` : ''}</span>` : '';
           const prop = has(e.proposition) ? `<div class="text-[12px] text-slate-500 pl-4">Cited for: ${esc(e.proposition)}</div>` : '';
-          const note = has(e.citationNote) ? `<div class="text-[11px] text-amber-800 pl-4">${esc(e.citationNote)}</div>` : '';
+          const note = has(e.citationNote) ? `<div class="text-[11px] ${e.verify ? 'text-amber-800' : 'text-slate-500'} pl-4">${esc(e.citationNote)}</div>` : '';
           return `<div class="mb-1">${bits}${yours}${verify}${prop}${note}</div>`;
         }).join('')}
       </div>`;
@@ -1179,9 +1182,9 @@ function renderMemorial(memorialData) {
       const anyVerify = JSON.stringify(ioa).includes('"verify":true');
       parts.push(H('Index of Authorities', blocks + (anyVerify
         ? `<div class="mt-3 text-[12px] text-amber-800 bg-amber-50 border border-amber-200 rounded p-3 font-sans">
-             Entries marked <b>[VERIFY]</b> could not be confirmed by MootCoach, which has no access to
-             SCC Online, Manupatra or any law database. Check them against the reporter before you file
-             or cite them in court.
+             Entries marked <b>[VERIFY]</b> were proposed by MootCoach and could not be traced to a web
+             source when it checked. MootCoach has no access to SCC Online or Manupatra, so check them
+             against the reporter before you file or cite them in court.
            </div>` : ''), '#B0392E'));
     }
   }

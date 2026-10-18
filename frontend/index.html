@@ -3443,6 +3443,19 @@ span.text-\[9px\].uppercase.rounded, div.text-\[9px\].uppercase.rounded {
 /* One radius system: actions 6px, chips/badges stay pills, cards 12px. */
 .btn-primary, .btn-outline, .btn-sm, .diff-btn, .ws-floating-nav button,
 .btn-analyze, #wizard-next-btn, #wizard-prev-btn, .asc-copy { border-radius: 6px !important; }
+
+/* Citation checks: found (with source), corrected, not found */
+.cite-check:empty{display:none}
+.cite-check{margin-top:6px}
+.cite-badge{display:inline-block;font:500 11px/1.4 var(--mono);letter-spacing:.02em;padding:2px 8px;border-radius:4px;border:1px solid}
+.cite-badge a{color:inherit;text-decoration:underline}
+.cite-badge.ok{color:var(--acc-green);border-color:currentColor;background:rgba(47,125,82,.06)}
+.cite-badge.fix{color:var(--gold);border-color:var(--gold-border);background:var(--gold-muted)}
+.cite-badge.no{color:#8a5a12;border-color:rgba(138,90,18,.35);background:rgba(138,90,18,.06)}
+:root[data-theme="dark"] .cite-badge.no{color:#E2B26A}
+.cite-badge.wait{color:var(--white-muted);border-color:var(--rule)}
+.cite-check-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin-top:12px}
+.cite-check-hint{font-size:.78rem;color:var(--white-muted)}
 </style>
 </head>
 <body class="intro-hold">

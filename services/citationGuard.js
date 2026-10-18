@@ -82,4 +82,72 @@ function applyCitationGuard(indexOfAuthorities, advocateAuthorities) {
   return { flagged, restored };
 }
 
-module.exports = { applyCitationGuard, CASE_GROUPS };
+/**
+ * Checks the authorities the guard flagged against the web (authorityVerifier)
+ * and settles each one:
+ *   verified  → the [VERIFY] mark is lifted and the source recorded
+ *   corrected → the citation is replaced with the one found, in the index AND
+ *               wherever the memorial body quotes the wrong one, and noted
+ *   otherwise → the mark stays, with the reason
+ *
+ * Never throws and never holds the response hostage: on any failure, or after
+ * timeoutMs, the memorial goes out with the guard's marks as they were.
+ *
+ * @param {object} memorialOrDoc  the object holding indexOfAuthorities (body text is searched too)
+ * @returns {Promise<{verified:number, corrected:number, unverified:number, skipped?:string}>}
+ */
+async function verifyFlaggedAuthorities(memorialOrDoc, { forum, timeoutMs = 30000 } = {}) {
+  const ioa = memorialOrDoc && memorialOrDoc.indexOfAuthorities;
+  const stats = { verified: 0, corrected: 0, unverified: 0 };
+  if (!ioa) return { ...stats, skipped: 'no index' };
+  const flagged = [];
+  for (const group of CASE_GROUPS) for (const e of (Array.isArray(ioa[group]) ? ioa[group] : [])) if (e && e.verify === true) flagged.push(e);
+  if (!flagged.length) return stats;
+
+  const { verifyAuthorities, MAX_ITEMS } = require('./authorityVerifier');
+  const batch = flagged.slice(0, MAX_ITEMS);
+  let results;
+  try {
+    results = await Promise.race([
+      verifyAuthorities(batch.map(e => ({ name: e.name, citation: e.citation })), { forum }),
+      new Promise((_, rej) => setTimeout(() => rej(new Error('verification timed out')), timeoutMs)),
+    ]);
+  } catch (err) {
+    console.warn('[CITATION CHECK] skipped:', err.message);
+    return { ...stats, skipped: err.message };
+  }
+
+  const replaceDeep = (node, from, to) => {
+    if (typeof node === 'string') return node.split(from).join(to);
+    if (Array.isArray(node)) return node.map(n => replaceDeep(n, from, to));
+    if (node && typeof node === 'object') { for (const k of Object.keys(node)) if (k !== 'indexOfAuthorities') node[k] = replaceDeep(node[k], from, to); }
+    return node;
+  };
+
+  batch.forEach((e, i) => {
+    const r = results[i];
+    if (!r) return;
+    e.sources = r.sources || [];
+    if (r.status === 'verified' || r.status === 'corrected') {
+      e.verify = false;
+      e.source = 'verified';
+      if (r.status === 'corrected' && r.foundCitation && e.citation && r.foundCitation !== e.citation) {
+        const wrong = e.citation;
+        if (wrong.length >= 8) replaceDeep(memorialOrDoc, wrong, r.foundCitation);
+        e.citation = r.foundCitation;
+        e.citationNote = `Citation corrected from "${wrong}" after checking ${(e.sources[0] || {}).title || 'the web'}.`;
+        stats.corrected++;
+      } else {
+        e.citationNote = `Checked against ${(e.sources[0] || {}).title || 'a web source'}.`;
+        stats.verified++;
+      }
+    } else {
+      e.citationNote = [r.note || 'No reliable source found.', 'Check this before citing it.'].join(' ').replace(/(Check this before citing it\.)\s*\1/, '$1');
+      stats.unverified++;
+    }
+  });
+  console.log('[CITATION CHECK] ' + JSON.stringify(stats));
+  return stats;
+}
+
+module.exports = { applyCitationGuard, verifyFlaggedAuthorities, CASE_GROUPS };

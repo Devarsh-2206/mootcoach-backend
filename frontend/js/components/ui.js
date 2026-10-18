@@ -1,6 +1,6 @@
 import { BASE_URL } from '../config.js';
 import { currentUser, db, firebaseRef, hasCheckedAuth } from '../services/firebase.js';
-import { logSessionSecurely, checkBackendHealth, prepareOralBriefing } from '../services/api.js';
+import { logSessionSecurely, checkBackendHealth, prepareOralBriefing, requestJson } from '../services/api.js';
 import { storedOralNotes, storedRebuttals, lastBuiltArgument, populateIssuesFromAnalysis } from './argumentBuilder.js';
 
 // Shared State Variables
@@ -869,6 +869,43 @@ export function renderBullets(content, bulletExtraCls = '') {
     </li>`).join('')}</ul>`;
 }
 
+/* Citation checking (Harvey-style "every authority is sourced").
+   The server only counts an authority as found when a web source backs it;
+   see services/authorityVerifier.js. */
+function citationBadge(v) {
+  if (!v) return '';
+  const src = (v.sources || [])[0];
+  const link = src ? ` · <a href="${esc(src.url)}" target="_blank" rel="noopener noreferrer">${esc(src.title)}</a>` : '';
+  if (v.status === 'verified') return `<span class="cite-badge ok">✓ Found${link}</span>`;
+  if (v.status === 'corrected') return `<span class="cite-badge fix">Corrected citation: ${esc(v.foundCitation || '')}${link}</span>`;
+  return `<span class="cite-badge no">Not found — ${esc(v.note || 'check this before citing it.')}</span>`;
+}
+
+window.checkCaseCitations = async function () {
+  const cases = window.__casesForCheck || [];
+  const btn = document.getElementById('btn-check-citations');
+  if (!cases.length || !btn) return;
+  const list = cases.slice(0, 12).map(c => ({ name: c.caseName || '', citation: c.citation && c.citation !== 'Citation unverified' ? c.citation : '' }));
+  btn.disabled = true; btn.textContent = 'Checking…';
+  document.querySelectorAll('[data-cite-slot]').forEach((el, i) => { if (i < list.length && !cases[i].verification) el.innerHTML = '<span class="cite-badge wait">Checking…</span>'; });
+  try {
+    const forum = (lastAnalysis && lastAnalysis.detectedForum && lastAnalysis.detectedForum.forum) || '';
+    const data = await requestJson('/api/verify-authorities', { body: { authorities: list, forum } });
+    (data.results || []).forEach((v, i) => {
+      cases[i].verification = v;
+      const slot = document.querySelector(`[data-cite-slot="${i}"]`);
+      if (slot) slot.innerHTML = citationBadge(v);
+    });
+    const found = (data.results || []).filter(v => v.status !== 'unverified').length;
+    btn.textContent = `Checked: ${found} of ${list.length} found`;
+    showToast(`${found} of ${list.length} citations found with a source.`, found === list.length ? 'ok' : 'warn');
+  } catch (err) {
+    document.querySelectorAll('[data-cite-slot]').forEach((el, i) => { if (!cases[i] || !cases[i].verification) el.innerHTML = ''; });
+    btn.disabled = false; btn.textContent = 'Check these citations';
+    showToast(err.message || 'Could not check the citations just now.', 'err');
+  }
+};
+
 export function renderCases(content, rawCasesArray) {
   if (rawCasesArray && Array.isArray(rawCasesArray) && rawCasesArray.length && typeof rawCasesArray[0] === 'object') {
     return rawCasesArray.map((c, i) => {
@@ -892,9 +929,14 @@ export function renderCases(content, rawCasesArray) {
           ${citationHTML}
           ${c.holdingRelevant ? `<div class="case-desc">${fmtInline(c.holdingRelevant)}</div>` : ''}
           ${caveatHTML}
+          <div class="cite-check" data-cite-slot="${i}">${c.verification ? citationBadge(c.verification) : ''}</div>
         </div>
       </div>`;
-    }).join('');
+    }).join('') + (window.__casesForCheck = rawCasesArray, `
+      <div class="cite-check-bar">
+        <button type="button" class="btn-sm" id="btn-check-citations" onclick="window.checkCaseCitations()">Check these citations</button>
+        <span class="cite-check-hint">Searches the web for each case. An authority is marked found only when a source backs it.</span>
+      </div>`);
   }
   const items = extractBullets(content);
   if (!items.length) return renderBullets(content, 'ib-purple');

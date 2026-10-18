@@ -7,7 +7,8 @@
     "dev": "node server.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "eval": "node tools/evals/run.js",
-    "eval:fast": "node tools/evals/run.js --no-analysis --no-bench"
+    "eval:fast": "node tools/evals/run.js --no-analysis --no-bench --no-citations",
+    "test:verifier": "node tools/evals/verifier.test.js && node tools/evals/citation-guard.test.js"
   },
   "type": "commonjs",
   "dependencies": {

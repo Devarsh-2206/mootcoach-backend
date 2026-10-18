@@ -11,17 +11,22 @@ const { execFileSync, execSync } = require('child_process');
 const CHAIN = (process.env.GEMINI_MODELS || 'gemini-3.8-flash,gemini-2.5-flash,gemini-3.6-flash,gemini-3-flash-preview').split(',');
 const KEY = /^AIza/.test(process.env.GEMINI_API_KEY || '') ? process.env.GEMINI_API_KEY : null;
 
-function generate({ system, user, history, temperature = 0.1, json = true, maxOutputTokens = 32000 }) {
+const exhausted = new Set();
+
+function generate({ system, user, history, temperature = 0.1, json = true, maxOutputTokens = 32000, tools }) {
   const contents = history || [{ role: 'user', parts: [{ text: user }] }];
   const body = {
-    systemInstruction: { parts: [{ text: system }] },
+    ...(system ? { systemInstruction: { parts: [{ text: system }] } } : {}),
     contents,
-    generationConfig: { temperature, maxOutputTokens, ...(json ? { responseMimeType: 'application/json' } : {}) },
+    ...(tools ? { tools } : {}),
+    generationConfig: { temperature, maxOutputTokens, ...(json && !tools ? { responseMimeType: 'application/json' } : {}) },
   };
   let lastErr = '';
   for (let round = 0; round < 4; round++) {
+    if (CHAIN.every(m => exhausted.has(m))) break;
     if (round) execSync(`sleep ${8 * round}`);
     for (const model of CHAIN) {
+      if (exhausted.has(model)) continue;
       const args = ['-s', '--max-time', '180', '-X', 'POST', '-H', 'content-type: application/json', '--data-binary', '@-',
         `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`];
       if (KEY) args.splice(args.length - 1, 0, '-H', `x-goog-api-key: ${KEY}`);
@@ -29,14 +34,22 @@ function generate({ system, user, history, temperature = 0.1, json = true, maxOu
       try { out = execFileSync('curl', args, { input: JSON.stringify(body), maxBuffer: 1 << 26 }).toString(); }
       catch (e) { lastErr = `${model}: curl ${e.status}`; continue; }
       let j; try { j = JSON.parse(out); } catch (e) { lastErr = `${model}: non-JSON ${out.slice(0, 80)}`; continue; }
-      if (j.error) { lastErr = `${model}: ${j.error.code} ${String(j.error.message).slice(0, 80)}`; continue; }
+      if (j.error) {
+        lastErr = `${model}: ${j.error.code} ${String(j.error.message).slice(0, 80)}`;
+        // A spent DAILY quota does not come back by waiting a few seconds; note
+        // it so the run stops instead of hammering every model in the chain.
+        if (j.error.code === 429 && /PerDay|per day|free_tier/i.test(JSON.stringify(j.error))) exhausted.add(model);
+        continue;
+      }
       const cand = (j.candidates || [])[0] || {};
       const text = ((cand.content || {}).parts || []).map(p => p.text || '').join('');
       if (!text) { lastErr = `${model}: empty (${cand.finishReason || 'no candidate'})`; continue; }
-      return { text, model, finishReason: cand.finishReason };
+      return { text, model, finishReason: cand.finishReason, groundingMetadata: cand.groundingMetadata || {} };
     }
   }
-  throw new Error(`all models failed — last: ${lastErr}`);
+  const err = new Error(`all models failed — last: ${lastErr}`);
+  err.quotaExhausted = CHAIN.every(m => exhausted.has(m));
+  throw err;
 }
 
 /** Pull the first JSON object out of a model reply (tolerates fences/prose). */
@@ -47,4 +60,4 @@ function parseJSON(text) {
   return null;
 }
 
-module.exports = { generate, parseJSON, CHAIN };
+module.exports = { generate, parseJSON, CHAIN, exhausted };
