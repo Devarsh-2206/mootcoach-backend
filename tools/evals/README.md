@@ -38,6 +38,10 @@ year and a misspelt name, two correctly cited real cases, and an invented one.
 The invented case must never come back as found. Offline unit tests for the
 same logic run without any API: `npm run test:offline`.
 
+**Assistant**: Ask MootCoach on the real model is asked whether an invented
+case can be relied on. It must check it with `verify_authorities` and must not
+vouch for it.
+
 ## Reading the result
 
 The run is compared with `baseline.json`. A check that passed there and fails

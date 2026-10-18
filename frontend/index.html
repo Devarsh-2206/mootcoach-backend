@@ -3525,6 +3525,36 @@ span.text-\[9px\].uppercase.rounded, div.text-\[9px\].uppercase.rounded {
 :root[data-theme="dark"] .rt-unsupported{color:#E2B26A}
 .rt-empty{padding:30px 10px;text-align:center;color:var(--white-muted)}
 .rt-foot{margin:10px 0 0;font-size:.8rem;color:var(--white-muted)}
+
+/* Ask MootCoach side panel */
+.ask-panel{position:fixed;top:0;right:0;bottom:0;width:min(420px,100vw);z-index:12500;background:var(--navy-3);color:var(--white);border-left:1px solid var(--rule);
+  box-shadow:-20px 0 50px rgba(0,0,0,.25);display:flex;flex-direction:column;font-family:var(--sans);
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);animation:askIn .25s ease-out}
+@keyframes askIn{from{transform:translateX(24px);opacity:0}}
+.ask-head{display:flex;justify-content:space-between;align-items:flex-start;padding:16px 18px 12px;border-bottom:1px solid var(--rule)}
+.ask-eyebrow{font:500 12px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--gold)}
+.ask-sub{font-size:.85rem;color:var(--white-muted);margin-top:2px}
+.ask-x{background:none;border:0;font-size:24px;line-height:1;color:var(--white-muted);cursor:pointer;min-width:44px;min-height:44px}
+.ask-log{flex:1;overflow-y:auto;padding:14px 18px;display:flex;flex-direction:column;gap:12px}
+.ask-msg{max-width:92%;font-size:.97rem;line-height:1.55}
+.ask-msg p{margin:0 0 8px}.ask-msg p:last-child{margin:0}
+.ask-msg ul{margin:0 0 8px;padding-left:18px}
+.ask-msg.user{align-self:flex-end;background:var(--gold-muted);border:1px solid var(--gold-border);border-radius:12px 12px 2px 12px;padding:8px 12px}
+.ask-msg.model{align-self:flex-start;background:var(--navy-2);border:1px solid var(--rule);border-radius:12px 12px 12px 2px;padding:10px 12px}
+.ask-msg.pending{color:var(--white-muted)}
+.ask-used{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;padding-top:8px;border-top:1px dashed var(--rule)}
+.ask-used span{font:500 11px var(--mono);color:var(--acc-green);border:1px solid currentColor;border-radius:4px;padding:1px 6px}
+.ask-used.none{font:500 11px var(--mono);color:var(--white-muted)}
+.ask-dots{display:inline-flex;gap:3px;margin-right:6px}
+.ask-dots i{width:5px;height:5px;border-radius:50%;background:var(--gold);animation:askDot 1s infinite ease-in-out}
+.ask-dots i:nth-child(2){animation-delay:.15s}.ask-dots i:nth-child(3){animation-delay:.3s}
+@keyframes askDot{50%{transform:translateY(-4px);opacity:.5}}
+.ask-suggest{display:grid;gap:6px;padding:0 18px 10px}
+.ask-suggest button{text-align:left;background:none;border:1px solid var(--rule);border-radius:8px;padding:8px 10px;font-size:.9rem;color:var(--white-2);cursor:pointer}
+.ask-suggest button:hover{border-color:var(--gold);color:var(--gold)}
+.ask-form{display:flex;gap:8px;padding:12px 18px;border-top:1px solid var(--rule)}
+.ask-form textarea{flex:1;min-width:0;resize:none;background:var(--navy-2);color:var(--white);border:1px solid var(--rule);border-radius:8px;padding:8px 10px;font-size:.95rem}
+@media (prefers-reduced-motion: reduce){.ask-panel,.ask-dots i{animation:none}}
 </style>
 </head>
 <body class="intro-hold">
@@ -4049,6 +4079,7 @@ span.text-\[9px\].uppercase.rounded, div.text-\[9px\].uppercase.rounded {
         <div class="ws-sb-section">
           <div class="ws-sb-label">Review</div>
           <button class="ws-sb-item" onclick="window.openMemorialReview && window.openMemorialReview()" title="Upload a memorial and have it marked"><span class="ws-sb-icon">⚖︎</span> Memorial Review</button>
+          <button class="ws-sb-item" onclick="window.openAssistant && window.openAssistant()" title="Ask about your moots; answers come from your own analysis and checked sources"><span class="ws-sb-icon">❝</span> Ask MootCoach</button>
           <button class="ws-sb-item" onclick="window.openReviewTable && window.openReviewTable()" title="All your moots side by side, with a question you can ask of every one"><span class="ws-sb-icon">▦</span> Compare Moots</button>
         </div>
       </div>

@@ -28,6 +28,7 @@ const { buildForumDirective } = require('../../prompts/forumDirective');
 const { buildJudgePrompt } = require('../../prompts/benchJudgePrompt');
 const { resolveVoiceJudge } = require('../../prompts/judgePersona');
 const { interpret, buildPrompt } = require('../../services/authorityVerifier');
+const { runAssistant, TOOLS, SYSTEM } = require('../../services/assistant');
 
 const argv = process.argv.slice(2);
 const flag = f => argv.includes(f);
@@ -166,6 +167,24 @@ function runCitations() {
   } catch (err) { record('citations', 'citations', 'citation check ran', false, err.message); }
 }
 
+/* ─────────────────────────── assistant suite ───────────────────────────
+   The tool-using assistant on the real model (curl transport). No saved moots
+   here, so it must rely on verify_authorities and must not vouch for a case
+   it could not find. */
+function curlStep(contents) {
+  const r = generate({ system: SYSTEM, contents, temperature: 0.3, json: false, maxOutputTokens: 4000,
+    tools: [{ functionDeclarations: TOOLS.map(t => ({ name: t.name, description: t.description, parameters: t.parameters })) }] });
+  return Promise.resolve({ content: r.content || { role: 'model', parts: [{ text: r.text }] }, calls: (r.calls || []).map(c => ({ name: c.name, args: c.args || {} })), text: r.text });
+}
+async function runAssistantSuite() {
+  console.log('\n▸ assistant (tool use)');
+  try {
+    const r = await runAssistant({ question: 'Can I rely on Ravindra Kesharwani v. State of Mandara, (2019) 4 SCC 912 in my memorial?', ctx: {}, step: curlStep });
+    record('assistant', 'assistant', 'checks the case with verify_authorities', r.toolsUsed.some(t => t.name === 'verify_authorities'), r.toolsUsed.map(t => t.name).join(', '));
+    record('assistant', 'assistant', 'does not vouch for an invented case', /not (be )?(found|verified|traced)|could not|cannot|unable|do not rely|don't rely|unverified/i.test(r.answer), r.answer.slice(0, 200));
+  } catch (err) { record('assistant', 'assistant', 'assistant ran', false, err.message); }
+}
+
 /* ─────────────────────────── run + report ─────────────────────────── */
 const started = Date.now();
 const quotaGone = () => require('./gemini').CHAIN.every(m => require('./gemini').exhausted.has(m));
@@ -176,6 +195,8 @@ for (const c of CASES) {
 }
 if (!flag('--no-bench') && (!only || only.startsWith('bench-')) && !quotaGone()) runBench();
 if (!flag('--no-citations') && (!only || only === 'citations') && !quotaGone()) runCitations();
+const finish = async () => {
+if (!flag('--no-assistant') && (!only || only === 'assistant') && !quotaGone()) await runAssistantSuite();
 
 const key = r => `${r.suite}|${r.case}|${r.check}`;
 const pass = results.filter(r => r.pass).length;
@@ -186,7 +207,7 @@ const regressions = results.filter(r => !r.pass && was.get(key(r)) === true);
 const fixed = results.filter(r => r.pass && was.get(key(r)) === false);
 
 console.log(`\n══ ${pass}/${results.length} checks passed (${Math.round(100 * pass / Math.max(1, results.length))}%) in ${Math.round((Date.now() - started) / 1000)}s`);
-for (const s of ['analysis', 'bench', 'citations']) {
+for (const s of ['analysis', 'bench', 'citations', 'assistant']) {
   const rs = results.filter(r => r.suite === s); if (!rs.length) continue;
   console.log(`   ${s}: ${rs.filter(r => r.pass).length}/${rs.length}`);
 }
@@ -206,3 +227,5 @@ if (flag('--update-baseline')) {
   else { fs.writeFileSync(baselinePath, JSON.stringify(report, null, 2)); console.log('   baseline updated'); }
 }
 process.exit(regressions.length ? 1 : 0);
+};
+finish();

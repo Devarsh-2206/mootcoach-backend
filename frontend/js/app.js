@@ -16,6 +16,7 @@ import { BASE_URL } from './config.js';
 import './components/memorialReview.js';
 import './components/mootCalendar.js';
 import './components/reviewTable.js';
+import './components/assistantPanel.js';
 import './services/mootProgress.js';
 import { ensureFreshBuild } from './services/freshness.js';
 import { 

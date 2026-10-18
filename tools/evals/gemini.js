@@ -13,8 +13,8 @@ const KEY = /^AIza/.test(process.env.GEMINI_API_KEY || '') ? process.env.GEMINI_
 
 const exhausted = new Set();
 
-function generate({ system, user, history, temperature = 0.1, json = true, maxOutputTokens = 32000, tools }) {
-  const contents = history || [{ role: 'user', parts: [{ text: user }] }];
+function generate({ system, user, history, contents: rawContents, temperature = 0.1, json = true, maxOutputTokens = 32000, tools }) {
+  const contents = rawContents || history || [{ role: 'user', parts: [{ text: user }] }];
   const body = {
     ...(system ? { systemInstruction: { parts: [{ text: system }] } } : {}),
     contents,
@@ -43,6 +43,8 @@ function generate({ system, user, history, temperature = 0.1, json = true, maxOu
       }
       const cand = (j.candidates || [])[0] || {};
       const text = ((cand.content || {}).parts || []).map(p => p.text || '').join('');
+      const calls = ((cand.content || {}).parts || []).filter(p => p.functionCall).map(p => p.functionCall);
+      if (calls.length) return { text, model, content: cand.content, calls, groundingMetadata: {} };
       if (!text) { lastErr = `${model}: empty (${cand.finishReason || 'no candidate'})`; continue; }
       return { text, model, finishReason: cand.finishReason, groundingMetadata: cand.groundingMetadata || {} };
     }

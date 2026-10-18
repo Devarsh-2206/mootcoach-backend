@@ -415,6 +415,7 @@ const { buildForumDirective } = require("./prompts/forumDirective");
 const { applyCitationGuard, verifyFlaggedAuthorities } = require("./services/citationGuard");
 const { verifyAuthorities } = require("./services/authorityVerifier");
 const REVIEW_COLUMN = require("./services/reviewColumn");
+const { runAssistant } = require("./services/assistant");
 const { auditMemorial } = require("./services/memorialAudit");
 const MEMORIAL_REVIEW_PROMPT = require("./prompts/memorialReviewPrompt");
 const { buildMemorial, planMemorial } = require("./services/memorialBuilder");
@@ -1667,6 +1668,26 @@ app.post("/simulate-bench", signedIn, benchLimiter, express.json(), async (req, 
 });
 
 /* ─── /api/build-argument ─── */
+/* ─── /api/assistant ───
+   Ask MootCoach: one assistant that answers by calling MootCoach's own
+   capabilities as tools (services/assistant.js). Tools read only the signed-in
+   user's moots. */
+app.post("/api/assistant", signedIn, aiLimiter, express.json({ limit: '64kb' }), async (req, res) => {
+  const question = typeof (req.body && req.body.question) === 'string' ? req.body.question.trim() : '';
+  if (question.length < 2) return res.status(400).json({ success: false, error: 'Ask a question.' });
+  const history = (Array.isArray(req.body.history) ? req.body.history : []).filter(h => h && typeof h.text === 'string').slice(-8);
+  const mootId = typeof req.body.mootId === 'string' ? req.body.mootId.slice(0, 64) : '';
+  try {
+    const out = await runAssistant({ question, history, ctx: { uid: req.user && req.user.uid, mootId } });
+    return res.json({ success: true, ...out });
+  } catch (error) {
+    const msg = String((error && error.message) || '');
+    const quota = /RESOURCE_EXHAUSTED|quota|PerDay|\b429\b/i.test(msg);
+    console.error('/api/assistant error:', msg.slice(0, 200));
+    return res.status(quota ? 429 : 502).json({ success: false, error: quota ? "Today's AI allowance is used up. Try again tomorrow." : 'MootCoach could not answer just now. Try again in a moment.' });
+  }
+});
+
 /* ─── /api/review-column ───
    The review table's custom column: one question across up to 15 moots in one
    call. Answers must quote the moot's analysis; quotes are checked in code
