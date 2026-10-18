@@ -196,7 +196,7 @@ export async function openReviewTable() {
       </header>
       <div class="rt-tools">
         <input type="search" id="rt-filter" placeholder="Filter by name, forum or issue" aria-label="Filter moots">
-        <form id="rt-ask" class="rt-ask">
+        <form id="rt-ask" class="rt-ask"${window.__features && window.__features.reviewColumn ? '' : ' hidden'}>
           <input type="text" id="rt-question" maxlength="200" placeholder="Ask every moot, e.g. Does it turn on Article 21?" aria-label="Question to ask of every moot">
           <button type="submit" class="btn-sm" id="rt-ask-btn">Add column</button>
         </form>

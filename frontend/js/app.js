@@ -864,3 +864,15 @@ whenDomReady(() => {
   window.__queuedClick = null;
   if (q) document.querySelector(q)?.click();
 });
+
+// Feature switches (server /api/features): controls for switched-off
+// features stay hidden. Fails closed: if the request fails, they stay hidden.
+window.__features = {};
+fetch(`${BASE_URL}/api/features`, { cache: 'no-store' })
+  .then(r => r.ok ? r.json() : {})
+  .then(f => {
+    window.__features = f || {};
+    const ask = document.getElementById('sb-ask-mootcoach');
+    if (ask) ask.hidden = !window.__features.assistant;
+  })
+  .catch(() => {});

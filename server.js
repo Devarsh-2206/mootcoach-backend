@@ -1668,11 +1668,24 @@ app.post("/simulate-bench", signedIn, benchLimiter, express.json(), async (req, 
 });
 
 /* ─── /api/build-argument ─── */
+/* ─── Feature switches ───
+   The two AI-heaviest new features are off unless switched on in the
+   environment, so they cannot eat the daily Gemini quota while it is tight.
+   Turn on with FEATURE_ASSISTANT=1 / FEATURE_REVIEW_COLUMN=1 on Render; the
+   client reads /api/features and shows the controls only when on. */
+const FEATURES = {
+  assistant: process.env.FEATURE_ASSISTANT === '1',
+  reviewColumn: process.env.FEATURE_REVIEW_COLUMN === '1',
+};
+app.get("/api/features", (req, res) => res.json(FEATURES));
+const featureGate = name => (req, res, next) => FEATURES[name] ? next()
+  : res.status(503).json({ success: false, code: 'disabled', error: 'This feature is switched off for now.' });
+
 /* ─── /api/assistant ───
    Ask MootCoach: one assistant that answers by calling MootCoach's own
    capabilities as tools (services/assistant.js). Tools read only the signed-in
    user's moots. */
-app.post("/api/assistant", signedIn, aiLimiter, express.json({ limit: '64kb' }), async (req, res) => {
+app.post("/api/assistant", featureGate("assistant"), signedIn, aiLimiter, express.json({ limit: '64kb' }), async (req, res) => {
   const question = typeof (req.body && req.body.question) === 'string' ? req.body.question.trim() : '';
   if (question.length < 2) return res.status(400).json({ success: false, error: 'Ask a question.' });
   const history = (Array.isArray(req.body.history) ? req.body.history : []).filter(h => h && typeof h.text === 'string').slice(-8);
@@ -1692,7 +1705,7 @@ app.post("/api/assistant", signedIn, aiLimiter, express.json({ limit: '64kb' }),
    The review table's custom column: one question across up to 15 moots in one
    call. Answers must quote the moot's analysis; quotes are checked in code
    (services/reviewColumn.js) and unsupported answers are flagged. */
-app.post("/api/review-column", signedIn, aiLimiter, express.json({ limit: '120kb' }), async (req, res) => {
+app.post("/api/review-column", featureGate("reviewColumn"), signedIn, aiLimiter, express.json({ limit: '120kb' }), async (req, res) => {
   const question = typeof (req.body && req.body.question) === 'string' ? req.body.question.trim().slice(0, 200) : '';
   const rows = (Array.isArray(req.body && req.body.rows) ? req.body.rows : []).slice(0, 15)
     .filter(r => r && typeof r.id === 'string' && typeof r.text === 'string')

@@ -3555,6 +3555,9 @@ span.text-\[9px\].uppercase.rounded, div.text-\[9px\].uppercase.rounded {
 .ask-form{display:flex;gap:8px;padding:12px 18px;border-top:1px solid var(--rule)}
 .ask-form textarea{flex:1;min-width:0;resize:none;background:var(--navy-2);color:var(--white);border:1px solid var(--rule);border-radius:8px;padding:8px 10px;font-size:.95rem}
 @media (prefers-reduced-motion: reduce){.ask-panel,.ask-dots i{animation:none}}
+
+/* Feature switches: controls for switched-off features stay hidden */
+#sb-ask-mootcoach[hidden], .rt-ask[hidden]{display:none!important}
 </style>
 </head>
 <body class="intro-hold">
@@ -4079,7 +4082,7 @@ span.text-\[9px\].uppercase.rounded, div.text-\[9px\].uppercase.rounded {
         <div class="ws-sb-section">
           <div class="ws-sb-label">Review</div>
           <button class="ws-sb-item" onclick="window.openMemorialReview && window.openMemorialReview()" title="Upload a memorial and have it marked"><span class="ws-sb-icon">⚖︎</span> Memorial Review</button>
-          <button class="ws-sb-item" onclick="window.openAssistant && window.openAssistant()" title="Ask about your moots; answers come from your own analysis and checked sources"><span class="ws-sb-icon">❝</span> Ask MootCoach</button>
+          <button class="ws-sb-item" id="sb-ask-mootcoach" hidden onclick="window.openAssistant && window.openAssistant()" title="Ask about your moots; answers come from your own analysis and checked sources"><span class="ws-sb-icon">❝</span> Ask MootCoach</button>
           <button class="ws-sb-item" onclick="window.openReviewTable && window.openReviewTable()" title="All your moots side by side, with a question you can ask of every one"><span class="ws-sb-icon">▦</span> Compare Moots</button>
         </div>
       </div>
