@@ -411,6 +411,7 @@ const { resolveVoiceJudge } = require("./prompts/judgePersona");
 const ARGUMENT_BUILDER_PROMPT = require("./prompts/argumentBuilderPrompt");
 const buildClaimExtractionPrompt = require("./prompts/claimExtractionPrompt");
 const { buildIndianLegalDirective } = require("./prompts/indianLegalFramework");
+const { buildForumDirective } = require("./prompts/forumDirective");
 const { applyCitationGuard } = require("./services/citationGuard");
 const { auditMemorial } = require("./services/memorialAudit");
 const MEMORIAL_REVIEW_PROMPT = require("./prompts/memorialReviewPrompt");
@@ -904,24 +905,7 @@ app.post("/analyze", requireUser({ allowPrewarm: true }), aiLimiter, singlePdf("
       });
     }
 
-    const forumDirective = (forumContext && forumContext.forum)
-      ? `\nDETECTED FORUM CONTEXT (AUTHORITATIVE — this overrides any default jurisdiction assumption):\n` +
-        `- Forum: ${forumContext.forum}\n` +
-        `- Court level: ${forumContext.courtLevel || 'Unspecified'}\n` +
-        `- Proceeding type: ${forumContext.proceedingType || 'Unspecified'}\n` +
-        `- Jurisdiction: ${forumContext.jurisdiction || 'Unspecified'}\n` +
-        `- State: ${forumContext.state || 'Unspecified'}\n` +
-        `- Governing Law: ${forumContext.governingLaw || 'Unspecified'}\n` +
-        `- Adjudicator: ${forumContext.adjudicatorType || 'Unspecified'}\n` +
-        `- Constitutional matter: ${forumContext.isConstitutionalMatter === true ? 'YES' : 'NO'}\n` +
-        `- Party labels: ${(forumContext.terminology && forumContext.terminology.parties) || 'Unspecified'}\n` +
-        `You MUST conduct the entire analysis under THIS forum, level and jurisdiction. Identify issues, frame arguments, and (critically) cite ONLY case law and authorities appropriate to it. Do NOT default to Indian constitutional law unless the detected jurisdiction is India AND the matter is genuinely constitutional. A trial-court civil suit is governed by the CPC and the relevant substantive Act — not by Article 14/19/21 or writ doctrine. Use this forum's own terminology and party labels throughout.\n` +
-        // Grounds an Indian matter in the law that actually governs it, and keeps
-        // constitutional doctrine out of ordinary civil and criminal work. Returns
-        // '' for non-Indian matters, so nothing Indian leaks into an English or
-        // arbitral case.
-        `${buildIndianLegalDirective(forumContext)}\n`
-      : '';
+    const forumDirective = buildForumDirective(forumContext);
 
     /* ── PHASE 2 + start of PHASE 5 (run concurrently — mutually independent) ──
        Full Legal Analysis only needs forumDirective + raw text; Proposition

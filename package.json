@@ -5,7 +5,9 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "eval": "node tools/evals/run.js",
+    "eval:fast": "node tools/evals/run.js --no-analysis --no-bench"
   },
   "type": "commonjs",
   "dependencies": {

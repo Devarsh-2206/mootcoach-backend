@@ -1,3 +1,5 @@
 node_modules
 .env
 uploads
+# eval run reports (the baseline is committed)
+tools/evals/reports/
