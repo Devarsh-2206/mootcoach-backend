@@ -3459,7 +3459,7 @@ span.text-\[9px\].uppercase.rounded, div.text-\[9px\].uppercase.rounded {
 
 /* Memorial plan review (plan-then-draft) */
 .plan-overlay{position:fixed;inset:0;z-index:13000;background:rgba(28,23,16,.5);display:grid;place-items:center;padding:16px}
-.plan-dialog{background:var(--navy-3);color:var(--white);border:1px solid var(--rule);border-radius:14px;width:min(860px,100%);max-height:calc(100dvh - 32px);display:flex;flex-direction:column;box-shadow:0 30px 70px rgba(0,0,0,.35)}
+.plan-dialog{background:var(--navy-3);color:var(--white);border:1px solid var(--rule);border-radius:14px;width:min(860px,calc(100vw - 32px));min-width:0;max-height:calc(100dvh - 32px);display:flex;flex-direction:column;box-shadow:0 30px 70px rgba(0,0,0,.35)}
 .plan-head{display:flex;justify-content:space-between;gap:16px;padding:20px 22px 14px;border-bottom:1px solid var(--rule)}
 .plan-head h2{margin:4px 0 6px;font:500 1.5rem/1.2 var(--serif)}
 .plan-head p{margin:0;font-size:.92rem;color:var(--white-2);max-width:62ch}
@@ -3491,6 +3491,40 @@ span.text-\[9px\].uppercase.rounded, div.text-\[9px\].uppercase.rounded {
   .plan-tools{grid-column:1/-1}
   .plan-rm-l,.plan-sgs,.plan-add{margin-left:0}
 }
+
+/* Compare moots (review table) */
+.rt-overlay{position:fixed;inset:0;z-index:13000;background:rgba(28,23,16,.5);display:grid;place-items:center;padding:16px}
+.rt-dialog{background:var(--navy-3);color:var(--white);border:1px solid var(--rule);border-radius:14px;width:min(1240px,calc(100vw - 32px));min-width:0;max-height:calc(100dvh - 32px);display:flex;flex-direction:column;box-shadow:0 30px 70px rgba(0,0,0,.35)}
+.rt-head{display:flex;justify-content:space-between;align-items:flex-start;padding:18px 22px 10px}
+.rt-head h2{margin:4px 0 0;font:500 1.5rem/1.2 var(--serif)}
+.rt-eyebrow{font:500 11px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--gold)}
+.rt-x{background:none;border:0;font-size:22px;line-height:1;color:var(--white-muted);cursor:pointer;min-width:32px;min-height:32px}
+.rt-tools{display:flex;flex-wrap:wrap;gap:8px;padding:0 22px 12px;border-bottom:1px solid var(--rule)}
+.rt-tools input{background:var(--navy-2);color:var(--white);border:1px solid var(--rule);border-radius:6px;padding:8px 10px;font-size:.92rem;min-width:0}
+#rt-filter{flex:1 1 200px}
+.rt-ask{display:flex;gap:8px;flex:2 1 300px;min-width:0}
+.rt-ask input{flex:1;min-width:0}
+.rt-body{overflow:auto;padding:12px 22px 16px;min-height:120px}
+.rt-scroll{overflow-x:auto;border:1px solid var(--rule);border-radius:8px}
+.rt-dialog,.plan-dialog{font-family:var(--sans)}
+.rt-table{border-collapse:collapse;width:100%;font-size:.95rem;min-width:980px;font-family:var(--sans)}
+.rt-table td{font-family:var(--sans)}
+.rt-table th{position:sticky;top:0;background:var(--navy-2);text-align:left;font:500 11px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--white-muted);border-bottom:1px solid var(--rule);padding:0;white-space:nowrap}
+.rt-table th button{background:none;border:0;color:inherit;font:inherit;letter-spacing:inherit;text-transform:inherit;padding:10px 10px;cursor:pointer;width:100%;text-align:inherit}
+.rt-table th.num,.rt-table td.num{text-align:right}
+.rt-table td{padding:10px;border-bottom:1px solid var(--rule);vertical-align:top}
+.rt-table tbody tr:hover{background:var(--gold-muted)}
+.rt-open{background:none;border:0;padding:0;color:var(--white);font:500 .95rem var(--serif);text-align:left;cursor:pointer;text-decoration:underline;text-decoration-color:var(--rule)}
+.rt-sub{font-size:.78rem;color:var(--white-muted);margin-top:2px}
+.rt-clip{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;max-width:34ch}
+.rt-none{color:var(--white-muted)}
+.rt-custom-h{background:var(--gold-muted)!important;color:var(--gold)!important;padding:10px!important;text-transform:none!important;letter-spacing:0!important;font-size:.85rem!important;white-space:normal!important;min-width:220px}
+.rt-custom{min-width:220px;max-width:320px}
+.rt-quote{font-style:italic;font-size:.82rem;color:var(--white-muted);margin-top:4px;border-left:2px solid var(--gold-border);padding-left:8px}
+.rt-unsupported{font:500 11px var(--mono);color:#8a5a12;margin-top:4px}
+:root[data-theme="dark"] .rt-unsupported{color:#E2B26A}
+.rt-empty{padding:30px 10px;text-align:center;color:var(--white-muted)}
+.rt-foot{margin:10px 0 0;font-size:.8rem;color:var(--white-muted)}
 </style>
 </head>
 <body class="intro-hold">
@@ -4015,6 +4049,7 @@ span.text-\[9px\].uppercase.rounded, div.text-\[9px\].uppercase.rounded {
         <div class="ws-sb-section">
           <div class="ws-sb-label">Review</div>
           <button class="ws-sb-item" onclick="window.openMemorialReview && window.openMemorialReview()" title="Upload a memorial and have it marked"><span class="ws-sb-icon">⚖︎</span> Memorial Review</button>
+          <button class="ws-sb-item" onclick="window.openReviewTable && window.openReviewTable()" title="All your moots side by side, with a question you can ask of every one"><span class="ws-sb-icon">▦</span> Compare Moots</button>
         </div>
       </div>
       <div class="ws-sb-bottom">

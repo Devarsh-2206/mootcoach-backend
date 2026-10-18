@@ -414,6 +414,7 @@ const { buildIndianLegalDirective } = require("./prompts/indianLegalFramework");
 const { buildForumDirective } = require("./prompts/forumDirective");
 const { applyCitationGuard, verifyFlaggedAuthorities } = require("./services/citationGuard");
 const { verifyAuthorities } = require("./services/authorityVerifier");
+const REVIEW_COLUMN = require("./services/reviewColumn");
 const { auditMemorial } = require("./services/memorialAudit");
 const MEMORIAL_REVIEW_PROMPT = require("./prompts/memorialReviewPrompt");
 const { buildMemorial, planMemorial } = require("./services/memorialBuilder");
@@ -1666,6 +1667,31 @@ app.post("/simulate-bench", signedIn, benchLimiter, express.json(), async (req, 
 });
 
 /* ─── /api/build-argument ─── */
+/* ─── /api/review-column ───
+   The review table's custom column: one question across up to 15 moots in one
+   call. Answers must quote the moot's analysis; quotes are checked in code
+   (services/reviewColumn.js) and unsupported answers are flagged. */
+app.post("/api/review-column", signedIn, aiLimiter, express.json({ limit: '120kb' }), async (req, res) => {
+  const question = typeof (req.body && req.body.question) === 'string' ? req.body.question.trim().slice(0, 200) : '';
+  const rows = (Array.isArray(req.body && req.body.rows) ? req.body.rows : []).slice(0, 15)
+    .filter(r => r && typeof r.id === 'string' && typeof r.text === 'string')
+    .map(r => ({ id: r.id.slice(0, 64), text: r.text.slice(0, 3500) }));
+  if (question.length < 4 || !rows.length) return res.status(400).json({ success: false, error: 'Send a question and the moots to ask it of.' });
+  try {
+    const call = await getChatCompletion({
+      messages: [{ role: 'system', content: REVIEW_COLUMN.PROMPT }, { role: 'user', content: REVIEW_COLUMN.buildUser(question, rows) }],
+      temperature: 0, max_tokens: 3000, geminiMaxOutputTokens: 8000, requestLabel: 'Review table column',
+    });
+    const answers = REVIEW_COLUMN.checkAnswers(extractAndParseJSON(call.text), rows);
+    return res.json({ success: true, answers });
+  } catch (error) {
+    const msg = String((error && error.message) || '');
+    const quota = /RESOURCE_EXHAUSTED|quota|PerDay|\b429\b/i.test(msg);
+    console.error('/api/review-column error:', msg.slice(0, 200));
+    return res.status(quota ? 429 : 502).json({ success: false, error: quota ? "Today's AI allowance is used up. Try again tomorrow." : 'Could not answer that just now. Try again in a moment.' });
+  }
+});
+
 /* ─── /api/verify-authorities ───
    Checks authorities against the web (Gemini + Google Search grounding) and
    returns, per authority, verified / corrected / unverified with sources.

@@ -8,7 +8,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "eval": "node tools/evals/run.js",
     "eval:fast": "node tools/evals/run.js --no-analysis --no-bench --no-citations",
-    "test:offline": "node tools/evals/verifier.test.js && node tools/evals/citation-guard.test.js && node tools/evals/memorial-plan.test.js"
+    "test:offline": "node tools/evals/verifier.test.js && node tools/evals/citation-guard.test.js && node tools/evals/memorial-plan.test.js && node tools/evals/review-column.test.js"
   },
   "type": "commonjs",
   "dependencies": {
