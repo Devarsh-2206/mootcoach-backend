@@ -380,7 +380,7 @@ const authorityIntelligenceRoute = require("./routes/authorityIntelligence");
 const benchForecastRoute = require("./routes/benchForecast");
 
 // Services
-const { handleLiveVoiceConnection, getChatCompletion } = require("./services/geminiService");
+const { handleLiveVoiceConnection, getChatCompletion, LIGHT_GEMINI_MODELS } = require("./services/geminiService");
 const usageMeter = require("./services/usageMeter");
 const analysisCache = require("./services/analysisCache");
 const { createEmptyMemory, evaluateExchange } = require("./services/memoryEngine");
@@ -1329,6 +1329,7 @@ app.post("/api/oral-briefing", signedIn, aiLimiter, express.json({ limit: '300kb
       geminiMaxAttempts: 1,
       totalBudgetMs: 130000,
       geminiMaxOutputTokens: 12000,
+      geminiModels: LIGHT_GEMINI_MODELS,
       requestLabel: "Chambers Briefing",
     });
     const data = extractAndParseJSON(call.text) || {};

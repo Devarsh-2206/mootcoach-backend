@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { getChatCompletion } = require("../services/geminiService");
+const { getChatCompletion, LIGHT_GEMINI_MODELS } = require("../services/geminiService");
 const AUTHORITY_CARD_PROMPT = require("../prompts/authorityCardPrompt");
 
 // We need the extractAndParseJSON utility. It's currently in server.js.
@@ -55,6 +55,7 @@ ${notes || 'None'}
       temperature: 0.2,
       max_tokens: 3000,
       primaryProvider: "gemini",
+      geminiModels: LIGHT_GEMINI_MODELS,
       requestLabel: "Authority Intelligence"
     });
 

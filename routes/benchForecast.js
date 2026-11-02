@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { getChatCompletion } = require("../services/geminiService");
+const { getChatCompletion, LIGHT_GEMINI_MODELS } = require("../services/geminiService");
 const BENCH_FORECAST_PROMPT = require("../prompts/benchForecastPrompt");
 
 function extractAndParseJSON(rawResponse) {
@@ -52,6 +52,7 @@ ${notes || 'None'}
       temperature: 0.3,
       max_tokens: 3000,
       primaryProvider: "gemini", // using gemini for heavier reasoning
+      geminiModels: LIGHT_GEMINI_MODELS,
       requestLabel: "Bench Attack Forecast"
     });
 

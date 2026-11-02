@@ -359,6 +359,25 @@ function orderByHealth(models) {
   return models.filter(m => !cooling(m)).concat(models.filter(cooling));
 }
 
+const DEFAULT_GEMINI_MODELS = (process.env.GEMINI_MODELS ||
+  'gemini-3.8-flash,gemini-2.5-flash,gemini-3.6-flash,gemini-3-flash-preview,gemini-3.1-flash-lite,gemini-3.5-flash-lite')
+  .split(',').map(s => s.trim()).filter(Boolean);
+
+/**
+ * The chain for the short jobs: authority cards, the bench forecast and the
+ * Chambers Briefing. Flash-Lite first because it costs about a third of 3.8
+ * Flash per token and, compared side by side on the same inputs
+ * (tools/evals/light.js), produced the same structure and stayed on the right
+ * forum's law. If it refuses, the call carries on down the normal chain, so a
+ * Lite outage costs time, not the answer.
+ *
+ * Analysis and the memorial stay on GEMINI_MODELS: that is where depth shows.
+ * Set GEMINI_LIGHT_MODELS on the server to change this without a deploy.
+ */
+const LIGHT_GEMINI_MODELS = (process.env.GEMINI_LIGHT_MODELS
+  || ['gemini-3.1-flash-lite'].concat(DEFAULT_GEMINI_MODELS.filter(m => m !== 'gemini-3.1-flash-lite')).join(','))
+  .split(',').map(s => s.trim()).filter(Boolean);
+
 async function getChatCompletion({
   messages,
   temperature = 0.1,
@@ -406,7 +425,10 @@ async function getChatCompletion({
   //
   // 0 keeps the old uncapped behaviour for the short calls that cannot get
   // anywhere near the limit. The long routes set it explicitly.
-  totalBudgetMs = 0
+  totalBudgetMs = 0,
+  // A different Gemini chain for this call. LIGHT_GEMINI_MODELS puts a cheaper
+  // model first for the short jobs; omitted, the call uses GEMINI_MODELS.
+  geminiModels = null
 }) {
   const startTime = Date.now();
   console.log(`[AI TRACE] [${requestLabel}] Starting request. Primary provider: ${primaryProvider}`);
@@ -513,9 +535,7 @@ async function getChatCompletion({
    * answering "503 high demand". 2.5-flash, which the prompts were first tuned
    * against, is the first fallback; the rest are capacity behind them.
    */
-  const GEMINI_MODELS = (process.env.GEMINI_MODELS ||
-    'gemini-3.8-flash,gemini-2.5-flash,gemini-3.6-flash,gemini-3-flash-preview,gemini-3.1-flash-lite,gemini-3.5-flash-lite')
-    .split(',').map(s => s.trim()).filter(Boolean);
+  const GEMINI_MODELS = (Array.isArray(geminiModels) && geminiModels.length) ? geminiModels : DEFAULT_GEMINI_MODELS;
 
   const runGeminiOn = async (model, attemptTimeoutMs) => {
     let lastError = null;
@@ -736,4 +756,4 @@ async function getChatCompletion({
   }
 }
 
-module.exports = { generateAIResponse, handleLiveVoiceConnection, getChatCompletion, _orderByHealth: orderByHealth, _coolDown: coolDown };
+module.exports = { generateAIResponse, handleLiveVoiceConnection, getChatCompletion, LIGHT_GEMINI_MODELS, _orderByHealth: orderByHealth, _coolDown: coolDown };
