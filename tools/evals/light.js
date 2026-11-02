@@ -94,7 +94,7 @@ for (const s of SCEN) {
       const ck = r.data ? checks[job](r.data, s) : { 'valid JSON': false };
       const u = r.usage || {};
       rows.push({ scen: s.id, job, model, ms: r.ms, err: r.err, finish: r.finish, in: u.promptTokenCount, out: u.candidatesTokenCount, think: u.thoughtsTokenCount || 0, ck });
-      fs.writeFileSync(`${OUT}/out-${s.id}-${job}-${model}.json`, r.text || r.err || '');
+      fs.writeFileSync(`${OUT}/out-${s.id}-${job}-${model.replace(/[^\w.-]+/g, "_")}.json`, r.text || r.err || '');
       const fails = Object.entries(ck).filter(([k, v]) => !k.startsWith('_') && v === false).map(([k]) => k);
       console.log(`${s.id.padEnd(5)} ${job.padEnd(8)} ${model.padEnd(22)} ${r.err ? 'ERROR ' + r.err : (fails.length ? '✗ ' + fails.join(', ') : '✓ all checks')} | ${Math.round(r.ms / 1000)}s in=${u.promptTokenCount} out=${u.candidatesTokenCount} think=${u.thoughtsTokenCount || 0}${ck._precedents ? ' | precedents: ' + ck._precedents.join(' ; ').slice(0, 200) : ''}`);
     }
