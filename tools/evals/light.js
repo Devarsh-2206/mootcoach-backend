@@ -79,15 +79,22 @@ const checks = {
   },
 };
 
-const rows = [];
-for (const s of SCEN) {
+function jobsFor(s) {
   const ctx = s.c.text;
-  const jobs = {
+  return {
     card: [CARD, `\nPROPOSITION FACTS / CONTEXT:\n${ctx}\n\nADVOCATE'S STANCE (SIDE):\n${s.stance}\n\nAUTHORITY TO ANALYZE:\n${s.authority}\n\nADVOCATE'S NOTES:\nNone\n`, 0.2, 0],
     forecast: [FORECAST, `\nPROPOSITION FACTS / CONTEXT:\n${ctx}\n\nSELECTED LEGAL ISSUE:\n${s.issue}\n\nADVOCATE'S STANCE (SIDE):\n${s.stance}\n\nADVOCATE'S PREPARED NOTES:\n${draftFor(s)}\n`, 0.3, 0],
     briefing: [buildOralBriefingPrompt({ stance: s.stance, benchMode: 'moderate' }),
       [`PROPOSITION:\n${ctx}`, `ISSUE BEING ARGUED:\n${s.issue}`, `KNOWN AUTHORITIES (real; relied on in this moot):\n- ${s.known.join('\n- ')}`, `THE ADVOCATE'S DRAFT:\n${draftFor(s)}`].join('\n\n') + '\n\nReturn ONLY a valid JSON object.', 0.3, 12000],
   };
+}
+
+module.exports = { SCEN, checks, jobsFor };
+if (require.main !== module) return;
+
+const rows = [];
+for (const s of SCEN) {
+  const jobs = jobsFor(s);
   for (const [job, [sys, user, temp, maxOut]] of Object.entries(jobs)) {
     for (const model of MODELS) {
       const r = call(model, sys, user, temp, maxOut);
