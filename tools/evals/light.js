@@ -27,6 +27,16 @@ const SCEN = [
 const draftFor = s => `My Lords, the ${s.stance} submits that the measure fails the test of proportionality. ${s.issue} The authorities, notably ${s.known.join(' and ')}, require the State to show necessity and to consider less restrictive means. No such material was produced.`;
 
 function call(model, system, user, temperature, maxOut) {
+  if (model.startsWith('groq:')) {
+    const t0 = Date.now();
+    try {
+      const r = require('./gemini').groqGenerate(model.slice(5), { system, contents: [{ role: 'user', parts: [{ text: user }] }], temperature, json: true, maxOutputTokens: maxOut || 0 });
+      let data = null; try { data = JSON.parse(r.text); } catch (e) {}
+      const u = r.usage || {};
+      return { text: r.text, data, finish: r.finishReason, ms: Date.now() - t0,
+        usage: { promptTokenCount: u.prompt_tokens, candidatesTokenCount: u.completion_tokens, thoughtsTokenCount: (u.completion_tokens_details || {}).reasoning_tokens || 0 } };
+    } catch (e) { return { err: e.message.slice(0, 120), ms: Date.now() - t0 }; }
+  }
   const body = { systemInstruction: { parts: [{ text: system }] }, contents: [{ role: 'user', parts: [{ text: user }] }],
     generationConfig: Object.assign({ temperature, responseMimeType: 'application/json' }, maxOut ? { maxOutputTokens: maxOut } : {}) };
   const t = Date.now();
