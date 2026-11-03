@@ -46,7 +46,7 @@ export function showPilotWelcome(user) {
       <div class="pilot-eyebrow">MootCoach pilot</div>
       <h3 id="pw-title">Welcome${first ? ', ' + esc(first) : ''}</h3>
       <p>${p.placeTaken === false
-        ? `MootCoach is being tested by ${esc(p.cap || 50)} students before it opens to everyone. <b>Your first upload claims your place</b>, while places last. Here is how it works:`
+        ? `${esc(p.cap || 50)} students are testing MootCoach before it opens up to everyone. <b>Your first upload gets you a spot</b>, while they last. Here's how it works:`
         : `You are one of ${esc(p.cap || 50)} students testing MootCoach before it opens to everyone. Here is how it works:`}</p>
       <ol class="pw-steps">
         <li><b>Upload your moot proposition.</b> MootCoach finds the court, the governing law and the issues.</li>
@@ -175,7 +175,7 @@ function showQuickCard(source) {
         ${[1, 2, 3, 4, 5].map(n => `<button type="button" role="radio" aria-checked="false" data-v="${n}" aria-label="${n} of 5">★</button>`).join('')}
       </div>
       <div class="fb-card-more" hidden>
-        <input type="text" maxlength="500" placeholder="Is there one thing we could do better? (optional)">
+        <input type="text" maxlength="500" placeholder="One thing we could do better? (optional)">
         <button type="button" class="mc-dialog-primary fb-send">Send</button>
       </div>`, (card) => {
     let rating = 0;
@@ -233,10 +233,10 @@ export async function pilotBeforeSignOut() {
   askedOnSignOut = true;
   const choice = await confirmDialog({
     title: 'Before you go',
-    body: 'Before you go, could you spare two minutes to tell us how MootCoach worked for you? It really helps shape what we build next.',
+    body: 'Got two minutes before you go? Tell us how MootCoach worked for you, it really helps.',
     actions: [
       { label: 'Give feedback', value: 'give', primary: true },
-      { label: 'No thanks, sign out', value: 'out' },
+      { label: 'Just sign out', value: 'out' },
     ],
   });
   if (choice === null) return false;

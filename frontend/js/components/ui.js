@@ -2110,7 +2110,7 @@ window.prepareChambersBriefing = async function () {
     if ((window.currentMootDocId || null) !== mootId) return;   // another moot opened meanwhile
     chambersBriefing = data.briefing;
     if (window.saveMootProgress) window.saveMootProgress();
-    showToast('Your Chambers Briefing is ready.', 'ok');
+    showToast('Chambers Briefing ready.', 'ok');
   } catch (e) {
     showToast(e.message, 'err');
   } finally {

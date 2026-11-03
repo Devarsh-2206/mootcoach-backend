@@ -64,16 +64,16 @@
 
     <div id="done" hidden>
       <h1 id="done-title">Password changed</h1>
-      <p id="done-text">Thank you. You can now sign in with your new password.</p>
+      <p id="done-text">You can now sign in with your new password.</p>
       <a class="btn" href="/?signin=1">Sign in to MootCoach</a>
     </div>
 
     <div id="bad" hidden>
-      <h1 id="bad-title">Sorry, this link has expired</h1>
+      <h1 id="bad-title">This link has expired</h1>
       <p id="bad-text">Reset links work once, expire after about an hour, and stop working when a newer reset email is sent. If you asked more than once, please use the newest email. Otherwise, go back to MootCoach, click "Forgot password?" and we will send you a new link.</p>
       <a class="btn" href="/?signin=1">Back to MootCoach</a>
       <p class="muted" id="bad-code" hidden style="font-size:13px"></p>
-      <p class="muted" style="margin-top:18px">Still need help? Please email <a href="mailto:support@mootcoach.in" style="color:var(--accent)">support@mootcoach.in</a>.</p>
+      <p class="muted" style="margin-top:18px">Still stuck? Email <a href="mailto:support@mootcoach.in" style="color:var(--accent)">support@mootcoach.in</a>.</p>
     </div>
   </section>
 </main>
@@ -118,7 +118,7 @@
       } else if (mode === 'verifyEmail') {
         document.title = 'Verify Email · MootCoach';
         await auth.applyActionCode(code);
-        done('Email confirmed', 'Thank you, your email address is confirmed. Please go back to MootCoach and press "I have confirmed it".');
+        done('Email confirmed', 'Your email is confirmed. Head back to MootCoach and press "I have confirmed it".');
       } else if (mode === 'recoverEmail') {
         document.title = 'Email Restored · MootCoach';
         const info = await auth.checkActionCode(code);
@@ -141,16 +141,16 @@
     const a = $('pw1').value, b = $('pw2').value;
     err.hidden = true;
     if (a.length < 8) { err.textContent = 'Please use at least 8 characters.'; err.hidden = false; return; }
-    if (a !== b) { err.textContent = 'The two passwords do not match. Please type them again.'; err.hidden = false; return; }
+    if (a !== b) { err.textContent = 'The two passwords don\'t match.'; err.hidden = false; return; }
     $('reset-btn').disabled = true; $('reset-btn').textContent = 'Saving…';
     try {
       await auth.confirmPasswordReset(code, a);
-      done('Password changed', 'Thank you. You can now sign in with your new password.');
+      done('Password changed', 'You can now sign in with your new password.');
     } catch (ex) {
       const c = ex && ex.code;
-      if (c === 'auth/weak-password') { err.textContent = 'That password is a little weak. Please try a longer one.'; err.hidden = false; }
+      if (c === 'auth/weak-password') { err.textContent = 'That password is too weak. Try a longer one.'; err.hidden = false; }
       else if (c === 'auth/expired-action-code' || c === 'auth/invalid-action-code') { bad(); return; }
-      else { err.textContent = 'Sorry, we could not save it just now. Please check your connection and try again.'; err.hidden = false; }
+      else { err.textContent = 'Couldn\'t save it just now. Check your connection and try again.'; err.hidden = false; }
       $('reset-btn').disabled = false; $('reset-btn').textContent = 'Save new password';
     }
   });

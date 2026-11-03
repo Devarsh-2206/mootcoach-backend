@@ -36,7 +36,7 @@ const H = 3600e3, D = 24 * H;
 
   // ---- render(): content checks ----
   const w = render('welcome', tester, { releaseHours: 72, limits: { uploads: 2, memorials: 2, voiceRounds: 3 } }, 'https://x/unsub');
-  assert.ok(/Hi Asha Rao,/.test(w.text) && /2 proposition uploads, 2 memorial drafts and 3 voice rounds/.test(w.text), w.text);
+  assert.ok(/Hi Asha Rao,/.test(w.text) && /2 proposition uploads, 2 memorial drafts and 3 voice rounds/.test(w.text) && /Cheers,\nDevarsh/.test(w.text), w.text);
   assert.ok(!/Stop reminder/.test(w.html), 'status emails have no unsubscribe');
   const f = render('feedback', { ...tester, name: '<b>x</b>' }, { releaseHours: 72 }, 'https://x/unsub');
   assert.ok(/Stop reminder emails/.test(f.html) && /\?feedback=1/.test(f.html));
@@ -86,7 +86,7 @@ const H = 3600e3, D = 24 * H;
   // Signed in without a place yet: welcome and reminder say the first upload claims it.
   const browsing = { ...tester, placeTaken: false };
   const wb = render('welcome', browsing, { releaseHours: 72, cap: 50, limits: { uploads: 2 } }, null);
-  assert.ok(/first students who upload/.test(wb.text) && !/held until/.test(wb.text), wb.text);
+  assert.ok(/first 50 people who upload/.test(wb.text) && !/held until/.test(wb.text), wb.text);
   assert.strictEqual(due(browsing, { sent: { welcome: T0 }, lastSentAt: T0 }, { ...cfg, now: T0 + 25 * H }), 'reminder');
   assert.strictEqual(due(browsing, { sent: { welcome: T0 }, lastSentAt: T0 }, { ...cfg, now: T0 + 100 * H }), 'reminder', 'no release deadline for a browser');
   assert.ok(!/held until/.test(render('reminder', browsing, { releaseHours: 72 }, 'u').subject));

@@ -470,7 +470,7 @@ async function handleLogout() {
   window.__signingOut = true;
   try { await signOut(auth); } finally {
     navigate('landing');
-    showToast('You have signed out. See you soon.', 'ok');
+    showToast('Signed out.', 'ok');
     window.__signingOut = false;
   }
 }

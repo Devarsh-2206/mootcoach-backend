@@ -30,11 +30,11 @@ function html(name) {
 <div style="max-width:560px;margin:0 auto;padding:28px 24px;font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:1.6;color:#1f1d1a;background:#fffdf9">
 <p style="margin:0 0 22px;font-family:Arial,sans-serif;font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:#a23b2c"><b>MootCoach</b></p>
 ${p(name === 'there' ? 'Hi there,' : `Hi ${name},`)}
-${p('Thanks for signing up for MootCoach.')}
-${p('To start, upload your moot proposition as a PDF. MootCoach sets out the issues, the authorities and the arguments on both sides. From there you can draft your memorial and practise your oral round with the bench.')}
-${p('If anything is wrong or confusing, just reply to this email. I read every reply.')}
+${p('Thanks for signing up for MootCoach!')}
+${p('Just upload your proposition as a PDF and it\'ll break down the issues, cases and arguments for both sides in a couple of minutes. Then you can draft your memorial and practise your oral round with the judge.')}
+${p('If anything feels off or confusing, just reply here. I\'d really like to know.')}
 <p style="margin:22px 0"><a href="${APP()}" style="display:inline-block;background:#a23b2c;color:#ffffff;text-decoration:none;padding:11px 20px;border-radius:6px;font-family:Arial,sans-serif;font-size:14px">Open MootCoach</a></p>
-<p style="margin:22px 0 0">Devarsh<br><span style="color:#6b665e">Founder, MootCoach</span></p>
+<p style="margin:22px 0 0">Cheers,<br>Devarsh</p>
 <p style="margin:28px 0 0;padding-top:14px;border-top:1px solid #e8e4dc;font-family:Arial,sans-serif;font-size:12px;color:#8a857c">You are getting this because you created a MootCoach account. Questions? Write to support@mootcoach.in.</p>
 </div></body></html>`;
 }

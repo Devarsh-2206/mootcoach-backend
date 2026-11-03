@@ -214,7 +214,7 @@ export async function runAnalysis() {
   // One analysis at a time. The student may be working elsewhere while one
   // runs (the wait room's "keep working"); say so instead of starting another.
   if (mcWait.isRunning()) {
-    showToast('An analysis is already running. We will let you know when it is ready.', 'info');
+    showToast('An analysis is already running. We\'ll tell you when it\'s ready.', 'info');
     if (mcWait.isMinimized()) mcWait.restore();
     return;
   }

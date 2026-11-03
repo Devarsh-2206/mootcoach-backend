@@ -151,12 +151,12 @@ async function pilotStatus(user, fresh = false) {
   return s;
 }
 function pilotMessage(s) {
-  if (s.status === 'closed') return "Thank you for your interest. The MootCoach pilot has now ended, and we'll email you when MootCoach opens to everyone.";
-  if (s.status === 'released' && s.reason === 'admin') return "Thank you for your interest. The pilot places have gone to other students, so you're on the waitlist. We'll email you when MootCoach opens to everyone.";
-  if (s.status === 'released') return "Sorry, your pilot place was released because it wasn't used for a few days. You're back on the waitlist.";
-  if (s.reason === 'verify') return "Please confirm your NALSAR email to get your pilot place. We've sent you an email with a link.";
-  if (s.reason === 'full') return "Sorry, all the pilot places are taken right now. You're on the waitlist, and we'll let you know if one opens.";
-  return "Thank you for signing up. MootCoach is in a small pilot, so you're on the waitlist, and we'll email you as soon as a place opens.";
+  if (s.status === 'closed') return "The MootCoach pilot has ended. We'll mail you when MootCoach opens up to everyone.";
+  if (s.status === 'released' && s.reason === 'admin') return "The pilot spots have gone to other students, so you're on the waitlist. We'll mail you when MootCoach opens up to everyone.";
+  if (s.status === 'released') return "Your spot wasn't used for a few days, so it went to someone else. You're back on the waitlist.";
+  if (s.reason === 'verify') return "Confirm your NALSAR email to get in. We've sent you a mail with a link.";
+  if (s.reason === 'full') return "All the pilot spots are taken right now, so you're on the waitlist. We'll let you know if one opens up.";
+  return "Thanks for signing up! The pilot is small, so you're on the waitlist. We'll mail you as soon as your spot is ready.";
 }
 const PILOT_LIMIT_MESSAGES = {
   uploads: "You've used all your pilot uploads. Your saved moots are still here for you to open and practise with.",
@@ -167,7 +167,7 @@ const PILOT_LIMIT_MESSAGES = {
   extras: "You've reached the pilot limit for the smaller AI features, such as authority cards, forecasts and briefings.",
 };
 const limitMessage = (bucket) => (PILOT_LIMIT_MESSAGES[bucket] || "You've reached your pilot limit for this feature.")
-  + " Thank you so much for testing MootCoach.";
+  + " Thanks for testing MootCoach!";
 
 /**
  * bucket: which allowance this route spends (services/pilot.js). It is
@@ -179,7 +179,7 @@ const limitMessage = (bucket) => (PILOT_LIMIT_MESSAGES[bucket] || "You've reache
  * "back shortly" message: the brake for spending that looks wrong. Unlike
  * PILOT_MODE=closed it says nothing about the pilot being over.
  */
-const AI_PAUSED_MESSAGE = "Sorry, MootCoach's AI features are paused for a short while. Your saved work is safe. Please try again a little later.";
+const AI_PAUSED_MESSAGE = "MootCoach's AI is paused for a bit. Your saved work is safe, try again a little later.";
 const aiPaused = () => process.env.AI_PAUSED === '1';
 
 function pilotGate({ bucket = null, countsAsUse = false } = {}) {
@@ -198,7 +198,7 @@ function pilotGate({ bucket = null, countsAsUse = false } = {}) {
       if (s.status === 'active' && s.placeTaken === false) {
         if (bucket !== 'uploads') {
           return res.status(403).json({ success: false, code: 'pilot', pilot: s,
-            error: 'Please upload your first proposition to claim your pilot place. This feature opens once you have.' });
+            error: 'Upload your first proposition to get your pilot spot, then this opens up.' });
         }
         return pilot.claimPlace(u).then(r => {
           pilotCache.delete(u.uid);
@@ -1384,23 +1384,23 @@ app.post("/analyze", requireUser({ allowPrewarm: true }), pilotGate({ bucket: 'u
     const overloaded = /UNAVAILABLE|\b503\b|high demand|overloaded/i.test(msg);
 
     let status = 500;
-    let userError = "Sorry, the analysis could not be completed. Please try again in a moment.";
+    let userError = "Sorry, the analysis didn't finish. Try again in a minute.";
 
     if (quotaExhausted) {
       status = 429;
-      userError = "Sorry, MootCoach has reached its usage limit for today, so the analysis could not run. Your saved work is safe. "
+      userError = "MootCoach has hit its usage limit for today, so the analysis couldn't run. Your saved work is safe. "
         + "This is an account limit, not a problem with your document — retrying now will fail the same way. "
         + "It resets on the provider's daily cycle.";
     } else if (rateLimited) {
       status = 429;
-      userError = "Sorry, MootCoach is very busy right now. "
+      userError = "MootCoach is a bit busy right now. "
         + "Wait about a minute and upload again — this is a per-minute cap, not a problem with your document.";
     } else if (isTimeout) {
       status = 504;
-      userError = "Sorry, this took longer than expected. Please try again in a moment.";
+      userError = "Sorry, that took too long. Try again in a minute.";
     } else if (overloaded) {
       status = 503;
-      userError = "Sorry, MootCoach is very busy right now. "
+      userError = "MootCoach is a bit busy right now. "
         + "Nothing is wrong with your document — wait a few seconds and upload again.";
     }
 
@@ -2205,20 +2205,20 @@ Authorities. Cite nothing you cannot stand behind: mark anything uncertain with
     const overloaded = /UNAVAILABLE|\b503\b|high demand|overloaded/i.test(msg);
 
     let status = 500;
-    let userError = "Sorry, the draft could not be completed. Please try again in a moment.";
+    let userError = "Sorry, the draft didn't finish. Try again in a minute.";
     if (quotaExhausted) {
       status = 429;
-      userError = "Sorry, MootCoach has reached its usage limit for today, so the draft could not be made. Your notes are safe. "
+      userError = "MootCoach has hit its usage limit for today, so the draft couldn't run. Your notes are safe. "
         + "This is an account limit, not a problem with your notes — it resets on the provider's daily cycle.";
     } else if (rateLimited) {
       status = 429;
-      userError = "Sorry, MootCoach is very busy right now. Please wait about a minute and try again.";
+      userError = "MootCoach is a bit busy right now. Try again in a minute.";
     } else if (isTimeout) {
       status = 504;
-      userError = "Sorry, this took longer than expected. Please try again in a moment.";
+      userError = "Sorry, that took too long. Try again in a minute.";
     } else if (overloaded) {
       status = 503;
-      userError = "Sorry, MootCoach is very busy right now. "
+      userError = "MootCoach is a bit busy right now. "
         + "Nothing is wrong with your notes — wait a few seconds and generate again.";
     }
     return res.status(status).json({ success: false, error: userError, reason: msg.slice(0, 400) });
@@ -2325,19 +2325,19 @@ app.post("/api/build-memorial", signedIn, pilotGate({ bucket: 'memorials' }), ai
     const overloaded = /UNAVAILABLE|\b503\b|high demand|overloaded/i.test(msg);
 
     let status = 500;
-    let userError = "Sorry, the memorial could not be completed. Please try again in a moment.";
+    let userError = "Sorry, the memorial didn't finish. Try again in a minute.";
     if (quota) {
       status = 429;
-      userError = "Sorry, MootCoach has reached its usage limit for today. This is nothing to do with your notes, and your work is safe. Please try again tomorrow.";
+      userError = "MootCoach has hit its usage limit for today. Your work is safe, try again tomorrow.";
     } else if (rate) {
       status = 429;
-      userError = "Sorry, MootCoach is very busy right now. Please wait about a minute and try again.";
+      userError = "MootCoach is a bit busy right now. Try again in a minute.";
     } else if (timeout) {
       status = 504;
-      userError = "Sorry, this took longer than expected. A full memorial takes several passes, so please try again in a moment.";
+      userError = "Sorry, that took too long. A full memorial takes a few passes, so try again in a minute.";
     } else if (overloaded) {
       status = 503;
-      userError = "Sorry, MootCoach is very busy right now. Nothing is wrong with your notes; please wait a few seconds and try again.";
+      userError = "MootCoach is a bit busy right now. Nothing's wrong with your notes, just try again in a few seconds.";
     }
     return res.status(status).json({ success: false, error: userError, reason: msg.slice(0, 400) });
   }
@@ -2450,11 +2450,11 @@ app.post("/api/analyse-memorial", signedIn, pilotGate({ bucket: 'memorialReviews
     const timeout = /Timeout/i.test(msg);
     const overloaded = /UNAVAILABLE|\b503\b|high demand|overloaded/i.test(msg);
     let status = 500;
-    let userError = "Sorry, the memorial could not be reviewed. Please try again in a moment.";
-    if (quota) { status = 429; userError = "Sorry, MootCoach has reached its usage limit for today. This is nothing to do with your memorial. Please try again tomorrow."; }
-    else if (rate) { status = 429; userError = "Sorry, MootCoach is very busy right now. Please wait about a minute and try again."; }
-    else if (timeout) { status = 504; userError = "Sorry, this took longer than expected. Please try again in a moment."; }
-    else if (overloaded) { status = 503; userError = "Sorry, MootCoach is very busy right now. Please wait a few seconds and try again."; }
+    let userError = "Sorry, the review didn't finish. Try again in a minute.";
+    if (quota) { status = 429; userError = "MootCoach has hit its usage limit for today. Your memorial is fine, try again tomorrow."; }
+    else if (rate) { status = 429; userError = "MootCoach is a bit busy right now. Try again in a minute."; }
+    else if (timeout) { status = 504; userError = "Sorry, that took too long. Try again in a minute."; }
+    else if (overloaded) { status = 503; userError = "MootCoach is a bit busy right now. Try again in a few seconds."; }
     return res.status(status).json({ success: false, error: userError, reason: msg.slice(0, 400) });
   }
 });

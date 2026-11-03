@@ -22,28 +22,28 @@ function copyFor(p) {
   const s = p && p.status;
   if (s === 'closed') return {
     title: 'The pilot has ended',
-    body: 'Thank you so much for your interest in MootCoach. The pilot has now ended, and we are working on everything our testers shared with us. We will email you as soon as MootCoach opens to everyone.',
+    body: "The pilot has ended and we're working on what our testers told us. We'll mail you when MootCoach opens up to everyone.",
   };
   if (s === 'released' && p.reason === 'admin') return {
     title: 'You are on the waitlist',
-    body: 'Thank you so much for your interest in MootCoach. The pilot places have gone to other students, so you are on our waitlist. We will email you as soon as MootCoach opens to everyone.',
+    body: "The pilot spots have gone to other students, so you're on the waitlist. We'll mail you when MootCoach opens up to everyone.",
   };
   if (s === 'released') return {
-    title: 'Your place was passed on',
-    body: 'Pilot places are held for three days, and as yours was not used, it has been offered to another student. You are back on the waitlist. If you are at NALSAR, you are welcome to sign in again and upload a proposition whenever a place is free.',
+    title: 'Your spot went to someone else',
+    body: 'Spots are held for three days, and yours wasn\'t used, so it went to another student. You\'re back on the waitlist. If you\'re at NALSAR, sign in again and upload a proposition whenever a spot is free.',
   };
   if (p && p.reason === 'verify') return {
     verify: true,
-    title: 'Please confirm your NALSAR email',
-    body: `Thank you for signing up. Your @nalsar.ac.in address just needs confirming: we have sent an email to ${state.email || 'your address'}. Please click the button in it, then come back here and press "I have confirmed it".`,
+    title: 'Confirm your NALSAR email',
+    body: `Almost there! We've sent a mail to ${state.email || 'your address'}. Click the button in it, then come back here and press "I have confirmed it".`,
   };
   if (p && p.reason === 'full') return {
-    title: 'All pilot places are taken',
-    body: `Thank you for your interest. MootCoach is being tested by ${p.cap || 50} students, and every place is currently in use, so you are on the waitlist. If a place opens up, you are welcome to sign in again and take it; otherwise we will email you as soon as MootCoach opens to everyone.`,
+    title: 'All the spots are taken',
+    body: `MootCoach is being tested by ${p.cap || 50} students and every spot is taken right now, so you're on the waitlist. If a spot opens up, sign in again and grab it. Otherwise we'll mail you when MootCoach opens up to everyone.`,
   };
   return {
-    title: 'Thank you for signing up',
-    body: `MootCoach is in a small pilot with ${(p && p.cap) || 50} places. NALSAR students can start straight away with their @nalsar.ac.in account; for everyone else, we review sign-ups by hand. You are on the waitlist, and we will email you as soon as your place is ready.`,
+    title: 'You\'re on the waitlist',
+    body: `Thanks for signing up! MootCoach is in a small pilot with ${(p && p.cap) || 50} spots. NALSAR students can start straight away; everyone else gets in a few at a time. We'll mail you as soon as your spot is ready.`,
   };
 }
 
@@ -73,7 +73,7 @@ export function showPilotGate(p) {
         <button type="button" class="mc-dialog-primary" data-act="verified">I have confirmed it</button>
         <button type="button" class="mc-dialog-secondary" data-act="resend">Send the email again</button>
       </div>
-      <p class="pilot-small" id="pilot-verify-note">Not in your inbox? Please check your spam folder. You can also sign out and use <b>Continue with Google</b> with your NALSAR account instead.</p>` : ''}
+      <p class="pilot-small" id="pilot-verify-note">Not in your inbox? Check spam. Or sign out and use <b>Continue with Google</b> with your NALSAR account.</p>` : ''}
       <div class="pilot-actions">
         <button type="button" class="mc-dialog-secondary" data-act="home">Back to the home page</button>
         <button type="button" class="mc-dialog-danger" data-act="signout">Sign out</button>
@@ -111,7 +111,7 @@ async function sendVerifyEmail(again) {
   } catch (e) {
     // The server cannot send right now: Firebase's own email does the same job.
     try { await u.sendEmailVerification(); }
-    catch (err) { if (again) verifyNote('Sorry, we could not send it just now. Please wait a minute and try again.'); return; }
+    catch (err) { if (again) verifyNote('Couldn\'t send it just now. Try again in a minute.'); return; }
   }
   if (again) verifyNote(`Sent again to ${state.email}. Check your inbox and spam folder.`);
 }
@@ -124,14 +124,14 @@ async function confirmVerified(btn) {
   try {
     await u.reload();
     if (!u.emailVerified) {
-      verifyNote('It does not look confirmed yet. Please click the button in the email first (it may be in spam), then press "I have confirmed it" again.');
+      verifyNote('Not confirmed yet. Click the button in the mail first (check spam too), then press "I have confirmed it" again.');
       return;
     }
     await u.getIdToken(true);
     const p = await checkPilot(u);
-    if (p && p.reason === 'verify') verifyNote('Thank you, that is confirmed. We could not update your place just yet, so please try again in a moment.');
+    if (p && p.reason === 'verify') verifyNote('Confirmed! Just couldn\'t update your spot yet, try again in a moment.');
   } catch (e) {
-    verifyNote('Sorry, we could not check just now. Please check your connection and try again.');
+    verifyNote('Couldn\'t check just now. Check your connection and try again.');
   } finally {
     if (btn && btn.isConnected) { btn.disabled = false; btn.textContent = 'I have confirmed it'; }
   }
@@ -199,7 +199,7 @@ function renderAllowance() {
   const p = state.pilot;
   if (!p || p.status !== 'active' || !p.limits) { el.hidden = true; return; }
   const claim = p.placeTaken === false
-    ? `<div class="pa-claim">Welcome! Your first upload will secure one of the ${esc(p.cap || 50)} pilot places, while places last.</div>` : '';
+    ? `<div class="pa-claim">No spot yet. Your first upload gets you one of the ${esc(p.cap || 50)} pilot spots, while they last.</div>` : '';
   el.innerHTML = `<div class="ws-sb-label">Your pilot allowance</div>${claim}` + BUCKETS.map(([k, label]) => {
     const lim = p.limits[k] || 0, used = Math.min(lim, (p.usage || {})[k] || 0), rest = lim - used;
     return `<div class="pa-row${rest <= 0 ? ' out' : ''}"><span>${esc(label)}</span><b>${rest} of ${lim} left</b></div>
@@ -214,19 +214,19 @@ function showLimitDialog(bucket, message) {
   if (shownLimits.has(bucket)) return;
   shownLimits.add(bucket);
   confirmDialog({
-    title: 'Thank you for testing MootCoach',
+    title: 'That\'s your pilot limit',
     body: message,
-    actions: [{ label: 'Thank you', value: true, primary: true }],
+    actions: [{ label: 'Got it', value: true, primary: true }],
   });
 }
 
 const LIMIT_TEXT = {
-  uploads: "You've used all your pilot uploads. Your saved moots are still here for you to open and practise with.",
-  memorials: "You've used all your pilot memorial drafts. You can still open, read and download the ones you've made.",
-  memorialReviews: "You've used all your pilot memorial reviews.",
-  voiceRounds: "You've used all your pilot voice rounds. The text bench is still open to you.",
+  uploads: "You've used both your uploads. Your saved moots are still here to open and practise with.",
+  memorials: "You've used your memorial drafts. You can still open and download the ones you made.",
+  memorialReviews: "You've used your memorial reviews.",
+  voiceRounds: "You've used your voice rounds. The text bench is still open.",
   judgeTurns: "You've reached the pilot limit for the text bench.",
-  extras: "You've reached the pilot limit for the smaller AI features, such as authority cards, forecasts and briefings.",
+  extras: "You've hit the pilot limit for the smaller features like authority cards, forecasts and briefings.",
 };
 
 /**

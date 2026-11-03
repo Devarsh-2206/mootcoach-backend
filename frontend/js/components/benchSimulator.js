@@ -1694,10 +1694,10 @@ function initDiagnostics() {
   if (!available) {
     const errorMsg = document.getElementById('diag-error-msg');
     if (errorMsg) {
-      errorMsg.textContent = "Sorry, speech recognition is not supported in this browser. Please try Chrome or Edge.";
+      errorMsg.textContent = "Speech recognition doesn't work in this browser. Try Chrome or Edge.";
       errorMsg.classList.remove('hidden');
     }
-    showToast("Sorry, speech recognition is not supported in this browser. Please try Chrome or Edge.", "err");
+    showToast("Speech recognition doesn't work in this browser. Try Chrome or Edge.", "err");
   }
 
   // Permission status check if supported
@@ -1803,10 +1803,10 @@ function startSpeechRecognition() {
     }
     const errorMsg = document.getElementById('diag-error-msg');
     if (errorMsg) {
-      errorMsg.textContent = "Sorry, speech recognition is not supported in this browser. Please try Chrome or Edge.";
+      errorMsg.textContent = "Speech recognition doesn't work in this browser. Try Chrome or Edge.";
       errorMsg.classList.remove('hidden');
     }
-    showToast("Sorry, speech recognition is not supported in this browser. Please try Chrome or Edge.", "err");
+    showToast("Speech recognition doesn't work in this browser. Try Chrome or Edge.", "err");
     return;
   }
 
