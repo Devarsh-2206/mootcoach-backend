@@ -223,7 +223,11 @@ async function verifyAuthorities(authorities, opts = {}) {
     const cached = grade(await cacheGet(keyOf(items[i])));
     // A cached answer resting only on unofficial sites is checked again:
     // a trusted source may turn up this time.
-    if (cached && !cached.weakOnly) out[i] = { ...cached, cached: true }; else todo.push(i);
+    // With Indian Kanoon switched on, an Indian case remembered from the web
+    // check is looked up there once, so it gains the link to the judgment.
+    const ikUpgrade = cached && cached.source !== 'indiankanoon' && require('./indianKanoon').configured()
+      && require('./indianKanoon').looksIndian(items[i], opts.forum);
+    if (cached && !cached.weakOnly && !ikUpgrade) out[i] = { ...cached, cached: true }; else todo.push(i);
   }
   // Indian cases: Indian Kanoon's own database first (services/indianKanoon.js),
   // which also gives a link to the judgment. Anything it does not find, or
