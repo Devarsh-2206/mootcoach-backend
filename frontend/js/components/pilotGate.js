@@ -82,6 +82,9 @@ export function hidePilotGate() {
 
 const allowed = (p) => !p || p.status === 'active' || p.status === 'admin';
 
+/** The signed-in user's pilot status, for the feedback prompts (components/feedback.js). */
+export function pilotState() { return state; }
+
 /** Ask the server where this user stands. Never blocks on a failed check: the server still enforces. */
 export async function checkPilot(user) {
   state = { pilot: null, admin: false, email: (user && user.email) || '' };
@@ -94,8 +97,12 @@ export async function checkPilot(user) {
   const btn = document.getElementById('sb-pilot-admin');
   if (btn) btn.hidden = !state.admin;
   if (allowed(state.pilot)) hidePilotGate(); else showPilotGate(state.pilot);
-  window.pilotLimits = state.pilot && state.pilot.status === 'active' ? { voiceMinutes: state.pilot.voiceMinutes } : null;
+  // Limits come back only while the pilot is on; with it off everyone is
+  // "active" and none of the pilot furniture should appear.
+  const tester = state.pilot && state.pilot.status === 'active' && state.pilot.limits;
+  window.pilotLimits = tester ? { voiceMinutes: state.pilot.voiceMinutes } : null;
   renderAllowance();
+  if (tester && window.showPilotWelcome) window.showPilotWelcome(user);
   return state.pilot;
 }
 
@@ -126,7 +133,8 @@ function renderAllowance() {
     const lim = p.limits[k] || 0, used = Math.min(lim, (p.usage || {})[k] || 0), rest = lim - used;
     return `<div class="pa-row${rest <= 0 ? ' out' : ''}"><span>${esc(label)}</span><b>${rest} of ${lim} left</b></div>
       <div class="pa-bar" aria-hidden="true"><i style="width:${lim ? Math.round((rest / lim) * 100) : 0}%"></i></div>`;
-  }).join('') + `<div class="pa-note">Voice rounds last up to ${esc(p.voiceMinutes || 15)} minutes.</div>`;
+  }).join('') + `<div class="pa-note">Voice rounds last up to ${esc(p.voiceMinutes || 15)} minutes.</div>
+    <button type="button" class="pa-feedback" onclick="window.openFeedbackForm && window.openFeedbackForm({ trigger: 'button' })">Give feedback</button>`;
   el.hidden = false;
 }
 
@@ -217,6 +225,13 @@ async function openPilotAdmin() {
       if (e.target === overlay || e.target.closest('[data-act="close"]')) { overlay.remove(); return; }
       const tab = e.target.closest('button[data-tab]');
       if (tab) { overlay.dataset.view = tab.dataset.tab; render(overlay); return; }
+      if (e.target.closest('[data-act="csv"]')) { downloadCsv(overlay._fb || []); return; }
+      if (e.target.closest('[data-act="copy"]')) {
+        const emails = (overlay._ov.members || []).filter(m => m.status === 'active' && !(m.feedback && m.feedback.full)).map(m => m.email).filter(Boolean);
+        try { await navigator.clipboard.writeText(emails.join(', ')); alertIn(overlay, `Copied ${emails.length} email address${emails.length === 1 ? '' : 'es'}.`); }
+        catch (err) { alertIn(overlay, emails.join(', ') || 'Everyone has given feedback.'); }
+        return;
+      }
       const b = e.target.closest('button[data-uid]');
       if (!b) return;
       b.disabled = true;
@@ -246,8 +261,12 @@ function alertIn(overlay, msg) {
 
 async function load(overlay) {
   try {
-    const data = await requestJson('/api/pilot/admin/overview', { body: {}, timeoutMs: 30000 });
+    const [data, fb] = await Promise.all([
+      requestJson('/api/pilot/admin/overview', { body: {}, timeoutMs: 30000 }),
+      requestJson('/api/pilot/admin/feedback', { body: {}, timeoutMs: 30000 }).catch(() => ({ feedback: [] })),
+    ]);
     overlay._ov = data.overview;
+    overlay._fb = fb.feedback || [];
     render(overlay);
   } catch (e) {
     overlay.querySelector('.pilot-admin-body').innerHTML = `<p class="pilot-error">${esc(e.message)}</p>`;
@@ -259,7 +278,9 @@ function render(overlay) {
   if (!ov) return;
   const tab = overlay.dataset.view;
   const c = ov.counts;
+  const fb = overlay._fb || [];
   const rows = ov.members.filter(m => m.status === tab);
+  const noFeedback = ov.members.filter(m => m.status === 'active' && !(m.feedback && m.feedback.full)).length;
   const modeNote = ov.mode === 'off'
     ? '<p class="pilot-error">PILOT_MODE is off: anyone signed in can use MootCoach. Set PILOT_MODE=on in Render to start the pilot.</p>'
     : ov.mode === 'closed' ? '<p class="pilot-small">The pilot is closed. Only admins can use MootCoach.</p>' : '';
@@ -271,19 +292,67 @@ function render(overlay) {
       <div><b>${c.released}</b><span>released</span></div>
     </div>
     <div class="pilot-tabs" role="tablist">
-      ${['waitlist', 'active', 'released'].map(t => `<button type="button" role="tab" aria-selected="${t === tab}" class="${t === tab ? 'is-on' : ''}" data-tab="${t}">${t === 'waitlist' ? 'Waitlist' : t === 'active' ? 'Testers' : 'Released'} (${c[t]})</button>`).join('')}
+      ${['waitlist', 'active', 'released', 'feedback'].map(t => `<button type="button" role="tab" aria-selected="${t === tab}" class="${t === tab ? 'is-on' : ''}" data-tab="${t}">${t === 'waitlist' ? 'Waitlist' : t === 'active' ? 'Testers' : t === 'released' ? 'Released' : 'Feedback'} (${t === 'feedback' ? fb.length : c[t]})</button>`).join('')}
     </div>
-    <div class="pilot-list">
+    ${tab === 'feedback' ? renderFeedback(fb, noFeedback) : `<div class="pilot-list">
       ${rows.length ? rows.map(m => `<div class="pilot-row">
           <div class="pilot-who"><b>${esc(m.name || '(no name)')}</b><span>${esc(m.email)}</span>
             <span class="pilot-small">${esc(REASON[m.reason] || m.reason || '')} · joined ${esc(fmtDate(m.joinedAt))}${m.status === 'active' ? (m.firstUseAt ? ' · uploaded ' + esc(fmtDate(m.firstUseAt)) : ' · not used yet') : ''}</span>
-            ${m.usage && Object.keys(m.usage).length ? `<span class="pilot-small">Used: ${esc(Object.entries(m.usage).map(([k, v]) => `${k} ${v}`).join(', '))}</span>` : ''}</div>
+            ${m.usage && Object.keys(m.usage).length ? `<span class="pilot-small">Used: ${esc(Object.entries(m.usage).map(([k, v]) => `${k} ${v}`).join(', '))}</span>` : ''}
+            ${m.status === 'active' ? `<span class="pilot-small">${m.feedback && m.feedback.full ? '✓ Gave feedback' : 'No feedback yet'}</span>` : ''}</div>
           ${m.status === 'active'
             ? `<button type="button" class="mc-dialog-secondary" data-uid="${esc(m.uid)}" data-action="release">Release</button>`
             : `<button type="button" class="mc-dialog-primary" data-uid="${esc(m.uid)}" data-action="approve" ${c.active >= ov.cap ? 'disabled title="All places are taken"' : ''}>Approve</button>`}
         </div>`).join('') : `<p class="pilot-small">Nobody here yet.</p>`}
-    </div>
+    </div>`}
     <p class="pilot-small">Unused places are released after ${ov.releaseHours} hours. Automatic entry: ${esc(ov.autoDomains.join(', '))}.</p>`;
+}
+
+const FB_LABELS = {
+  overall: 'Useful (1–5)', favourite: 'Helped most', accuracy: 'Analysis accuracy (1–5)', wrongCases: 'Wrong cases?',
+  wrongCasesDetail: 'Which cases', judge: 'Judge realism (1–5)', problems: 'Problems', realMoot: 'Use for a real moot',
+  pay: 'Would pay', recommend: 'Recommend (0–10)', comments: 'Comments', rating: 'Round rating (1–5)', improve: 'Improve', source: 'Round type',
+};
+const FB_KEYS = Object.keys(FB_LABELS);
+
+function renderFeedback(fb, noFeedback) {
+  const full = fb.filter(f => f.kind === 'full');
+  const avg = (k) => { const v = full.map(f => f.answers[k]).filter(n => typeof n === 'number'); return v.length ? (v.reduce((a, b) => a + b, 0) / v.length).toFixed(1) : '—'; };
+  const quick = fb.filter(f => f.kind === 'quick').map(f => f.answers.rating).filter(Boolean);
+  return `<div class="pilot-stats">
+      <div><b>${full.length}</b><span>full forms</span></div>
+      <div><b>${avg('overall')}</b><span>avg usefulness /5</span></div>
+      <div><b>${avg('recommend')}</b><span>avg recommend /10</span></div>
+      <div><b>${quick.length ? (quick.reduce((a, b) => a + b, 0) / quick.length).toFixed(1) : '—'}</b><span>avg round rating</span></div>
+    </div>
+    <div class="pilot-actions">
+      <button type="button" class="mc-dialog-primary" data-act="csv" ${fb.length ? '' : 'disabled'}>Download CSV</button>
+      <button type="button" class="mc-dialog-secondary" data-act="copy">Copy emails of testers without feedback (${noFeedback})</button>
+    </div>
+    <div class="pilot-list">
+      ${fb.length ? fb.slice(0, 200).map(f => `<div class="pilot-row fb-entry"><div class="pilot-who">
+          <b>${esc(f.name || f.email || 'Tester')} · ${f.kind === 'full' ? 'full form' : 'round rating'}</b>
+          <span class="pilot-small">${esc(fmtDate(f.createdAt))}${f.trigger ? ' · ' + esc(f.trigger) : ''}</span>
+          ${Object.entries(f.answers || {}).map(([k, v]) => `<span><i>${esc(FB_LABELS[k] || k)}:</i> ${esc(v)}</span>`).join('')}
+        </div></div>`).join('') : '<p class="pilot-small">No feedback yet.</p>'}
+    </div>`;
+}
+
+/** Spreadsheet-safe: quoted, and cells that start like a formula are defused. */
+function downloadCsv(fb) {
+  const cell = (v) => {
+    let t = v == null ? '' : String(v);
+    if (/^[=+\-@\t\r]/.test(t)) t = "'" + t;
+    return '"' + t.replace(/"/g, '""') + '"';
+  };
+  const head = ['Date', 'Name', 'Email', 'Form', 'Trigger', ...FB_KEYS.map(k => FB_LABELS[k])];
+  const rows = fb.map(f => [new Date(f.createdAt).toISOString(), f.name, f.email, f.kind, f.trigger, ...FB_KEYS.map(k => (f.answers || {})[k])]);
+  const csv = [head, ...rows].map(r => r.map(cell).join(',')).join('\r\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' }));
+  a.download = 'mootcoach-pilot-feedback.csv';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
 
 window.openPilotAdmin = openPilotAdmin;

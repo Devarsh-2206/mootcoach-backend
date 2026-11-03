@@ -113,7 +113,8 @@ function createPilot(store, opts = {}) {
       }
       if (c.mode === 'closed' && m.status !== 'admin') return { status: 'closed', mode: c.mode, cap: c.cap, active: state.active };
       return { status: m.status, reason: m.reason, mode: c.mode, cap: c.cap, active: state.active,
-               usage: { ...(m.usage || {}) }, limits: c.limits, voiceMinutes: c.voiceMinutes };
+               usage: { ...(m.usage || {}) }, limits: c.limits, voiceMinutes: c.voiceMinutes,
+               feedback: { ...(m.feedback || {}) } };
     });
   }
 
@@ -165,6 +166,29 @@ function createPilot(store, opts = {}) {
       tx.putMember(m);
       return { ok: true, used: used + 1, limit: c.limits[bucket] };
     });
+  }
+
+  /**
+   * Store one feedback answer. Only the known questions are kept, each clipped
+   * to its type, so the admin view and the CSV never carry anything else.
+   */
+  async function recordFeedback(user, kind, answers, context = {}) {
+    const clean = sanitizeFeedback(kind, answers);
+    if (!clean) return { ok: false, error: 'Unknown feedback form.' };
+    const entry = {
+      kind, answers: clean, uid: user.uid, email: user.email || '', name: user.name || '',
+      trigger: String(context.trigger || '').slice(0, 40), createdAt: now(),
+    };
+    await store.addFeedback(entry);
+    if (!unlimited(user)) {
+      await store.transact(async (tx) => {
+        const m = await tx.getMember(user.uid);
+        if (!m) return;
+        m.feedback = { ...(m.feedback || {}), [kind]: now() };
+        tx.putMember(m);
+      });
+    }
+    return { ok: true };
   }
 
   /** Free places held by testers who never used them. Returns how many. */
@@ -224,7 +248,50 @@ function createPilot(store, opts = {}) {
     };
   }
 
-  return { join, allowed, markUsed, releaseIdle, setStatus, overview, isAdmin, config, count, consume, remaining, unlimited };
+  return { join, allowed, markUsed, releaseIdle, setStatus, overview, isAdmin, config, count, consume, remaining, unlimited,
+           recordFeedback, listFeedback: () => store.listFeedback() };
+}
+
+/* ───────────────────────── feedback ───────────────────────── */
+
+const FEATURES_LIST = ['analysis', 'issues', 'memorial', 'textJudge', 'voiceJudge', 'briefing', 'calendar'];
+const FEEDBACK_SCHEMA = {
+  quick: { rating: ['int', 1, 5, true], improve: ['str', 500], source: ['enum', ['voice', 'bench']] },
+  full: {
+    overall: ['int', 1, 5, true],
+    favourite: ['enum', FEATURES_LIST],
+    accuracy: ['int', 1, 5],
+    wrongCases: ['enum', ['no', 'yes', 'unsure']],
+    wrongCasesDetail: ['str', 500],
+    judge: ['int', 1, 5],
+    problems: ['str', 1000],
+    realMoot: ['enum', ['yes', 'maybe', 'no'], true],
+    pay: ['enum', ['no', 'upto199', '200to499', '500plus']],
+    recommend: ['int', 0, 10, true],
+    comments: ['str', 1500],
+  },
+};
+function sanitizeFeedback(kind, answers) {
+  const schema = FEEDBACK_SCHEMA[kind];
+  if (!schema || !answers || typeof answers !== 'object') return null;
+  const out = {};
+  for (const [key, rule] of Object.entries(schema)) {
+    const v = answers[key];
+    let val = null;
+    if (rule[0] === 'int') {
+      const n = Math.round(Number(v));
+      if (v !== '' && v != null && Number.isFinite(n) && n >= rule[1] && n <= rule[2]) val = n;
+      if (rule[3] && val == null) return null;
+    } else if (rule[0] === 'enum') {
+      if (rule[1].includes(v)) val = v;
+      if (rule[2] && val == null) return null;
+    } else if (rule[0] === 'str') {
+      const t = typeof v === 'string' ? v.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '').trim().slice(0, rule[1]) : '';
+      if (t) val = t;
+    }
+    if (val != null) out[key] = val;
+  }
+  return out;
 }
 
 /* ───────────────────────── storage ───────────────────────── */
@@ -232,6 +299,7 @@ function createPilot(store, opts = {}) {
 /** In-memory store with the same shape as the Firestore one. Tests and local dev. */
 function memoryStore() {
   const members = new Map();
+  const feedback = [];
   let state = null;
   let chain = Promise.resolve();
   return {
@@ -255,6 +323,8 @@ function memoryStore() {
     async listMembers(status) {
       return [...members.values()].filter(m => !status || m.status === status).map(m => ({ ...m }));
     },
+    async addFeedback(entry) { feedback.push({ ...entry }); },
+    async listFeedback() { return feedback.slice().reverse(); },
   };
 }
 
@@ -280,7 +350,12 @@ function firestoreStore(db) {
       const snap = await q.get();
       return snap.docs.map(d => d.data());
     },
+    async addFeedback(entry) { await root.collection('pilotFeedback').add(entry); },
+    async listFeedback() {
+      const snap = await root.collection('pilotFeedback').orderBy('createdAt', 'desc').limit(1000).get();
+      return snap.docs.map(d => d.data());
+    },
   };
 }
 
-module.exports = { createPilot, memoryStore, firestoreStore, readConfig, domainOf, DEFAULT_LIMITS };
+module.exports = { createPilot, memoryStore, firestoreStore, readConfig, domainOf, DEFAULT_LIMITS, sanitizeFeedback, FEATURES_LIST };

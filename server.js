@@ -1808,6 +1808,19 @@ app.post("/api/pilot/me", signedIn, logLimiter, async (req, res) => {
     return res.status(503).json({ success: false, error: "Couldn't check your pilot place just now. Try again in a moment." });
   }
 });
+/* Feedback from testers (any signed-in user may answer; admins read it). */
+app.post("/api/pilot/feedback", signedIn, logLimiter, express.json({ limit: '16kb' }), async (req, res) => {
+  const kind = req.body && req.body.kind;
+  try {
+    const out = await pilot.recordFeedback(req.user, kind, req.body && req.body.answers, req.body && req.body.context);
+    if (!out.ok) return res.status(400).json({ success: false, error: out.error || 'Please answer the required questions.' });
+    pilotCache.delete(req.user.uid);
+    return res.json({ success: true });
+  } catch (e) {
+    console.error('[PILOT] feedback save failed:', e && e.message);
+    return res.status(500).json({ success: false, error: "Couldn't save your feedback just now. Please try again." });
+  }
+});
 function pilotAdminOnly(req, res, next) {
   if (req.user && (req.user.uid === 'dev' || pilot.isAdmin(req.user))) return next();
   return res.status(403).json({ success: false, error: 'Admins only.' });
@@ -1817,6 +1830,13 @@ app.post("/api/pilot/admin/overview", signedIn, logLimiter, pilotAdminOnly, asyn
     return res.json({ success: true, overview: await pilot.overview() });
   } catch (e) {
     return res.status(500).json({ success: false, error: 'Could not load the pilot list: ' + (e && e.message) });
+  }
+});
+app.post("/api/pilot/admin/feedback", signedIn, logLimiter, pilotAdminOnly, async (req, res) => {
+  try {
+    return res.json({ success: true, feedback: await pilot.listFeedback() });
+  } catch (e) {
+    return res.status(500).json({ success: false, error: 'Could not load feedback: ' + (e && e.message) });
   }
 });
 app.post("/api/pilot/admin/set", signedIn, logLimiter, pilotAdminOnly, express.json({ limit: '4kb' }), async (req, res) => {

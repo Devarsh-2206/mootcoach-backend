@@ -3566,6 +3566,47 @@ span.text-\[9px\].uppercase.rounded, div.text-\[9px\].uppercase.rounded {
 .pa-bar{height:3px;border-radius:2px;background:var(--rule);overflow:hidden}
 .pa-bar i{display:block;height:100%;background:var(--gold)}
 .pa-note{font-size:.75rem;color:var(--white-muted);margin-top:8px;line-height:1.4}
+.pa-feedback{margin-top:10px;width:100%;font-family:var(--mono);font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;
+  padding:9px 10px;border-radius:8px;cursor:pointer;background:var(--gold-muted);color:var(--gold);border:1px solid var(--gold-border)}
+.pa-feedback:hover{background:var(--gold);color:#FCF9EF}
+/* Pilot welcome + feedback (components/feedback.js) */
+.mc-dialog.fb-dialog{max-width:560px;width:min(560px,calc(100vw - 32px));min-width:0}
+.mc-dialog.fb-full{max-height:calc(100vh - 32px);display:flex;flex-direction:column;padding:0}
+.fb-head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;padding:20px 24px 8px;border-bottom:1px solid var(--rule)}
+.fb-head h3{margin:0}
+.fb-body{overflow:auto;padding:8px 24px 20px;min-height:0}
+.pw-steps{margin:0 0 14px 1.1em;padding:0;color:var(--white-2);line-height:1.55}
+.pw-steps li{margin:4px 0}
+.fb-q{margin:16px 0}
+.fb-q label{display:block;font-size:1rem;color:var(--white);margin-bottom:8px;line-height:1.4}
+.fb-req{color:var(--gold)}
+.fb-scale,.fb-pills{display:flex;flex-wrap:wrap;gap:6px}
+.fb-scale button,.fb-pills button{font-family:var(--mono);font-size:.78rem;padding:8px 11px;min-width:40px;border-radius:8px;cursor:pointer;
+  background:transparent;color:var(--white);border:1px solid var(--rule)}
+.fb-scale .fb-na{min-width:auto;color:var(--white-muted)}
+.fb-scale button[aria-checked="true"],.fb-pills button[aria-checked="true"]{background:var(--gold);border-color:var(--gold);color:#FCF9EF}
+.fb-ends{display:flex;justify-content:space-between;font-size:.75rem;color:var(--white-muted);margin-top:4px;max-width:100%}
+.fb-body textarea,.fb-card input{width:100%;font-family:var(--sans);font-size:.95rem;color:var(--white);background:var(--navy-3,transparent);
+  border:1px solid var(--rule);border-radius:8px;padding:9px 10px;resize:vertical;box-sizing:border-box}
+.fb-follow{margin-top:8px}
+.fb-follow[hidden],.fb-card-more[hidden],.fb-error[hidden]{display:none!important}
+.fb-error{color:var(--error)!important;font-size:.9rem}
+.fb-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.fb-actions button,.fb-card-actions button,.fb-send{font-family:var(--mono);font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;padding:10px 14px;border-radius:8px;cursor:pointer}
+.fb-card{position:fixed;right:16px;bottom:16px;z-index:12500;width:min(340px,calc(100vw - 32px));background:var(--sheet);color:var(--white);
+  border:1px solid var(--rule);border-radius:12px;padding:16px 16px 14px;box-shadow:0 18px 40px -16px rgba(0,0,0,.4);font-family:var(--sans);
+  animation:fbIn .25s ease-out}
+@keyframes fbIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.fb-card{animation:none}}
+.fb-card-x{position:absolute;top:6px;right:6px}
+.fb-card-title{font-family:var(--serif);font-size:1.2rem;font-weight:600;margin:0 22px 8px 0}
+.fb-card-text{font-size:.92rem;color:var(--white-2);margin:0 0 10px}
+.fb-stars{display:flex;gap:4px}
+.fb-stars button{font-size:1.6rem;line-height:1;background:none;border:0;cursor:pointer;color:var(--rule);padding:2px 4px}
+.fb-stars button.on{color:var(--gold)}
+.fb-card-more{display:flex;gap:6px;margin-top:10px}
+.fb-card-actions{display:flex;gap:6px;flex-wrap:wrap}
+.fb-entry span i{font-style:normal;color:var(--white-muted)}
 .pilot-gate{position:fixed;inset:0;z-index:12000;display:flex;align-items:center;justify-content:center;padding:16px;
   background:var(--navy-2, var(--paper));overflow:auto}
 .pilot-card{max-width:520px;width:100%;background:var(--sheet);border:1px solid var(--rule);border-radius:var(--rl,12px);

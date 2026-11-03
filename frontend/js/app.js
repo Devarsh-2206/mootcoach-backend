@@ -90,6 +90,7 @@ import {
 } from './components/extraIssues.js';
 import { initClarity, identifyUserInClarity } from './services/clarity.js';
 import { checkPilot, resetPilot } from './components/pilotGate.js';
+import './components/feedback.js';
 
 // Auth Overlay State and Handlers
 let isOverlaySignUpMode = false;
@@ -419,6 +420,8 @@ async function handleOverlayForgotPassword() {
 }
 
 async function handleLogout() {
+  // Pilot testers are asked once for feedback on the way out (skippable).
+  if (window.pilotBeforeSignOut && !(await window.pilotBeforeSignOut())) return;
   // An analysis still running would be lost (it saves to this account).
   if (window.mcWait && window.mcWait.isRunning()) {
     const choice = await confirmDialog({

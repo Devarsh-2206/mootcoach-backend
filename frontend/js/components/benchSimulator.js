@@ -784,6 +784,8 @@ function renderScorecard(review) {
 }
 
 export function appendBenchPerformanceReview(review, source = 'bench') {
+  // A finished round: the pilot may ask how it went (components/feedback.js).
+  try { window.dispatchEvent(new CustomEvent('mc:round-done', { detail: { source } })); } catch (e) {}
   const chat = document.getElementById('bench-chat');
   if (!chat) return;
   // A review that arrives after another moot was opened belongs to the old one.
