@@ -340,7 +340,7 @@ function inr(n) {
 }
 const fmtTokens = (n) => n >= 1e6 ? (n / 1e6).toFixed(1) + 'M' : n >= 1e3 ? Math.round(n / 1e3) + 'k' : String(n || 0);
 
-const EMAIL_LABELS = { waitlisted: 'On the waitlist', welcome: 'Welcome', approved: 'Place ready', reminder: 'Unused-place reminder (24h)', feedback: 'Feedback request (day 4)' };
+const EMAIL_LABELS = { waitlisted: 'On the waitlist', welcome: 'Welcome', approved: 'Place ready', reminder: 'Unused-place reminder (24h)', voice: 'Try a voice round (day 2)', feedback: 'Feedback request (day 4)' };
 function renderEmails(em) {
   if (!em) return '<p class="pilot-small">Email status is not available on this server yet.</p>';
   const t = em.totals || {};
