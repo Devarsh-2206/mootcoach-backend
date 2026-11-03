@@ -1204,6 +1204,20 @@ export async function startOralRound() {
 
   let benchAdjourned = false;
   let fullJudgeResponse = '';
+  let judgeFlushTimer = null, judgeTurnEnded = false;
+  // Writes the judge's collected words as one transcript line.
+  const flushJudgeLine = () => {
+    judgeFlushTimer = null;
+    judgeTurnEnded = false;
+    const cleanResponse = fullJudgeResponse.trim();
+    fullJudgeResponse = '';
+    if (!cleanResponse) return;
+    console.log('[JUDGE TRANSCRIPT] Response received:', cleanResponse);
+    appendTranscript('judge', cleanResponse);
+    // The bench closed the hearing: end the round (and mark it) once the
+    // judge has finished speaking, instead of letting it run on.
+    if (/court (is|stands) adjourned/i.test(cleanResponse)) benchAdjourned = true;
+  };
   console.log("◉ Initiating oral round...");
   console.log("[DEBUG AUDIT] Starting oral round...");
   benchConversation = [];
@@ -1320,30 +1334,24 @@ export async function startOralRound() {
         // Low-latency sentence-boundary chunking for real-time TTS responsiveness
         console.log("[DEBUG AUDIT] AI response chunk received:", text);
         fullJudgeResponse += text;
+        // Vertex AI can deliver the transcript after "turn complete", or with
+        // no turn signal at all. Keep collecting, and write the judge's line
+        // once the text has gone quiet (sooner if the turn already ended).
+        clearTimeout(judgeFlushTimer);
+        judgeFlushTimer = setTimeout(flushJudgeLine, judgeTurnEnded ? 1200 : 4000);
       },
       onTurnComplete: () => {
-        const cleanResponse = fullJudgeResponse.trim();
-        if (cleanResponse) {
-          console.log('[JUDGE TRANSCRIPT] Response received:', cleanResponse);
-          appendTranscript('judge', cleanResponse);
-          // The bench closed the hearing: end the round (and mark it) once the
-          // judge has finished speaking, instead of letting it run on.
-          if (/court (is|stands) adjourned/i.test(cleanResponse)) benchAdjourned = true;
-          console.log('[JUDGE TRANSCRIPT] Appended to transcript');
-          console.log('[JUDGE TRANSCRIPT] Container found:', !!document.getElementById('bench-transcript-panel'));
-          console.log('[JUDGE TRANSCRIPT] Judge bubble inserted');
-        }
-
-        fullJudgeResponse = '';
+        judgeTurnEnded = true;
+        clearTimeout(judgeFlushTimer);
+        judgeFlushTimer = setTimeout(flushJudgeLine, 1200);
       },
       onInterrupted: () => {
+        clearTimeout(judgeFlushTimer);
+        judgeTurnEnded = false;
         const cleanResponse = fullJudgeResponse.trim();
         if (cleanResponse) {
           console.log('[JUDGE TRANSCRIPT] Response received (interrupted):', cleanResponse);
           appendTranscript('judge', cleanResponse + "...");
-          console.log('[JUDGE TRANSCRIPT] Appended to transcript (interrupted)');
-          console.log('[JUDGE TRANSCRIPT] Container found:', !!document.getElementById('bench-transcript-panel'));
-          console.log('[JUDGE TRANSCRIPT] Judge bubble inserted');
         }
         fullJudgeResponse = '';
       },
@@ -1355,6 +1363,8 @@ export async function startOralRound() {
       onNotice: (text) => appendTranscript('system', text),
       onClose: () => {
         console.log("[DEBUG AUDIT] Engine connection closed.");
+        // A judge line still being collected belongs in the transcript and report.
+        if (judgeFlushTimer) { clearTimeout(judgeFlushTimer); flushJudgeLine(); }
         if (voiceSessionActive) {
           stopOralRound();
         }
