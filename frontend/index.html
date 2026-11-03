@@ -2796,6 +2796,10 @@ p  { color:var(--white-2); }
 #view-landing .scoresheet table{width:100%;border-collapse:collapse}
 #view-landing .scoresheet td{padding:15px 4px;border-bottom:1px solid var(--rule-soft);font-size:15.5px}
 #view-landing .scoresheet td:last-child{text-align:right;width:110px}
+#view-landing .of{font-family:var(--mono,monospace);font-size:.72em;color:var(--ink-soft);margin-left:3px;letter-spacing:.02em}
+#view-landing .pilot-pill{margin:22px auto 0;font-family:var(--mono,monospace);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);text-align:center}
+#view-landing .pilot-pill span{display:inline-block;border:1px solid var(--red,#B0392E);color:var(--red,#B0392E);padding:2px 8px;margin-right:8px;border-radius:2px}
+#view-landing .pilot-note{font-size:15px;color:var(--ink-soft);max-width:520px;margin:10px auto 0}
 #view-landing .scoresheet .hand{font-family:var(--lv-hand);font-size:27px;color:var(--red);font-weight:600}
 #view-landing .scoresheet .total td{border-bottom:none;border-top:2px solid var(--ink);font-weight:700;text-transform:uppercase;font-size:13px;letter-spacing:.1em}
 #view-landing .scoresheet .total .hand{font-size:32px}
@@ -3783,6 +3787,7 @@ html:root #view-workspace .issue-card.selected:not(.mc-paper *){background:var(-
       <a href="#exhibit-a" class="btn">Inspect the evidence ↓</a>
     </div>
     <div class="swear">sworn before no one — <b>practised before everyone.</b></div>
+    <p class="pilot-pill"><span>Closed pilot</span> Open to NALSAR now · others by waitlist</p>
   </div>
 </header>
 
@@ -3854,7 +3859,7 @@ html:root #view-workspace .issue-card.selected:not(.mc-paper *){background:var(-
             <div class="row"><span>Maneka Gandhi</span><span class="vstamp" data-vstamp>Verified</span></div>
             <div class="row"><span>Confidence gate</span><span>strict</span></div>
           </div>
-          <p class="one">If a citation can't be verified, you never see it.</p>
+          <p class="one">Every citation is checked. What can't be verified is flagged, never passed off as real.</p>
         </div>
       </div>
       <div class="ex reveal">
@@ -3891,12 +3896,12 @@ html:root #view-workspace .issue-card.selected:not(.mc-paper *){background:var(-
           <h3>Round Scoring</h3>
           <div class="mini">
             <table>
-              <tr><td>Legal analysis</td><td><span class="hand" data-count="8.2">0.0</span></td></tr>
-              <tr><td>Authorities</td><td><span class="hand" data-count="7.6">0.0</span></td></tr>
-              <tr><td>Responsiveness</td><td><span class="hand" data-count="7.1">0.0</span></td></tr>
+              <tr><td>Knowledge of law</td><td><span class="hand" data-count="21" data-dec="0">0</span><span class="of">/25</span></td></tr>
+              <tr><td>Application to facts</td><td><span class="hand" data-count="19" data-dec="0">0</span><span class="of">/25</span></td></tr>
+              <tr><td>Response to questions</td><td><span class="hand" data-count="18" data-dec="0">0</span><span class="of">/25</span></td></tr>
             </table>
           </div>
-          <p class="one">Six advocacy skills, marked every sitting.</p>
+          <p class="one">Five criteria, marked out of 100 after every round.</p>
         </div>
       </div>
       <div class="ex reveal">
@@ -3904,7 +3909,7 @@ html:root #view-workspace .issue-card.selected:not(.mc-paper *){background:var(-
         <div class="pad">
           <h3>Between Rounds</h3>
           <div class="mini">
-            <span class="hand" style="font-size:24px">+0.8</span> responsiveness since Round 2
+            <span class="hand" style="font-size:24px">+3</span> response to questions since Round 2
             <svg class="spark" data-spark width="100%" height="42" viewBox="0 0 220 42" preserveAspectRatio="none">
               <path pathLength="1" d="M4,34 C40,30 60,33 84,24 C110,15 130,26 162,14 C185,6 200,8 216,6"/>
             </svg>
@@ -3963,11 +3968,12 @@ html:root #view-workspace .issue-card.selected:not(.mc-paper *){background:var(-
         <span class="mono-label">Speaker No. 1</span>
       </div>
       <table>
-        <tr><td>Legal analysis &amp; reasoning</td><td><span class="hand" data-count="8.2">0.0</span></td></tr>
-        <tr><td>Use of authorities</td><td><span class="hand" data-count="7.6">0.0</span></td></tr>
-        <tr><td>Argument structure</td><td><span class="hand" data-count="8.8">0.0</span></td></tr>
-        <tr><td>Responsiveness to the bench</td><td><span class="hand" data-count="7.1">0.0</span></td></tr>
-        <tr class="total"><td>Total</td><td><span class="hand" data-count="31.7">0.0</span></td></tr>
+        <tr><td>Knowledge of law</td><td><span class="hand" data-count="21" data-dec="0">0</span><span class="of">/25</span></td></tr>
+        <tr><td>Application to facts</td><td><span class="hand" data-count="19" data-dec="0">0</span><span class="of">/25</span></td></tr>
+        <tr><td>Response to questions</td><td><span class="hand" data-count="18" data-dec="0">0</span><span class="of">/25</span></td></tr>
+        <tr><td>Court craft</td><td><span class="hand" data-count="12" data-dec="0">0</span><span class="of">/15</span></td></tr>
+        <tr><td>Structure &amp; time</td><td><span class="hand" data-count="8" data-dec="0">0</span><span class="of">/10</span></td></tr>
+        <tr class="total"><td>Total</td><td><span class="hand" data-count="78" data-dec="0">0</span><span class="of">/100</span></td></tr>
       </table>
       <div class="remarks">
         <span class="mono-label">Remarks</span>
@@ -3982,7 +3988,8 @@ html:root #view-workspace .issue-card.selected:not(.mc-paper *){background:var(-
   <div class="wrap reveal">
     <span class="stamp big" data-stamp>Admitted</span>
     <h2>Every great advocate rehearsed before an empty room. <em>Yours doesn't have to be empty.</em></h2>
-    <p>Upload a proposition and face the bench tonight.</p>
+    <p>Upload a proposition and face the bench.</p>
+    <p class="pilot-note">MootCoach is in a closed pilot: NALSAR students get a place straight away, everyone else joins the waitlist.</p>
     <a href="#" class="btn solid" id="bottom-btn-practice">File your first proposition</a>
   </div>
 </section>
@@ -5103,12 +5110,12 @@ html:root #view-workspace .issue-card.selected:not(.mc-paper *){background:var(-
 
   /* handwriting count-up */
   function countUp(el, target, dur){
-    if (reduced){ el.textContent = target.toFixed(1); return; }
+    if (reduced){ el.textContent = target.toFixed(el.dataset.dec ? +el.dataset.dec : 1); return; }
     const t0 = performance.now();
     (function step(t){
       const p = Math.min((t - t0)/dur, 1);
       const eased = 1 - Math.pow(1 - p, 3);
-      el.textContent = (target * eased).toFixed(1);
+      el.textContent = (target * eased).toFixed(el.dataset.dec ? +el.dataset.dec : 1);
       if (p < 1) requestAnimationFrame(step);
     })(t0);
   }
