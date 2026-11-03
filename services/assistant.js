@@ -104,7 +104,7 @@ const TOOLS = [
 /* ── model call (Gemini function calling) ── */
 let ai = null;
 async function geminiStep(contents) {
-  if (!ai) { const { GoogleGenAI } = require('@google/genai'); ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY }); }
+  if (!ai) ai = require('./genaiClient').ai;   // Vertex first when enabled
   let last;
   for (const model of MODELS) {
     try {

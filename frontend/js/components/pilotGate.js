@@ -305,7 +305,8 @@ function render(overlay) {
             : `<button type="button" class="mc-dialog-primary" data-uid="${esc(m.uid)}" data-action="approve" ${c.active >= ov.cap ? 'disabled title="All places are taken"' : ''}>Approve</button>`}
         </div>`).join('') : `<p class="pilot-small">Nobody here yet.</p>`}
     </div>`}
-    <p class="pilot-small">Unused places are released after ${ov.releaseHours} hours. Automatic entry: ${esc(ov.autoDomains.join(', '))}.</p>`;
+    <p class="pilot-small">Unused places are released after ${ov.releaseHours} hours. Automatic entry: ${esc(ov.autoDomains.join(', '))}.</p>
+    ${ov.ai ? `<p class="pilot-small">AI since the last restart: ${ov.ai.backend === 'vertex' ? 'Vertex AI' : 'AI Studio key'} · ${ov.ai.vertex} Vertex calls · ${ov.ai.fallback} fell back to the AI Studio key${ov.ai.lastFallback ? ' (last reason: ' + esc(ov.ai.lastFallback) + ')' : ''}.</p>` : ''}`;
 }
 
 const FB_LABELS = {

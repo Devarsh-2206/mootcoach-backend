@@ -1827,7 +1827,9 @@ function pilotAdminOnly(req, res, next) {
 }
 app.post("/api/pilot/admin/overview", signedIn, logLimiter, pilotAdminOnly, async (req, res) => {
   try {
-    return res.json({ success: true, overview: await pilot.overview() });
+    const overview = await pilot.overview();
+    overview.ai = require("./services/genaiClient").aiStatus();
+    return res.json({ success: true, overview });
   } catch (e) {
     return res.status(500).json({ success: false, error: 'Could not load the pilot list: ' + (e && e.message) });
   }

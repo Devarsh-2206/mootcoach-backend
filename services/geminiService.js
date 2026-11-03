@@ -1,9 +1,10 @@
-const { GoogleGenAI } = require("@google/genai");
 const usage = require("./usageMeter");
 const { buildLiveJudgePrompt } = require("../prompts/benchJudgePrompt");
 const { createEmptyMemory, evaluateExchange } = require("./memoryEngine");
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+// Vertex AI first when GEMINI_BACKEND=vertex, the AI Studio key otherwise or
+// as the fallback (services/genaiClient.js).
+const { ai, liveBackends, liveClient } = require("./genaiClient");
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -104,10 +105,14 @@ const handleLiveVoiceConnection = async (ws, benchLevel = 'moderate', propositio
 
   // Newest first; the next one is used only if this one refuses before the
   // session is set up. Override with GEMINI_LIVE_MODELS (comma-separated).
+  // With Vertex on, every Vertex attempt comes first and the AI Studio key's
+  // attempts follow, so a Vertex refusal still gets the student a round.
   const ATTEMPTS = [];
-  for (const model of LIVE_MODELS) {
-    if (languageCode) ATTEMPTS.push({ model, languageCode });
-    ATTEMPTS.push({ model, languageCode: null });
+  for (const backend of liveBackends()) {
+    for (const model of LIVE_MODELS) {
+      if (languageCode) ATTEMPTS.push({ backend, model, languageCode });
+      ATTEMPTS.push({ backend, model, languageCode: null });
+    }
   }
   let modelIndex = 0, setupDone = false, liveAttempt = 0, clientGone = false;
   ws.on("close", () => { clientGone = true; });
@@ -133,13 +138,13 @@ const handleLiveVoiceConnection = async (ws, benchLevel = 'moderate', propositio
   };
   async function openLive() {
     const attemptId = ++liveAttempt;
-    const { model, languageCode: lang } = ATTEMPTS[modelIndex];
+    const { backend, model, languageCode: lang } = ATTEMPTS[modelIndex];
     setupDone = false;
-    console.log(`🎙️ Opening Gemini Live session on ${model}${lang ? ` (${lang})` : ''}`);
+    console.log(`🎙️ Opening Gemini Live session on ${model}${lang ? ` (${lang})` : ''} via ${backend}`);
     const config = lang
       ? { ...liveConfig, speechConfig: { ...liveConfig.speechConfig, languageCode: lang } }
       : liveConfig;
-    session = await ai.live.connect({
+    session = await liveClient(backend).live.connect({
       model,
       config,
       callbacks: {

@@ -132,7 +132,7 @@ async function cacheSet(k, v) {
 /* ── the grounded call ── */
 let ai = null;
 function client() {
-  if (!ai) { const { GoogleGenAI } = require('@google/genai'); ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY }); }
+  if (!ai) ai = require('./genaiClient').ai;   // Vertex first when enabled
   return ai;
 }
 async function groundedCall(prompt) {
