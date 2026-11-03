@@ -53,7 +53,7 @@ function readConfig(env = process.env) {
  *   extras           everything smaller: authority cards, forecasts,
  *                    briefings, oral evaluation, citation checks, plans
  */
-const DEFAULT_LIMITS = { uploads: 2, memorials: 2, memorialReviews: 2, voiceRounds: 3, judgeTurns: 60, extras: 40 };
+const DEFAULT_LIMITS = { uploads: 2, memorials: 2, memorialReviews: 2, voiceRounds: 2, judgeTurns: 60, extras: 40 };
 function parseLimits(spec) {
   const out = { ...DEFAULT_LIMITS };
   String(spec || '').split(',').forEach(pair => {
