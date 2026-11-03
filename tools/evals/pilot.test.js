@@ -33,7 +33,17 @@ const outsider = (n) => ({ uid: 'o' + n, email: `x${n}@gmail.com`, emailVerified
 
   // unverified NALSAR address (email/password sign-up) is not trusted
   const fake = { uid: 'f1', email: 'fake@nalsar.ac.in', emailVerified: false };
-  assert.strictEqual((await pilot.join(fake)).status, 'waitlist');
+  const fj = await pilot.join(fake);
+  assert.strictEqual(fj.status, 'waitlist');
+  assert.strictEqual(fj.reason, 'verify', 'unverified NALSAR waits for verification, not approval');
+  {
+    // ...and gets in on its own once the address is verified (room permitting)
+    const p2 = createPilot(memoryStore(), { config: cfg(), now });
+    assert.strictEqual((await p2.join(fake)).reason, 'verify');
+    const fv = await p2.join({ ...fake, emailVerified: true });
+    assert.deepStrictEqual([fv.status, fv.reason], ['active', 'auto'], 'verified NALSAR address gets the place');
+    assert.strictEqual((await p2.join({ uid: 'g1', email: 'x@gmail.com', emailVerified: false })).reason, 'approval');
+  }
 
   // admin always in, never stored
   assert.strictEqual((await pilot.join({ uid: 'a', email: 'Boss@MootCoach.in', emailVerified: true })).status, 'admin');

@@ -47,6 +47,8 @@ function due(m, log, { now, startedAt, releaseHours }) {
   const age = now - m.joinedAt;
 
   if (m.status === 'waitlist') {
+    // Waiting only to confirm a NALSAR address: the confirmation email covers it.
+    if (m.reason === 'verify') return null;
     return ok('waitlisted') && !sent.welcome && !sent.approved && age < 48 * H ? 'waitlisted' : null;
   }
   if (m.status !== 'active') return null;

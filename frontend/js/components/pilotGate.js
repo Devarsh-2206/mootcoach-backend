@@ -15,7 +15,8 @@ import { confirmDialog } from './ui.js';
 
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-let state = { pilot: null, admin: false, email: '' };
+let state = { pilot: null, admin: false, email: '', user: null };
+const sentVerify = new Set();   // uids we have already sent a verification email to, this visit
 
 function copyFor(p) {
   const s = p && p.status;
@@ -26,6 +27,11 @@ function copyFor(p) {
   if (s === 'released') return {
     title: 'Your place was released',
     body: 'Pilot places are held for three days, and yours was not used, so it went to someone else. You are back on the waitlist. If you are at NALSAR, signing in again gets your place back automatically whenever one is free.',
+  };
+  if (p && p.reason === 'verify') return {
+    verify: true,
+    title: 'Confirm your NALSAR email',
+    body: `Your @nalsar.ac.in address gets a pilot place straight away. It only needs confirming: we have sent an email to ${state.email || 'your address'}. Click the button in it, then come back here and press "I have confirmed it".`,
   };
   if (p && p.reason === 'full') return {
     title: 'All pilot places are taken',
@@ -59,20 +65,72 @@ export function showPilotGate(p) {
       <h2 id="pilot-gate-title">${esc(c.title)}</h2>
       <p>${esc(c.body)}</p>
       ${state.email ? `<p class="pilot-small">Signed in as ${esc(state.email)}</p>` : ''}
+      ${c.verify ? `<div class="pilot-actions">
+        <button type="button" class="mc-dialog-primary" data-act="verified">I have confirmed it</button>
+        <button type="button" class="mc-dialog-secondary" data-act="resend">Send the email again</button>
+      </div>
+      <p class="pilot-small" id="pilot-verify-note">Not in your inbox? Check spam. Or sign out and use <b>Continue with Google</b> with your NALSAR account instead.</p>` : ''}
       <div class="pilot-actions">
         <button type="button" class="mc-dialog-secondary" data-act="home">Back to the home page</button>
         <button type="button" class="mc-dialog-danger" data-act="signout">Sign out</button>
       </div>
       <p class="pilot-small"><a href="/about.html">What is MootCoach?</a></p>
     </div>`;
-  el.onclick = (e) => {
+  el.onclick = async (e) => {
     const b = e.target.closest('button[data-act]');
     if (!b) return;
+    if (b.dataset.act === 'verified') return confirmVerified(b);
+    if (b.dataset.act === 'resend') return sendVerifyEmail(true);
     if (b.dataset.act === 'signout' && window.handleLogout) window.handleLogout();
     if (b.dataset.act === 'home' && window.navigate) window.navigate('landing');
   };
   el.hidden = false;
   el.querySelector('button')?.focus();
+  if (c.verify) sendVerifyEmail(false);
+}
+
+function verifyNote(text) {
+  const n = document.getElementById('pilot-verify-note');
+  if (n) n.textContent = text;
+}
+
+/** Send the "confirm your email" message: once on its own, again on request. */
+async function sendVerifyEmail(again) {
+  const u = state.user;
+  if (!u || (!again && sentVerify.has(u.uid))) return;
+  sentVerify.add(u.uid);
+  if (again) verifyNote('Sending…');
+  try {
+    const r = await requestJson('/api/auth/verify-email', { body: {}, timeoutMs: 30000 });
+    if (r.already) return confirmVerified();
+    if (!r.success) throw new Error('fallback');
+  } catch (e) {
+    // The server cannot send right now: Firebase's own email does the same job.
+    try { await u.sendEmailVerification(); }
+    catch (err) { if (again) verifyNote('Could not send it just now. Wait a minute and try again.'); return; }
+  }
+  if (again) verifyNote(`Sent again to ${state.email}. Check your inbox and spam folder.`);
+}
+
+/** After the student clicks the link: refresh their sign-in so the server sees the confirmed address. */
+async function confirmVerified(btn) {
+  const u = state.user;
+  if (!u) return;
+  if (btn) { btn.disabled = true; btn.textContent = 'Checking…'; }
+  try {
+    await u.reload();
+    if (!u.emailVerified) {
+      verifyNote('Not confirmed yet. Click the button in the email first (check spam), then press "I have confirmed it" again.');
+      return;
+    }
+    await u.getIdToken(true);
+    const p = await checkPilot(u);
+    if (p && p.reason === 'verify') verifyNote('Confirmed, but we could not update your place yet. Try again in a moment.');
+  } catch (e) {
+    verifyNote('Could not check just now. Check your connection and try again.');
+  } finally {
+    if (btn && btn.isConnected) { btn.disabled = false; btn.textContent = 'I have confirmed it'; }
+  }
 }
 
 export function hidePilotGate() {
@@ -87,7 +145,7 @@ export function pilotState() { return state; }
 
 /** Ask the server where this user stands. Never blocks on a failed check: the server still enforces. */
 export async function checkPilot(user) {
-  state = { pilot: null, admin: false, email: (user && user.email) || '' };
+  state = { pilot: null, admin: false, email: (user && user.email) || '', user: user || null };
   try {
     const data = await requestJson('/api/pilot/me', { body: {}, timeoutMs: 30000 });
     state.pilot = data.pilot; state.admin = !!data.admin;
@@ -216,7 +274,7 @@ window.addEventListener('mc:pilot', (e) => {
 /* ───────────────────────── admin panel ───────────────────────── */
 
 const fmtDate = (t) => (t ? new Date(t).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—');
-const REASON = { auto: 'NALSAR, automatic', approved: 'approved by you', approval: 'needs approval', full: 'NALSAR, arrived when full', idle: 'unused for 3 days', admin: 'released by you', closed: 'signed up after the pilot' };
+const REASON = { auto: 'NALSAR, automatic', approved: 'approved by you', approval: 'needs approval', full: 'NALSAR, arrived when full', idle: 'unused for 3 days', verify: 'NALSAR, confirming email', admin: 'released by you', closed: 'signed up after the pilot' };
 
 async function openPilotAdmin() {
   let overlay = document.getElementById('pilot-admin');

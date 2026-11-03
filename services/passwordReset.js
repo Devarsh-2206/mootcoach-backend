@@ -85,4 +85,30 @@ async function sendReset(rawEmail) {
   return { ok: !!r.sent, fallback: !r.sent };
 }
 
-module.exports = { sendReset, _allow: allow };
+/**
+ * "Confirm your email" for a signed-in user whose address is not verified
+ * (an email-and-password sign-up). Used by the pilot: a NALSAR address gets
+ * its place automatically once confirmed. Same limits as resets.
+ * Returns { ok, fallback, already }.
+ */
+async function sendVerification(uid) {
+  if (!mailer.configured() || !admin.apps.length) return { ok: false, fallback: true };
+  const user = await admin.auth().getUser(uid);
+  if (!user.email) return { ok: false, error: 'no-email' };
+  if (user.emailVerified) return { ok: true, already: true };
+  if (!allow('verify:' + user.email.toLowerCase())) return { ok: true };
+  const link = await admin.auth().generateEmailVerificationLink(user.email);
+  const code = new URL(link).searchParams.get('oobCode');
+  if (!code) throw new Error('Firebase returned a verification link without a code');
+  const url = `${APP()}/account.html?mode=verifyEmail&oobCode=${encodeURIComponent(code)}`;
+  const from = process.env.EMAIL_FROM_ACCOUNT || 'MootCoach <hello@mootcoach.in>';
+  const at = new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: 'numeric', minute: '2-digit' });
+  const r = await mailer.send({ from, to: user.email, subject: `Confirm your email for MootCoach (${at})`,
+    html: page(['Hello,', 'Click the button to confirm this is your email address. Then go back to MootCoach: if you are at NALSAR, your pilot place is waiting.',
+      'If you did not create a MootCoach account, ignore this email.'], { label: 'Confirm my email', href: url })
+      .replace('someone asked to reset the password for this address', 'this address was used to create a MootCoach account'),
+    text: `Confirm your email for MootCoach:\n${url}\n\nIf you did not create a MootCoach account, ignore this email.` });
+  return { ok: !!r.sent, fallback: !r.sent };
+}
+
+module.exports = { sendReset, sendVerification, _allow: allow };

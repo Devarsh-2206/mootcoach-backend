@@ -148,6 +148,7 @@ async function pilotStatus(user, fresh = false) {
 function pilotMessage(s) {
   if (s.status === 'closed') return "The MootCoach pilot has ended. Thank you! We'll email you when MootCoach opens to everyone.";
   if (s.status === 'released') return "Your pilot place was released because it wasn't used. You're back on the waitlist.";
+  if (s.reason === 'verify') return "Confirm your NALSAR email to get your pilot place. We've sent you an email with a link.";
   if (s.reason === 'full') return "All pilot places are taken right now. You're on the waitlist.";
   return "MootCoach is in a closed pilot. You're on the waitlist, and we'll email you when a place opens.";
 }
@@ -635,6 +636,16 @@ app.post("/api/auth/reset", resetLimiter, async (req, res) => {
     return res.json({ success: !!r.ok, fallback: !!r.fallback });
   } catch (e) {
     console.error('[RESET] failed:', e && e.message);
+    return res.json({ success: false, fallback: true });
+  }
+});
+
+app.post("/api/auth/verify-email", signedIn, resetLimiter, async (req, res) => {
+  try {
+    const r = await require('./services/passwordReset').sendVerification(req.user.uid);
+    return res.json({ success: !!r.ok, fallback: !!r.fallback, already: !!r.already });
+  } catch (e) {
+    console.error('[VERIFY] failed:', e && e.message);
     return res.json({ success: false, fallback: true });
   }
 });

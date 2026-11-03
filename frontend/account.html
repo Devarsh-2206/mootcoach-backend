@@ -116,7 +116,7 @@
       } else if (mode === 'verifyEmail') {
         document.title = 'Verify Email · MootCoach';
         await auth.applyActionCode(code);
-        done('Email confirmed', 'Thanks, your email address is confirmed.');
+        done('Email confirmed', 'Thanks, your email address is confirmed. Go back to MootCoach and press "I have confirmed it". If you are at NALSAR, your pilot place is ready.');
       } else if (mode === 'recoverEmail') {
         document.title = 'Email Restored · MootCoach';
         const info = await auth.checkActionCode(code);

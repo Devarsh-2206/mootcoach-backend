@@ -89,7 +89,8 @@ function createPilot(store, opts = {}) {
     if (isAdmin(user)) return { status: 'admin', mode: c.mode };
     if (!user || !user.uid) return { status: 'waitlist', reason: 'signin', mode: c.mode };
 
-    const auto = !!user.emailVerified && c.autoDomains.includes(domainOf(user.email));
+    const autoDomain = c.autoDomains.includes(domainOf(user.email));
+    const auto = !!user.emailVerified && autoDomain;
     // Room is made first, outside the join transaction, so a stale place is
     // freed before a new student is told the pilot is full.
     if (c.mode === 'on' && auto) await releaseIdle();
@@ -101,12 +102,16 @@ function createPilot(store, opts = {}) {
         m = { uid: user.uid, email: user.email || '', name: user.name || '', joinedAt: now(), firstUseAt: null };
         if (c.mode === 'closed') { m.status = 'waitlist'; m.reason = 'closed'; }
         else if (auto && state.active < c.cap) { m.status = 'active'; m.reason = 'auto'; state.active += 1; tx.putState(state); }
-        else { m.status = 'waitlist'; m.reason = auto ? 'full' : 'approval'; }
+        // A NALSAR address not yet verified (signed up with email and password)
+        // waits only for the verification click, not for approval.
+        else { m.status = 'waitlist'; m.reason = auto ? 'full' : autoDomain ? 'verify' : 'approval'; }
         tx.putMember(m);
       } else if (c.mode === 'on' && auto && state.active < c.cap
-                 && ((m.status === 'waitlist' && m.reason === 'full') || (m.status === 'released' && m.reason === 'idle'))) {
-        // A NALSAR student who arrived while the pilot was full, or whose
-        // unused place lapsed, gets in on their own once there is room.
+                 && ((m.status === 'waitlist' && (m.reason === 'full' || m.reason === 'verify' || m.reason === 'approval'))
+                     || (m.status === 'released' && m.reason === 'idle'))) {
+        // A NALSAR student who arrived while the pilot was full, who has just
+        // verified their address, or whose unused place lapsed, gets in on
+        // their own once there is room.
         m.status = 'active'; m.reason = 'auto'; m.joinedAt = now(); m.firstUseAt = null;
         state.active += 1;
         tx.putMember(m); tx.putState(state);
