@@ -24,7 +24,8 @@ const als = new AsyncLocalStorage();
 
 const FEATURES = {
   upload: 'Proposition upload',
-  memorial: 'Memorial drafting',
+  draft: 'Argument draft (Advocacy)',
+  memorial: 'Full memorial (plan + build)',
   memorialReview: 'Memorial review',
   voice: 'Voice round',
   bench: 'Text bench',
@@ -35,7 +36,8 @@ const FEATURES = {
 function featureForPath(p) {
   p = String(p || '');
   if (/^\/(analyze|extract-issues)\b|^\/api\/(authority-intelligence|bench-forecast)\b/.test(p)) return 'upload';
-  if (/^\/api\/(memorial-plan|build-memorial|build-argument|verify-authorities)\b/.test(p)) return 'memorial';
+  if (/^\/api\/build-argument\b/.test(p)) return 'draft';
+  if (/^\/api\/(memorial-plan|build-memorial|verify-authorities)\b/.test(p)) return 'memorial';
   if (/^\/api\/analyse-memorial\b/.test(p)) return 'memorialReview';
   if (/^\/ws\/voice\b|^\/simulate-bench\/(oral-review|extract-claims)\b|^\/evaluate-oral\b|^\/api\/oral-briefing\b/.test(p)) return 'voice';
   if (/^\/simulate-bench\b/.test(p)) return 'bench';
@@ -46,6 +48,7 @@ function featureForPath(p) {
 function useForPath(p) {
   p = String(p || '');
   if (/^\/analyze\b/.test(p)) return 'upload';
+  if (/^\/api\/build-argument\b/.test(p)) return 'draft';
   if (/^\/api\/build-memorial\b/.test(p)) return 'memorial';
   if (/^\/api\/analyse-memorial\b/.test(p)) return 'memorialReview';
   if (/^\/simulate-bench$/.test(p)) return 'bench';
