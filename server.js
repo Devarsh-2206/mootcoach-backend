@@ -117,6 +117,9 @@ const signedIn = requireUser();
  */
 const { createPilot, memoryStore, firestoreStore, readConfig: readPilotConfig } = require("./services/pilot");
 const pilot = createPilot(admin.apps.length ? firestoreStore(admin.firestore()) : memoryStore());
+// Estimated AI spend per feature (services/spend.js), saved next to the pilot state.
+const spend = require("./services/spend");
+spend.attach(admin.apps.length ? admin.firestore().collection('artifacts').doc('moot.coach').collection('pilot').doc('spend') : null);
 if (!admin.apps.length && readPilotConfig().mode !== 'off') {
   console.warn('⚠️ PILOT_MODE is on but Firestore is unavailable: pilot places are kept in memory and reset on restart.');
 }
@@ -581,6 +584,7 @@ app.use((req, res, next) => {
   next();
 });
 app.use(express.static("frontend", { dotfiles: 'deny' }));
+app.use(spend.middleware);
 
 app.use("/extract-issues", signedIn, pilotGate({ bucket: 'extras' }), aiLimiter, extractIssuesRoute);
 app.use("/api/authority-intelligence", signedIn, pilotGate({ bucket: 'extras' }), aiLimiter, authorityIntelligenceRoute);
@@ -1829,6 +1833,7 @@ app.post("/api/pilot/admin/overview", signedIn, logLimiter, pilotAdminOnly, asyn
   try {
     const overview = await pilot.overview();
     overview.ai = require("./services/genaiClient").aiStatus();
+    overview.spend = spend.report();
     return res.json({ success: true, overview });
   } catch (e) {
     return res.status(500).json({ success: false, error: 'Could not load the pilot list: ' + (e && e.message) });
@@ -1840,6 +1845,10 @@ app.post("/api/pilot/admin/feedback", signedIn, logLimiter, pilotAdminOnly, asyn
   } catch (e) {
     return res.status(500).json({ success: false, error: 'Could not load feedback: ' + (e && e.message) });
   }
+});
+app.post("/api/pilot/admin/spend-reset", signedIn, logLimiter, pilotAdminOnly, async (req, res) => {
+  await spend.reset();
+  return res.json({ success: true, spend: spend.report() });
 });
 app.post("/api/pilot/admin/set", signedIn, logLimiter, pilotAdminOnly, express.json({ limit: '4kb' }), async (req, res) => {
   const uid = typeof (req.body && req.body.uid) === 'string' ? req.body.uid.slice(0, 128) : '';

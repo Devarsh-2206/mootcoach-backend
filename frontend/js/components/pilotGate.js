@@ -226,6 +226,15 @@ async function openPilotAdmin() {
       const tab = e.target.closest('button[data-tab]');
       if (tab) { overlay.dataset.view = tab.dataset.tab; render(overlay); return; }
       if (e.target.closest('[data-act="csv"]')) { downloadCsv(overlay._fb || []); return; }
+      const reset = e.target.closest('[data-act="spend-reset"]');
+      if (reset) {
+        // Two clicks, so a stray click cannot wipe the numbers.
+        if (!reset.dataset.armed) { reset.dataset.armed = '1'; reset.textContent = 'Click again to reset'; return; }
+        reset.disabled = true;
+        try { const r = await requestJson('/api/pilot/admin/spend-reset', { body: {}, timeoutMs: 30000 }); overlay._ov.spend = r.spend; render(overlay); }
+        catch (err) { reset.disabled = false; alertIn(overlay, err.message); }
+        return;
+      }
       if (e.target.closest('[data-act="copy"]')) {
         const emails = (overlay._ov.members || []).filter(m => m.status === 'active' && !(m.feedback && m.feedback.full)).map(m => m.email).filter(Boolean);
         try { await navigator.clipboard.writeText(emails.join(', ')); alertIn(overlay, `Copied ${emails.length} email address${emails.length === 1 ? '' : 'es'}.`); }
@@ -292,9 +301,9 @@ function render(overlay) {
       <div><b>${c.released}</b><span>released</span></div>
     </div>
     <div class="pilot-tabs" role="tablist">
-      ${['waitlist', 'active', 'released', 'feedback'].map(t => `<button type="button" role="tab" aria-selected="${t === tab}" class="${t === tab ? 'is-on' : ''}" data-tab="${t}">${t === 'waitlist' ? 'Waitlist' : t === 'active' ? 'Testers' : t === 'released' ? 'Released' : 'Feedback'} (${t === 'feedback' ? fb.length : c[t]})</button>`).join('')}
+      ${['waitlist', 'active', 'released', 'feedback', 'spend'].map(t => `<button type="button" role="tab" aria-selected="${t === tab}" class="${t === tab ? 'is-on' : ''}" data-tab="${t}">${t === 'waitlist' ? 'Waitlist' : t === 'active' ? 'Testers' : t === 'released' ? 'Released' : t === 'feedback' ? 'Feedback' : 'Spend'}${t === 'spend' ? (ov.spend ? ' (' + inr(ov.spend.totalInr) + ')' : '') : ` (${t === 'feedback' ? fb.length : c[t]})`}</button>`).join('')}
     </div>
-    ${tab === 'feedback' ? renderFeedback(fb, noFeedback) : `<div class="pilot-list">
+    ${tab === 'spend' ? renderSpend(ov.spend) : tab === 'feedback' ? renderFeedback(fb, noFeedback) : `<div class="pilot-list">
       ${rows.length ? rows.map(m => `<div class="pilot-row">
           <div class="pilot-who"><b>${esc(m.name || '(no name)')}</b><span>${esc(m.email)}</span>
             <span class="pilot-small">${esc(REASON[m.reason] || m.reason || '')} · joined ${esc(fmtDate(m.joinedAt))}${m.status === 'active' ? (m.firstUseAt ? ' · uploaded ' + esc(fmtDate(m.firstUseAt)) : ' · not used yet') : ''}</span>
@@ -307,6 +316,35 @@ function render(overlay) {
     </div>`}
     <p class="pilot-small">Unused places are released after ${ov.releaseHours} hours. Automatic entry: ${esc(ov.autoDomains.join(', '))}.</p>
     ${ov.ai ? `<p class="pilot-small">AI since the last restart: ${ov.ai.backend === 'vertex' ? 'Vertex AI' : 'AI Studio key'} · ${ov.ai.vertex} Vertex calls · ${ov.ai.fallback} fell back to the AI Studio key · voice rounds: ${ov.ai.voiceVertex || 0} on Vertex, ${ov.ai.voiceStudio || 0} on the AI Studio key${ov.ai.lastFallback ? ' (last reason: ' + esc(ov.ai.lastFallback) + ')' : ''}.</p>` : ''}`;
+}
+
+/** Rupees: paise shown while amounts are small, so ₹0.15 calls don't read as ₹0. */
+function inr(n) {
+  n = Number(n) || 0;
+  return '₹' + (n < 100 ? n.toFixed(2) : Math.round(n).toLocaleString('en-IN'));
+}
+const fmtTokens = (n) => n >= 1e6 ? (n / 1e6).toFixed(1) + 'M' : n >= 1e3 ? Math.round(n / 1e3) + 'k' : String(n || 0);
+
+function renderSpend(sp) {
+  if (!sp) return '<p class="pilot-small">Spend figures are not available on this server yet.</p>';
+  const TRIAL_INR = 28569;
+  const left = TRIAL_INR - sp.vertexInr;
+  const perUse = (r) => r.perUseInr == null ? '—' : inr(r.perUseInr);
+  const USE = { upload: 'per upload', memorial: 'per memorial', memorialReview: 'per review', voice: 'per round', bench: 'per question', other: '' };
+  return `<div class="pilot-stats">
+      <div><b>${inr(sp.totalInr)}</b><span>estimated total</span></div>
+      <div><b>${inr(sp.vertexInr)}</b><span>on Vertex (trial credit)</span></div>
+      <div><b>${inr(sp.studioInr)}</b><span>on the AI Studio key</span></div>
+      <div><b>${inr(Math.max(0, left))}</b><span>of ₹28,569 credit left (est.)</span></div>
+    </div>
+    <div class="pilot-list">
+      ${sp.rows.length ? `<table class="spend-table"><thead><tr><th>Feature</th><th>Uses</th><th>AI calls</th><th>Tokens in / out</th><th>Spend</th><th>Each</th></tr></thead><tbody>
+        ${sp.rows.map(r => `<tr><td>${esc(r.label)}</td><td>${r.uses || '—'}</td><td>${r.calls}</td><td>${fmtTokens(r.input)} / ${fmtTokens(r.output)}</td><td>${inr(r.inr)}</td><td>${perUse(r)} <span class="pilot-small">${USE[r.feature] || ''}</span></td></tr>`).join('')}
+      </tbody></table>` : '<p class="pilot-small">Nothing counted yet. Figures appear after the next upload, memorial or voice round.</p>'}
+      ${sp.models.length ? `<p class="pilot-small">By model: ${sp.models.map(m => `${esc(m.model)} ${inr(m.inr)} (${m.calls})`).join(' · ')}</p>` : ''}
+    </div>
+    <p class="pilot-small">These are estimates from the token counts Gemini reports, priced at list rates that may be out of date${sp.pricesOverridden ? ' (prices set with SPEND_PRICES)' : ''}, at ₹${sp.rate.toFixed(2)} per dollar. Google Cloud Billing is the real figure and shows it about a day late. "Each" divides by successful uses, so extra steps after an upload (issues, authorities, forecast) are included in the upload's cost.${sp.since ? ' Counting since ' + esc(fmtDate(sp.since)) + '.' : ''}</p>
+    <div class="pilot-actions"><button type="button" class="mc-dialog-secondary" data-act="spend-reset">Reset the spend figures</button></div>`;
 }
 
 const FB_LABELS = {

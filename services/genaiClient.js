@@ -21,6 +21,7 @@
  * ai.models.generateContent(params) and ai.live.connect(params).
  */
 const { GoogleGenAI } = require('@google/genai');
+const spend = require('./spend');
 
 let studio = null;
 const vertexByLocation = new Map();
@@ -71,6 +72,7 @@ async function generateContent(params) {
     try {
       const r = await vertexClient(process.env.VERTEX_LOCATION || 'global').models.generateContent(params);
       stats.vertex++;
+      spend.recordCall(params && params.model, 'vertex', r);
       return r;
     } catch (e) {
       stats.fallback++;
@@ -79,7 +81,9 @@ async function generateContent(params) {
     }
   }
   stats.studio++;
-  return studioClient().models.generateContent(params);
+  const r = await studioClient().models.generateContent(params);
+  spend.recordCall(params && params.model, 'studio', r);
+  return r;
 }
 
 /**

@@ -3630,6 +3630,11 @@ span.text-\[9px\].uppercase.rounded, div.text-\[9px\].uppercase.rounded {
 .pilot-stats b{font-family:var(--serif);font-size:1.5rem}
 .pilot-stats span{display:block;font-family:var(--mono);font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--white-muted);margin-top:2px}
 .pilot-tabs{display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 10px}
+.spend-table{width:100%;border-collapse:collapse;font-size:.85rem;color:var(--white)}
+.spend-table th{font-family:var(--mono);font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--white-muted);text-align:left;font-weight:500}
+.spend-table th,.spend-table td{padding:7px 8px;border-bottom:1px solid var(--rule);vertical-align:top}
+.spend-table td:nth-child(n+2),.spend-table th:nth-child(n+2){text-align:right;white-space:nowrap}
+@media (max-width:640px){.spend-table th:nth-child(3),.spend-table td:nth-child(3),.spend-table th:nth-child(4),.spend-table td:nth-child(4),.spend-table td .pilot-small{display:none}}
 .pilot-tabs button{background:transparent;border:1px solid var(--rule);color:var(--white)}
 .pilot-list{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
 .pilot-row{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid var(--rule);border-radius:8px;padding:10px 12px}

@@ -5,6 +5,7 @@ const { createEmptyMemory, evaluateExchange } = require("./memoryEngine");
 // Vertex AI first when GEMINI_BACKEND=vertex, the AI Studio key otherwise or
 // as the fallback (services/genaiClient.js).
 const { ai, liveBackends, liveClient, noteLive } = require("./genaiClient");
+const spend = require("./spend");
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -115,7 +116,10 @@ const handleLiveVoiceConnection = async (ws, benchLevel = 'moderate', propositio
     }
   }
   let modelIndex = 0, setupDone = false, liveAttempt = 0, clientGone = false;
-  ws.on("close", () => { clientGone = true; });
+  // Estimated spend: one meter for the round, on whichever attempt connected.
+  let meter = null, meterDone = false;
+  const finishMeter = () => { if (meter && !meterDone) { meterDone = true; meter.done(); } };
+  ws.on("close", () => { clientGone = true; finishMeter(); });
   const liveConfig = {
     responseModalities: ["AUDIO"],
     // The judge's words as text, for the transcript and the round report.
@@ -156,11 +160,13 @@ const handleLiveVoiceConnection = async (ws, benchLevel = 'moderate', propositio
           if (liveAttempt !== attemptId) return;
           console.log(`🔗 Live connection established via ${backend} (${model}).`);
           noteLive(backend);
+          meter = spend.liveMeter(model, backend);
           ws.send(JSON.stringify({ type: "status", status: "connected" }));
         },
         onmessage: (message) => {
           if (liveAttempt !== attemptId) return;
           if (message.setupComplete || message.serverContent) setupDone = true;
+          if (message.usageMetadata && meter) meter.note(message.usageMetadata);
           try {
             if (message.serverContent) {
               console.log("[DEBUG TRACE] Raw serverContent:", JSON.stringify(message.serverContent, null, 2));
@@ -207,7 +213,7 @@ const handleLiveVoiceConnection = async (ws, benchLevel = 'moderate', propositio
                   const evalBuffer = currentExchange;
                   currentExchange = ""; // Reset for next turn
                   
-                  evaluateExchange(benchMemory, evalBuffer).then((result) => {
+                  spend.run("voice", () => evaluateExchange(benchMemory, evalBuffer)).then((result) => {
                     if (result && result.whisperToken) {
                       console.log("[MEMORY ENGINE] Injecting Whisper:", result.whisperToken);
                       // Send the whisper directly into the active voice stream
@@ -245,6 +251,7 @@ const handleLiveVoiceConnection = async (ws, benchLevel = 'moderate', propositio
             });
             return;
           }
+          finishMeter();
           ws.send(JSON.stringify({ type: "status", status: "disconnected" }));
           ws.close();
         }
