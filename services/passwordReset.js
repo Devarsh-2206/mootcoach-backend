@@ -40,8 +40,8 @@ function page(paragraphs, button) {
 <p style="margin:0 0 22px;font-family:Arial,sans-serif;font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:#a23b2c"><b>MootCoach</b></p>
 ${paragraphs.map(p => `<p style="margin:0 0 14px">${p}</p>`).join('\n')}
 ${button ? `<p style="margin:22px 0"><a href="${esc(button.href)}" style="display:inline-block;background:#a23b2c;color:#ffffff;text-decoration:none;padding:11px 20px;border-radius:6px;font-family:Arial,sans-serif;font-size:14px">${esc(button.label)}</a></p>` : ''}
-<p style="margin:22px 0 0">Warm regards,<br>The MootCoach team</p>
-<p style="margin:28px 0 0;padding-top:14px;border-top:1px solid #e8e4dc;font-family:Arial,sans-serif;font-size:12px;color:#8a857c">You are getting this because someone asked to reset the password for this address on ${esc(APP().replace(/^https?:\/\//, ''))}. If you need any help, please write to support@mootcoach.in.</p>
+<p style="margin:22px 0 0">The MootCoach team</p>
+<p style="margin:28px 0 0;padding-top:14px;border-top:1px solid #e8e4dc;font-family:Arial,sans-serif;font-size:12px;color:#8a857c">You are getting this because someone asked to reset the password for this address on ${esc(APP().replace(/^https?:\/\//, ''))}. Need help? Write to support@mootcoach.in.</p>
 </div></body></html>`;
 }
 
@@ -64,9 +64,9 @@ async function sendReset(rawEmail) {
 
   if (!hasPassword) {
     const r = await mailer.send({ from, to: email, subject: 'Signing in to MootCoach',
-      html: page([hi, 'We received a request to reset the MootCoach password for this address. This account does not use a password, because it signs in with Google.',
-        'To sign in, please choose <b>Continue with Google</b> on the sign-in page and pick this address.',
-        'If you did not ask for this, please ignore this email.'], { label: 'Go to sign in', href: APP() + '/?signin=1' }),
+      html: page([hi, 'We got a request to reset the MootCoach password for this address, but this account signs in with Google, so it has no password.',
+        'On the sign-in page, choose <b>Continue with Google</b> and pick this address.',
+        'Didn\'t ask for this? You can ignore this email.'], { label: 'Go to sign in', href: APP() + '/?signin=1' }),
       text: `${hi.replace(/<[^>]+>/g, '')}\n\nThis MootCoach account signs in with Google, not a password. On the sign-in page choose "Continue with Google".\n\n${APP()}/?signin=1\n\nIf you did not ask for this, ignore this email.` });
     return { ok: !!r.sent, fallback: !r.sent };
   }
@@ -79,8 +79,8 @@ async function sendReset(rawEmail) {
   // same-subject emails, and only the newest link works.
   const at = new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: 'numeric', minute: '2-digit' });
   const r = await mailer.send({ from, to: email, subject: `Reset your MootCoach password (${at})`,
-    html: page([hi, 'We received a request to reset the password for your MootCoach account. Please click the button below to choose a new one. For your security, the link works once, expires in about an hour, and stops working if another reset email is requested.',
-      'If you did not ask for this, please ignore this email. Your password will stay the same.'], { label: 'Choose a new password', href: url }),
+    html: page([hi, 'We got a request to reset your MootCoach password. Click the button to choose a new one. The link works once, expires in about an hour, and stops working if you ask for another reset email.',
+      'Didn\'t ask for this? Ignore this email and your password stays the same.'], { label: 'Choose a new password', href: url }),
     text: `${hi.replace(/<[^>]+>/g, '')}\n\nChoose a new MootCoach password here (works once, expires in about an hour):\n${url}\n\nIf you did not ask for this, ignore this email. Your password stays the same.` });
   return { ok: !!r.sent, fallback: !r.sent };
 }
@@ -104,8 +104,8 @@ async function sendVerification(uid) {
   const from = process.env.EMAIL_FROM_ACCOUNT || 'MootCoach <hello@mootcoach.in>';
   const at = new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: 'numeric', minute: '2-digit' });
   const r = await mailer.send({ from, to: user.email, subject: `Confirm your email for MootCoach (${at})`,
-    html: page(['Hello,', 'Thank you for signing up for MootCoach. Please click the button below to confirm your email address, then return to MootCoach.',
-      'If you did not create a MootCoach account, please ignore this email.'], { label: 'Confirm my email', href: url })
+    html: page(['Hello,', 'Thanks for signing up for MootCoach. Click the button to confirm your email address, then head back to MootCoach.',
+      'Didn\'t create a MootCoach account? You can ignore this email.'], { label: 'Confirm my email', href: url })
       .replace('someone asked to reset the password for this address', 'this address was used to create a MootCoach account'),
     text: `Confirm your email for MootCoach:\n${url}\n\nIf you did not create a MootCoach account, ignore this email.` });
   return { ok: !!r.sent, fallback: !r.sent };

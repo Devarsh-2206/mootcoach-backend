@@ -88,23 +88,22 @@ function limitsLine(limits) {
 /** Returns { subject, paragraphs[], button? } for one email. */
 function content(key, m, { releaseHours, limits, cap }) {
   const name = firstName(m);
-  const greet = name === 'there' ? 'Hello,' : `Dear ${name},`;
+  const greet = name === 'there' ? 'Hi there,' : `Hi ${name},`;
   const url = appUrl();
   const heldUntil = when(m.joinedAt + releaseHours * H);
   const allowance = limitsLine(limits);
-  const howToStart = 'To begin, please sign in and upload your moot proposition as a PDF. MootCoach will read it and set out the issues, the authorities and the arguments on both sides. It takes just a couple of minutes.';
-  const askFeedback = 'I would be very grateful to hear what works for you and what does not. You can use the "Give feedback" button in the app, or simply reply to this email.';
+  const howToStart = 'Sign in and upload your moot proposition as a PDF. In a couple of minutes, MootCoach sets out the issues, the authorities and the arguments on both sides.';
+  const askFeedback = 'Tell me what works and what doesn\'t: use the "Give feedback" button in the app, or just reply to this email.';
   switch (key) {
     case 'waitlisted': return {
-      subject: "Thank you for signing up for MootCoach",
+      subject: "You're on the MootCoach waitlist",
       paragraphs: [
         greet,
         m.reason === 'full'
-          ? 'Thank you for signing up for the MootCoach pilot. All the places are taken at the moment, so I have added you to the waitlist. If a place opens up, it will be offered to you automatically, and I will let you know by email.'
+          ? 'Thanks for signing up for the MootCoach pilot. All the places are taken right now, so you\'re on the waitlist. If one opens up, I\'ll let you know.'
           : m.reason === 'closed'
-            ? 'Thank you for signing up. The MootCoach pilot is not taking new testers at the moment, but I will write to you as soon as MootCoach opens to everyone.'
-            : 'Thank you for signing up for the MootCoach pilot. The pilot is small, so I am welcoming students a few at a time. You are on the list, and I will email you as soon as your place is ready.',
-        'There is nothing you need to do in the meantime. Thank you for your patience.',
+            ? 'Thanks for signing up. The MootCoach pilot isn\'t taking new testers right now. I\'ll email you when MootCoach opens to everyone.'
+            : 'Thanks for signing up for the MootCoach pilot. It\'s a small pilot, so I\'m letting people in a few at a time. You\'re on the list, and I\'ll email you when your place is ready.',
       ],
     };
     // Signed in, but no place yet: places go to the first students to upload.
@@ -113,36 +112,34 @@ function content(key, m, { releaseHours, limits, cap }) {
         subject: 'Welcome to the MootCoach pilot',
         paragraphs: [
           greet,
-          `Thank you for signing up for the MootCoach pilot. ${cap || 50} students are helping me test MootCoach before it opens to everyone, and the places go to the first students who upload a moot proposition.`,
-          howToStart + ' Your first upload will secure your place, while places last.',
-          allowance ? `With a place, you will have ${allowance}.` : '',
+          `Thanks for signing up. ${cap || 50} students are testing MootCoach before it opens to everyone, and places go to the first students who upload a moot proposition.`,
+          howToStart + ' Your first upload secures your place.',
+          allowance ? `With a place, you get ${allowance}.` : '',
           askFeedback,
         ],
         button: { label: 'Upload a proposition', href: url },
       };
       // falls through
     case 'approved': return {
-      subject: key === 'approved' ? 'Your MootCoach place is ready' : 'Welcome to the MootCoach pilot',
+      subject: key === 'approved' ? 'Your MootCoach place is ready' : "You're in: welcome to the MootCoach pilot",
       paragraphs: [
         greet,
-        key === 'approved'
-          ? 'I am pleased to let you know that your place in the MootCoach pilot is ready. Thank you for waiting.'
-          : 'Thank you for joining the MootCoach pilot. I am glad to have you as one of the testers.',
-        allowance ? `During the pilot, you will have ${allowance}.` : '',
+        key === 'approved' ? 'Good news: your place in the MootCoach pilot is ready.' : 'Thanks for joining the MootCoach pilot.',
+        allowance ? `During the pilot, you get ${allowance}.` : '',
         howToStart,
-        `Your place is held for you until ${heldUntil}. Once you have uploaded a proposition, it is yours for the rest of the pilot.`,
+        `Your place is held until ${heldUntil}. Once you've uploaded a proposition, it's yours for the rest of the pilot.`,
         askFeedback,
       ],
       button: { label: 'Open MootCoach', href: url },
     };
     case 'reminder':
       if (m.placeTaken === false) return {
-        subject: 'A gentle reminder about the MootCoach pilot',
+        subject: 'Your MootCoach pilot place is still open',
         paragraphs: [
           greet,
-          'Thank you again for signing up for the MootCoach pilot. I noticed you have not uploaded a proposition yet. Places go to the first students who upload, so yours will be secured as soon as you do.',
+          'You signed up for the MootCoach pilot but haven\'t uploaded a proposition yet. Places go to the first students who upload.',
           howToStart,
-          'If now is not a good time, please do not worry, and feel free to ignore this email.',
+          'Not the right time? No problem, just ignore this email.',
         ],
         button: { label: 'Upload a proposition', href: url },
       };
@@ -150,27 +147,27 @@ function content(key, m, { releaseHours, limits, cap }) {
       subject: `Your MootCoach place is held until ${heldUntil}`,
       paragraphs: [
         greet,
-        `I hope you are well. Your place in the MootCoach pilot is held for you until ${heldUntil}. If you have not had a chance to upload a proposition by then, the place will go to the next student on the waitlist.`,
+        `Your place in the MootCoach pilot is held until ${heldUntil}. If you haven't uploaded a proposition by then, it goes to the next student on the waitlist.`,
         howToStart,
-        'If this week is busy, that is completely fine. Just reply to let me know, and I will happily offer the place to someone else for now.',
+        'Busy this week? Just reply and I\'ll pass the place on for now.',
       ],
       button: { label: 'Upload a proposition', href: url },
     };
     case 'voice': return {
-      subject: 'Would you like to try a voice round?',
+      subject: 'Try a voice round with the bench',
       paragraphs: [
         greet,
-        'Thank you for trying MootCoach. One part you have not tried yet is the voice round: you argue out loud, and the bench questions you as you go, much as judges do in an oral round.',
-        'To try it, please open your moot, go to the Simulator, choose a judge and start a voice round. You will need a microphone and a quiet room, and you will receive a scoresheet at the end.',
+        'One part of MootCoach you haven\'t tried yet is the voice round: you argue out loud, and the bench questions you as you go, like a real oral round.',
+        'Open your moot, go to the Simulator, pick a judge and start a voice round. You\'ll need a mic and a quiet room. You get a scoresheet at the end.',
       ],
       button: { label: 'Start a voice round', href: url },
     };
     case 'feedback': return {
-      subject: 'Could you spare two minutes for feedback?',
+      subject: 'Two minutes: how did MootCoach do?',
       paragraphs: [
         greet,
-        'Thank you for using MootCoach over the past few days. I would be very grateful if you could tell me how it went. The form has 10 short questions and takes about two minutes.',
-        'Honest answers help the most, especially anything that was wrong or confusing. I read every single one. Thank you for your time.',
+        'You\'ve been using MootCoach for a few days. How did it go? The form has 10 short questions and takes about two minutes.',
+        'Honest answers help most, especially anything that was wrong or confusing.',
       ],
       button: { label: 'Give feedback', href: url + '/?feedback=1' },
     };
@@ -188,11 +185,11 @@ function render(key, m, cfg, unsubscribeUrl) {
 <p style="margin:0 0 22px;font-family:Arial,sans-serif;font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:#a23b2c"><b>MootCoach</b></p>
 ${paras.map(p => `<p style="margin:0 0 14px">${esc(p)}</p>`).join('\n')}
 ${c.button ? `<p style="margin:22px 0"><a href="${esc(c.button.href)}" style="display:inline-block;background:#a23b2c;color:#ffffff;text-decoration:none;padding:11px 20px;border-radius:6px;font-family:Arial,sans-serif;font-size:14px">${esc(c.button.label)}</a></p>` : ''}
-<p style="margin:22px 0 0">Warm regards,<br>Devarsh<br><span style="color:#6b665e">Founder, MootCoach</span></p>
-<p style="margin:28px 0 0;padding-top:14px;border-top:1px solid #e8e4dc;font-family:Arial,sans-serif;font-size:12px;color:#8a857c">You are getting this because you signed up for the MootCoach pilot at ${esc(appUrl().replace(/^https?:\/\//, ''))}. If you have any questions, please write to support@mootcoach.in.${followUp && unsubscribeUrl ? ` <a href="${esc(unsubscribeUrl)}" style="color:#8a857c">Stop reminder emails</a>.` : ''}</p>
+<p style="margin:22px 0 0">Devarsh<br><span style="color:#6b665e">Founder, MootCoach</span></p>
+<p style="margin:28px 0 0;padding-top:14px;border-top:1px solid #e8e4dc;font-family:Arial,sans-serif;font-size:12px;color:#8a857c">You are getting this because you signed up for the MootCoach pilot at ${esc(appUrl().replace(/^https?:\/\//, ''))}. Questions? Write to support@mootcoach.in.${followUp && unsubscribeUrl ? ` <a href="${esc(unsubscribeUrl)}" style="color:#8a857c">Stop reminder emails</a>.` : ''}</p>
 </div></body></html>`;
-  const text = [...paras, c.button ? `${c.button.label}: ${c.button.href}` : '', 'Warm regards,\nDevarsh\nFounder, MootCoach', '',
-    `If you have any questions, please write to support@mootcoach.in.${followUp && unsubscribeUrl ? `\nStop reminder emails: ${unsubscribeUrl}` : ''}`].filter(s => s !== '').join('\n\n');
+  const text = [...paras, c.button ? `${c.button.label}: ${c.button.href}` : '', 'Devarsh\nFounder, MootCoach', '',
+    `Questions? Write to support@mootcoach.in.${followUp && unsubscribeUrl ? `\nStop reminder emails: ${unsubscribeUrl}` : ''}`].filter(s => s !== '').join('\n\n');
   return { subject: c.subject, html, text, followUp };
 }
 
