@@ -79,6 +79,12 @@ export function initDashboard() {
 
 export function handleFileSelect(fileOrEvent) {
   const file = (fileOrEvent instanceof Event) ? fileOrEvent.target.files[0] : fileOrEvent;
+  // Closed pilot: both uploads used. Say so before they wait on an upload.
+  if (file && window.pilotBlocks && window.pilotBlocks('uploads')) {
+    const fi = document.getElementById('proposition-upload');
+    if (fi) fi.value = '';
+    return;
+  }
   if (!file) {
     console.warn("[UPLOAD_DEBUG] handleFileSelect called but no file was provided.");
     return;

@@ -1195,6 +1195,8 @@ export async function startOralRound() {
     stopOralRound();
     return;
   }
+  // Closed pilot: no voice rounds left means say so now, before the courtroom opens.
+  if (window.pilotBlocks && window.pilotBlocks('voiceRounds')) return;
 
   // Browser SpeechSynthesis iOS warmup removed in favor of Gemini Live native audio.
 
@@ -1205,6 +1207,17 @@ export async function startOralRound() {
   benchConversation = [];
   voiceSessionActive = true;
   voiceSessionStartTime = Date.now();
+  // Pilot rounds have a time limit; warn two minutes before the server ends it.
+  const pilotMinutes = window.pilotLimits && window.pilotLimits.voiceMinutes;
+  if (pilotMinutes && pilotMinutes > 3) {
+    const roundStart = voiceSessionStartTime;
+    setTimeout(() => {
+      if (voiceSessionActive && voiceSessionStartTime === roundStart) {
+        appendTranscript('system', `Two minutes left in this round (pilot rounds last up to ${pilotMinutes} minutes).`);
+      }
+    }, (pilotMinutes - 2) * 60e3);
+  }
+  setTimeout(() => { try { window.dispatchEvent(new CustomEvent('mc:ai-done')); } catch (e) {} }, 4000);
 
   const chat = document.getElementById('bench-chat');
   const empty = document.getElementById('bench-empty');
@@ -1336,6 +1349,8 @@ export async function startOralRound() {
         console.log("[DEBUG AUDIT] AI response error received:", message);
         appendTranscript('system', `Judge Error: ${message}`);
       },
+      // Pilot notices (time limit, round allowance): said plainly, not as an error.
+      onNotice: (text) => appendTranscript('system', text),
       onClose: () => {
         console.log("[DEBUG AUDIT] Engine connection closed.");
         if (voiceSessionActive) {

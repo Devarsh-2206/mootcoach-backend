@@ -3594,6 +3594,8 @@ window.generateAdvocacyDraft = async function() {
     maxIssues: 3, depth: (window.mootState && window.mootState.memorialDepth) || 'standard',
   };
 
+  // Closed pilot: memorial allowance used up.
+  if (window.pilotBlocks && window.pilotBlocks('memorials')) return;
   if (btn) { btn.disabled = true; btn.dataset.label = btn.textContent; btn.textContent = 'Planning…'; }
   try {
     // Plan-then-draft: the structure comes first, for the advocate to read,

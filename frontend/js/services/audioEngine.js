@@ -19,6 +19,7 @@ let isTurnCompleteReceived = false;
 let onPlaybackCompleteCallback = null;
 
 let activeCallbacks = null;
+let voiceRoundId = '';
 let heartbeatInterval = null;
 let reconnectionPromise = null;
 
@@ -46,7 +47,9 @@ function getWsUrl() {
   const voice = (typeof window.getPresidingJudgeGender === 'function') ? window.getPresidingJudgeGender() : 'male';
   const judge = (typeof window.getPresidingJudge === 'function' && window.getPresidingJudge()) || null;
   const roster = (typeof window.getActiveRosterKey === 'function') ? window.getActiveRosterKey() : '';
-  const query = `?bench=${encodeURIComponent(mode)}&summary=${encodeURIComponent(summary.slice(0, 1000))}&ctx=${encodeURIComponent(ctx.slice(0, 900))}&voice=${encodeURIComponent(voice)}` +
+  // One name per round: reconnects reuse it, so the server counts the round
+  // once and keeps its clock running (see voiceRoundGate in server.js).
+  const query = `?round=${encodeURIComponent(voiceRoundId)}&bench=${encodeURIComponent(mode)}&summary=${encodeURIComponent(summary.slice(0, 1000))}&ctx=${encodeURIComponent(ctx.slice(0, 900))}&voice=${encodeURIComponent(voice)}` +
     `&judge=${encodeURIComponent(judge ? judge.id : '')}&roster=${encodeURIComponent(roster)}`;
   
   if (BASE_URL.startsWith('https://')) {
@@ -337,6 +340,28 @@ Begin the hearing with one opening question tailored to this issue and stance. K
 
   voiceWebSocket.onclose = (ev) => {
     console.log("◉ Voice WebSocket closed.");
+    if (ev && (ev.code === 4408 || ev.code === 4429)) {
+      // 4408: the round reached its time limit, so it ends like any other
+      // round, with its report. 4429: no voice rounds left in the pilot.
+      voiceSessionActive = false;
+      if (heartbeatInterval) { clearInterval(heartbeatInterval); heartbeatInterval = null; }
+      const note = ev.code === 4408
+        ? 'Time is up: pilot voice rounds last up to 15 minutes. Here is your report.'
+        : "You've used your pilot voice rounds. The text bench is still open.";
+      if (ev.code === 4429) {
+        try { window.dispatchEvent(new CustomEvent('mc:limit', { detail: { bucket: 'voiceRounds', message: note + ' Thank you for testing MootCoach.' } })); } catch (e) {}
+      }
+      const { onNotice } = callbacks || {};
+      if (onNotice) onNotice(note); else if (onError) onError(new Error(note));
+      if (onClose) onClose();
+      return;
+    }
+    if (ev && ev.code === 4503) {
+      voiceSessionActive = false;
+      if (onError) onError(new Error("MootCoach's AI features are paused for a short while. Please try again later."));
+      if (onClose) onClose();
+      return;
+    }
     if (ev && ev.code === 4403) {
       // No pilot place: the same screen every other refused feature shows.
       voiceSessionActive = false;
@@ -459,6 +484,7 @@ export async function startOralRound(callbacks) {
   console.log("◉ Initiating oral round...");
   voiceSessionActive = true;
   voiceSessionStartTime = Date.now();
+  voiceRoundId = 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
   voiceNextPlayTime = 0;
   voicePlaybackSources = [];
   latestPlaybackSource = null;

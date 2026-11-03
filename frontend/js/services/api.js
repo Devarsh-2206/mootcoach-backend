@@ -67,7 +67,14 @@ export async function requestJson(path, { body, formData, timeoutMs = 190000 } =
     if (data.code === 'pilot') {
       try { window.dispatchEvent(new CustomEvent('mc:pilot', { detail: data.pilot || {} })); } catch (e) {}
     }
+    if (data.code === 'limit') {
+      try { window.dispatchEvent(new CustomEvent('mc:limit', { detail: { bucket: data.bucket, message: data.error } })); } catch (e) {}
+    }
     throw new Error(data.error || `The request failed (status ${res.status}). Try again.`);
+  }
+  // An AI call went through: the pilot counters may have moved.
+  if (!path.startsWith('/api/pilot')) {
+    try { window.dispatchEvent(new CustomEvent('mc:ai-done')); } catch (e) {}
   }
   return data;
 }

@@ -135,16 +135,55 @@ function pilotMessage(s) {
   if (s.reason === 'full') return "All pilot places are taken right now. You're on the waitlist.";
   return "MootCoach is in a closed pilot. You're on the waitlist, and we'll email you when a place opens.";
 }
-function pilotGate({ countsAsUse = false } = {}) {
+const PILOT_LIMIT_MESSAGES = {
+  uploads: "You've used both of your pilot uploads. Your saved moots are still here to open and practise with.",
+  memorials: "You've drafted your pilot memorials. You can still open, read and download them.",
+  memorialReviews: "You've used your pilot memorial reviews.",
+  voiceRounds: "You've used your pilot voice rounds. The text bench is still open.",
+  judgeTurns: "You've reached the pilot limit for the text bench.",
+  extras: "You've reached the pilot limit for smaller AI features such as authority cards, forecasts and briefings.",
+};
+const limitMessage = (bucket) => (PILOT_LIMIT_MESSAGES[bucket] || "You've reached your pilot limit for this feature.")
+  + " Thank you for testing MootCoach.";
+
+/**
+ * bucket: which allowance this route spends (services/pilot.js). It is
+ * checked before the work and counted only after it succeeds, so a failed
+ * upload never costs a tester one of their two.
+ */
+/**
+ * AI_PAUSED=1 stops every AI feature for everyone but admins, at once, with a
+ * "back shortly" message: the brake for spending that looks wrong. Unlike
+ * PILOT_MODE=closed it says nothing about the pilot being over.
+ */
+const AI_PAUSED_MESSAGE = "MootCoach's AI features are paused for a short while. Your saved work is safe. Please try again later.";
+const aiPaused = () => process.env.AI_PAUSED === '1';
+
+function pilotGate({ bucket = null, countsAsUse = false } = {}) {
   return (req, res, next) => {
     const u = req.user;
+    if (aiPaused() && !(u && (u.uid === 'dev' || pilot.isAdmin(u)))) {
+      return res.status(503).json({ success: false, code: 'paused', error: AI_PAUSED_MESSAGE });
+    }
     if (readPilotConfig().mode === 'off' || !u || u.prewarm || u.uid === 'dev') return next();
     pilotStatus(u).then(s => {
       if (s.status !== 'active' && s.status !== 'admin') {
         return res.status(403).json({ success: false, code: 'pilot', pilot: s, error: pilotMessage(s) });
       }
-      if (countsAsUse) {
-        res.on('finish', () => { if (res.statusCode < 300) pilot.markUsed(u).catch(() => {}); });
+      if (bucket && s.status === 'active' && pilot.remaining(s, bucket) <= 0) {
+        const limit = (s.limits || {})[bucket];
+        return res.status(403).json({ success: false, code: 'limit', bucket, limit, used: (s.usage || {})[bucket] || 0, error: limitMessage(bucket) });
+      }
+      if (bucket || countsAsUse) {
+        res.on('finish', () => {
+          if (res.statusCode >= 300) return;
+          if (countsAsUse) pilot.markUsed(u).catch(() => {});
+          if (bucket && s.status === 'active') {
+            // Keep the cached copy current so the next request sees it.
+            s.usage = { ...(s.usage || {}), [bucket]: ((s.usage || {})[bucket] || 0) + 1 };
+            pilot.count(u, bucket).catch(err => console.error('[PILOT] count failed:', err && err.message));
+          }
+        });
       }
       next();
     }).catch(err => {
@@ -154,6 +193,34 @@ function pilotGate({ countsAsUse = false } = {}) {
   };
 }
 const requirePilot = pilotGate();
+
+/**
+ * A voice round is one allowance, however many times the socket reconnects.
+ * The browser names each round (?round=...) and reconnects reuse the name, so
+ * a dropped connection neither costs a second round nor restarts the clock.
+ * Memory only: one server, and a restart at worst forgets a round in progress.
+ */
+const voiceRoundStarts = new Map();     // uid:round -> startedAt
+async function voiceRoundGate(user, st, rawUrl) {
+  let round = '';
+  try { round = new URL(rawUrl, 'ws://x').searchParams.get('round') || ''; } catch (e) {}
+  if (!/^[\w-]{8,64}$/.test(round)) round = 'r' + Date.now() + Math.random().toString(36).slice(2, 8);
+  const now = Date.now();
+  for (const [k, t] of voiceRoundStarts) if (now - t > 3 * 3600e3) voiceRoundStarts.delete(k);
+  const key = user.uid + ':' + round;
+  let started = voiceRoundStarts.get(key);
+  if (!started) {
+    let c;
+    try { c = await pilot.consume(user, 'voiceRounds'); } catch (e) { c = { ok: false, error: true }; }
+    if (!c.ok) return c.error ? { ok: false, code: 1011, reason: 'Could not check the pilot allowance' } : { ok: false, code: 4429, reason: 'Voice round limit reached' };
+    started = now;
+    voiceRoundStarts.set(key, started);
+    pilotCache.delete(user.uid);
+  }
+  const remainingMs = (st.voiceMinutes || 15) * 60e3 - (now - started);
+  if (remainingMs <= 0) return { ok: false, code: 4408, reason: 'Round time is up' };
+  return { ok: true, remainingMs };
+}
 
 /**
  * Rate limiting for the heavy AI routes.
@@ -515,9 +582,9 @@ app.use((req, res, next) => {
 });
 app.use(express.static("frontend", { dotfiles: 'deny' }));
 
-app.use("/extract-issues", signedIn, requirePilot, aiLimiter, extractIssuesRoute);
-app.use("/api/authority-intelligence", signedIn, requirePilot, aiLimiter, authorityIntelligenceRoute);
-app.use("/api/bench-forecast", signedIn, requirePilot, aiLimiter, benchForecastRoute);
+app.use("/extract-issues", signedIn, pilotGate({ bucket: 'extras' }), aiLimiter, extractIssuesRoute);
+app.use("/api/authority-intelligence", signedIn, pilotGate({ bucket: 'extras' }), aiLimiter, authorityIntelligenceRoute);
+app.use("/api/bench-forecast", signedIn, pilotGate({ bucket: 'extras' }), aiLimiter, benchForecastRoute);
 
 app.post("/api/client-log", logLimiter, (req, res) => {
   // Unauthenticated input: one line, bounded, so it cannot forge or flood log lines.
@@ -783,7 +850,7 @@ async function runEnrichment(rawPropIntel, propIntelError, forumContext) {
 }
 
 /* ─── /analyze (Now fully powered by Groq & Native JSON Mode) ─── */
-app.post("/analyze", requireUser({ allowPrewarm: true }), pilotGate({ countsAsUse: true }), aiLimiter, singlePdf("file"), async (req, res) => {
+app.post("/analyze", requireUser({ allowPrewarm: true }), pilotGate({ bucket: 'uploads', countsAsUse: true }), aiLimiter, singlePdf("file"), async (req, res) => {
   let filePath = null;
 
   try {
@@ -1263,7 +1330,7 @@ app.post("/analyze", requireUser({ allowPrewarm: true }), pilotGate({ countsAsUs
 const oralScoring = require("./services/oralScoring");
 const ORAL_MAX_CHARS = 12000;
 
-app.post("/evaluate-oral", signedIn, requirePilot, aiLimiter, express.json({ limit: '200kb' }), async (req, res) => {
+app.post("/evaluate-oral", signedIn, pilotGate({ bucket: 'extras' }), aiLimiter, express.json({ limit: '200kb' }), async (req, res) => {
   const { argument, propositionContext, difficulty, stance } = req.body;
 
   if (!argument || argument.trim().length < 30) {
@@ -1344,7 +1411,7 @@ app.post("/evaluate-oral", signedIn, requirePilot, aiLimiter, express.json({ lim
    it no longer rides on the Stage 3 draft). */
 const { buildOralBriefingPrompt } = require("./prompts/oralBriefingPrompt");
 
-app.post("/api/oral-briefing", signedIn, requirePilot, aiLimiter, express.json({ limit: '300kb' }), async (req, res) => {
+app.post("/api/oral-briefing", signedIn, pilotGate({ bucket: 'extras' }), aiLimiter, express.json({ limit: '300kb' }), async (req, res) => {
   const { stance, issue, propositionContext, draft, benchMode, forum } = req.body || {};
   const mode = ['easy', 'moderate', 'hard'].includes(benchMode) ? benchMode : 'moderate';
   const draftText = String(draft || '').trim();
@@ -1417,7 +1484,7 @@ app.post("/api/oral-briefing", signedIn, requirePilot, aiLimiter, express.json({
    Separate from /simulate-bench because that route ends a session on a turn
    count; a live round ends when the advocate stops talking, and the transcript
    arrives in one piece at the end rather than a turn at a time. */
-app.post("/simulate-bench/oral-review", signedIn, requirePilot, benchLimiter, express.json(), async (req, res) => {
+app.post("/simulate-bench/oral-review", signedIn, pilotGate({ bucket: 'extras' }), benchLimiter, express.json(), async (req, res) => {
   const { transcript, propositionSummary, difficulty, intensity, claimLedger, durationSeconds } = req.body;
 
   const turns = (Array.isArray(transcript) ? transcript : [])
@@ -1555,7 +1622,7 @@ function normaliseScorecard(review) {
   return review;
 }
 
-app.post("/simulate-bench", signedIn, requirePilot, benchLimiter, express.json(), async (req, res) => {
+app.post("/simulate-bench", signedIn, pilotGate({ bucket: 'judgeTurns' }), benchLimiter, express.json(), async (req, res) => {
   const { conversationHistory, propositionSummary, difficulty, intensity, studentStatement, claimLedger } = req.body;
 
   if (!studentStatement || studentStatement.trim().length < 3) {
@@ -1771,7 +1838,7 @@ const featureGate = name => (req, res, next) => FEATURES[name] ? next()
    Ask MootCoach: one assistant that answers by calling MootCoach's own
    capabilities as tools (services/assistant.js). Tools read only the signed-in
    user's moots. */
-app.post("/api/assistant", featureGate("assistant"), signedIn, requirePilot, aiLimiter, express.json({ limit: '64kb' }), async (req, res) => {
+app.post("/api/assistant", featureGate("assistant"), signedIn, pilotGate({ bucket: 'extras' }), aiLimiter, express.json({ limit: '64kb' }), async (req, res) => {
   const question = typeof (req.body && req.body.question) === 'string' ? req.body.question.trim() : '';
   if (question.length < 2) return res.status(400).json({ success: false, error: 'Ask a question.' });
   const history = (Array.isArray(req.body.history) ? req.body.history : []).filter(h => h && typeof h.text === 'string').slice(-8);
@@ -1791,7 +1858,7 @@ app.post("/api/assistant", featureGate("assistant"), signedIn, requirePilot, aiL
    The review table's custom column: one question across up to 15 moots in one
    call. Answers must quote the moot's analysis; quotes are checked in code
    (services/reviewColumn.js) and unsupported answers are flagged. */
-app.post("/api/review-column", featureGate("reviewColumn"), signedIn, requirePilot, aiLimiter, express.json({ limit: '120kb' }), async (req, res) => {
+app.post("/api/review-column", featureGate("reviewColumn"), signedIn, pilotGate({ bucket: 'extras' }), aiLimiter, express.json({ limit: '120kb' }), async (req, res) => {
   const question = typeof (req.body && req.body.question) === 'string' ? req.body.question.trim().slice(0, 200) : '';
   const rows = (Array.isArray(req.body && req.body.rows) ? req.body.rows : []).slice(0, 15)
     .filter(r => r && typeof r.id === 'string' && typeof r.text === 'string')
@@ -1817,7 +1884,7 @@ app.post("/api/review-column", featureGate("reviewColumn"), signedIn, requirePil
    returns, per authority, verified / corrected / unverified with sources.
    An authority is never "verified" on the model's word alone: see
    services/authorityVerifier.js. Cached, so re-checking a case costs nothing. */
-app.post("/api/verify-authorities", signedIn, requirePilot, aiLimiter, express.json({ limit: '32kb' }), async (req, res) => {
+app.post("/api/verify-authorities", signedIn, pilotGate({ bucket: 'extras' }), aiLimiter, express.json({ limit: '32kb' }), async (req, res) => {
   const list = Array.isArray(req.body && req.body.authorities) ? req.body.authorities : null;
   if (!list || !list.length) return res.status(400).json({ success: false, error: 'Send the authorities to check.' });
   const forum = typeof req.body.forum === 'string' ? req.body.forum.slice(0, 200) : '';
@@ -1833,7 +1900,7 @@ app.post("/api/verify-authorities", signedIn, requirePilot, aiLimiter, express.j
   }
 });
 
-app.post("/api/build-argument", signedIn, requirePilot, aiLimiter, express.json(), async (req, res) => {
+app.post("/api/build-argument", signedIn, pilotGate({ bucket: 'extras' }), aiLimiter, express.json(), async (req, res) => {
   const { stance, issue, notes, propositionContext, forum, instructions, authorities, memorialFocus } = req.body;
 
   /**
@@ -2049,7 +2116,7 @@ function memorialOptions(body) {
    Plan-then-draft, step one: the memorial's structure only (issues,
    sub-grounds, front matter) for the advocate to edit and approve. One model
    call; the long drafting passes wait for approval. */
-app.post("/api/memorial-plan", signedIn, requirePilot, aiLimiter, express.json(), async (req, res) => {
+app.post("/api/memorial-plan", signedIn, pilotGate({ bucket: 'extras' }), aiLimiter, express.json(), async (req, res) => {
   const opts = memorialOptions(req.body);
   if (opts.error) return res.status(400).json({ success: false, error: opts.error });
   try {
@@ -2067,7 +2134,7 @@ app.post("/api/memorial-plan", signedIn, requirePilot, aiLimiter, express.json()
   }
 });
 
-app.post("/api/build-memorial", signedIn, requirePilot, aiLimiter, express.json({ limit: '300kb' }), async (req, res) => {
+app.post("/api/build-memorial", signedIn, pilotGate({ bucket: 'memorials' }), aiLimiter, express.json({ limit: '300kb' }), async (req, res) => {
   const opts0 = memorialOptions(req.body);
   if (opts0.error) return res.status(400).json({ success: false, error: opts0.error });
   const { stance, propositionContext, notes, instructions, authorities, forum, maxIssues, depth } = req.body;
@@ -2133,7 +2200,7 @@ app.post("/api/build-memorial", signedIn, requirePilot, aiLimiter, express.json(
    numbering and limits are countable; asking a model to count them gets an
    estimate. The model is spent on what code cannot judge — whether the argument
    works and whether the law is right. */
-app.post("/api/analyse-memorial", signedIn, requirePilot, aiLimiter, singlePdf("file"), async (req, res) => {
+app.post("/api/analyse-memorial", signedIn, pilotGate({ bucket: 'memorialReviews' }), aiLimiter, singlePdf("file"), async (req, res) => {
   let filePath = null;
   try {
     if (!req.file) {
@@ -2345,18 +2412,37 @@ wss.on("connection", (ws, req) => {
         return;
       }
       // The voice bench is the costliest feature, so it gets the same pilot
-      // check as every other AI route.
+      // check as every other AI route, plus a round allowance and a time cap.
+      let limitMs = 0;
+      if (aiPaused() && user.uid !== 'dev' && !pilot.isAdmin(user)) {
+        ws.resume();
+        try { ws.close(4503, 'AI features are paused'); } catch (e) {}
+        return;
+      }
       if (readPilotConfig().mode !== 'off' && user.uid !== 'dev') {
-        let ok = false;
-        try { const st = await pilotStatus(user); ok = st.status === 'active' || st.status === 'admin'; } catch (e) { ok = false; }
-        if (!ok) {
+        let st = null;
+        try { st = await pilotStatus(user); } catch (e) { st = null; }
+        if (!st || (st.status !== 'active' && st.status !== 'admin')) {
           ws.resume();
           try { ws.close(4403, 'Pilot place required'); } catch (e) {}
           return;
         }
+        if (st.status === 'active') {
+          const gate = await voiceRoundGate(user, st, req.url);
+          if (!gate.ok) {
+            ws.resume();
+            try { ws.close(gate.code, gate.reason); } catch (e) {}
+            return;
+          }
+          limitMs = gate.remainingMs;
+        }
       }
       startVoice();
       ws.resume();
+      if (limitMs > 0) {
+        const t = setTimeout(() => { try { ws.close(4408, 'Round time is up'); } catch (e) {} }, limitMs);
+        ws.on('close', () => clearTimeout(t));
+      }
     })();
 
     function startVoice() {

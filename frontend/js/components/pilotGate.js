@@ -11,6 +11,7 @@
  * screen, through the "mc:pilot" event that requestJson dispatches.
  */
 import { requestJson } from '../services/api.js';
+import { confirmDialog } from './ui.js';
 
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -93,11 +94,99 @@ export async function checkPilot(user) {
   const btn = document.getElementById('sb-pilot-admin');
   if (btn) btn.hidden = !state.admin;
   if (allowed(state.pilot)) hidePilotGate(); else showPilotGate(state.pilot);
+  window.pilotLimits = state.pilot && state.pilot.status === 'active' ? { voiceMinutes: state.pilot.voiceMinutes } : null;
+  renderAllowance();
   return state.pilot;
 }
 
+/* ───────────────────────── allowance ───────────────────────── */
+
+const BUCKETS = [
+  ['uploads', 'Proposition uploads'],
+  ['memorials', 'Memorial drafts'],
+  ['voiceRounds', 'Voice rounds'],
+  ['judgeTurns', 'Text bench turns'],
+  ['memorialReviews', 'Memorial reviews'],
+  ['extras', 'Other AI help'],
+];
+
+function left(bucket) {
+  const p = state.pilot;
+  if (!p || p.status !== 'active' || !p.limits || p.limits[bucket] == null) return Infinity;
+  return Math.max(0, p.limits[bucket] - ((p.usage || {})[bucket] || 0));
+}
+
+/** "X left" for each allowance, in the sidebar. Testers only. */
+function renderAllowance() {
+  const el = document.getElementById('pilot-allowance');
+  if (!el) return;
+  const p = state.pilot;
+  if (!p || p.status !== 'active' || !p.limits) { el.hidden = true; return; }
+  el.innerHTML = `<div class="ws-sb-label">Your pilot allowance</div>` + BUCKETS.map(([k, label]) => {
+    const lim = p.limits[k] || 0, used = Math.min(lim, (p.usage || {})[k] || 0), rest = lim - used;
+    return `<div class="pa-row${rest <= 0 ? ' out' : ''}"><span>${esc(label)}</span><b>${rest} of ${lim} left</b></div>
+      <div class="pa-bar" aria-hidden="true"><i style="width:${lim ? Math.round((rest / lim) * 100) : 0}%"></i></div>`;
+  }).join('') + `<div class="pa-note">Voice rounds last up to ${esc(p.voiceMinutes || 15)} minutes.</div>`;
+  el.hidden = false;
+}
+
+const shownLimits = new Set();
+function showLimitDialog(bucket, message) {
+  if (shownLimits.has(bucket)) return;
+  shownLimits.add(bucket);
+  confirmDialog({
+    title: 'Pilot allowance used',
+    body: message,
+    actions: [{ label: 'OK', value: true, primary: true }],
+  });
+}
+
+const LIMIT_TEXT = {
+  uploads: "You've used both of your pilot uploads. Your saved moots are still here to open and practise with.",
+  memorials: "You've drafted your pilot memorials. You can still open, read and download them.",
+  memorialReviews: "You've used your pilot memorial reviews.",
+  voiceRounds: "You've used your pilot voice rounds. The text bench is still open.",
+  judgeTurns: "You've reached the pilot limit for the text bench.",
+  extras: "You've reached the pilot limit for smaller AI features such as authority cards, forecasts and briefings.",
+};
+
+/**
+ * Called before starting something that spends an allowance. True means it is
+ * used up: the dialog has been shown and the caller should stop. The server
+ * enforces the same limits regardless.
+ */
+export function pilotBlocks(bucket) {
+  if (left(bucket) > 0) return false;
+  shownLimits.delete(bucket);
+  showLimitDialog(bucket, (LIMIT_TEXT[bucket] || "You've used this pilot allowance.") + ' Thank you for testing MootCoach.');
+  return true;
+}
+window.pilotBlocks = pilotBlocks;
+
+window.addEventListener('mc:limit', (e) => {
+  const d = e.detail || {};
+  showLimitDialog(d.bucket || 'other', d.message || "You've reached your pilot limit for this feature.");
+  refreshSoon();
+});
+
+let refreshTimer = null;
+function refreshSoon() {
+  if (!state.pilot || state.pilot.status !== 'active') return;
+  clearTimeout(refreshTimer);
+  refreshTimer = setTimeout(async () => {
+    try {
+      const data = await requestJson('/api/pilot/me', { body: {}, timeoutMs: 30000 });
+      if (data && data.pilot) { state.pilot = data.pilot; renderAllowance(); }
+    } catch (e) { /* the next call will try again */ }
+  }, 2500);
+}
+window.addEventListener('mc:ai-done', refreshSoon);
+
 export function resetPilot() {
   state = { pilot: null, admin: false, email: '' };
+  window.pilotLimits = null;
+  shownLimits.clear();
+  renderAllowance();
   hidePilotGate();
   const btn = document.getElementById('sb-pilot-admin');
   if (btn) btn.hidden = true;
@@ -187,7 +276,8 @@ function render(overlay) {
     <div class="pilot-list">
       ${rows.length ? rows.map(m => `<div class="pilot-row">
           <div class="pilot-who"><b>${esc(m.name || '(no name)')}</b><span>${esc(m.email)}</span>
-            <span class="pilot-small">${esc(REASON[m.reason] || m.reason || '')} · joined ${esc(fmtDate(m.joinedAt))}${m.status === 'active' ? (m.firstUseAt ? ' · uploaded ' + esc(fmtDate(m.firstUseAt)) : ' · not used yet') : ''}</span></div>
+            <span class="pilot-small">${esc(REASON[m.reason] || m.reason || '')} · joined ${esc(fmtDate(m.joinedAt))}${m.status === 'active' ? (m.firstUseAt ? ' · uploaded ' + esc(fmtDate(m.firstUseAt)) : ' · not used yet') : ''}</span>
+            ${m.usage && Object.keys(m.usage).length ? `<span class="pilot-small">Used: ${esc(Object.entries(m.usage).map(([k, v]) => `${k} ${v}`).join(', '))}</span>` : ''}</div>
           ${m.status === 'active'
             ? `<button type="button" class="mc-dialog-secondary" data-uid="${esc(m.uid)}" data-action="release">Release</button>`
             : `<button type="button" class="mc-dialog-primary" data-uid="${esc(m.uid)}" data-action="approve" ${c.active >= ov.cap ? 'disabled title="All places are taken"' : ''}>Approve</button>`}

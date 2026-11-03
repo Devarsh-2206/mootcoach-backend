@@ -95,3 +95,30 @@ const outsider = (n) => ({ uid: 'o' + n, email: `x${n}@gmail.com`, emailVerified
 
   console.log('ALL PASS');
 })().catch(e => { console.error(e); process.exit(1); });
+
+// ── Day 2: per-tester limits ──
+(async () => {
+  const s = memoryStore();
+  const q = createPilot(s, { now, config: { ...cfg({ cap: 5 }), limits: { uploads: 2, voiceRounds: 1, extras: 3 }, voiceMinutes: 15 } });
+  const t = nalsar(500);
+  let st = await q.join(t);
+  assert.strictEqual(q.remaining(st, 'uploads'), 2);
+  await q.count(t, 'uploads'); await q.count(t, 'uploads');
+  st = await q.join(t);
+  assert.strictEqual(q.remaining(st, 'uploads'), 0, 'two uploads used');
+  assert.deepStrictEqual(st.usage, { uploads: 2 });
+  // consume: first voice round ok, second refused
+  assert.strictEqual((await q.consume(t, 'voiceRounds')).ok, true);
+  const second = await q.consume(t, 'voiceRounds');
+  assert.deepStrictEqual([second.ok, second.used, second.limit], [false, 1, 1]);
+  // waitlisted users can't consume; admins are unlimited
+  assert.strictEqual((await q.consume(outsider(77), 'voiceRounds')).ok, false);
+  const boss = { uid: 'b', email: 'boss@mootcoach.in', emailVerified: true };
+  for (let i = 0; i < 5; i++) assert.strictEqual((await q.consume(boss, 'voiceRounds')).ok, true);
+  await q.count(boss, 'uploads');
+  assert.ok(!(await s.listMembers()).some(m => m.uid === 'b'), 'admins are not stored or counted');
+  // overview carries usage for the admin panel
+  const ov = await q.overview();
+  assert.deepStrictEqual(ov.members.find(m => m.uid === 'n500').usage, { uploads: 2, voiceRounds: 1 });
+  console.log('LIMITS PASS');
+})().catch(e => { console.error(e); process.exit(1); });

@@ -35,7 +35,32 @@ function readConfig(env = process.env) {
     autoDomains: list(env.PILOT_AUTO_DOMAINS || 'nalsar.ac.in'),
     admins: list(env.PILOT_ADMINS),
     releaseHours: Math.max(1, Number(env.PILOT_RELEASE_HOURS || 72)),
+    limits: parseLimits(env.PILOT_LIMITS),
+    voiceMinutes: Math.max(1, Number(env.PILOT_VOICE_MINUTES || 15)),
   };
+}
+
+/**
+ * What each tester may use over the whole pilot, sized so 50 testers at their
+ * maximum stay inside the credits. Override any of them with
+ * PILOT_LIMITS="uploads=2,memorials=2,...".
+ *
+ *   uploads          proposition analyses (/analyze)
+ *   memorials        full memorial drafts
+ *   memorialReviews  memorials marked by Memorial Review
+ *   voiceRounds      voice bench rounds (each capped at voiceMinutes)
+ *   judgeTurns       text bench turns, about five rounds
+ *   extras           everything smaller: authority cards, forecasts,
+ *                    briefings, oral evaluation, citation checks, plans
+ */
+const DEFAULT_LIMITS = { uploads: 2, memorials: 2, memorialReviews: 2, voiceRounds: 3, judgeTurns: 60, extras: 40 };
+function parseLimits(spec) {
+  const out = { ...DEFAULT_LIMITS };
+  String(spec || '').split(',').forEach(pair => {
+    const [k, v] = pair.split('=').map(x => (x || '').trim());
+    if (k in out && v !== '' && Number.isFinite(Number(v))) out[k] = Math.max(0, Number(v));
+  });
+  return out;
 }
 
 function domainOf(email) {
@@ -87,7 +112,8 @@ function createPilot(store, opts = {}) {
         tx.putMember(m); tx.putState(state);
       }
       if (c.mode === 'closed' && m.status !== 'admin') return { status: 'closed', mode: c.mode, cap: c.cap, active: state.active };
-      return { status: m.status, reason: m.reason, mode: c.mode, cap: c.cap, active: state.active };
+      return { status: m.status, reason: m.reason, mode: c.mode, cap: c.cap, active: state.active,
+               usage: { ...(m.usage || {}) }, limits: c.limits, voiceMinutes: c.voiceMinutes };
     });
   }
 
@@ -104,6 +130,40 @@ function createPilot(store, opts = {}) {
     await store.transact(async (tx) => {
       const m = await tx.getMember(user.uid);
       if (m && m.status === 'active' && !m.firstUseAt) { m.firstUseAt = now(); tx.putMember(m); }
+    });
+  }
+
+  /** Is this bucket used up? Admins and the off mode have no limits. */
+  const unlimited = (user) => config().mode === 'off' || isAdmin(user);
+  function remaining(status, bucket) {
+    const lim = (status.limits || config().limits)[bucket];
+    if (lim == null) return Infinity;
+    return Math.max(0, lim - ((status.usage || {})[bucket] || 0));
+  }
+
+  /** Count one use after it succeeded. */
+  async function count(user, bucket) {
+    if (unlimited(user) || !user || !user.uid) return;
+    await store.transact(async (tx) => {
+      const m = await tx.getMember(user.uid);
+      if (!m || m.status !== 'active') return;
+      m.usage = { ...(m.usage || {}), [bucket]: ((m.usage || {})[bucket] || 0) + 1 };
+      tx.putMember(m);
+    });
+  }
+
+  /** Check and count in one step, for things paid for up front (a voice round). */
+  async function consume(user, bucket) {
+    if (unlimited(user)) return { ok: true };
+    const c = config();
+    return store.transact(async (tx) => {
+      const m = await tx.getMember(user.uid);
+      if (!m || m.status !== 'active') return { ok: false, used: 0, limit: c.limits[bucket] };
+      const used = (m.usage || {})[bucket] || 0;
+      if (used >= c.limits[bucket]) return { ok: false, used, limit: c.limits[bucket] };
+      m.usage = { ...(m.usage || {}), [bucket]: used + 1 };
+      tx.putMember(m);
+      return { ok: true, used: used + 1, limit: c.limits[bucket] };
     });
   }
 
@@ -157,14 +217,14 @@ function createPilot(store, opts = {}) {
     const members = await store.listMembers();
     const count = s => members.filter(m => m.status === s).length;
     return {
-      mode: c.mode, cap: c.cap, releaseHours: c.releaseHours, autoDomains: c.autoDomains,
+      mode: c.mode, cap: c.cap, releaseHours: c.releaseHours, autoDomains: c.autoDomains, limits: c.limits,
       counts: { active: count('active'), waitlist: count('waitlist'), released: count('released'),
                 used: members.filter(m => m.status === 'active' && m.firstUseAt).length },
       members: members.sort((a, b) => (b.joinedAt || 0) - (a.joinedAt || 0)),
     };
   }
 
-  return { join, allowed, markUsed, releaseIdle, setStatus, overview, isAdmin, config };
+  return { join, allowed, markUsed, releaseIdle, setStatus, overview, isAdmin, config, count, consume, remaining, unlimited };
 }
 
 /* ───────────────────────── storage ───────────────────────── */
@@ -223,4 +283,4 @@ function firestoreStore(db) {
   };
 }
 
-module.exports = { createPilot, memoryStore, firestoreStore, readConfig, domainOf };
+module.exports = { createPilot, memoryStore, firestoreStore, readConfig, domainOf, DEFAULT_LIMITS };
