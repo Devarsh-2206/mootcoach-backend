@@ -7,11 +7,11 @@
  *   approved    on getting a place after waiting (approved, or a place opened)
  *   reminder    24h after getting a place, if nothing uploaded yet (the place
  *               is released at PILOT_RELEASE_HOURS, so it says until when)
- *   voice       2 days after the first upload, if no voice round yet
  *   feedback    4 days after the first upload, if no feedback form yet
  *
- * At most one follow-up a day per person, and the three follow-ups stop if
- * they unsubscribe. Each email goes once: a per-person log in Firestore
+ * Deliberately few: at most three emails per person (status, one reminder,
+ * one feedback request), never two in a day, and the reminder and feedback
+ * request stop if they unsubscribe. Each email goes once: a per-person log in Firestore
  * (artifacts/moot.coach/emailLog/{uid}) is claimed in a transaction before
  * sending, so two server instances cannot both send it.
  *
@@ -21,7 +21,7 @@
 const crypto = require('crypto');
 
 const H = 3600e3;
-const FOLLOW_UPS = ['reminder', 'voice', 'feedback'];
+const FOLLOW_UPS = ['reminder', 'feedback'];
 const STATUS_MAILS = ['waitlisted', 'welcome', 'approved'];
 const MAX_FAILURES = 3;
 
@@ -61,8 +61,6 @@ function due(m, log, { now, startedAt, releaseHours }) {
     return ok('reminder') && age >= 24 * H && now < releaseAt - 2 * H ? 'reminder' : null;
   }
   const used = now - m.firstUseAt;
-  const voiceRounds = (m.usage && m.usage.voiceRounds) || 0;
-  if (ok('voice') && voiceRounds === 0 && used >= 48 * H && used < 10 * 24 * H) return 'voice';
   const gaveFeedback = !!(m.feedback && m.feedback.full);
   if (ok('feedback') && !gaveFeedback && used >= 96 * H && used < 14 * 24 * H) return 'feedback';
   return null;
@@ -123,15 +121,6 @@ function content(key, m, { releaseHours, limits }) {
         'If you are busy this week, no problem. Just reply and tell me, and I can let someone else have the place for now.',
       ],
       button: { label: 'Upload a proposition', href: url },
-    };
-    case 'voice': return {
-      subject: 'Try a voice round with the bench',
-      paragraphs: [
-        `Hi ${name},`,
-        'Thanks for trying MootCoach. One part you have not tried yet is the voice round: you argue out loud, and the bench questions you as you go, the way judges do in an oral round.',
-        'Open your moot, go to the Simulator, choose a judge and start a voice round. You will need a microphone and a quiet room. At the end you get a scoresheet.',
-      ],
-      button: { label: 'Start a voice round', href: url },
     };
     case 'feedback': return {
       subject: 'Two minutes: how did MootCoach do?',
@@ -311,7 +300,7 @@ function createEmails({ store, mailer, members, pilotConfig, now = () => Date.no
     const fake = { uid: 'preview', email: to, name: name || 'Devarsh', joinedAt: t, reason: 'approval' };
     meta = meta || await ensureMeta();
     const out = [];
-    for (const key of ['waitlisted', 'welcome', 'approved', 'reminder', 'voice', 'feedback']) {
+    for (const key of ['waitlisted', 'welcome', 'approved', 'reminder', 'feedback']) {
       const mail = render(key, fake, cfg, meta ? unsubscribeUrl('preview') : null);
       const r = await mailer.send({ to, subject: '[Preview] ' + mail.subject, html: mail.html, text: mail.text });
       out.push({ key, sent: r.sent });
