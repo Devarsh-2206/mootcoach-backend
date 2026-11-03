@@ -26,19 +26,17 @@
   setTimeout(function () { if (!window.__appReady) { window.__appReady = true; document.documentElement.style.cursor = ''; } }, 15000);
 </script>
 <script>
-  const _log = console.log;
-  console.log = function(...args) {
-    _log.apply(console, args);
-    const msg = args.map(a => typeof a === 'object' ? JSON.stringify(a) : a).join(' ');
-    if (msg.includes('[RECOVERY]')) {
-      fetch('/api/client-log', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: msg })
-      }).catch(e => {});
-    }
-  };
-  console.log("[RECOVERY TEST] Frontend logger loaded");
+  // Developer trace messages ("[DEBUG ...]", "[RECOVERY ...]", "[TTS_STREAM]")
+  // stay out of the console unless localStorage "mc-debug" is "1".
+  (function () {
+    var on = false; try { on = localStorage.getItem('mc-debug') === '1'; } catch (e) {}
+    if (on) return;
+    var log = console.log;
+    console.log = function (first) {
+      if (typeof first === 'string' && /^\[(DEBUG|RECOVERY|TTS_STREAM|VOICE DEBUG|AUDIO)/.test(first)) return;
+      return log.apply(console, arguments);
+    };
+  })();
 </script>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -66,27 +64,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=Caveat:wght@500;600&display=swap" rel="stylesheet">
 
-<!-- Tailwind CSS CDN & Config to prevent breaking vanilla CSS -->
-<script src="https://cdn.tailwindcss.com"></script>
-<script>
-  tailwind.config = {
-    corePlugins: {
-      preflight: false,
-    },
-    theme: {
-      extend: {
-        colors: {
-          'moot-border': 'rgba(28, 23, 16, 0.14)',
-          'moot-muted': 'rgba(28, 23, 16, 0.5)',
-          'moot-panel': '#FCF9EF',
-          'moot-accent': '#B0392E',
-          'white-muted': 'rgba(28, 23, 16, 0.5)',
-        },
-        fontFamily: { sans: ['EB Garamond', 'Georgia', 'serif'], serif: ['Cormorant Garamond', 'Georgia', 'serif'], mono: ['IBM Plex Mono', 'ui-monospace', 'monospace'] }
-      }
-    }
-  }
-</script>
+<!-- Tailwind utilities, prebuilt (npm run build:css). They must come before the page's own <style>, as the CDN's did, so the page's rules win. -->
+<link rel="stylesheet" href="/css/tailwind.css"/>
 
 <!-- Firebase Compat SDKs (For Vanilla JS integration) -->
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -3230,6 +3209,8 @@ body.intro-hold #view-landing .swear{animation-play-state:paused!important}
 .res-sticky-nav::-webkit-scrollbar { display: block; height: 4px; }
 .res-sticky-nav::-webkit-scrollbar-thumb { background: var(--glass-b); border-radius: 2px; }
 #res-sticky-nav-inner { flex-wrap: nowrap !important; padding-right: 24px; }
+/* The section tabs scroll sideways: fade the right edge so it shows there is more. */
+.res-sticky-nav { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 48px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 48px), transparent); }
 .rn-item { font-family: var(--mono); }
 @media (max-width: 900px) {
   .res-topbar { padding: 14px 18px 10px; }
@@ -3534,6 +3515,7 @@ span.text-\[9px\].uppercase.rounded, div.text-\[9px\].uppercase.rounded {
 .rt-dialog,.plan-dialog{font-family:var(--sans)}
 .rt-table{border-collapse:collapse;width:100%;font-size:.95rem;min-width:980px;font-family:var(--sans)}
 .rt-table td{font-family:var(--sans)}
+.rt-table td:first-child{min-width:190px}
 .rt-table th{position:sticky;top:0;background:var(--navy-2);text-align:left;font:500 11px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--white-muted);border-bottom:1px solid var(--rule);padding:0;white-space:nowrap}
 .rt-table th button{background:none;border:0;color:inherit;font:inherit;letter-spacing:inherit;text-transform:inherit;padding:10px 10px;cursor:pointer;width:100%;text-align:inherit}
 .rt-table th.num,.rt-table td.num{text-align:right}
@@ -3589,7 +3571,8 @@ span.text-\[9px\].uppercase.rounded, div.text-\[9px\].uppercase.rounded {
 .pa-row b{font-family:var(--mono);font-size:.72rem;font-weight:500;color:var(--white)}
 .pa-row.out b{color:var(--gold)}
 .pa-bar{height:3px;border-radius:2px;background:var(--rule);overflow:hidden}
-.pa-bar i{display:block;height:100%;background:var(--gold)}
+.pa-bar i{display:block;height:100%;background:var(--white-muted)}
+.pa-row.out + .pa-bar i{background:var(--gold)}
 .pa-note{font-size:.75rem;color:var(--white-muted);margin-top:8px;line-height:1.4}
 .pa-feedback{margin-top:10px;width:100%;font-family:var(--mono);font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;
   padding:9px 10px;border-radius:8px;cursor:pointer;background:var(--gold-muted);color:var(--gold);border:1px solid var(--gold-border)}
@@ -4028,7 +4011,7 @@ html:root #view-workspace .issue-card.selected:not(.mc-paper *){background:var(-
       <a href="#" id="footer-link-terms">Terms</a>
       <a href="#" id="footer-link-privacy">Privacy</a>
     </div>
-    <span>§ 2026 · Built for law students</span>
+    <span>© 2026 MootCoach · Built for law students</span>
   </div>
 </footer>
 

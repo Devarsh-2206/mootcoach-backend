@@ -158,7 +158,7 @@ function pilotMessage(s) {
   return "MootCoach is in a closed pilot. You're on the waitlist, and we'll email you when a place opens.";
 }
 const PILOT_LIMIT_MESSAGES = {
-  uploads: "You've used both of your pilot uploads. Your saved moots are still here to open and practise with.",
+  uploads: "You've used all of your pilot uploads. Your saved moots are still here to open and practise with.",
   memorials: "You've drafted your pilot memorials. You can still open, read and download them.",
   memorialReviews: "You've used your pilot memorial reviews.",
   voiceRounds: "You've used your pilot voice rounds. The text bench is still open.",

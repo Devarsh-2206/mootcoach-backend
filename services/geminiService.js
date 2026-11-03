@@ -6,6 +6,11 @@ const { createEmptyMemory, evaluateExchange } = require("./memoryEngine");
 // as the fallback (services/genaiClient.js).
 const { ai, liveBackends, liveClient, noteLive } = require("./genaiClient");
 const spend = require("./spend");
+// Full prompts, raw model messages, audio chunks and transcripts go to the
+// logs only with AI_DEBUG=1: otherwise they put students' work in the Render
+// logs and flood them during every voice round.
+const AI_DEBUG = process.env.AI_DEBUG === '1';
+const debugLog = (...a) => { if (AI_DEBUG) console.log(...a); };
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -98,11 +103,7 @@ const handleLiveVoiceConnection = async (ws, benchLevel = 'moderate', propositio
   let benchMemory = createEmptyMemory();
   let currentExchange = "";
   
-  console.log("=========================================");
-  console.log(`[DEBUG AUDIT] Generating Live Prompt for Bench Level: ${benchLevel}`);
-  console.log("=========================================");
-  console.log(liveSystemInstruction);
-  console.log("=========================================");
+  debugLog(`[DEBUG AUDIT] Live prompt for bench level ${benchLevel}:\n${liveSystemInstruction}`);
 
   // Newest first; the next one is used only if this one refuses before the
   // session is set up. Override with GEMINI_LIVE_MODELS (comma-separated).
@@ -169,11 +170,11 @@ const handleLiveVoiceConnection = async (ws, benchLevel = 'moderate', propositio
           if (message.usageMetadata && meter) meter.note(message.usageMetadata);
           try {
             if (message.serverContent) {
-              console.log("[DEBUG TRACE] Raw serverContent:", JSON.stringify(message.serverContent, null, 2));
+              if (AI_DEBUG) debugLog("[DEBUG TRACE] Raw serverContent:", JSON.stringify(message.serverContent, null, 2));
               const { modelTurn, turnComplete, interrupted, outputTranscription } = message.serverContent;
   
               if (outputTranscription?.text) {
-                console.log("[TRANSCRIPT DEBUG] outputTranscription:", outputTranscription.text);
+                debugLog("[TRANSCRIPT DEBUG] outputTranscription:", outputTranscription.text);
                 currentExchange += `Judge: ${outputTranscription.text}\n`;
                 ws.send(JSON.stringify({
                   type: "text",
@@ -188,7 +189,7 @@ const handleLiveVoiceConnection = async (ws, benchLevel = 'moderate', propositio
   
               if (modelTurn && modelTurn.parts) {
                 for (const part of modelTurn.parts) {
-                  console.log("[DEBUG TRACE] Full Gemini part object:", JSON.stringify(part, null, 2));
+                  if (AI_DEBUG) debugLog("[DEBUG TRACE] Full Gemini part object:", JSON.stringify(part, null, 2));
                   if (part.inlineData) {
                     ws.send(JSON.stringify({
                       type: "audio",
@@ -196,7 +197,7 @@ const handleLiveVoiceConnection = async (ws, benchLevel = 'moderate', propositio
                     }));
                   }
                   if (part.text) {
-                    console.log("[DEBUG TRACE] Backend forwarding text packet:", part.text.substring(0, 50));
+                    debugLog("[DEBUG TRACE] Backend forwarding text packet:", part.text.substring(0, 50));
                     ws.send(JSON.stringify({
                       type: "text",
                       text: part.text
@@ -602,7 +603,7 @@ async function getChatCompletion({
         }
 
         console.log(`[AI TRACE] [${requestLabel}] Gemini (${model}) completed successfully in ${duration}ms. Raw text length: ${response.text?.length}`);
-        console.log(`[AI TRACE] [${requestLabel}] Raw response:`, response.text);
+        debugLog(`[AI TRACE] [${requestLabel}] Raw response:`, response.text);
         return {
           provider: "gemini",
           model: model,
