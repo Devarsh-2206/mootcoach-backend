@@ -872,13 +872,42 @@ export function renderBullets(content, bulletExtraCls = '') {
 /* Citation checking (Harvey-style "every authority is sourced").
    The server only counts an authority as found when a web source backs it;
    see services/authorityVerifier.js. */
+/* Mirrors the source rule in services/authorityVerifier.js, for results saved
+   before it existed: a "found" resting only on Q&A sites, blogs or student
+   notes is shown as unofficial, not as verified. */
+const TRUSTED_SITE = /(^|\.)(gov\.in|nic\.in|gov|gov\.uk|supremecourt\.uk|judiciary\.uk|bailii\.org|icj-cij\.org|curia\.europa\.eu|hudoc\.echr\.coe\.int|un\.org|pca-cpa\.org|austlii\.edu\.au|canlii\.org|indiankanoon\.org|scconline\.com|manupatra(fast)?\.(com|in)|casemine\.com|livelaw\.in|barandbench\.com|lawfinderlive\.com|legitquest\.com|law\.cornell\.edu|justia\.com|oyez\.org|casetext\.com|courtlistener\.com|italaw\.com|jusmundi\.com|scobserver\.in|verdictum\.in|latestlaws\.com|thehindu\.com|indianexpress\.com|hindustantimes\.com|livemint\.com|theprint\.in|scroll\.in|thewire\.in|reuters\.com|bbc\.co\.uk|theguardian\.com)$/i;
+const siteOf = (x) => String((x && (x.domain || x.title)) || '').toLowerCase().replace(/^https?:\/\//, '').replace(/^www\./, '').split(/[\/\s]/)[0];
+function regrade(v) {
+  if (!v || (v.status !== 'verified' && v.status !== 'corrected') || !(v.sources || []).length) return v;
+  const sources = [...v.sources].sort((a, b) => TRUSTED_SITE.test(siteOf(b)) - TRUSTED_SITE.test(siteOf(a)));
+  if (TRUSTED_SITE.test(siteOf(sources[0]))) return { ...v, sources };
+  const sites = [...new Set(sources.map(siteOf).filter(Boolean))].slice(0, 2).join(', ');
+  return { ...v, status: 'unverified', weakOnly: true, sources,
+    note: `Found only on unofficial sites${sites ? ' (' + sites + ')' : ''}. Check it on Indian Kanoon or the court's website before citing.` };
+}
+
 function citationBadge(v) {
   if (!v) return '';
+  v = regrade(v);
   const src = (v.sources || [])[0];
   const link = src ? ` · <a href="${esc(src.url)}" target="_blank" rel="noopener noreferrer">${esc(src.title)}</a>` : '';
   if (v.status === 'verified') return `<span class="cite-badge ok">✓ Found${link}</span>`;
   if (v.status === 'corrected') return `<span class="cite-badge fix">Corrected citation: ${esc(v.foundCitation || '')}${link}</span>`;
-  return `<span class="cite-badge no">Not found — ${esc(v.note || 'check this before citing it.')}</span>`;
+  // Found, but only on Q&A sites, blogs or student notes (see the source rule
+  // in services/authorityVerifier.js): not a verification.
+  if (v.weakOnly) return `<span class="cite-badge weak">⚠ ${esc(v.note || 'Found only on unofficial sites. Check before citing.')}</span>${checkLink(v)}`;
+  return `<span class="cite-badge no">Not found — ${esc(v.note || 'check this before citing it.')}</span>${checkLink(v)}`;
+}
+
+/** One click to check an authority yourself: Indian Kanoon for Indian cases, Google Scholar otherwise. */
+function checkLink(c) {
+  const name = String((c && (c.foundName || c.name || c.caseName)) || '').replace(/[*_`]/g, '').trim();
+  if (!name) return '';
+  const indian = /\b(SCC|SCR|AIR|SCALE|Bom|Del|Mad|Cal|All|Ker|India|Indian)\b/i.test(`${c.citation || ''} ${c.jurisdiction || ''} ${c.court || ''}`) || /Union of India|State of [A-Z]/.test(name);
+  const href = indian
+    ? 'https://indiankanoon.org/search/?formInput=' + encodeURIComponent(name)
+    : 'https://scholar.google.com/scholar?as_sdt=2006&q=' + encodeURIComponent('"' + name + '"');
+  return ` <a class="cite-check-link" href="${esc(href)}" target="_blank" rel="noopener noreferrer">${indian ? 'Check on Indian Kanoon' : 'Check on Google Scholar'} ↗</a>`;
 }
 
 window.checkCaseCitations = async function () {
@@ -935,7 +964,7 @@ export function renderCases(content, rawCasesArray) {
     }).join('') + (window.__casesForCheck = rawCasesArray, `
       <div class="cite-check-bar">
         <button type="button" class="btn-sm" id="btn-check-citations" onclick="window.checkCaseCitations()">Check these citations</button>
-        <span class="cite-check-hint">Searches the web for each case. An authority is marked found only when a source backs it.</span>
+        <span class="cite-check-hint">Searches the web for each case. A case counts as found only on a court website, a law database such as Indian Kanoon or SCC Online, or a national newspaper; Q&amp;A sites, blogs and student notes do not count.</span>
       </div>`);
   }
   const items = extractBullets(content);

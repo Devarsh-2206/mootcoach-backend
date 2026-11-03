@@ -30,4 +30,20 @@ assert.equal(r[1].status, 'verified'); assert.equal(r[1].sources.length, 2);
 assert.equal(r[2].status, 'unverified');
 assert.equal(r[3].status, 'unverified', 'FOUND without a source must not count'); 
 assert.equal(interpret(items, '', {})[0].status, 'unverified');
+
+// Source quality: a case found only on Quora or student notes is not verified.
+const { grade, tierOf } = require('../../services/authorityVerifier');
+const mm = { name: 'Minerva Mills Ltd. v. Union of India', citation: '(1980) 3 SCC 625', status: 'verified' };
+let g = grade({ ...mm, sources: [{ title: 'quora.com', url: 'https://x/1' }, { title: 'mdulawpapers.in', url: 'https://x/2' }] });
+assert.equal(g.status, 'unverified', 'Quora alone must not verify');
+assert.ok(g.weakOnly && /unofficial sites \(quora\.com, mdulawpapers\.in\)/.test(g.note), g.note);
+g = grade({ ...mm, sources: [{ title: 'quora.com', url: 'https://x/1' }, { title: 'indiankanoon.org', url: 'https://x/3' }] });
+assert.equal(g.status, 'verified');
+assert.equal(g.sources[0].title, 'indiankanoon.org', 'best source shown first');
+assert.equal(grade({ ...mm, status: 'corrected', sources: [{ title: 'www.sci.gov.in', url: 'u' }] }).status, 'corrected');
+for (const [d, t] of [['main.sci.gov.in', 'official'], ['delhihighcourt.nic.in', 'official'], ['scconline.com', 'database'], ['casemine.com', 'database'],
+  ['livelaw.in', 'database'], ['thehindu.com', 'press'], ['quora.com', 'other'], ['reddit.com', 'other'], ['blogspot.com', 'other'], ['scribd.com', 'other'],
+  ['fakegov.in.evil.com', 'other']]) assert.equal(tierOf({ title: d }), t, d);
+// An unverified result is left as it is.
+assert.equal(grade({ ...mm, status: 'unverified', sources: [] }).status, 'unverified');
 console.log('ALL PASS');
