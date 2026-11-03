@@ -550,6 +550,7 @@ const buildClaimExtractionPrompt = require("./prompts/claimExtractionPrompt");
 const { buildIndianLegalDirective } = require("./prompts/indianLegalFramework");
 const { buildForumDirective } = require("./prompts/forumDirective");
 const { applyCitationGuard, verifyFlaggedAuthorities } = require("./services/citationGuard");
+const { confirmPrecedents } = require("./services/confirmCases");
 const { verifyAuthorities } = require("./services/authorityVerifier");
 const REVIEW_COLUMN = require("./services/reviewColumn");
 const { runAssistant } = require("./services/assistant");
@@ -978,6 +979,12 @@ app.post("/analyze", requireUser({ allowPrewarm: true }), pilotGate({ bucket: 'u
         console.log('[CACHE] hit for this proposition (' +
           (days >= 1 ? days + 'd old' : Math.round(hit.ageMs / 60000) + 'm old') +
           ', seen ' + (hit.hits + 1) + ' times). No provider call made.');
+        // Analyses cached before cases were confirmed are checked now (the
+        // verifier's own cache makes this quick), so no unconfirmed case is shown.
+        if (hit.payload && hit.payload.response && (!hit.payload.response.casesCheck || hit.payload.response.casesCheck.failed)) {
+          const f = hit.payload.detectedForum;
+          await confirmPrecedents(hit.payload.response, { forum: f && (f.forum || f.specificBody || f.name) });
+        }
         return res.json(Object.assign({ success: true, cached: true }, hit.payload));
       }
     }
@@ -1290,10 +1297,16 @@ app.post("/analyze", requireUser({ allowPrewarm: true }), pilotGate({ bucket: 'u
        Runs after the core analysis so it never competes with it for provider
        capacity. Bounded by ENRICH_BUDGET_MS; every field is null-tolerant
        downstream, so a stage that does not fit is simply absent. */
-    const {
+    // The suggested cases are checked alongside the enrichment, and only those
+    // confirmed on a court site or law database are kept (services/confirmCases.js).
+    const [{
       propositionIntelligence, proceduralHierarchy, forumIntelligence,
       issueIntelligence, authorityIntelligence, advocacyIntelligence
-    } = await runEnrichment(rawPropIntel, propIntelError, forumContext);
+    }] = await Promise.all([
+      runEnrichment(rawPropIntel, propIntelError, forumContext),
+      confirmPrecedents(analysisData, { forum: forumContext && (forumContext.forum || forumContext.specificBody || forumContext.name) })
+        .catch(err => console.error('[CASES] confirm failed:', err && err.message)),
+    ]);
 
     const payload = {
       isStructured: true,

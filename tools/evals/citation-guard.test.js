@@ -10,7 +10,8 @@ require.cache[require.resolve(R('authorityVerifier.js'))] = { exports: { MAX_ITE
 const { applyCitationGuard, verifyFlaggedAuthorities } = require(R('citationGuard.js'));
 (async () => {
   const memorial = {
-    body: ['As held in Suryadev Rai v. Ram Chander Rai, (2008) 12 SCC 1, the court…', 'See Puttaswamy, (2017) 10 SCC 1.'],
+    body: ['As held in Suryadev Rai v. Ram Chander Rai, (2008) 12 SCC 1, the court…', 'See Puttaswamy, (2017) 10 SCC 1.', 'Followed in Imaginary v. Nonexistent, (2031) 99 SCC 1.'],
+    footnotes: [{ citation: 'Imaginary v. Nonexistent, (2031) 99 SCC 1' }],
     indexOfAuthorities: { cases: [
       { name: 'Suryadev Rai v. Ram Chander Rai', citation: '(2008) 12 SCC 1' },
       { name: 'K.S. Puttaswamy v. Union of India', citation: '(2017) 10 SCC 1' },
@@ -25,8 +26,14 @@ const { applyCitationGuard, verifyFlaggedAuthorities } = require(R('citationGuar
   assert.equal(c[0].citation, '(2003) 6 SCC 675'); assert.equal(c[0].verify, false);
   assert.ok(memorial.body[0].includes('(2003) 6 SCC 675') && !memorial.body[0].includes('(2008) 12 SCC 1'), 'body citation corrected');
   assert.equal(c[1].verify, false); assert.equal(c[1].source, 'verified');
-  assert.equal(c[2].verify, true); assert.ok(/Check this before citing/.test(c[2].citationNote));
-  assert.equal(c[3].source, 'advocate'); assert.ok(!c[3].verify, 'advocate authority untouched');
+  // The unconfirmed case is gone: from the index and from the text.
+  assert.equal(st.removed, 1);
+  assert.equal(c.length, 3, 'unconfirmed authority removed from the index');
+  assert.ok(!c.some(e => /Imaginary/.test(e.name)));
+  assert.ok(!JSON.stringify(memorial.body).includes('Imaginary') && /authority removed/.test(memorial.body[2]), memorial.body[2]);
+  assert.ok(/authority removed/.test(memorial.footnotes[0].citation));
+  const own = c.find(e => e.name === 'Advocate Own v. Case');
+  assert.equal(own.source, 'advocate'); assert.ok(!own.verify, 'advocate authority untouched');
   // failure path: never throws, leaves marks
   require.cache[require.resolve(R('authorityVerifier.js'))].exports.verifyAuthorities = async () => { throw new Error('429 quota'); };
   const m2 = { indexOfAuthorities: { cases: [{ name: 'X v. Y', citation: '(2001) 1 SCC 1', verify: true }] } };

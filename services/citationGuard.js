@@ -88,7 +88,12 @@ function applyCitationGuard(indexOfAuthorities, advocateAuthorities) {
  *   verified  → the [VERIFY] mark is lifted and the source recorded
  *   corrected → the citation is replaced with the one found, in the index AND
  *               wherever the memorial body quotes the wrong one, and noted
- *   otherwise → the mark stays, with the reason
+ *   otherwise → the authority is REMOVED: taken out of the index, and where the
+ *               text cites it, replaced by a short note saying an authority
+ *               MootCoach could not confirm was removed. A student should
+ *               never be handed a case to "check before citing" that may not
+ *               exist; that costs more trust than a shorter memorial.
+ *               (Only if the check itself fails do the [VERIFY] marks stay.)
  *
  * Never throws and never holds the response hostage: on any failure, or after
  * timeoutMs, the memorial goes out with the guard's marks as they were.
@@ -98,7 +103,7 @@ function applyCitationGuard(indexOfAuthorities, advocateAuthorities) {
  */
 async function verifyFlaggedAuthorities(memorialOrDoc, { forum, timeoutMs = 30000 } = {}) {
   const ioa = memorialOrDoc && memorialOrDoc.indexOfAuthorities;
-  const stats = { verified: 0, corrected: 0, unverified: 0 };
+  const stats = { verified: 0, corrected: 0, unverified: 0, removed: 0 };
   if (!ioa) return { ...stats, skipped: 'no index' };
   const flagged = [];
   for (const group of CASE_GROUPS) for (const e of (Array.isArray(ioa[group]) ? ioa[group] : [])) if (e && e.verify === true) flagged.push(e);
@@ -142,10 +147,26 @@ async function verifyFlaggedAuthorities(memorialOrDoc, { forum, timeoutMs = 3000
         stats.verified++;
       }
     } else {
-      e.citationNote = [r.note || 'No reliable source found.', 'Check this before citing it.'].join(' ').replace(/(Check this before citing it\.)\s*\1/, '$1');
+      e._remove = true;
       stats.unverified++;
     }
   });
+  // Take out what could not be confirmed: from the index, and from the text.
+  const NOTE = '[authority removed: MootCoach could not confirm it]';
+  for (const group of CASE_GROUPS) {
+    if (!Array.isArray(ioa[group])) continue;
+    const gone = ioa[group].filter(e => e && e._remove);
+    if (!gone.length) continue;
+    ioa[group] = ioa[group].filter(e => !(e && e._remove));
+    for (const e of gone) {
+      const name = String(e.name || '').trim(), cit = String(e.citation || '').trim();
+      if (name && cit) replaceDeep(memorialOrDoc, `${name}, ${cit}`, NOTE);
+      if (name && cit) replaceDeep(memorialOrDoc, `${name} ${cit}`, NOTE);
+      if (cit.length >= 8) replaceDeep(memorialOrDoc, cit, NOTE);
+      if (name.length >= 8) replaceDeep(memorialOrDoc, name, NOTE);
+      stats.removed++;
+    }
+  }
   console.log('[CITATION CHECK] ' + JSON.stringify(stats));
   return stats;
 }
