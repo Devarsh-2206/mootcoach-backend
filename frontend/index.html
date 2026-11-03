@@ -3287,6 +3287,8 @@ body.intro-hold #view-landing .swear{animation-play-state:paused!important}
 /* ── Sign-in panel ── */
 #auth-overlay input.err { border-bottom-color: var(--error) !important; }
 #auth-overlay [id^="h-auth-"] { color: var(--error) !important; font-size: 11px; }
+.ao-consent { margin:14px 0 0; text-align:center; font-size:12.5px; line-height:1.5; color:var(--white-muted); }
+.ao-consent a { color:var(--red, #B0392E); text-underline-offset:2px; }
 #forgot-password-btn { background: none; border: none; padding: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
 .ao-or { display: flex; align-items: center; gap: 10px; margin: 18px 0 12px; color: var(--white-muted); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; }
 .ao-or::before, .ao-or::after { content: ""; flex: 1; height: 1px; background: var(--rule); }
@@ -3691,7 +3693,9 @@ html:root #view-workspace .issue-card.selected:not(.mc-paper *){background:var(-
 .is-on{background:var(--gold-muted)!important;border-color:var(--gold)!important;color:var(--gold)!important}
 </style>
 </head>
-<body class="intro-hold">
+<!-- Microsoft Clarity: everything is masked (propositions, drafts, transcripts, the
+     sign-in form) except the public landing page, which is unmasked below. -->
+<body class="intro-hold" data-clarity-mask="True">
 
 <!-- Sits outside every view so it's available from the landing page,
      login, and workspace alike. Sub-max z-index so the intro (which must
@@ -3761,7 +3765,7 @@ html:root #view-workspace .issue-card.selected:not(.mc-paper *){background:var(-
 </div>
 
 <!-- ═══ VIEW 1 — LANDING ═══ -->
-<div id="view-landing" class="view active">
+<div id="view-landing" class="view active" data-clarity-unmask="True">
 
 <div class="progress" id="lv-progress"></div>
 <div class="gutter" id="lv-gutter" aria-hidden="true"></div>
@@ -4047,7 +4051,7 @@ html:root #view-workspace .issue-card.selected:not(.mc-paper *){background:var(-
           <li>A live AI bench, graded on your performance</li>
         </ul>
       </div>
-      <div class="login-brand-trust">For mooters at NALSAR · NLS · NUJS · GNLU and beyond</div>
+      <div class="login-brand-trust">For law students across India</div>
     </aside>
     <!-- RIGHT: FORM PANEL -->
     <main class="login-form-panel">
@@ -4066,7 +4070,7 @@ html:root #view-workspace .issue-card.selected:not(.mc-paper *){background:var(-
         <div id="form-login">
           <div class="field">
             <label class="tracking-wide">Email Address</label>
-            <input type="email" id="li-email" placeholder="you@lawschool.edu" autocomplete="email"/>
+            <input type="email" id="li-email" placeholder="you@nalsar.ac.in" autocomplete="email"/>
             <div class="field-hint" id="h-li-email">Please enter a valid email.</div>
           </div>
           <div class="field">
@@ -4096,7 +4100,7 @@ html:root #view-workspace .issue-card.selected:not(.mc-paper *){background:var(-
           </div>
           <div class="field">
             <label class="tracking-wide">Email Address</label>
-            <input type="email" id="su-email" placeholder="you@lawschool.edu" autocomplete="email"/>
+            <input type="email" id="su-email" placeholder="you@nalsar.ac.in" autocomplete="email"/>
             <div class="field-hint" id="h-su-email">Please enter a valid email.</div>
           </div>
           <div class="field">
@@ -4756,7 +4760,7 @@ html:root #view-workspace .issue-card.selected:not(.mc-paper *){background:var(-
           <li>A live AI bench, graded on your performance</li>
         </ul>
       </div>
-      <div class="ao-trust">For mooters at NALSAR · NLS · NUJS · GNLU and beyond</div>
+      <div class="ao-trust">For law students across India</div>
     </aside>
     <!-- RIGHT: FORM PANEL -->
     <div class="ao-form">
@@ -4787,7 +4791,7 @@ html:root #view-workspace .issue-card.selected:not(.mc-paper *){background:var(-
       <!-- Always visible Email / Password -->
       <div>
         <label class="block text-xs font-semibold tracking-widest uppercase text-gray-500 mb-2">Email Address</label>
-        <input type="email" id="auth-email" placeholder="you@lawschool.edu" autocomplete="email" class="w-full bg-transparent border-0 border-b border-gray-700 text-[#1C1710] focus:ring-0 focus:border-moot-accent px-0 py-2 transition-colors duration-200" />
+        <input type="email" id="auth-email" placeholder="you@nalsar.ac.in" autocomplete="email" class="w-full bg-transparent border-0 border-b border-gray-700 text-[#1C1710] focus:ring-0 focus:border-moot-accent px-0 py-2 transition-colors duration-200" />
         <div class="text-[10px] text-red-400 mt-1 hidden" id="h-auth-email">Please enter a valid email.</div>
       </div>
       <div>
@@ -4812,6 +4816,8 @@ html:root #view-workspace .issue-card.selected:not(.mc-paper *){background:var(-
       </button>
     </div>
     
+    <p class="ao-consent">By continuing, you agree to the <a href="/terms.html" target="_blank" rel="noopener">Terms</a> and <a href="/privacy.html" target="_blank" rel="noopener">Privacy Policy</a>.</p>
+
     <!-- Switch mode text toggle -->
     <p class="text-center text-xs text-moot-muted mt-6 mb-0">
       <span id="auth-overlay-toggle-text">Don't have an account?</span>

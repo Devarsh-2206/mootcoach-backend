@@ -46,19 +46,15 @@ export function initClarity() {
 }
 
 /**
- * Associates the authenticated user's ID and displayName with the Clarity session.
+ * Groups a signed-in user's sessions under their account id (no name or email).
  * Ensures compatibility with Firebase Authentication flow.
  * @param {Object} user - The Firebase User object
  */
 export function identifyUserInClarity(user) {
   if (!window.clarity) return;
-
   if (user) {
-    // Identify user in Clarity session using Firebase uid
-    window.clarity("identify", user.uid, {
-      email: user.email || 'anonymous',
-      displayName: user.displayName || 'advocate'
-    });
-    console.log(`[Clarity] Identified session with user ID: ${user.uid}`);
+    // Only the opaque account id, so one person's sessions can be grouped.
+    // No name or email goes to Clarity (privacy policy, section 4).
+    window.clarity("identify", user.uid);
   }
 }
