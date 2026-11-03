@@ -710,6 +710,10 @@ async function generateArgument() {
   const stance = stanceRadio ? stanceRadio.value : 'Petitioner';
   const issue = select.value;
 
+  // A draft comes out of the tester's memorial allowance (pilot): say so
+  // before the wait rather than after a refused request.
+  if (window.pilotBlocks && window.pilotBlocks('memorials')) return;
+
   // Set loading UI states
   submitBtn.disabled = true;
   document.getElementById('builder-error')?.remove();

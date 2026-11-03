@@ -2009,7 +2009,9 @@ app.post("/api/verify-authorities", signedIn, pilotGate({ bucket: 'extras' }), a
   }
 });
 
-app.post("/api/build-argument", signedIn, pilotGate({ bucket: 'extras' }), aiLimiter, express.json(), async (req, res) => {
+// A structured draft is what students call drafting their memorial, so it
+// comes out of the memorial allowance (as the full memorial builder does).
+app.post("/api/build-argument", signedIn, pilotGate({ bucket: 'memorials' }), aiLimiter, express.json(), async (req, res) => {
   const { stance, issue, notes, propositionContext, forum, instructions, authorities, memorialFocus } = req.body;
 
   /**
