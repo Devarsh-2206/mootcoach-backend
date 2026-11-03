@@ -120,8 +120,11 @@ export async function loadCompetitions() {
       const up = c.ms.filter(x => (x.end || x.d) >= t);
       return up.length ? up[0].d : '9999-12-31';
     };
-    rows.sort((a, b) => nextOf(a) < nextOf(b) ? -1 : nextOf(a) > nextOf(b) ? 1 : 0);
-    return rows;
+    // A competition whose every date has passed is over: it only crowds the
+    // list (it showed as "done"), so the calendar leaves it out.
+    const live = rows.filter(c => c.ms.some(x => (x.end || x.d) >= t));
+    live.sort((a, b) => nextOf(a) < nextOf(b) ? -1 : nextOf(a) > nextOf(b) ? 1 : 0);
+    return live;
   } catch (e) {
     console.error('[CALENDAR] Could not load competitions:', e && e.message);
     // A rules denial and a dropped connection look identical to the user but

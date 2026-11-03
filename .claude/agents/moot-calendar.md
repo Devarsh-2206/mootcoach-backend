@@ -38,7 +38,7 @@ So:
 
 | What | Where |
 |---|---|
-| Competition data | Firestore `artifacts/moot.coach/competitions/{id}` |
+| Competition list (edit this) | `services/competitions.js`, synced to Firestore `artifacts/moot.coach/competitions/{id}` by the server on every start (`services/calendarSync.js`) |
 | Seeder and document shape | `tools/seed-competitions.js` |
 | Calendar component | `frontend/js/components/mootCalendar.js` |
 | Security rules | `firestore.rules` |

@@ -128,6 +128,11 @@ const emails = createEmails({
   members: async () => (await pilot.overview()).members,
   pilotConfig: readPilotConfig,
 });
+// The Moot Calendar follows services/competitions.js: synced on every start.
+if (admin.apps.length && process.env.NODE_ENV !== 'test') {
+  setTimeout(() => require('./services/calendarSync').syncCompetitions(admin.firestore())
+    .catch(err => console.error('[CALENDAR] sync failed:', err && err.message)), 5000).unref();
+}
 const emailKick = (uid) => emails.tick(uid).catch(err => console.error('[EMAIL] tick failed:', err && err.message));
 if (process.env.NODE_ENV !== 'test') {
   setTimeout(() => emailKick(), 60e3).unref();
