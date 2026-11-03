@@ -56,12 +56,14 @@ async function sendReset(rawEmail) {
   catch (e) { return { ok: true }; }        // no such account: say nothing
   if (user.disabled) return { ok: true };
 
-  const name = String(user.displayName || '').trim().split(/\s+/)[0];
-  const hi = `Hi${name ? ' ' + esc(name) : ''},`;
+  // Account emails come from "MootCoach", not a person, and do not guess at
+  // a first name (Google often gives "Surname Firstname").
+  const from = process.env.EMAIL_FROM_ACCOUNT || 'MootCoach <hello@mootcoach.in>';
+  const hi = 'Hello,';
   const hasPassword = (user.providerData || []).some(p => p.providerId === 'password');
 
   if (!hasPassword) {
-    const r = await mailer.send({ to: email, subject: 'Signing in to MootCoach',
+    const r = await mailer.send({ from, to: email, subject: 'Signing in to MootCoach',
       html: page([hi, 'Someone asked to reset the MootCoach password for this address. This account does not use a password: it signs in with Google.',
         'On the sign-in page, choose <b>Continue with Google</b> and pick this address.',
         'If you did not ask for this, you can ignore this email.'], { label: 'Go to sign in', href: APP() + '/?signin=1' }),
@@ -73,7 +75,7 @@ async function sendReset(rawEmail) {
   const code = new URL(link).searchParams.get('oobCode');
   if (!code) throw new Error('Firebase returned a reset link without a code');
   const url = `${APP()}/account.html?mode=resetPassword&oobCode=${encodeURIComponent(code)}`;
-  const r = await mailer.send({ to: email, subject: 'Reset your MootCoach password',
+  const r = await mailer.send({ from, to: email, subject: 'Reset your MootCoach password',
     html: page([hi, 'Someone asked to reset the password for your MootCoach account. Click the button to choose a new one. The link works once and expires in about an hour.',
       'If you did not ask for this, ignore this email. Your password stays the same.'], { label: 'Choose a new password', href: url }),
     text: `${hi.replace(/<[^>]+>/g, '')}\n\nChoose a new MootCoach password here (works once, expires in about an hour):\n${url}\n\nIf you did not ask for this, ignore this email. Your password stays the same.` });

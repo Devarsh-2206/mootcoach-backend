@@ -27,7 +27,9 @@ const MAX_FAILURES = 3;
 
 const appUrl = () => (process.env.APP_URL || 'https://mootcoach.in').replace(/\/$/, '');
 const esc = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-const firstName = (m) => String(m.name || '').trim().split(/\s+/)[0] || 'there';
+// The whole name as given: Google often gives "Surname Firstname", so taking
+// the first word can greet someone by their surname.
+const firstName = (m) => { const n = String(m.name || '').trim().replace(/\s+/g, ' '); return n && n.split(' ').length <= 4 ? n : 'there'; };
 const when = (t) => new Date(t).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }) + ' IST';
 
 /**

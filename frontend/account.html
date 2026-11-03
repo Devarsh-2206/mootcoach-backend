@@ -75,7 +75,19 @@
   </section>
 </main>
 <script type="module">
-  import { auth } from './js/services/firebase.js';
+  // Only Firebase Auth is loaded on this page. (It used to import the app's
+  // shared firebase.js, which also starts Firestore, a library this page does
+  // not load: the script failed and the page sat on "Checking your link".)
+  const firebase = window.firebase;
+  if (!firebase.apps.length) {
+    firebase.initializeApp({
+      apiKey: "AIzaSyAJj3zDJo3VLl_LfKBrKZ-JbU8ZC5_j_-E",
+      authDomain: "mootcoach-acbae.firebaseapp.com",
+      projectId: "mootcoach-acbae",
+      appId: "1:323059898410:web:d77cdf41b2e892b2bf8b53",
+    });
+  }
+  const auth = firebase.auth();
   const $ = (id) => document.getElementById(id);
   const q = new URLSearchParams(location.search);
   const mode = q.get('mode'), code = q.get('oobCode');
@@ -85,6 +97,11 @@
   const show = (id) => { for (const s of ['loading', 'reset', 'done', 'bad']) $(s).hidden = s !== id; };
   const bad = (title, text) => { if (title) $('bad-title').textContent = title; if (text) $('bad-text').textContent = text; show('bad'); };
   const done = (title, text) => { $('done-title').textContent = title; $('done-text').textContent = text; show('done'); };
+
+  // Never leave someone on "Checking your link…".
+  const stuck = setTimeout(() => {
+    if (!$('loading').hidden) bad('Taking too long', 'We could not check your link. Check your internet connection and open the link from the email again.');
+  }, 20000);
 
   async function run() {
     if (!code) return bad('This link is incomplete', 'Open the link straight from the email. If it still does not work, ask for a new one from the MootCoach sign-in page.');
@@ -132,7 +149,7 @@
       $('reset-btn').disabled = false; $('reset-btn').textContent = 'Save new password';
     }
   });
-  run();
+  run().finally(() => clearTimeout(stuck));
 </script>
 </body>
 </html>

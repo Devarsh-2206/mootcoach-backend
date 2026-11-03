@@ -36,7 +36,7 @@ const H = 3600e3, D = 24 * H;
 
   // ---- render(): content checks ----
   const w = render('welcome', tester, { releaseHours: 72, limits: { uploads: 2, memorials: 2, voiceRounds: 3 } }, 'https://x/unsub');
-  assert.ok(/Hi Asha,/.test(w.text) && /2 proposition uploads, 2 memorial drafts and 3 voice rounds/.test(w.text), w.text);
+  assert.ok(/Hi Asha Rao,/.test(w.text) && /2 proposition uploads, 2 memorial drafts and 3 voice rounds/.test(w.text), w.text);
   assert.ok(!/Stop reminder/.test(w.html), 'status emails have no unsubscribe');
   const f = render('feedback', { ...tester, name: '<b>x</b>' }, { releaseHours: 72 }, 'https://x/unsub');
   assert.ok(/Stop reminder emails/.test(f.html) && /\?feedback=1/.test(f.html));

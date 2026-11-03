@@ -30,7 +30,7 @@ const { sendReset } = require('../../services/passwordReset');
   assert.ok(r.ok && !r.fallback);
   const m = outbox.pop();
   assert.strictEqual(m.to, 'pw@x.in');
-  assert.ok(/Hi Asha,/.test(m.html));
+  assert.ok(/Hello,/.test(m.html) && !/Asha/.test(m.html)); assert.strictEqual(m.from, 'MootCoach <hello@mootcoach.in>');
   assert.ok(m.html.includes('https://mootcoach.in/account.html?mode=resetPassword&amp;oobCode=CODE-pw%40x.in'), m.html);
   assert.ok(!/firebaseapp\.com/.test(m.html + m.text), 'no Firebase link in the email');
 

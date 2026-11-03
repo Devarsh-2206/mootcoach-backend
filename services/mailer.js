@@ -19,7 +19,7 @@ function configured() {
 }
 
 /** @returns {Promise<{sent:boolean, id?:string, reason?:string}>} */
-async function send({ to, subject, html, text, headers }) {
+async function send({ to, subject, html, text, headers, from }) {
   if (process.env.EMAILS === 'off') return { sent: false, reason: 'off' };
   if (!process.env.RESEND_API_KEY) {
     console.log(`[EMAIL] not sent (no RESEND_API_KEY): "${subject}" to ${String(to).replace(/^(.).*@/, '$1***@')}`);
@@ -28,7 +28,7 @@ async function send({ to, subject, html, text, headers }) {
   const r = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { Authorization: 'Bearer ' + process.env.RESEND_API_KEY, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ from: FROM(), to: [to], reply_to: REPLY_TO(), subject, html, text, headers }),
+    body: JSON.stringify({ from: from || FROM(), to: [to], reply_to: REPLY_TO(), subject, html, text, headers }),
     signal: AbortSignal.timeout(20000),
   });
   const body = await r.json().catch(() => ({}));
