@@ -62,7 +62,9 @@ function warnOnce(key, msg) {
 const reasonOf = (e) => String((e && (e.status || e.code)) || '') + ' ' + String((e && e.message) || e).slice(0, 160);
 
 /** Since the server started: how calls were served. Shown in the admin panel. */
-const stats = { vertex: 0, fallback: 0, studio: 0, lastFallback: '' };
+const stats = { vertex: 0, fallback: 0, studio: 0, lastFallback: '', voiceVertex: 0, voiceStudio: 0 };
+/** A voice session opened on this backend (called by geminiService). */
+function noteLive(backend) { if (backend === 'vertex') stats.voiceVertex++; else stats.voiceStudio++; }
 
 async function generateContent(params) {
   if (vertexEnabled()) {
@@ -98,4 +100,4 @@ const ai = {
 
 function aiStatus() { return { backend: vertexEnabled() ? 'vertex' : 'studio', ...stats }; }
 
-module.exports = { ai, liveBackends, liveClient, vertexEnabled, studioClient, aiStatus };
+module.exports = { ai, liveBackends, liveClient, vertexEnabled, studioClient, aiStatus, noteLive };

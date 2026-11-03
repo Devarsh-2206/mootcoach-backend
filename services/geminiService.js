@@ -4,7 +4,7 @@ const { createEmptyMemory, evaluateExchange } = require("./memoryEngine");
 
 // Vertex AI first when GEMINI_BACKEND=vertex, the AI Studio key otherwise or
 // as the fallback (services/genaiClient.js).
-const { ai, liveBackends, liveClient } = require("./genaiClient");
+const { ai, liveBackends, liveClient, noteLive } = require("./genaiClient");
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -118,6 +118,10 @@ const handleLiveVoiceConnection = async (ws, benchLevel = 'moderate', propositio
   ws.on("close", () => { clientGone = true; });
   const liveConfig = {
     responseModalities: ["AUDIO"],
+    // The judge's words as text, for the transcript and the round report.
+    // The AI Studio key sent these unasked; Vertex AI sends them only when
+    // asked, which left Vertex rounds with an empty judge transcript.
+    outputAudioTranscription: {},
     speechConfig: {
       voiceConfig: {
         prebuiltVoiceConfig: { voiceName }
@@ -150,7 +154,8 @@ const handleLiveVoiceConnection = async (ws, benchLevel = 'moderate', propositio
       callbacks: {
         onopen: () => {
           if (liveAttempt !== attemptId) return;
-          console.log("🔗 Live connection established with Gemini API.");
+          console.log(`🔗 Live connection established via ${backend} (${model}).`);
+          noteLive(backend);
           ws.send(JSON.stringify({ type: "status", status: "connected" }));
         },
         onmessage: (message) => {

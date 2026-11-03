@@ -306,7 +306,7 @@ function render(overlay) {
         </div>`).join('') : `<p class="pilot-small">Nobody here yet.</p>`}
     </div>`}
     <p class="pilot-small">Unused places are released after ${ov.releaseHours} hours. Automatic entry: ${esc(ov.autoDomains.join(', '))}.</p>
-    ${ov.ai ? `<p class="pilot-small">AI since the last restart: ${ov.ai.backend === 'vertex' ? 'Vertex AI' : 'AI Studio key'} · ${ov.ai.vertex} Vertex calls · ${ov.ai.fallback} fell back to the AI Studio key${ov.ai.lastFallback ? ' (last reason: ' + esc(ov.ai.lastFallback) + ')' : ''}.</p>` : ''}`;
+    ${ov.ai ? `<p class="pilot-small">AI since the last restart: ${ov.ai.backend === 'vertex' ? 'Vertex AI' : 'AI Studio key'} · ${ov.ai.vertex} Vertex calls · ${ov.ai.fallback} fell back to the AI Studio key · voice rounds: ${ov.ai.voiceVertex || 0} on Vertex, ${ov.ai.voiceStudio || 0} on the AI Studio key${ov.ai.lastFallback ? ' (last reason: ' + esc(ov.ai.lastFallback) + ')' : ''}.</p>` : ''}`;
 }
 
 const FB_LABELS = {
