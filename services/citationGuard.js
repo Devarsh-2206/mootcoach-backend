@@ -143,7 +143,17 @@ async function verifyFlaggedAuthorities(memorialOrDoc, { forum, timeoutMs = 3000
         e.citationNote = `Citation corrected from "${wrong}" after checking ${(e.sources[0] || {}).title || 'the web'}.`;
         stats.corrected++;
       } else {
-        e.citationNote = `Checked against ${(e.sources[0] || {}).title || 'a web source'}.`;
+        // Indian Kanoon found the case but the reporter citation does not fit
+        // its decision date: cite the court and date, which are certain.
+        if (r.citationDropped && e.citation && r.court && r.date) {
+          const wrong = e.citation, sure = `${r.court}, decided ${r.date}`;
+          if (wrong.length >= 8) replaceDeep(memorialOrDoc, wrong, sure);
+          e.citation = sure;
+        }
+        if (r.url) e.judgmentUrl = r.url;
+        e.citationNote = r.source === 'indiankanoon'
+          ? `Confirmed on Indian Kanoon (${r.court || 'judgment'}${r.date ? ', ' + r.date : ''}).`
+          : `Checked against ${(e.sources[0] || {}).title || 'a web source'}.`;
         stats.verified++;
       }
     } else {

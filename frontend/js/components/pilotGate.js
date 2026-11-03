@@ -419,7 +419,7 @@ function renderSpend(sp) {
   return `<div class="pilot-stats">
       <div><b>${inr(sp.totalInr)}</b><span>estimated total</span></div>
       <div><b>${inr(sp.vertexInr)}</b><span>on Vertex (trial credit)</span></div>
-      <div><b>${inr(sp.studioInr)}</b><span>on the AI Studio key</span></div>
+      <div><b>${inr(sp.studioInr + (sp.kanoonInr || 0))}</b><span>AI Studio key${sp.kanoonInr ? ' + Indian Kanoon ' + inr(sp.kanoonInr) : ''}</span></div>
       <div><b>${inr(Math.max(0, left))}</b><span>of ₹28,569 credit left (est.)</span></div>
     </div>
     <div class="pilot-list">

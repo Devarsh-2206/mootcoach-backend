@@ -103,7 +103,7 @@ function tokensOf(u) {
   return { input, output };
 }
 
-function blank() { return { calls: 0, uses: 0, input: 0, output: 0, usd: 0, vertexUsd: 0, studioUsd: 0 }; }
+function blank() { return { calls: 0, uses: 0, input: 0, output: 0, usd: 0, vertexUsd: 0, studioUsd: 0, flatUsd: 0 }; }
 
 let totals = {};          // feature -> blank()
 let models = {};          // model -> { calls, input, output, usd }
@@ -129,6 +129,22 @@ function recordCall(model, backend, response) {
   const t = tokensOf(response && response.usageMetadata);
   if (!t) return;
   add({ feature: current(), model, backend, ...t });
+}
+
+/**
+ * A call priced per request rather than per token (Indian Kanoon's API).
+ * Counted under the current feature, and under its own name in "By model".
+ */
+function recordFlat(name, inr) {
+  const usd = Number(inr || 0) / inrPerUsd();
+  const f = current();
+  const b = bucket(FEATURES[f] ? f : 'other');
+  b.calls++; b.usd += usd; b.vertexUsd += 0; b.studioUsd += 0;
+  b.flatUsd = (b.flatUsd || 0) + usd;
+  const m = models[name] || (models[name] = { calls: 0, input: 0, output: 0, usd: 0 });
+  m.calls++; m.usd += usd;
+  if (!since) since = new Date().toISOString();
+  dirty = true;
 }
 
 /** One use of a feature (an upload, a memorial, a voice round) succeeded. */
@@ -220,7 +236,7 @@ function report() {
       input: b.input, output: b.output,
       usd: b.usd, inr: b.usd * rate,
       perUseInr: b.uses ? (b.usd * rate) / b.uses : null,
-      vertexInr: b.vertexUsd * rate, studioInr: b.studioUsd * rate,
+      vertexInr: b.vertexUsd * rate, studioInr: b.studioUsd * rate, kanoonInr: (b.flatUsd || 0) * rate,
     };
   }).filter(r => r.calls || r.uses);
   const usd = rows.reduce((a, r) => a + r.usd, 0);
@@ -229,6 +245,7 @@ function report() {
     totalUsd: usd, totalInr: usd * rate,
     vertexInr: rows.reduce((a, r) => a + r.vertexInr, 0),
     studioInr: rows.reduce((a, r) => a + r.studioInr, 0),
+    kanoonInr: rows.reduce((a, r) => a + (r.kanoonInr || 0), 0),
     models: Object.entries(models).map(([model, m]) => ({ model, ...m, inr: m.usd * rate })).sort((a, b) => b.usd - a.usd),
     pricesOverridden: !!process.env.SPEND_PRICES,
   };
@@ -237,6 +254,6 @@ function report() {
 function _resetForTests() { totals = {}; models = {}; since = null; dirty = false; loaded = false; store = null; }
 
 module.exports = {
-  middleware, run, current, recordCall, recordUse, liveMeter, report, attach, flush, reset,
+  middleware, run, current, recordCall, recordFlat, recordUse, liveMeter, report, attach, flush, reset,
   featureForPath, useForPath, tokensOf, FEATURES, _resetForTests,
 };

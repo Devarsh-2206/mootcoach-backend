@@ -1,0 +1,111 @@
+/**
+ * Confirms Indian cases against Indian Kanoon's own database (its paid API),
+ * and links each one to the judgment itself.
+ *
+ *   INDIANKANOON_API_TOKEN   from api.indiankanoon.org; without it, Indian
+ *                            cases fall back to the web check
+ *                            (authorityVerifier.js) and nothing breaks.
+ *
+ * Price (Indian Kanoon's published rates, to be confirmed by the owner):
+ * search ₹0.50 per request. One search per case; results are cached with the
+ * rest of the verifier's results, so a landmark case is paid for once a month,
+ * not once per student.
+ *
+ * A case counts as confirmed when a search result's title matches the case:
+ * both sides' names (the parts around "v.") must appear in the title. The
+ * court and decision date come from Indian Kanoon, so they are true even
+ * when the suggested reporter citation is not; a citation whose year does
+ * not fit the decision date is dropped rather than shown.
+ *
+ * NOTE: the request and response shapes follow Indian Kanoon's API as
+ * documented (POST /search/?formInput=..&pagenum=0, "Authorization: Token ..",
+ * JSON {docs:[{tid,title,docsource,publishdate}]}). They are parsed defensively
+ * and must be checked against a live call once the token is in place.
+ */
+const BASE = 'https://api.indiankanoon.org';
+const PRICE_INR = { search: 0.5 };
+
+const configured = () => !!process.env.INDIANKANOON_API_TOKEN;
+
+/** Words that carry no identity in a case name. */
+const STOP = new Set(['the', 'of', 'and', 'v', 'vs', 'versus', 'ltd', 'limited', 'pvt', 'private', 'co', 'company', 'corporation',
+  'mr', 'ms', 'dr', 'smt', 'shri', 'sri', 'm', 's', 'anr', 'ors', 'others', 'another', 'retd', 'on', 'in', 're', 'and', 'by', 'through', 'thr']);
+const words = (s) => String(s || '').toLowerCase().replace(/&/g, ' and ').replace(/[^a-z0-9 ]+/g, ' ').split(/\s+/).filter(w => w && !STOP.has(w));
+
+/** "A v. B" → [A words, B words]; a single-party name → [words]. */
+function sides(name) {
+  const parts = String(name || '').split(/\s+(?:v\.?|vs\.?|versus)\s+/i);
+  return parts.slice(0, 2).map(words).filter(p => p.length);
+}
+
+/** Does an Indian Kanoon title name this case? Every side must be mostly present. */
+function titleMatches(caseName, title) {
+  const t = new Set(words(String(title || '').replace(/\s+on\s+\d{1,2}\s+\w+,?\s+\d{4}\s*$/i, '')));
+  const ss = sides(caseName);
+  if (!ss.length) return false;
+  return ss.every(side => {
+    const hit = side.filter(w => t.has(w)).length;
+    return hit >= Math.max(1, Math.ceil(side.length * 0.6));
+  });
+}
+
+const isIndianCourt = (src) => /supreme court of india|high court|tribunal|commission|indian|india/i.test(String(src || ''));
+const yearOf = (s) => { const m = String(s || '').match(/\b(18|19|20)\d{2}\b/); return m ? Number(m[0]) : null; };
+const strip = (s) => String(s || '').replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;/g, "'").trim();
+
+async function search(query, { fetchImpl = fetch } = {}) {
+  const url = `${BASE}/search/?formInput=${encodeURIComponent(query)}&pagenum=0`;
+  const r = await fetchImpl(url, {
+    method: 'POST',
+    headers: { Authorization: 'Token ' + process.env.INDIANKANOON_API_TOKEN, Accept: 'application/json' },
+    signal: AbortSignal.timeout(20000),
+  });
+  if (!r.ok) {
+    const e = new Error(`Indian Kanoon ${r.status}`);
+    e.status = r.status;
+    throw e;
+  }
+  const body = await r.json().catch(() => ({}));
+  try { require('./spend').recordFlat('indiankanoon', PRICE_INR.search); } catch (e) { /* metering is best-effort */ }
+  return Array.isArray(body.docs) ? body.docs : [];
+}
+
+/**
+ * One case → a verifier-shaped result ({status, foundName, foundCitation,
+ * court, date, sources, url}). status is 'verified' or 'unverified'.
+ */
+async function confirmCase({ name, citation }, opts = {}) {
+  const base = { name, citation: citation || '', status: 'unverified', sources: [] };
+  const docs = await search(name, opts);
+  const hit = docs.find(d => titleMatches(name, strip(d.title)) && isIndianCourt(d.docsource)) ||
+              docs.find(d => titleMatches(name, strip(d.title)));
+  if (!hit) return { ...base, note: 'Not found on Indian Kanoon.' };
+  const url = `https://indiankanoon.org/doc/${encodeURIComponent(hit.tid)}/`;
+  const decided = hit.publishdate || '';
+  const cy = yearOf(citation), dy = yearOf(decided);
+  // A reporter citation a year or more off the decision date is not trusted;
+  // the court and date from Indian Kanoon are shown instead.
+  const citationFits = !citation || !cy || !dy || Math.abs(cy - dy) <= 1;
+  return {
+    ...base,
+    status: 'verified',
+    source: 'indiankanoon',
+    foundName: strip(hit.title).replace(/\s+on\s+\d{1,2}\s+\w+,?\s+\d{4}\s*$/i, ''),
+    foundCitation: citationFits ? citation : '',
+    citationDropped: !citationFits,
+    court: strip(hit.docsource),
+    date: decided,
+    url,
+    sources: [{ title: 'indiankanoon.org', url, tier: 'database' }],
+  };
+}
+
+/** Which authorities to send to Indian Kanoon: Indian forum, or an Indian-looking case. */
+function looksIndian(item, forum) {
+  const text = `${item.name || ''} ${item.citation || ''}`;
+  if (/\b(SCC|SCR|AIR|SCALE|SCC OnLine|Bom LR|All LJ|Cri LJ|Mad LJ|Ker LT|ITR)\b/.test(text)) return true;
+  if (/Union of India|State of [A-Z][a-z]+|Government of India|Commissioner of Income Tax/.test(text)) return true;
+  return /india|indian|high court of|supreme court of india/i.test(String(forum || ''));
+}
+
+module.exports = { configured, confirmCase, looksIndian, titleMatches, search, PRICE_INR };

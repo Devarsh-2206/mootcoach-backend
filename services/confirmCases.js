@@ -58,8 +58,14 @@ async function confirmPrecedents(analysis, { forum, timeoutMs = 45000, verify = 
     if (!r || (r.status !== 'verified' && r.status !== 'corrected')) return;
     const out = { ...c };
     if (r.status === 'corrected' && r.foundCitation) { out.citationGiven = c.citation; out.citation = r.foundCitation; }
+    // Indian Kanoon confirmed the case but the suggested reporter citation does
+    // not fit its decision date: show the court and date instead of a guess.
+    if (r.citationDropped) { out.citationGiven = c.citation; out.citation = ''; }
+    if (r.court) out.court = r.court;
+    if (r.date) out.decided = r.date;
+    if (r.url) out.judgmentUrl = r.url;
     if (r.foundName && r.foundName.length > 3 && !out.caseName) out.caseName = r.foundName;
-    out.verification = { status: r.status, foundCitation: r.foundCitation, court: r.court, sources: (r.sources || []).slice(0, 2) };
+    out.verification = { status: r.status, source: r.source || 'web', foundCitation: r.foundCitation, court: r.court, date: r.date, url: r.url, sources: (r.sources || []).slice(0, 2) };
     kept.push(out);
   });
   analysis.precedentsNeeded = kept;

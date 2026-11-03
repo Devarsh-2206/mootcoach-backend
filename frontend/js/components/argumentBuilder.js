@@ -2856,7 +2856,12 @@ function getCasesFromAnalysis() {
     const analysisStr = window.lastAnalysis || lastAnalysis;
     if (!analysisStr) return [];
     const data = JSON.parse(analysisStr);
-    const precedents = data.precedentsNeeded || [];
+    // Only confirmed cases (services/confirmCases.js). An analysis saved
+    // before cases were confirmed offers only those already confirmed; the
+    // rest wait until the student confirms them in the Analysis stage.
+    let precedents = data.precedentsNeeded || [];
+    if (!data.casesCheck) precedents = precedents.filter(c => c && c.verification && /^(verified|corrected)$/.test(c.verification.status));
+    else if (data.casesCheck.failed) precedents = [];
     const seen = new Set();
     const out = [];
     precedents.forEach(dp => {

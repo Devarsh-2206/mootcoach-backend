@@ -225,11 +225,28 @@ async function verifyAuthorities(authorities, opts = {}) {
     // a trusted source may turn up this time.
     if (cached && !cached.weakOnly) out[i] = { ...cached, cached: true }; else todo.push(i);
   }
-  if (todo.length) {
-    const batch = todo.map(i => items[i]);
+  // Indian cases: Indian Kanoon's own database first (services/indianKanoon.js),
+  // which also gives a link to the judgment. Anything it does not find, or
+  // cannot be asked about, goes on to the web check below.
+  const ik = require('./indianKanoon');
+  let web = todo;
+  if (todo.length && ik.configured()) {
+    const indian = todo.filter(i => ik.looksIndian(items[i], opts.forum));
+    web = todo.filter(i => !indian.includes(i));
+    const found = await Promise.all(indian.map(i => ik.confirmCase(items[i]).catch(err => {
+      console.warn('[INDIAN KANOON] lookup failed:', err && err.message);
+      return null;
+    })));
+    indian.forEach((i, j) => {
+      if (found[j] && found[j].status === 'verified') { out[i] = found[j]; cacheSet(keyOf(items[i]), found[j]); }
+      else web.push(i);
+    });
+  }
+  if (web.length) {
+    const batch = web.map(i => items[i]);
     const { text, gm } = await groundedCall(buildPrompt(batch, opts.forum));
     const res = interpret(batch, text, gm);
-    for (let j = 0; j < todo.length; j++) { out[todo[j]] = res[j]; await cacheSet(keyOf(batch[j]), res[j]); }
+    for (let j = 0; j < web.length; j++) { out[web[j]] = res[j]; await cacheSet(keyOf(batch[j]), res[j]); }
   }
   return out;
 }

@@ -910,62 +910,114 @@ function checkLink(c) {
   return ` <a class="cite-check-link" href="${esc(href)}" target="_blank" rel="noopener noreferrer">${indian ? 'Check on Indian Kanoon' : 'Check on Google Scholar'} ↗</a>`;
 }
 
+/* Confirms the held-back cases (a failed check, or an analysis saved before
+   cases were confirmed) and keeps only those confirmed. */
 window.checkCaseCitations = async function () {
-  const cases = window.__casesForCheck || [];
+  const data = window.__casesData;
   const btn = document.getElementById('btn-check-citations');
-  if (!cases.length || !btn) return;
-  const list = cases.slice(0, 12).map(c => ({ name: c.caseName || '', citation: c.citation && c.citation !== 'Citation unverified' ? c.citation : '' }));
-  btn.disabled = true; btn.textContent = 'Checking…';
-  document.querySelectorAll('[data-cite-slot]').forEach((el, i) => { if (i < list.length && !cases[i].verification) el.innerHTML = '<span class="cite-badge wait">Checking…</span>'; });
+  if (!data || !btn) return;
+  const pool = ((data.casesCheck && data.casesCheck.failed ? data.precedentsPending : data.precedentsNeeded) || [])
+    .map(c => (typeof c === 'string' ? { caseName: c } : c)).filter(c => c && c.caseName);
+  if (!pool.length) return;
+  btn.disabled = true; btn.textContent = 'Confirming…';
   try {
     const forum = (lastAnalysis && lastAnalysis.detectedForum && lastAnalysis.detectedForum.forum) || '';
-    const data = await requestJson('/api/verify-authorities', { body: { authorities: list, forum } });
-    (data.results || []).forEach((v, i) => {
-      cases[i].verification = v;
-      const slot = document.querySelector(`[data-cite-slot="${i}"]`);
-      if (slot) slot.innerHTML = citationBadge(v);
-    });
-    const found = (data.results || []).filter(v => v.status !== 'unverified').length;
-    btn.textContent = `Checked: ${found} of ${list.length} found`;
-    showToast(`${found} of ${list.length} citations found with a source.`, found === list.length ? 'ok' : 'warn');
+    const kept = [];
+    for (let i = 0; i < pool.length; i += 12) {
+      const part = pool.slice(i, i + 12);
+      const res = await requestJson('/api/verify-authorities', { body: { authorities: part.map(c => ({ name: c.caseName, citation: c.citation && c.citation !== 'Citation unverified' ? c.citation : '' })), forum } });
+      (res.results || []).forEach((r, j) => {
+        r = regrade(r);
+        if (!r || (r.status !== 'verified' && r.status !== 'corrected')) return;
+        const c = { ...part[j] };
+        if (r.status === 'corrected' && r.foundCitation) { c.citationGiven = c.citation; c.citation = r.foundCitation; }
+        if (r.citationDropped) { c.citationGiven = c.citation; c.citation = ''; }
+        if (r.court) c.court = r.court;
+        if (r.date) c.decided = r.date;
+        if (r.url) c.judgmentUrl = r.url;
+        c.verification = { status: r.status, source: r.source || 'web', court: r.court, date: r.date, url: r.url, sources: (r.sources || []).slice(0, 2) };
+        kept.push(c);
+      });
+    }
+    data.precedentsNeeded = kept;
+    delete data.precedentsPending;
+    data.casesCheck = { suggested: pool.length, kept: kept.length, removed: pool.length - kept.length, checkedAt: new Date().toISOString() };
+    // The analysis is also kept as text (lastAnalysis), which the Advocacy
+    // authority list reads: give it the confirmed cases too.
+    try {
+      const o = JSON.parse(window.lastAnalysis || lastAnalysis);
+      o.precedentsNeeded = kept; o.casesCheck = data.casesCheck; delete o.precedentsPending;
+      const str = JSON.stringify(o); setLastAnalysis(str); window.lastAnalysis = str;
+    } catch (e) { /* the page still shows the confirmed list */ }
+    const block = document.getElementById('cases-block');
+    if (block) block.innerHTML = renderCases('', kept, data);
+    showToast(`${kept.length} of ${pool.length} cases confirmed.`, 'ok');
   } catch (err) {
-    document.querySelectorAll('[data-cite-slot]').forEach((el, i) => { if (!cases[i] || !cases[i].verification) el.innerHTML = ''; });
-    btn.disabled = false; btn.textContent = 'Check these citations';
-    showToast(err.message || 'Could not check the citations just now.', 'err');
+    btn.disabled = false; btn.textContent = 'Check the cases now';
+    showToast(err.message || 'Could not confirm the cases just now.', 'err');
   }
 };
 
-export function renderCases(content, rawCasesArray) {
-  if (rawCasesArray && Array.isArray(rawCasesArray) && rawCasesArray.length && typeof rawCasesArray[0] === 'object') {
-    return rawCasesArray.map((c, i) => {
+/* Only cases MootCoach has confirmed are listed (services/confirmCases.js on
+   the server): on Indian Kanoon for Indian cases, otherwise on a court website,
+   law database or national newspaper. What could not be confirmed is left out
+   and counted, never shown with a "check it yourself" warning. */
+const fmtDecided = (d) => { const t = Date.parse(d); return isNaN(t) ? String(d || '') : new Date(t).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }); };
+function confirmedBadge(c) {
+  const v = c.verification || {};
+  const url = c.judgmentUrl || v.url;
+  if (v.source === 'indiankanoon' || /indiankanoon\.org\/doc\//.test(url || '')) {
+    const where = [c.court || v.court, (c.decided || v.date) ? fmtDecided(c.decided || v.date) : ''].filter(Boolean).join(', ');
+    return `<span class="cite-badge ok">✓ On Indian Kanoon${where ? ' · ' + esc(where) : ''}</span>${url ? ` <a class="cite-check-link" href="${esc(url)}" target="_blank" rel="noopener noreferrer">Read the judgment ↗</a>` : ''}`;
+  }
+  return citationBadge(v);
+}
+
+function casesSummary(check, shown) {
+  if (!check) return '';
+  const left = check.removed ? ` ${check.removed} other suggested case${check.removed === 1 ? ' was' : 's were'} left out because ${check.removed === 1 ? 'it' : 'they'} could not be confirmed.` : '';
+  return `<div class="cases-trust">✓ Every case below was confirmed on Indian Kanoon, a court website or a law database before being shown.${left}${!shown ? ' None could be confirmed for this proposition, so research authorities from the statute and the facts.' : ''}</div>`;
+}
+
+export function renderCases(content, rawCasesArray, data) {
+  const check = data && data.casesCheck;
+  // The check could not run: nothing unconfirmed is shown; offer to try again.
+  if (check && check.failed) {
+    if (data) window.__casesData = data;
+    return `<div class="cases-trust warn">MootCoach could not confirm the suggested cases just now, so none are shown yet.</div>
+      <div class="cite-check-bar"><button type="button" class="btn-sm" id="btn-check-citations" onclick="window.checkCaseCitations()">Check the cases now</button></div>`;
+  }
+  // Analyses saved before cases were confirmed: list nothing until checked.
+  if (!check && rawCasesArray && rawCasesArray.length && typeof rawCasesArray[0] === 'object') {
+    if (data) window.__casesData = data;
+    return `<div class="cases-trust warn">These suggested cases have not been confirmed yet. MootCoach only lists cases it has confirmed on Indian Kanoon, a court website or a law database.</div>
+      <div class="cite-check-bar"><button type="button" class="btn-sm" id="btn-check-citations" onclick="window.checkCaseCitations()">Confirm the cases</button></div>`;
+  }
+  if (rawCasesArray && Array.isArray(rawCasesArray) && (rawCasesArray.length === 0 || typeof rawCasesArray[0] === 'object')) {
+    return casesSummary(check, rawCasesArray.length) + rawCasesArray.map((c, i) => {
       const n    = i + 1;
-      const conf = c.confidenceLevel || 'medium';
-      const borderStyle = conf === 'high' ? '' : conf === 'low' ? 'style="border-color:rgba(224,82,82,.2)"' : 'style="border-color:rgba(251,191,36,.2)"';
-      const caveatHTML  = (c.caveat && c.caveat !== 'null' && c.caveat !== null)
-        ? `<span style="font-size:.65rem;color:var(--gold);background:var(--gold-muted);border:1px solid var(--gold-border);border-radius:4px;padding:2px 7px;margin-top:5px;display:inline-block;">△ ${esc(String(c.caveat))}</span>`
-        : '';
       const jBadge = c.jurisdiction
         ? `<span style="font-size:.6rem;color:var(--white-muted);background:rgba(28,23,16,.04);border:1px solid var(--glass-b);border-radius:3px;padding:1px 6px;margin-left:5px;">${esc(c.jurisdiction)}</span>`
         : '';
-      const citationHTML = (c.citation && c.citation !== 'Citation unverified')
-        ? `<div style="font-size:.7rem;color:var(--gold);opacity:.75;margin-bottom:4px;">${esc(c.citation)}</div>`
-        : '';
+      const citeText = (c.citation && c.citation !== 'Citation unverified') ? c.citation
+        : [c.court, c.decided ? 'decided ' + fmtDecided(c.decided) : ''].filter(Boolean).join(', ');
+      const citationHTML = citeText ? `<div style="font-size:.7rem;color:var(--gold);opacity:.75;margin-bottom:4px;">${esc(citeText)}</div>` : '';
+      const dropped = c.citationGiven && !c.citation
+        ? `<div class="case-note">The suggested citation (${esc(c.citationGiven)}) did not match the judgment, so the court and date are shown instead.</div>`
+        : c.citationGiven && c.citation && c.citationGiven !== c.citation
+          ? `<div class="case-note">Citation corrected from ${esc(c.citationGiven)}.</div>` : '';
       return `
-      <div class="case-card" ${borderStyle}>
+      <div class="case-card">
         <div class="case-num">${n < 10 ? '0'+n : n}</div>
         <div style="flex:1;min-width:0;">
           <div class="case-name">${fmtInline(c.caseName || 'Unknown')}${jBadge}</div>
           ${citationHTML}
           ${c.holdingRelevant ? `<div class="case-desc">${fmtInline(c.holdingRelevant)}</div>` : ''}
-          ${caveatHTML}
-          <div class="cite-check" data-cite-slot="${i}">${c.verification ? citationBadge(c.verification) : ''}</div>
+          ${dropped}
+          <div class="cite-check">${confirmedBadge(c)}</div>
         </div>
       </div>`;
-    }).join('') + (window.__casesForCheck = rawCasesArray, `
-      <div class="cite-check-bar">
-        <button type="button" class="btn-sm" id="btn-check-citations" onclick="window.checkCaseCitations()">Check these citations</button>
-        <span class="cite-check-hint">Searches the web for each case. A case counts as found only on a court website, a law database such as Indian Kanoon or SCC Online, or a national newspaper; Q&amp;A sites, blogs and student notes do not count.</span>
-      </div>`);
+    }).join('');
   }
   const items = extractBullets(content);
   if (!items.length) return renderBullets(content, 'ib-purple');
@@ -1478,10 +1530,10 @@ export function showStructuredResults(data) {
         type:'argDefects', heading:'Argument Defect Analysis', content:'', _raw: data.argumentDefects
       },
       (data.constitutionalIssues || []).length && { type:'constitution',  heading:'Constitutional Provisions', content: toList(data.constitutionalIssues) },
-      (data.precedentsNeeded || []).length     && {
+      ((data.precedentsNeeded || []).length || data.casesCheck) && {
         type:'cases', heading:'Cases & Precedents',
         content: toList((data.precedentsNeeded || []).map(c => typeof c === 'string' ? c : `${c.caseName} — ${c.holdingRelevant || ''}`)),
-        _rawCases: data.precedentsNeeded
+        _rawCases: data.precedentsNeeded || [], _data: data
       },
       (data.benchQuestions || []).length       && { type:'bench',         heading:'Bench Questions',           content: toList(data.benchQuestions) },
       (data.benchVulnerabilities || []).length && { type:'vulnerability', heading:'Bench Vulnerabilities',     content: toList(data.benchVulnerabilities) },
@@ -1504,7 +1556,7 @@ export function showStructuredResults(data) {
       let body;
       if (sec.type === 'argDefects')                      body = renderArgumentDefects(sec._raw);
       else if (sec.type === 'addIssues')                   body = renderAdditionalIssues(sec._rawAddIssues, sec._framedCount);
-      else if (sec.type === 'cases' && sec._rawCases)     body = renderCases(sec.content, sec._rawCases);
+      else if (sec.type === 'cases' && sec._rawCases)     body = `<div id="cases-block">${renderCases(sec.content, sec._rawCases, sec._data)}</div>`;
       else                                                body = renderSectionBody(sec.type, sec.content);
 
       // Every card is capped at 450px with an inner scrollbar. That suits a
