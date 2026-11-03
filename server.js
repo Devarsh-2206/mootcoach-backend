@@ -1895,6 +1895,7 @@ app.post("/api/pilot/admin/overview", signedIn, logLimiter, pilotAdminOnly, asyn
     const overview = await pilot.overview();
     overview.ai = require("./services/genaiClient").aiStatus();
     overview.spend = spend.report();
+    overview.indianKanoon = require("./services/indianKanoon").status();
     overview.emails = await emails.status().catch(() => null);
     return res.json({ success: true, overview });
   } catch (e) {

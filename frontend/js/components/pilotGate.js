@@ -388,6 +388,7 @@ function render(overlay) {
         </div>`).join('') : `<p class="pilot-small">Nobody here yet.</p>`}
     </div>`}
     <p class="pilot-small">Unused places are released after ${ov.releaseHours} hours. Automatic entry: ${esc(ov.autoDomains.join(', '))}.</p>
+    ${ov.indianKanoon ? `<p class="pilot-small">Indian Kanoon since the last restart: ${ov.indianKanoon.configured ? 'token set' : '<b>no token (INDIANKANOON_API_TOKEN not set)</b>'} · ${ov.indianKanoon.lookups} lookups · ${ov.indianKanoon.found} found · ${ov.indianKanoon.notFound} not found · ${ov.indianKanoon.errors} errors${ov.indianKanoon.lastError ? ' (last: ' + esc(ov.indianKanoon.lastError) + ')' : ''}${ov.indianKanoon.lastSample ? ' · reply ' + esc(ov.indianKanoon.lastSample) : ''}.</p>` : ''}
     ${ov.ai ? `<p class="pilot-small">AI since the last restart: ${ov.ai.backend === 'vertex' ? 'Vertex AI' : 'AI Studio key'} · ${ov.ai.vertex} Vertex calls · ${ov.ai.fallback} fell back to the AI Studio key · voice rounds: ${ov.ai.voiceVertex || 0} on Vertex, ${ov.ai.voiceStudio || 0} on the AI Studio key${ov.ai.lastFallback ? ' (last reason: ' + esc(ov.ai.lastFallback) + ')' : ''}.</p>` : ''}`;
 }
 

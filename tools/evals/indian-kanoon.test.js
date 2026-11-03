@@ -17,7 +17,7 @@ const fetchImpl = async (url, init) => {
   calls.push({ url, init });
   const q = decodeURIComponent(url.split('formInput=')[1].split('&')[0]).toLowerCase();
   const docs = DB.filter(d => q.split(/\W+/).filter(w => w.length > 3).some(w => d.title.toLowerCase().includes(w)));
-  return { ok: true, status: 200, json: async () => ({ docs }) };
+  return { ok: true, status: 200, json: async () => ({ docs }), text: async () => JSON.stringify({ docs }) };
 };
 
 (async () => {
@@ -45,12 +45,14 @@ const fetchImpl = async (url, init) => {
   assert.strictEqual(r.status, 'unverified');
 
   // API refusal surfaces as an error (the verifier then falls back to the web check).
-  await assert.rejects(ik.confirmCase({ name: 'X v. Y' }, { fetchImpl: async () => ({ ok: false, status: 403, json: async () => ({}) }) }), /403/);
+  await assert.rejects(ik.confirmCase({ name: 'X v. Y' }, { fetchImpl: async () => ({ ok: false, status: 403, json: async () => ({}), text: async () => 'Invalid token' }) }), /403/);
 
   // Which cases are sent to Indian Kanoon.
   assert.ok(ik.looksIndian({ name: 'A v. B', citation: '(2017) 10 SCC 1' }));
   assert.ok(ik.looksIndian({ name: 'Anuradha Bhasin v. Union of India' }));
   assert.ok(ik.looksIndian({ name: 'A v. B' }, 'Supreme Court of India'));
   assert.ok(!ik.looksIndian({ name: 'Donoghue v. Stevenson', citation: '[1932] AC 562' }, 'UK Supreme Court'));
+  const st = ik.status();
+  assert.ok(st.configured && st.found >= 2 && st.notFound >= 1 && st.errors >= 1 && /403: Invalid token/.test(st.lastError) && /doc keys/.test(st.lastSample), JSON.stringify(st));
   console.log('PASS indian kanoon: title matching, judgment link, wrong citation dropped, invented case refused, routing');
 })().catch(e => { console.error('FAIL indian kanoon:', e); process.exit(1); });

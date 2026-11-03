@@ -27,6 +27,10 @@ const PRICE_INR = { search: 0.5 };
 
 const configured = () => !!process.env.INDIANKANOON_API_TOKEN;
 
+/** Since the server started; shown in the Pilot panel to diagnose the link. */
+const stats = { lookups: 0, found: 0, notFound: 0, errors: 0, lastError: '', lastErrorAt: null, lastSample: '' };
+const status = () => ({ configured: configured(), ...stats });
+
 /** Words that carry no identity in a case name. */
 const STOP = new Set(['the', 'of', 'and', 'v', 'vs', 'versus', 'ltd', 'limited', 'pvt', 'private', 'co', 'company', 'corporation',
   'mr', 'ms', 'dr', 'smt', 'shri', 'sri', 'm', 's', 'anr', 'ors', 'others', 'another', 'retd', 'on', 'in', 're', 'and', 'by', 'through', 'thr']);
@@ -61,11 +65,22 @@ async function search(query, { fetchImpl = fetch } = {}) {
     signal: AbortSignal.timeout(20000),
   });
   if (!r.ok) {
-    const e = new Error(`Indian Kanoon ${r.status}`);
+    const text = await r.text().catch(() => '');
+    const e = new Error(`Indian Kanoon ${r.status}${text ? ': ' + text.replace(/\s+/g, ' ').slice(0, 120) : ''}`);
     e.status = r.status;
+    stats.errors++; stats.lastError = e.message; stats.lastErrorAt = new Date().toISOString();
     throw e;
   }
-  const body = await r.json().catch(() => ({}));
+  const raw = await r.text().catch(() => '');
+  let body = {};
+  try { body = JSON.parse(raw); } catch (e) {
+    stats.errors++; stats.lastError = 'Reply was not JSON: ' + raw.replace(/\s+/g, ' ').slice(0, 120); stats.lastErrorAt = new Date().toISOString();
+    throw new Error(stats.lastError);
+  }
+  stats.lookups++;
+  // A short, content-free sample of the reply's shape, to check the format.
+  if (!stats.lastSample) stats.lastSample = 'keys: ' + Object.keys(body).slice(0, 8).join(',') +
+    (Array.isArray(body.docs) && body.docs[0] ? ' | doc keys: ' + Object.keys(body.docs[0]).slice(0, 10).join(',') : '');
   try { require('./spend').recordFlat('indiankanoon', PRICE_INR.search); } catch (e) { /* metering is best-effort */ }
   return Array.isArray(body.docs) ? body.docs : [];
 }
@@ -79,7 +94,8 @@ async function confirmCase({ name, citation }, opts = {}) {
   const docs = await search(name, opts);
   const hit = docs.find(d => titleMatches(name, strip(d.title)) && isIndianCourt(d.docsource)) ||
               docs.find(d => titleMatches(name, strip(d.title)));
-  if (!hit) return { ...base, note: 'Not found on Indian Kanoon.' };
+  if (!hit) { stats.notFound++; return { ...base, note: 'Not found on Indian Kanoon.' }; }
+  stats.found++;
   const url = `https://indiankanoon.org/doc/${encodeURIComponent(hit.tid)}/`;
   const decided = hit.publishdate || '';
   const cy = yearOf(citation), dy = yearOf(decided);
@@ -108,4 +124,4 @@ function looksIndian(item, forum) {
   return /india|indian|high court of|supreme court of india/i.test(String(forum || ''));
 }
 
-module.exports = { configured, confirmCase, looksIndian, titleMatches, search, PRICE_INR };
+module.exports = { configured, status, confirmCase, looksIndian, titleMatches, search, PRICE_INR };
