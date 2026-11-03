@@ -62,6 +62,11 @@ export async function requestJson(path, { body, formData, timeoutMs = 190000 } =
   // the caller has its own screen for it.
   if (data.isRejection) return data;
   if (!res.ok || data.success === false) {
+    // Refused because the user holds no pilot place: the pilot screen says
+    // where they stand (components/pilotGate.js).
+    if (data.code === 'pilot') {
+      try { window.dispatchEvent(new CustomEvent('mc:pilot', { detail: data.pilot || {} })); } catch (e) {}
+    }
     throw new Error(data.error || `The request failed (status ${res.status}). Try again.`);
   }
   return data;

@@ -3558,6 +3558,38 @@ span.text-\[9px\].uppercase.rounded, div.text-\[9px\].uppercase.rounded {
 
 /* Feature switches: controls for switched-off features stay hidden */
 #sb-ask-mootcoach[hidden], .rt-ask[hidden]{display:none!important}
+/* Closed pilot: the waitlist screen over the workspace, and the admin panel. */
+#sb-pilot-admin[hidden], .pilot-gate[hidden]{display:none!important}
+.pilot-gate{position:fixed;inset:0;z-index:12000;display:flex;align-items:center;justify-content:center;padding:16px;
+  background:var(--navy-2, var(--paper));overflow:auto}
+.pilot-card{max-width:520px;width:100%;background:var(--sheet);border:1px solid var(--rule);border-radius:var(--rl,12px);
+  padding:32px 28px;box-shadow:0 24px 60px -20px rgba(0,0,0,.35);font-family:var(--sans);color:var(--white)}
+.pilot-eyebrow{font-family:var(--mono);font-size:.7rem;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);margin-bottom:10px}
+.pilot-card h2{font-family:var(--serif);font-size:2rem;font-weight:600;line-height:1.15;margin:0 0 12px}
+.pilot-card p{font-size:1.02rem;line-height:1.6;color:var(--white-2);margin:0 0 16px}
+.pilot-small{font-size:.85rem!important;color:var(--white-muted)!important}
+.pilot-small a{color:var(--gold)}
+.pilot-actions{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 16px}
+.pilot-actions button,.pilot-list button,.pilot-tabs button{font-family:var(--mono);font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;
+  padding:10px 14px;border-radius:8px;cursor:pointer}
+.pilot-list button[disabled]{opacity:.45;cursor:not-allowed}
+.mc-dialog.pilot-admin{max-width:760px;width:min(760px,calc(100vw - 32px));max-height:calc(100vh - 32px);display:flex;flex-direction:column;min-width:0}
+.pilot-admin-head{display:flex;align-items:center;justify-content:space-between}
+.pilot-admin-head h3{margin:0}
+.pilot-x{background:none;border:0;font-size:1.6rem;line-height:1;color:var(--white-muted);cursor:pointer;padding:4px 8px}
+.pilot-admin-body{overflow:auto;min-height:0}
+.pilot-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:12px 0}
+.pilot-stats div{border:1px solid var(--rule);border-radius:8px;padding:10px;text-align:center;color:var(--white)}
+.pilot-stats b{font-family:var(--serif);font-size:1.5rem}
+.pilot-stats span{display:block;font-family:var(--mono);font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--white-muted);margin-top:2px}
+.pilot-tabs{display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 10px}
+.pilot-tabs button{background:transparent;border:1px solid var(--rule);color:var(--white)}
+.pilot-list{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+.pilot-row{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid var(--rule);border-radius:8px;padding:10px 12px}
+.pilot-who{display:flex;flex-direction:column;min-width:0;color:var(--white)}
+.pilot-who span{overflow-wrap:anywhere;font-size:.9rem;color:var(--white-2)}
+.pilot-error{color:var(--error,#B0392E)!important;font-size:.9rem}
+@media (max-width:560px){.pilot-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.pilot-row{flex-direction:column;align-items:stretch}}
 
 /* Stage 2 side selector. Its selected state used Tailwind indigo classes, which
    the tint clean-up above flattens, so a chosen Petitioner showed no highlight.
@@ -4109,6 +4141,7 @@ html:root #view-workspace .issue-card.selected:not(.mc-paper *){background:var(-
           <button class="ws-sb-item" onclick="window.openMemorialReview && window.openMemorialReview()" title="Upload a memorial and have it marked"><span class="ws-sb-icon">⚖︎</span> Memorial Review</button>
           <button class="ws-sb-item" id="sb-ask-mootcoach" hidden onclick="window.openAssistant && window.openAssistant()" title="Ask about your moots; answers come from your own analysis and checked sources"><span class="ws-sb-icon">❝</span> Ask MootCoach</button>
           <button class="ws-sb-item" onclick="window.openReviewTable && window.openReviewTable()" title="All your moots side by side, with a question you can ask of every one"><span class="ws-sb-icon">▦</span> Compare Moots</button>
+          <button class="ws-sb-item" id="sb-pilot-admin" hidden onclick="window.openPilotAdmin && window.openPilotAdmin()" title="Pilot testers, waitlist and approvals"><span class="ws-sb-icon">✦</span> Pilot</button>
         </div>
       </div>
       <div class="ws-sb-bottom">

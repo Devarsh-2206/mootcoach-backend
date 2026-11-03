@@ -89,6 +89,7 @@ import {
   toggleDismissedIssues
 } from './components/extraIssues.js';
 import { initClarity, identifyUserInClarity } from './services/clarity.js';
+import { checkPilot, resetPilot } from './components/pilotGate.js';
 
 // Auth Overlay State and Handlers
 let isOverlaySignUpMode = false;
@@ -488,10 +489,15 @@ onAuthChanged(async (user) => {
       navigate('workspace');
     }
 
+    // Where this user stands in the closed pilot. Not awaited: the server
+    // enforces it either way, and the moot list should not wait on it.
+    checkPilot(user);
+
     // ONLY fetch moots AFTER the UI is stable and user is set
     await loadRecentSessions();
   } else {
     window.currentUser = null;
+    resetPilot();
 
     document.querySelectorAll('.btn-login-nav').forEach(btn => {
       btn.textContent = btn.getAttribute('data-default') || 'Get Started'; 

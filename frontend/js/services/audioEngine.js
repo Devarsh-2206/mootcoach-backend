@@ -337,6 +337,14 @@ Begin the hearing with one opening question tailored to this issue and stance. K
 
   voiceWebSocket.onclose = (ev) => {
     console.log("◉ Voice WebSocket closed.");
+    if (ev && ev.code === 4403) {
+      // No pilot place: the same screen every other refused feature shows.
+      voiceSessionActive = false;
+      try { window.dispatchEvent(new CustomEvent('mc:pilot', { detail: { status: 'waitlist' } })); } catch (e) {}
+      if (onError) onError(new Error('The voice bench is only open to pilot testers right now.'));
+      if (onClose) onClose();
+      return;
+    }
     if (ev && ev.code === 4401) {
       // Refused for sign-in: reconnecting would only be refused again.
       voiceSessionActive = false;
