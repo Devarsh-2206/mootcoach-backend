@@ -120,6 +120,19 @@ const pilot = createPilot(admin.apps.length ? firestoreStore(admin.firestore()) 
 // Estimated AI spend per feature (services/spend.js), saved next to the pilot state.
 const spend = require("./services/spend");
 spend.attach(admin.apps.length ? admin.firestore().collection('artifacts').doc('moot.coach').collection('pilot').doc('spend') : null);
+// Pilot emails (services/emails.js): welcome, waitlist, place ready, follow-ups.
+const { createEmails, firestoreEmailStore, memoryEmailStore } = require("./services/emails");
+const emails = createEmails({
+  store: admin.apps.length ? firestoreEmailStore(admin.firestore()) : memoryEmailStore(),
+  mailer: require("./services/mailer"),
+  members: async () => (await pilot.overview()).members,
+  pilotConfig: readPilotConfig,
+});
+const emailKick = (uid) => emails.tick(uid).catch(err => console.error('[EMAIL] tick failed:', err && err.message));
+if (process.env.NODE_ENV !== 'test') {
+  setTimeout(() => emailKick(), 60e3).unref();
+  setInterval(() => emailKick(), 30 * 60e3).unref();
+}
 if (!admin.apps.length && readPilotConfig().mode !== 'off') {
   console.warn('⚠️ PILOT_MODE is on but Firestore is unavailable: pilot places are kept in memory and reset on restart.');
 }
@@ -1806,6 +1819,7 @@ app.post("/api/pilot/me", signedIn, logLimiter, async (req, res) => {
       return res.json({ success: true, pilot: { status: 'active', mode: readPilotConfig().mode }, admin: u.uid === 'dev' || pilot.isAdmin(u) });
     }
     const s = await pilotStatus(u, true);
+    emailKick(u.uid);
     return res.json({ success: true, pilot: s, admin: s.status === 'admin', message: s.status === 'active' || s.status === 'admin' ? '' : pilotMessage(s) });
   } catch (e) {
     console.error('[PILOT] /me failed:', e && e.message);
@@ -1834,6 +1848,7 @@ app.post("/api/pilot/admin/overview", signedIn, logLimiter, pilotAdminOnly, asyn
     const overview = await pilot.overview();
     overview.ai = require("./services/genaiClient").aiStatus();
     overview.spend = spend.report();
+    overview.emails = await emails.status().catch(() => null);
     return res.json({ success: true, overview });
   } catch (e) {
     return res.status(500).json({ success: false, error: 'Could not load the pilot list: ' + (e && e.message) });
@@ -1846,6 +1861,34 @@ app.post("/api/pilot/admin/feedback", signedIn, logLimiter, pilotAdminOnly, asyn
     return res.status(500).json({ success: false, error: 'Could not load feedback: ' + (e && e.message) });
   }
 });
+app.post("/api/pilot/admin/email-preview", signedIn, logLimiter, pilotAdminOnly, async (req, res) => {
+  if (!req.user.email) return res.status(400).json({ success: false, error: 'Your account has no email address.' });
+  try {
+    const out = await emails.preview(req.user.email, (req.user.name || '').split(' ')[0]);
+    const n = out.filter(o => o.sent).length;
+    return res.json({ success: true, sent: n, to: req.user.email, results: out });
+  } catch (e) {
+    return res.status(502).json({ success: false, error: 'Could not send the previews: ' + (e && e.message) });
+  }
+});
+/* Unsubscribe from the follow-up emails. GET shows a page with a button (so a
+   mail scanner opening the link does not unsubscribe anyone); POST does it,
+   which is also what mail apps' one-click unsubscribe sends. */
+const unsubPage = (title, body, form = '') => `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title>
+<body style="margin:0;background:#f6f4ef;font-family:Georgia,serif;color:#1f1d1a"><div style="max-width:480px;margin:12vh auto;padding:28px 24px;background:#fffdf9;border:1px solid #e8e4dc;border-radius:10px">
+<p style="font-family:Arial,sans-serif;font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:#a23b2c;margin:0 0 16px"><b>MootCoach</b></p><h1 style="font-size:22px;margin:0 0 10px">${title}</h1><p style="line-height:1.6">${body}</p>${form}</div></body>`;
+app.get("/api/email/unsubscribe", logLimiter, async (req, res) => {
+  const u = String(req.query.u || '').slice(0, 128), t = String(req.query.t || '');
+  if (!(await emails.checkToken(u, t).catch(() => false))) return res.status(400).send(unsubPage('Link not valid', 'This unsubscribe link is not valid. Email support@mootcoach.in and we will sort it out.'));
+  res.send(unsubPage('Stop reminder emails?', 'You will stop getting MootCoach reminder and feedback emails. Emails about your pilot place itself still come through.',
+    `<form method="post"><button style="background:#a23b2c;color:#fff;border:0;border-radius:6px;padding:11px 20px;font-size:15px;cursor:pointer">Stop reminder emails</button></form>`));
+});
+app.post("/api/email/unsubscribe", logLimiter, express.urlencoded({ extended: false, limit: '2kb' }), async (req, res) => {
+  const u = String(req.query.u || '').slice(0, 128), t = String(req.query.t || '');
+  if (!(await emails.checkToken(u, t).catch(() => false))) return res.status(400).send(unsubPage('Link not valid', 'This unsubscribe link is not valid. Email support@mootcoach.in and we will sort it out.'));
+  try { await emails.unsubscribe(u); } catch (e) { return res.status(503).send(unsubPage('Please try again', 'Something went wrong. Try again in a minute, or email support@mootcoach.in.')); }
+  res.send(unsubPage('Done', 'You will not get any more reminder emails from MootCoach.'));
+});
 app.post("/api/pilot/admin/spend-reset", signedIn, logLimiter, pilotAdminOnly, async (req, res) => {
   await spend.reset();
   return res.json({ success: true, spend: spend.report() });
@@ -1857,6 +1900,7 @@ app.post("/api/pilot/admin/set", signedIn, logLimiter, pilotAdminOnly, express.j
   try {
     const out = await pilot.setStatus(uid, action);
     pilotCache.delete(uid);
+    if (out.ok && action === 'approve') emailKick(uid);
     return res.status(out.ok ? 200 : 409).json({ success: out.ok, member: out.member, error: out.error });
   } catch (e) {
     return res.status(500).json({ success: false, error: 'Could not update: ' + (e && e.message) });

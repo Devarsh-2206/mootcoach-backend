@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reset Password · MootCoach</title>
+<meta name="robots" content="noindex">
+<meta name="referrer" content="no-referrer">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600&family=EB+Garamond:wght@400;500&display=swap" rel="stylesheet">
+<!--
+  The page Firebase's account emails link to (password reset, email
+  verification, undoing an email change), in place of Firebase's own
+  unbranded page. Firebase Console -> Authentication -> Templates -> edit a
+  template -> "Customize action URL" -> https://mootcoach.in/account.html
+-->
+<style>
+  :root { --paper:#F6F1E4; --sheet:#FCF9EF; --ink:#1C1710; --muted:rgba(28,23,16,.7); --rule:#D9CFB8; --accent:#B0392E; --ok:#2F6B3A; --field:#fffdf8; }
+  @media (prefers-color-scheme: dark) {
+    :root { --paper:#16120D; --sheet:#241E16; --ink:#EFE6D3; --muted:rgba(239,230,211,.75); --rule:#3A3126; --accent:#D2574B; --ok:#7FC08A; --field:#1b1610; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--paper); color:var(--ink); font:18px/1.6 'EB Garamond', Georgia, serif; }
+  main { max-width:480px; margin:0 auto; padding:48px 16px 64px; }
+  .brand { font:600 28px/1 'Cormorant Garamond', Georgia, serif; color:var(--ink); text-decoration:none; }
+  .brand span { color:var(--accent); }
+  section { background:var(--sheet); border:1px solid var(--rule); padding:28px 24px; margin-top:24px; }
+  h1 { font:600 30px/1.2 'Cormorant Garamond', Georgia, serif; margin:0 0 8px; }
+  p { margin:0 0 14px; }
+  .muted { color:var(--muted); font-size:16px; }
+  label { display:block; font:500 13px/1.4 ui-monospace, Menlo, monospace; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin:16px 0 6px; }
+  input { width:100%; font:inherit; color:var(--ink); background:var(--field); border:1px solid var(--rule); border-radius:6px; padding:10px 12px; }
+  input:focus { outline:2px solid var(--accent); outline-offset:1px; }
+  .show { display:flex; gap:8px; align-items:center; margin-top:10px; font-size:16px; color:var(--muted); }
+  .show input { width:auto; }
+  button, .btn { display:inline-block; margin-top:20px; background:var(--accent); color:#fff; border:0; border-radius:6px; padding:11px 20px; font:500 16px/1.2 'EB Garamond', Georgia, serif; cursor:pointer; text-decoration:none; }
+  button[disabled] { opacity:.6; cursor:wait; }
+  .err { color:var(--accent); font-size:16px; margin-top:12px; }
+  .ok { color:var(--ok); }
+  [hidden] { display:none !important; }
+</style>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+</head>
+<body>
+<main>
+  <a class="brand" href="/">Moot<span>Coach</span></a>
+  <section aria-live="polite">
+    <div id="loading"><p class="muted">Checking your link…</p></div>
+
+    <form id="reset" hidden novalidate>
+      <h1>Choose a new password</h1>
+      <p class="muted">For <b id="reset-email"></b></p>
+      <label for="pw1">New password</label>
+      <input id="pw1" type="password" autocomplete="new-password" minlength="8" required>
+      <label for="pw2">Type it again</label>
+      <input id="pw2" type="password" autocomplete="new-password" minlength="8" required>
+      <div class="show"><input id="showpw" type="checkbox"><label for="showpw" style="margin:0;text-transform:none;letter-spacing:0;font:inherit">Show password</label></div>
+      <p class="err" id="reset-err" hidden></p>
+      <button type="submit" id="reset-btn">Save new password</button>
+    </form>
+
+    <div id="done" hidden>
+      <h1 id="done-title">Password changed</h1>
+      <p id="done-text">You can now sign in with your new password.</p>
+      <a class="btn" href="/?signin=1">Sign in to MootCoach</a>
+    </div>
+
+    <div id="bad" hidden>
+      <h1 id="bad-title">This link has expired</h1>
+      <p id="bad-text">Reset links work once and expire after a while. Go back to MootCoach, click "Forgot password?" and we will send you a new one.</p>
+      <a class="btn" href="/?signin=1">Back to MootCoach</a>
+      <p class="muted" style="margin-top:18px">Still stuck? Email <a href="mailto:support@mootcoach.in" style="color:var(--accent)">support@mootcoach.in</a>.</p>
+    </div>
+  </section>
+</main>
+<script type="module">
+  import { auth } from './js/services/firebase.js';
+  const $ = (id) => document.getElementById(id);
+  const q = new URLSearchParams(location.search);
+  const mode = q.get('mode'), code = q.get('oobCode');
+  // The code is a one-time secret: keep it out of the address bar and history.
+  try { history.replaceState(null, '', location.pathname); } catch (e) {}
+
+  const show = (id) => { for (const s of ['loading', 'reset', 'done', 'bad']) $(s).hidden = s !== id; };
+  const bad = (title, text) => { if (title) $('bad-title').textContent = title; if (text) $('bad-text').textContent = text; show('bad'); };
+  const done = (title, text) => { $('done-title').textContent = title; $('done-text').textContent = text; show('done'); };
+
+  async function run() {
+    if (!code) return bad('This link is incomplete', 'Open the link straight from the email. If it still does not work, ask for a new one from the MootCoach sign-in page.');
+    try {
+      if (mode === 'resetPassword') {
+        document.title = 'Reset Password · MootCoach';
+        const email = await auth.verifyPasswordResetCode(code);
+        $('reset-email').textContent = email;
+        show('reset');
+        $('pw1').focus();
+      } else if (mode === 'verifyEmail') {
+        document.title = 'Verify Email · MootCoach';
+        await auth.applyActionCode(code);
+        done('Email confirmed', 'Thanks, your email address is confirmed.');
+      } else if (mode === 'recoverEmail') {
+        document.title = 'Email Restored · MootCoach';
+        const info = await auth.checkActionCode(code);
+        await auth.applyActionCode(code);
+        done('Email address restored', `Your sign-in email is back to ${info.data.email}. If you did not ask for the change, reset your password now as well.`);
+      } else {
+        bad('This link is not recognised', 'Ask for a new link from the MootCoach sign-in page.');
+      }
+    } catch (e) {
+      bad();
+    }
+  }
+
+  $('showpw').addEventListener('change', (e) => { $('pw1').type = $('pw2').type = e.target.checked ? 'text' : 'password'; });
+  $('reset').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const err = $('reset-err');
+    const a = $('pw1').value, b = $('pw2').value;
+    err.hidden = true;
+    if (a.length < 8) { err.textContent = 'Use at least 8 characters.'; err.hidden = false; return; }
+    if (a !== b) { err.textContent = 'The two passwords are different.'; err.hidden = false; return; }
+    $('reset-btn').disabled = true; $('reset-btn').textContent = 'Saving…';
+    try {
+      await auth.confirmPasswordReset(code, a);
+      done('Password changed', 'You can now sign in with your new password.');
+    } catch (ex) {
+      const c = ex && ex.code;
+      if (c === 'auth/weak-password') { err.textContent = 'That password is too weak. Try a longer one.'; err.hidden = false; }
+      else if (c === 'auth/expired-action-code' || c === 'auth/invalid-action-code') { bad(); return; }
+      else { err.textContent = 'Could not save it just now. Check your connection and try again.'; err.hidden = false; }
+      $('reset-btn').disabled = false; $('reset-btn').textContent = 'Save new password';
+    }
+  });
+  run();
+</script>
+</body>
+</html>

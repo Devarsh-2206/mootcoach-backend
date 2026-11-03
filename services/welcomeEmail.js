@@ -10,61 +10,40 @@
  *   - only for an account created in the last 15 minutes;
  *   - only once per account.
  *
- * Delivery itself needs the Firebase "Trigger Email" extension watching the
- * "mail" collection; without it the message is queued and goes nowhere.
+ * It is sent through services/mailer.js (Resend). It used to be queued for
+ * the Firebase "Trigger Email" extension, which was never installed, so it
+ * never arrived. During the pilot this is skipped: services/emails.js sends
+ * the pilot welcome instead.
  */
 const admin = require('firebase-admin');
 
+const mailer = require('./mailer');
+const { readConfig } = require('./pilot');
+
 const esc = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-const SUBJECT = 'Welcome to MootCoach — Your Premium Legal Advocacy Partner';
+const SUBJECT = 'Welcome to MootCoach';
+const APP = () => (process.env.APP_URL || 'https://mootcoach.in').replace(/\/$/, '');
 
 function html(name) {
-  return `
-<div style="font-family: 'Cormorant Garamond', Georgia, serif; line-height: 1.8; color: #1a1a1a; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ecebe7; background-color: #fcfbfa;">
-  <div style="text-align: center; border-bottom: 2px double #ddd; padding-bottom: 15px; margin-bottom: 25px;">
-    <h1 style="font-family: Arial, sans-serif; font-size: 22px; letter-spacing: 0.1em; text-transform: uppercase; margin: 0; color: #B0392E;">MootCoach AI</h1>
-    <span style="font-family: Arial, sans-serif; font-size: 9px; color: #888; letter-spacing: 0.15em; text-transform: uppercase;">Appellate Advocacy Suite</span>
-  </div>
-  
-  <p>Dear ${name},</p>
-  
-  <p>Welcome to <strong>MootCoach AI</strong>, the premium legal-tech simulator designed to elevate your appellate advocacy and courtroom performance.</p>
-  
-  <h3 style="font-family: Arial, sans-serif; font-size: 14px; text-transform: uppercase; color: #B0392E; border-bottom: 1px solid #ddd; padding-bottom: 5px; margin-top: 25px;">Platform Overview & Getting Started</h3>
-  
-  <ol style="padding-left: 20px; font-size: 13px;">
-    <li style="margin-bottom: 12px;">
-      <strong>Create Your First Moot Case:</strong> Navigate to the Dashboard, upload your moot proposition (PDF or text), and let the AI extract the core legal issues, constitutional provisions, and relevant landmark precedents.
-    </li>
-    <li style="margin-bottom: 12px;">
-      <strong>Appellate Memorial Synthesis:</strong> Select your stance (Petitioner or Respondent) and target a specific issue to generate a structured, professional Appellate Memorial adhering to high-grade IRAC standards.
-    </li>
-    <li style="margin-bottom: 12px;">
-      <strong>Oral Advocacy Suite:</strong> Prepare your speech, review court openings, and memorize key precedent ratios tailored to your stance.
-    </li>
-    <li style="margin-bottom: 12px;">
-      <strong>Rebuttal Strategy & Citation Strengthening:</strong> Audit bench vulnerabilities, formulate preemptive rebuttals, and enhance your citation strength with the Citation Strengthener.
-    </li>
-    <li style="margin-bottom: 12px;">
-      <strong>Bench Simulation:</strong> Face a realistic, hostile Bench of AI Judges. Speak or type your submissions, receive aggressive questioning, and get graded on legal accuracy, responsiveness, and courtroom demeanor.
-    </li>
-  </ol>
-  
-  <h3 style="font-family: Arial, sans-serif; font-size: 14px; text-transform: uppercase; color: #B0392E; border-bottom: 1px solid #ddd; padding-bottom: 5px; margin-top: 25px;">Professional Support</h3>
-  
-  <p style="font-size: 13px;">If you have questions or feedback, please reach out to us at <a href="mailto:support@mootcoach.ai" style="color: #B0392E; text-decoration: none;">support@mootcoach.ai</a>.</p>
-  
-  <p style="margin-top: 35px; font-size: 13px;">Sincerely,<br><strong>The MootCoach Team</strong></p>
-  
-  <div style="text-align: center; border-top: 1px solid #eee; margin-top: 40px; padding-top: 15px; font-family: Arial, sans-serif; font-size: 9px; color: #888; text-transform: uppercase; letter-spacing: 0.1em;">
-    Appellate Drafting Studio · MootCoach AI
-  </div>
-</div>
-`;
+  const p = (t) => `<p style="margin:0 0 14px">${t}</p>`;
+  return `<!doctype html><html><body style="margin:0;padding:0;background:#f6f4ef">
+<div style="max-width:560px;margin:0 auto;padding:28px 24px;font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:1.6;color:#1f1d1a;background:#fffdf9">
+<p style="margin:0 0 22px;font-family:Arial,sans-serif;font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:#a23b2c"><b>MootCoach</b></p>
+${p(`Hi ${name},`)}
+${p('Thanks for signing up for MootCoach.')}
+${p('To start, upload your moot proposition as a PDF. MootCoach reads it and sets out the issues, the authorities and the arguments on both sides. From there you can draft your memorial and practise your oral round with the bench.')}
+${p('If anything is wrong or confusing, reply to this email. I read every reply.')}
+<p style="margin:22px 0"><a href="${APP()}" style="display:inline-block;background:#a23b2c;color:#ffffff;text-decoration:none;padding:11px 20px;border-radius:6px;font-family:Arial,sans-serif;font-size:14px">Open MootCoach</a></p>
+<p style="margin:22px 0 0">Devarsh<br><span style="color:#6b665e">Founder, MootCoach</span></p>
+<p style="margin:28px 0 0;padding-top:14px;border-top:1px solid #e8e4dc;font-family:Arial,sans-serif;font-size:12px;color:#8a857c">You are getting this because you created a MootCoach account. Questions: support@mootcoach.in.</p>
+</div></body></html>`;
 }
 
 async function sendWelcome(user) {
   if (!user || !user.uid || !user.email) return { sent: false, reason: 'no-email' };
+  // During the pilot, services/emails.js sends the welcome (it knows about places).
+  if (readConfig().mode !== 'off') return { sent: false, reason: 'pilot' };
+  if (!mailer.configured()) return { sent: false, reason: 'unconfigured' };
   const record = await admin.auth().getUser(user.uid);
   const created = Date.parse(record.metadata.creationTime || '');
   if (!created || Date.now() - created > 15 * 60 * 1000) return { sent: false, reason: 'not-new' };
@@ -80,9 +59,8 @@ async function sendWelcome(user) {
   });
   if (!go) return { sent: false, reason: 'already-sent' };
 
-  const name = esc(go.firstName || record.displayName || user.name || 'Advocate');
-  await db.collection('mail').add({ to: user.email, message: { subject: SUBJECT, html: html(name) } });
-  return { sent: true };
+  const name = esc(String(go.firstName || record.displayName || user.name || '').trim().split(/\s+/)[0] || 'there');
+  return mailer.send({ to: user.email, subject: SUBJECT, html: html(name) });
 }
 
 module.exports = { sendWelcome };

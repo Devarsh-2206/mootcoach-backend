@@ -102,7 +102,14 @@ export async function checkPilot(user) {
   const tester = state.pilot && state.pilot.status === 'active' && state.pilot.limits;
   window.pilotLimits = tester ? { voiceMinutes: state.pilot.voiceMinutes } : null;
   renderAllowance();
-  if (tester && window.showPilotWelcome) window.showPilotWelcome(user);
+  // The feedback email links to /?feedback=1: open the form once signed in.
+  let fromEmail = false;
+  try {
+    const q = new URLSearchParams(location.search);
+    if (q.get('feedback') === '1') { fromEmail = true; q.delete('feedback'); history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q : '') + location.hash); }
+  } catch (e) {}
+  if (fromEmail && tester && window.openFeedbackForm) window.openFeedbackForm({ trigger: 'email' });
+  else if (tester && window.showPilotWelcome) window.showPilotWelcome(user);
   return state.pilot;
 }
 
@@ -226,6 +233,14 @@ async function openPilotAdmin() {
       const tab = e.target.closest('button[data-tab]');
       if (tab) { overlay.dataset.view = tab.dataset.tab; render(overlay); return; }
       if (e.target.closest('[data-act="csv"]')) { downloadCsv(overlay._fb || []); return; }
+      const prev = e.target.closest('[data-act="email-preview"]');
+      if (prev) {
+        prev.disabled = true; prev.textContent = 'Sending…';
+        try { const r = await requestJson('/api/pilot/admin/email-preview', { body: {}, timeoutMs: 60000 }); alertIn(overlay, `Sent ${r.sent} preview emails to ${r.to}.`); }
+        catch (err) { alertIn(overlay, err.message); }
+        prev.disabled = false; prev.textContent = 'Send me a preview of every email';
+        return;
+      }
       const reset = e.target.closest('[data-act="spend-reset"]');
       if (reset) {
         // Two clicks, so a stray click cannot wipe the numbers.
@@ -301,9 +316,9 @@ function render(overlay) {
       <div><b>${c.released}</b><span>released</span></div>
     </div>
     <div class="pilot-tabs" role="tablist">
-      ${['waitlist', 'active', 'released', 'feedback', 'spend'].map(t => `<button type="button" role="tab" aria-selected="${t === tab}" class="${t === tab ? 'is-on' : ''}" data-tab="${t}">${t === 'waitlist' ? 'Waitlist' : t === 'active' ? 'Testers' : t === 'released' ? 'Released' : t === 'feedback' ? 'Feedback' : 'Spend'}${t === 'spend' ? (ov.spend ? ' (' + inr(ov.spend.totalInr) + ')' : '') : ` (${t === 'feedback' ? fb.length : c[t]})`}</button>`).join('')}
+      ${['waitlist', 'active', 'released', 'feedback', 'spend', 'emails'].map(t => `<button type="button" role="tab" aria-selected="${t === tab}" class="${t === tab ? 'is-on' : ''}" data-tab="${t}">${t === 'waitlist' ? 'Waitlist' : t === 'active' ? 'Testers' : t === 'released' ? 'Released' : t === 'feedback' ? 'Feedback' : t === 'spend' ? 'Spend' : 'Emails'}${t === 'emails' ? '' : t === 'spend' ? (ov.spend ? ' (' + inr(ov.spend.totalInr) + ')' : '') : ` (${t === 'feedback' ? fb.length : c[t]})`}</button>`).join('')}
     </div>
-    ${tab === 'spend' ? renderSpend(ov.spend) : tab === 'feedback' ? renderFeedback(fb, noFeedback) : `<div class="pilot-list">
+    ${tab === 'emails' ? renderEmails(ov.emails) : tab === 'spend' ? renderSpend(ov.spend) : tab === 'feedback' ? renderFeedback(fb, noFeedback) : `<div class="pilot-list">
       ${rows.length ? rows.map(m => `<div class="pilot-row">
           <div class="pilot-who"><b>${esc(m.name || '(no name)')}</b><span>${esc(m.email)}</span>
             <span class="pilot-small">${esc(REASON[m.reason] || m.reason || '')} · joined ${esc(fmtDate(m.joinedAt))}${m.status === 'active' ? (m.firstUseAt ? ' · uploaded ' + esc(fmtDate(m.firstUseAt)) : ' · not used yet') : ''}</span>
@@ -324,6 +339,18 @@ function inr(n) {
   return '₹' + (n < 100 ? n.toFixed(2) : Math.round(n).toLocaleString('en-IN'));
 }
 const fmtTokens = (n) => n >= 1e6 ? (n / 1e6).toFixed(1) + 'M' : n >= 1e3 ? Math.round(n / 1e3) + 'k' : String(n || 0);
+
+const EMAIL_LABELS = { waitlisted: 'On the waitlist', welcome: 'Welcome', approved: 'Place ready', reminder: 'Unused-place reminder (24h)', voice: 'Try a voice round (day 2)', feedback: 'Feedback request (day 4)' };
+function renderEmails(em) {
+  if (!em) return '<p class="pilot-small">Email status is not available on this server yet.</p>';
+  const t = em.totals || {};
+  return `${em.configured ? '' : '<p class="pilot-error">Emails are not being sent: RESEND_API_KEY is not set in Render. Every email is only written to the logs until it is.</p>'}
+    <div class="pilot-list"><table class="spend-table"><thead><tr><th>Email</th><th>Sent</th></tr></thead><tbody>
+      ${Object.entries(EMAIL_LABELS).map(([k, l]) => `<tr><td>${esc(l)}</td><td>${t[k] || 0}</td></tr>`).join('')}
+    </tbody></table></div>
+    <p class="pilot-small">${em.startedAt ? 'Sending since ' + esc(fmtDate(em.startedAt)) + '. Only people who joined after that are emailed.' : 'Not started yet.'} ${em.unsubscribed || 0} unsubscribed from reminders.${em.failedSinceRestart ? ' ' + em.failedSinceRestart + ' failed since the last restart (last: ' + esc(em.lastError) + ').' : ''}${em.lastTick ? ' Last check ' + esc(fmtDate(em.lastTick)) + '; checks run every 30 minutes.' : ''}</p>
+    <div class="pilot-actions"><button type="button" class="mc-dialog-primary" data-act="email-preview" ${em.configured ? '' : 'disabled'}>Send me a preview of every email</button></div>`;
+}
 
 function renderSpend(sp) {
   if (!sp) return '<p class="pilot-small">Spend figures are not available on this server yet.</p>';

@@ -555,6 +555,15 @@ whenDomReady(() => {
   initClarity();
 
   // ─── LANDING & LOGIN PAGE ROUTING LISTENERS ───
+  // account.html (password reset) sends people back with ?signin=1.
+  try {
+    const q = new URLSearchParams(location.search);
+    if (q.get('signin') === '1') {
+      q.delete('signin');
+      history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q : '') + location.hash);
+      setTimeout(() => navigate('login'), 0);
+    }
+  } catch (e) {}
   document.getElementById('land-nav-logo')?.addEventListener('click', (e) => {
     e.preventDefault();
     navigate('landing');
