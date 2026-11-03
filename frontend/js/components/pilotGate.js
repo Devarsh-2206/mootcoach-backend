@@ -415,7 +415,7 @@ function renderSpend(sp) {
   const TRIAL_INR = 28569;
   const left = TRIAL_INR - sp.vertexInr;
   const perUse = (r) => r.perUseInr == null ? '—' : inr(r.perUseInr);
-  const USE = { upload: 'per upload', draft: 'per draft', memorial: 'per memorial', memorialReview: 'per review', voice: 'per round', bench: 'per question', other: '' };
+  const USE = { upload: 'per upload', draft: 'per draft', memorial: 'per memorial', memorialReview: 'per review', forecast: 'per forecast', oralCoach: 'per submission', authority: 'per card', briefing: 'per briefing', voice: 'per round', scoresheet: 'per scoresheet', bench: 'per turn', other: '' };
   return `<div class="pilot-stats">
       <div><b>${inr(sp.totalInr)}</b><span>estimated total</span></div>
       <div><b>${inr(sp.vertexInr)}</b><span>on Vertex (trial credit)</span></div>

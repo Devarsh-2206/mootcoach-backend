@@ -17,7 +17,16 @@ const spend = require('../../services/spend');
   assert.strictEqual(spend.featureForPath('/api/build-argument'), 'draft');
   assert.strictEqual(spend.useForPath('/api/build-argument'), 'draft');
   assert.strictEqual(spend.featureForPath('/api/analyse-memorial'), 'memorialReview');
-  assert.strictEqual(spend.featureForPath('/simulate-bench/oral-review'), 'voice');
+  assert.strictEqual(spend.featureForPath('/simulate-bench/oral-review'), 'scoresheet');
+  assert.strictEqual(spend.featureForPath('/api/bench-forecast'), 'forecast');
+  assert.strictEqual(spend.featureForPath('/evaluate-oral'), 'oralCoach');
+  assert.strictEqual(spend.featureForPath('/api/oral-briefing'), 'briefing');
+  assert.strictEqual(spend.featureForPath('/api/authority-intelligence'), 'authority');
+  assert.strictEqual(spend.featureForPath('/api/verify-authorities'), 'upload');
+  assert.strictEqual(spend.featureForPath('/ws/voice'), 'voice');
+  assert.strictEqual(spend.useForPath('/api/bench-forecast'), 'forecast');
+  assert.strictEqual(spend.useForPath('/simulate-bench/extract-claims'), null);
+  assert.strictEqual(spend.useForPath('/api/memorial-plan'), null);
   assert.strictEqual(spend.featureForPath('/simulate-bench'), 'bench');
   assert.strictEqual(spend.featureForPath('/api/whatever'), 'other');
 

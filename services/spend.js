@@ -23,36 +23,50 @@ const { AsyncLocalStorage } = require('async_hooks');
 const als = new AsyncLocalStorage();
 
 const FEATURES = {
-  upload: 'Proposition upload',
+  upload: 'Proposition upload (analysis)',
   draft: 'Argument draft (Advocacy)',
   memorial: 'Full memorial (plan + build)',
   memorialReview: 'Memorial review',
-  voice: 'Voice round',
-  bench: 'Text bench',
+  forecast: 'Bench attack forecast',
+  oralCoach: 'Oral Coach (written argument)',
+  authority: 'Authority cards',
+  briefing: 'Chambers briefing',
+  voice: 'Voice round (live judge)',
+  scoresheet: 'Round scoresheet',
+  bench: 'Text bench turn',
   other: 'Other',
 };
 
-/** Path -> feature. Calls made after an upload (issues, authorities, forecast) count towards the upload. */
+/*
+ * Path -> feature: one row per thing a student can actually do, so each
+ * button's cost is seen on its own. The voice row is the live session only;
+ * the scoresheet at the end of any round (voice or text) has its own row.
+ * Verifying the authorities shown with an analysis happens on its own as the
+ * analysis opens, so it counts towards the upload.
+ */
+const ROUTES = [
+  [/^\/(analyze|extract-issues)\b|^\/api\/verify-authorities\b/, 'upload', /^\/analyze\b/],
+  [/^\/api\/build-argument\b/, 'draft', /^\/api\/build-argument\b/],
+  [/^\/api\/(memorial-plan|build-memorial)\b/, 'memorial', /^\/api\/build-memorial\b/],
+  [/^\/api\/analyse-memorial\b/, 'memorialReview', /^\/api\/analyse-memorial\b/],
+  [/^\/api\/bench-forecast\b/, 'forecast', /^\/api\/bench-forecast\b/],
+  [/^\/evaluate-oral\b/, 'oralCoach', /^\/evaluate-oral\b/],
+  [/^\/api\/authority-intelligence\b/, 'authority', /^\/api\/authority-intelligence\b/],
+  [/^\/api\/oral-briefing\b/, 'briefing', /^\/api\/oral-briefing\b/],
+  [/^\/simulate-bench\/(oral-review|extract-claims)\b/, 'scoresheet', /^\/simulate-bench\/oral-review\b/],
+  [/^\/simulate-bench\/?$/, 'bench', /^\/simulate-bench\/?$/],
+  [/^\/ws\/voice\b/, 'voice', null],   // a voice round is counted when its session ends
+];
 function featureForPath(p) {
   p = String(p || '');
-  if (/^\/(analyze|extract-issues)\b|^\/api\/(authority-intelligence|bench-forecast)\b/.test(p)) return 'upload';
-  if (/^\/api\/build-argument\b/.test(p)) return 'draft';
-  if (/^\/api\/(memorial-plan|build-memorial|verify-authorities)\b/.test(p)) return 'memorial';
-  if (/^\/api\/analyse-memorial\b/.test(p)) return 'memorialReview';
-  if (/^\/ws\/voice\b|^\/simulate-bench\/(oral-review|extract-claims)\b|^\/evaluate-oral\b|^\/api\/oral-briefing\b/.test(p)) return 'voice';
-  if (/^\/simulate-bench\b/.test(p)) return 'bench';
-  return 'other';
+  const r = ROUTES.find(([m]) => m.test(p));
+  return r ? r[1] : 'other';
 }
-
-/** The one path per feature that counts as "one use", for the per-use average. */
+/** The path that counts as "one use" of its feature, for the per-use figure. */
 function useForPath(p) {
   p = String(p || '');
-  if (/^\/analyze\b/.test(p)) return 'upload';
-  if (/^\/api\/build-argument\b/.test(p)) return 'draft';
-  if (/^\/api\/build-memorial\b/.test(p)) return 'memorial';
-  if (/^\/api\/analyse-memorial\b/.test(p)) return 'memorialReview';
-  if (/^\/simulate-bench$/.test(p)) return 'bench';
-  return null;
+  const r = ROUTES.find(([, , u]) => u && u.test(p));
+  return r ? r[1] : null;
 }
 
 // Best-known list prices, dollars per million tokens. ESTIMATES: verify on
