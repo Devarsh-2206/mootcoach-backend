@@ -99,7 +99,7 @@ function requireUser({ allowPrewarm = false } = {}) {
     const h = String(req.headers.authorization || '');
     const user = await verifiedUser(h.startsWith('Bearer ') ? h.slice(7) : '');
     if (!user) {
-      return res.status(401).json({ success: false, code: 'auth', error: 'Your session has ended. Sign in again to continue.' });
+      return res.status(401).json({ success: false, code: 'auth', error: 'Your session has ended. Please sign in again to continue.' });
     }
     req.user = user;
     next();
@@ -151,23 +151,23 @@ async function pilotStatus(user, fresh = false) {
   return s;
 }
 function pilotMessage(s) {
-  if (s.status === 'closed') return "The MootCoach pilot has ended. Thank you! We'll email you when MootCoach opens to everyone.";
-  if (s.status === 'released' && s.reason === 'admin') return "The pilot's places have gone to other students. You're on the waitlist, and we'll email you when MootCoach opens to everyone.";
-  if (s.status === 'released') return "Your pilot place was released because it wasn't used. You're back on the waitlist.";
-  if (s.reason === 'verify') return "Confirm your NALSAR email to get your pilot place. We've sent you an email with a link.";
-  if (s.reason === 'full') return "All pilot places are taken right now. You're on the waitlist.";
-  return "MootCoach is in a closed pilot. You're on the waitlist, and we'll email you when a place opens.";
+  if (s.status === 'closed') return "Thank you for your interest. The MootCoach pilot has now ended, and we'll email you when MootCoach opens to everyone.";
+  if (s.status === 'released' && s.reason === 'admin') return "Thank you for your interest. The pilot places have gone to other students, so you're on the waitlist. We'll email you when MootCoach opens to everyone.";
+  if (s.status === 'released') return "Sorry, your pilot place was released because it wasn't used for a few days. You're back on the waitlist.";
+  if (s.reason === 'verify') return "Please confirm your NALSAR email to get your pilot place. We've sent you an email with a link.";
+  if (s.reason === 'full') return "Sorry, all the pilot places are taken right now. You're on the waitlist, and we'll let you know if one opens.";
+  return "Thank you for signing up. MootCoach is in a small pilot, so you're on the waitlist, and we'll email you as soon as a place opens.";
 }
 const PILOT_LIMIT_MESSAGES = {
-  uploads: "You've used all of your pilot uploads. Your saved moots are still here to open and practise with.",
-  memorials: "You've drafted your pilot memorials. You can still open, read and download them.",
-  memorialReviews: "You've used your pilot memorial reviews.",
-  voiceRounds: "You've used your pilot voice rounds. The text bench is still open.",
+  uploads: "You've used all your pilot uploads. Your saved moots are still here for you to open and practise with.",
+  memorials: "You've used all your pilot memorial drafts. You can still open, read and download the ones you've made.",
+  memorialReviews: "You've used all your pilot memorial reviews.",
+  voiceRounds: "You've used all your pilot voice rounds. The text bench is still open to you.",
   judgeTurns: "You've reached the pilot limit for the text bench.",
-  extras: "You've reached the pilot limit for smaller AI features such as authority cards, forecasts and briefings.",
+  extras: "You've reached the pilot limit for the smaller AI features, such as authority cards, forecasts and briefings.",
 };
 const limitMessage = (bucket) => (PILOT_LIMIT_MESSAGES[bucket] || "You've reached your pilot limit for this feature.")
-  + " Thank you for testing MootCoach.";
+  + " Thank you so much for testing MootCoach.";
 
 /**
  * bucket: which allowance this route spends (services/pilot.js). It is
@@ -179,7 +179,7 @@ const limitMessage = (bucket) => (PILOT_LIMIT_MESSAGES[bucket] || "You've reache
  * "back shortly" message: the brake for spending that looks wrong. Unlike
  * PILOT_MODE=closed it says nothing about the pilot being over.
  */
-const AI_PAUSED_MESSAGE = "MootCoach's AI features are paused for a short while. Your saved work is safe. Please try again later.";
+const AI_PAUSED_MESSAGE = "Sorry, MootCoach's AI features are paused for a short while. Your saved work is safe. Please try again a little later.";
 const aiPaused = () => process.env.AI_PAUSED === '1';
 
 function pilotGate({ bucket = null, countsAsUse = false } = {}) {
@@ -198,7 +198,7 @@ function pilotGate({ bucket = null, countsAsUse = false } = {}) {
       if (s.status === 'active' && s.placeTaken === false) {
         if (bucket !== 'uploads') {
           return res.status(403).json({ success: false, code: 'pilot', pilot: s,
-            error: 'Upload your first proposition to claim your pilot place. Then this works.' });
+            error: 'Please upload your first proposition to claim your pilot place. This feature opens once you have.' });
         }
         return pilot.claimPlace(u).then(r => {
           pilotCache.delete(u.uid);
@@ -338,7 +338,7 @@ const benchLimiter = rateLimit({
   validate: { trustProxy: false },
   handler: (req, res) => res.status(429).json({
     success: false,
-    error: "The bench has heard a lot from you in a short time. Give it a few minutes and carry on.",
+    error: "The bench has heard a lot from you in a short time. Please give it a few minutes, then carry on.",
   }),
 });
 
@@ -657,12 +657,12 @@ app.post("/api/welcome", signedIn, logLimiter, async (req, res) => {
 const resetLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, max: 10, keyGenerator: identityKey,
   standardHeaders: true, legacyHeaders: false, validate: { trustProxy: false },
-  handler: (req, res) => res.status(429).json({ success: false, error: 'Too many requests. Try again in a few minutes.' }),
+  handler: (req, res) => res.status(429).json({ success: false, error: 'Sorry, too many requests. Please try again in a few minutes.' }),
 });
 app.post("/api/auth/reset", resetLimiter, async (req, res) => {
   try {
     const r = await require('./services/passwordReset').sendReset(req.body && req.body.email);
-    if (r.error === 'bad-email') return res.status(400).json({ success: false, error: 'Enter a valid email address.' });
+    if (r.error === 'bad-email') return res.status(400).json({ success: false, error: 'Please enter a valid email address.' });
     return res.json({ success: !!r.ok, fallback: !!r.fallback });
   } catch (e) {
     console.error('[RESET] failed:', e && e.message);
@@ -698,12 +698,12 @@ app.get("/api/usage", async (req, res) => {
   const authHeader = req.headers.authorization || "";
   const idToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
   if (!idToken || !admin.apps.length) {
-    return res.status(401).json({ success: false, error: "Sign in to read usage." });
+    return res.status(401).json({ success: false, error: "Please sign in to continue." });
   }
   try {
     await admin.auth().verifyIdToken(idToken);
   } catch (e) {
-    return res.status(401).json({ success: false, error: "Invalid or expired auth token." });
+    return res.status(401).json({ success: false, error: "Your session has expired. Please sign in again." });
   }
   try {
     // Checked without a regex on purpose. A YYYY-MM-DD shape, and a date
@@ -752,10 +752,10 @@ function singlePdf(field) {
     if (err instanceof multer.MulterError && err.code === "LIMIT_FILE_SIZE") {
       return res.status(413).json({
         success: false,
-        error: `That file is larger than ${MAX_UPLOAD_MB} MB. Upload a PDF under ${MAX_UPLOAD_MB} MB — a text-based PDF is usually well under 5 MB.`,
+        error: `Sorry, that file is larger than ${MAX_UPLOAD_MB} MB. Please upload a PDF under ${MAX_UPLOAD_MB} MB; a text-based PDF is usually well under 5 MB.`,
       });
     }
-    return res.status(400).json({ success: false, error: "The upload could not be read: " + err.message });
+    return res.status(400).json({ success: false, error: "Sorry, we could not read that file: " + err.message });
   });
 }
 
@@ -931,7 +931,7 @@ app.post("/analyze", requireUser({ allowPrewarm: true }), pilotGate({ bucket: 'u
 
   try {
     if (!req.file) {
-      return res.status(400).json({ success: false, error: "No file uploaded." });
+      return res.status(400).json({ success: false, error: "Please choose a PDF to upload." });
     }
 
     filePath = req.file.path;
@@ -950,7 +950,7 @@ app.post("/analyze", requireUser({ allowPrewarm: true }), pilotGate({ bucket: 'u
     if (!extractedText || extractedText.trim().length < 80) {
       return res.status(422).json({
         success: false,
-        error: "The uploaded PDF appears to be empty, image-based, or unreadable. Please upload a text-based PDF."
+        error: "Sorry, we could not read any text in that PDF. It may be a scan or an image. Please upload a text-based PDF."
       });
     }
 
@@ -1101,7 +1101,7 @@ app.post("/analyze", requireUser({ allowPrewarm: true }), pilotGate({ bucket: 'u
         success: false,
         isRejection: true,
         documentType: validationResult.documentType || "Non-legal document",
-        error: `This document does not appear to be a legal proposition. Detected: "${validationResult.documentType}".`
+        error: `Sorry, this does not look like a moot proposition (it looks like: "${validationResult.documentType}"). Please upload the proposition itself.`
       });
     }
 
@@ -1384,23 +1384,23 @@ app.post("/analyze", requireUser({ allowPrewarm: true }), pilotGate({ bucket: 'u
     const overloaded = /UNAVAILABLE|\b503\b|high demand|overloaded/i.test(msg);
 
     let status = 500;
-    let userError = "Analysis failed. Please try again. If the problem persists, the AI service may be temporarily unavailable.";
+    let userError = "Sorry, the analysis could not be completed. Please try again in a moment.";
 
     if (quotaExhausted) {
       status = 429;
-      userError = "The AI provider's daily quota has been used up, so the analysis could not run. "
+      userError = "Sorry, MootCoach has reached its usage limit for today, so the analysis could not run. Your saved work is safe. "
         + "This is an account limit, not a problem with your document — retrying now will fail the same way. "
         + "It resets on the provider's daily cycle.";
     } else if (rateLimited) {
       status = 429;
-      userError = "The AI provider is rate-limiting this account right now. "
+      userError = "Sorry, MootCoach is very busy right now. "
         + "Wait about a minute and upload again — this is a per-minute cap, not a problem with your document.";
     } else if (isTimeout) {
       status = 504;
-      userError = "The AI provider did not respond in time. This is usually temporary — please try again.";
+      userError = "Sorry, this took longer than expected. Please try again in a moment.";
     } else if (overloaded) {
       status = 503;
-      userError = "The AI provider is briefly overloaded and turned the request away. "
+      userError = "Sorry, MootCoach is very busy right now. "
         + "Nothing is wrong with your document — wait a few seconds and upload again.";
     }
 
@@ -1422,7 +1422,7 @@ app.post("/evaluate-oral", signedIn, pilotGate({ bucket: 'extras' }), aiLimiter,
   const { argument, propositionContext, difficulty, stance } = req.body;
 
   if (!argument || argument.trim().length < 30) {
-    return res.status(400).json({ success: false, error: "Please provide your oral argument text." });
+    return res.status(400).json({ success: false, error: "Please write your oral argument first." });
   }
 
   const validDifficulty = ['easy', 'moderate', 'hard'].includes(difficulty) ? difficulty : 'moderate';
@@ -1504,7 +1504,7 @@ app.post("/api/oral-briefing", signedIn, pilotGate({ bucket: 'extras' }), aiLimi
   const mode = ['easy', 'moderate', 'hard'].includes(benchMode) ? benchMode : 'moderate';
   const draftText = String(draft || '').trim();
   if (draftText.length < 40 && !String(issue || '').trim()) {
-    return res.status(400).json({ success: false, error: "Draft your argument in Stage 3, or write it in the box, so the briefing has something to work from." });
+    return res.status(400).json({ success: false, error: "Please draft your argument in Stage 3, or write it in the box, so the briefing has something to work from." });
   }
   const known = (Array.isArray(req.body.knownAuthorities) ? req.body.knownAuthorities : [])
     .map(x => String(x || '').trim()).filter(Boolean).slice(0, 60).map(x => x.slice(0, 300));
@@ -1588,7 +1588,7 @@ app.post("/simulate-bench/oral-review", signedIn, pilotGate({ bucket: 'extras' }
     return res.status(422).json({
       success: false,
       tooShort: true,
-      error: "That round was too short to mark. Argue for a few exchanges and the bench will have something to assess."
+      error: "That round was a little too short to mark. Please argue for a few more exchanges so the bench has something to assess."
     });
   }
 
@@ -1638,7 +1638,7 @@ app.post("/simulate-bench/extract-claims", signedIn, requirePilot, benchLimiter,
   const { studentStatement } = req.body;
   
   if (!studentStatement || studentStatement.trim().length < 3) {
-    return res.status(400).json({ success: false, error: "Statement required." });
+    return res.status(400).json({ success: false, error: "Please say something first." });
   }
 
   try {
@@ -1661,7 +1661,7 @@ app.post("/simulate-bench/extract-claims", signedIn, requirePilot, benchLimiter,
     return res.json({ success: true, claims: extractionData.claims || [] });
   } catch (error) {
     console.error("/simulate-bench/extract-claims error:", error);
-    return res.status(500).json({ success: false, error: "Failed to extract claims" });
+    return res.status(500).json({ success: false, error: "Sorry, something went wrong. Please try again." });
   }
 });
 
@@ -1714,7 +1714,7 @@ app.post("/simulate-bench", signedIn, pilotGate({ bucket: 'judgeTurns' }), bench
   const { conversationHistory, propositionSummary, difficulty, intensity, studentStatement, claimLedger } = req.body;
 
   if (!studentStatement || studentStatement.trim().length < 3) {
-    return res.status(400).json({ success: false, error: "Statement required." });
+    return res.status(400).json({ success: false, error: "Please say something first." });
   }
 
   // `intensity` is the new name for the same easy/moderate/hard scale
@@ -1979,7 +1979,7 @@ app.post("/api/pilot/admin/set", signedIn, logLimiter, pilotAdminOnly, express.j
   }
 });
 const featureGate = name => (req, res, next) => FEATURES[name] ? next()
-  : res.status(503).json({ success: false, code: 'disabled', error: 'This feature is switched off for now.' });
+  : res.status(503).json({ success: false, code: 'disabled', error: 'Sorry, this feature is switched off for now.' });
 
 /* ─── /api/assistant ───
    Ask MootCoach: one assistant that answers by calling MootCoach's own
@@ -2101,12 +2101,12 @@ ${String(instructions).trim().slice(0, 4000)}\n`
     : '';
 
   if (!stance || !issue || !notes || notes.trim().length < 5) {
-    return res.status(400).json({ success: false, error: "Please provide stance, issue, and notes." });
+    return res.status(400).json({ success: false, error: "Please choose your side and issue, and add a few notes." });
   }
 
   // Grounding validation check
   if (!propositionContext || propositionContext.trim().length < 20 || propositionContext.toLowerCase().includes("not set") || propositionContext.toLowerCase().includes("no file uploaded")) {
-    return res.status(400).json({ success: false, error: "Insufficient factual material detected" });
+    return res.status(400).json({ success: false, error: "Please add a little more detail to your notes" });
   }
 
   try {
@@ -2205,20 +2205,20 @@ Authorities. Cite nothing you cannot stand behind: mark anything uncertain with
     const overloaded = /UNAVAILABLE|\b503\b|high demand|overloaded/i.test(msg);
 
     let status = 500;
-    let userError = "Failed to build argument. Please try again.";
+    let userError = "Sorry, the draft could not be completed. Please try again in a moment.";
     if (quotaExhausted) {
       status = 429;
-      userError = "The AI provider's daily quota has been used up, so the memorial could not be drafted. "
+      userError = "Sorry, MootCoach has reached its usage limit for today, so the draft could not be made. Your notes are safe. "
         + "This is an account limit, not a problem with your notes — it resets on the provider's daily cycle.";
     } else if (rateLimited) {
       status = 429;
-      userError = "The AI provider is rate-limiting this account. Wait about a minute and try again.";
+      userError = "Sorry, MootCoach is very busy right now. Please wait about a minute and try again.";
     } else if (isTimeout) {
       status = 504;
-      userError = "The AI provider did not respond in time. This is usually temporary — please try again.";
+      userError = "Sorry, this took longer than expected. Please try again in a moment.";
     } else if (overloaded) {
       status = 503;
-      userError = "The AI provider is briefly overloaded and turned the request away. "
+      userError = "Sorry, MootCoach is very busy right now. "
         + "Nothing is wrong with your notes — wait a few seconds and generate again.";
     }
     return res.status(status).json({ success: false, error: userError, reason: msg.slice(0, 400) });
@@ -2234,10 +2234,10 @@ Authorities. Cite nothing you cannot stand behind: mark anything uncertain with
    builder options, or { error } with the message to send. */
 function memorialOptions(body) {
   const { stance, propositionContext, notes, instructions, authorities, forum, maxIssues, depth } = body || {};
-  if (!stance) return { error: "Pick a side first." };
+  if (!stance) return { error: "Please choose your side first." };
   if (!propositionContext || propositionContext.trim().length < 20 ||
       /not set|no file uploaded/i.test(propositionContext)) {
-    return { error: "Upload and analyse a proposition first — a memorial has to be drafted from the record." };
+    return { error: "Please upload and analyse a proposition first, so the memorial can be drafted from the record." };
   }
   const forumLine = (forum && (forum.forum || forum.benchType || forum.broadType))
     ? `\nFORUM CONTEXT (authoritative): ${forum.forum || forum.benchType || forum.broadType}`
@@ -2325,19 +2325,19 @@ app.post("/api/build-memorial", signedIn, pilotGate({ bucket: 'memorials' }), ai
     const overloaded = /UNAVAILABLE|\b503\b|high demand|overloaded/i.test(msg);
 
     let status = 500;
-    let userError = "The memorial could not be drafted. Please try again.";
+    let userError = "Sorry, the memorial could not be completed. Please try again in a moment.";
     if (quota) {
       status = 429;
-      userError = "The AI provider's daily quota has been used up. This is an account limit, not a problem with your notes — it resets on the provider's daily cycle.";
+      userError = "Sorry, MootCoach has reached its usage limit for today. This is nothing to do with your notes, and your work is safe. Please try again tomorrow.";
     } else if (rate) {
       status = 429;
-      userError = "The AI provider is rate-limiting this account. Wait about a minute and try again.";
+      userError = "Sorry, MootCoach is very busy right now. Please wait about a minute and try again.";
     } else if (timeout) {
       status = 504;
-      userError = "The provider did not respond in time. A full memorial takes several passes — please try again.";
+      userError = "Sorry, this took longer than expected. A full memorial takes several passes, so please try again in a moment.";
     } else if (overloaded) {
       status = 503;
-      userError = "The AI provider is briefly overloaded. Nothing is wrong with your notes — wait a few seconds and draft again.";
+      userError = "Sorry, MootCoach is very busy right now. Nothing is wrong with your notes; please wait a few seconds and try again.";
     }
     return res.status(status).json({ success: false, error: userError, reason: msg.slice(0, 400) });
   }
@@ -2353,7 +2353,7 @@ app.post("/api/analyse-memorial", signedIn, pilotGate({ bucket: 'memorialReviews
   let filePath = null;
   try {
     if (!req.file) {
-      return res.status(400).json({ success: false, error: "No memorial uploaded." });
+      return res.status(400).json({ success: false, error: "Please choose your memorial PDF to upload." });
     }
     filePath = req.file.path;
     const dataBuffer = fs.readFileSync(filePath);
@@ -2370,7 +2370,7 @@ app.post("/api/analyse-memorial", signedIn, pilotGate({ bucket: 'memorialReviews
     if (text.trim().length < 400) {
       return res.status(422).json({
         success: false,
-        error: "That PDF appears to be empty, image-based or unreadable. Export your memorial as a text-based PDF rather than a scan."
+        error: "Sorry, we could not read any text in that PDF. Please export your memorial as a text-based PDF rather than a scan."
       });
     }
 
@@ -2450,11 +2450,11 @@ app.post("/api/analyse-memorial", signedIn, pilotGate({ bucket: 'memorialReviews
     const timeout = /Timeout/i.test(msg);
     const overloaded = /UNAVAILABLE|\b503\b|high demand|overloaded/i.test(msg);
     let status = 500;
-    let userError = "The memorial could not be analysed. Please try again.";
-    if (quota) { status = 429; userError = "The AI provider's daily quota has been used up. This is an account limit, not a problem with your memorial — it resets on the provider's daily cycle."; }
-    else if (rate) { status = 429; userError = "The AI provider is rate-limiting this account. Wait about a minute and try again."; }
-    else if (timeout) { status = 504; userError = "The provider did not respond in time. Please try again."; }
-    else if (overloaded) { status = 503; userError = "The AI provider is briefly overloaded. Wait a few seconds and try again."; }
+    let userError = "Sorry, the memorial could not be reviewed. Please try again in a moment.";
+    if (quota) { status = 429; userError = "Sorry, MootCoach has reached its usage limit for today. This is nothing to do with your memorial. Please try again tomorrow."; }
+    else if (rate) { status = 429; userError = "Sorry, MootCoach is very busy right now. Please wait about a minute and try again."; }
+    else if (timeout) { status = 504; userError = "Sorry, this took longer than expected. Please try again in a moment."; }
+    else if (overloaded) { status = 503; userError = "Sorry, MootCoach is very busy right now. Please wait a few seconds and try again."; }
     return res.status(status).json({ success: false, error: userError, reason: msg.slice(0, 400) });
   }
 });
@@ -2471,7 +2471,7 @@ app.post("/api/log-session", aiLimiter, express.json(), async (req, res) => {
   const authHeader = req.headers.authorization || '';
   const idToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
   if (!idToken) {
-    return res.status(401).json({ success: false, error: "Missing Authorization bearer token." });
+    return res.status(401).json({ success: false, error: "Please sign in to continue." });
   }
 
   let uid;
@@ -2480,7 +2480,7 @@ app.post("/api/log-session", aiLimiter, express.json(), async (req, res) => {
     uid = decoded.uid;
   } catch (authErr) {
     console.error("Failed to verify ID token:", authErr);
-    return res.status(401).json({ success: false, error: "Invalid or expired auth token." });
+    return res.status(401).json({ success: false, error: "Your session has expired. Please sign in again." });
   }
 
   try {

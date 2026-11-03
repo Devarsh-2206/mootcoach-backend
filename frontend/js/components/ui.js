@@ -159,29 +159,29 @@ export function getFriendlyError(code) {
   switch(code) {
     case 'auth/wrong-password': 
     case 'auth/invalid-credential':
-      return "Incorrect email or password. Please try again.";
+      return "Sorry, that email or password is not correct. Please try again.";
     case 'auth/user-not-found': 
-      return "No account found with this email.";
+      return "We could not find an account with this email. Please check it, or create an account.";
     case 'auth/invalid-email': 
-      return "That email address is not valid.";
+      return "Please enter a valid email address.";
     case 'auth/email-already-in-use': 
-      return "This email is already registered. Please log in.";
+      return "This email already has an account. Please sign in instead.";
     case 'auth/weak-password': 
-      return "Use a password of at least 8 characters.";
+      return "Please use a password of at least 8 characters.";
     case 'auth/too-many-requests':
-      return "Too many attempts. Wait a few minutes, or reset your password.";
+      return "Sorry, there have been too many attempts. Please wait a few minutes, or reset your password.";
     case 'auth/network-request-failed':
-      return "Couldn't reach the sign-in service. Check your connection and try again.";
+      return "Sorry, we could not reach the sign-in service. Please check your connection and try again.";
     case 'auth/user-disabled':
-      return "This account has been disabled.";
+      return "Sorry, this account has been disabled. Please write to support@mootcoach.in if you think this is a mistake.";
     case 'auth/missing-email':
-      return "Enter your email address.";
+      return "Please enter your email address.";
     case 'auth/account-exists-with-different-credential':
-      return "This email is registered with a password. Sign in with your password instead.";
+      return "This email is registered with a password. Please sign in with your password instead.";
     case 'auth/popup-blocked':
-      return "Your browser blocked the Google sign-in window. Allow pop-ups for this site and try again.";
+      return "Your browser blocked the Google sign-in window. Please allow pop-ups for this site and try again.";
     default: 
-      return "An authentication error occurred. Please try again.";
+      return "Sorry, something went wrong while signing in. Please try again.";
   }
 }
 
@@ -569,7 +569,7 @@ async function loadRecentSessionsOnce(attempt = 0) {
       return loadRecentSessionsOnce(attempt + 1);
     }
     console.error("Failed to load history", e);
-    showToast("Failed to load history: " + e.message, "err");
+    showToast("Sorry, your moots could not be loaded: " + e.message, "err");
   }
 }
 
@@ -611,7 +611,7 @@ export async function deleteSavedSession(docId) {
     await loadRecentSessions();
     showToast('Moot deleted.', 'ok');
   } catch (e) {
-    showToast('Could not delete the moot: ' + e.message, 'err');
+    showToast('Sorry, the moot could not be deleted: ' + e.message, 'err');
   }
 }
 window.deleteSavedSession = deleteSavedSession;
@@ -708,7 +708,7 @@ export async function loadSavedSession(docId) {
     if (stepsDiv) stepsDiv.style.display = 'flex'; 
     if (isConnectionError(e)) { showOpenError(docId); return; }
     showError("Could not load saved session: " + e.message);
-    showToast("Failed to load saved session: " + e.message, "err");
+    showToast("Sorry, that moot could not be opened: " + e.message, "err");
   }
 }
 
@@ -1766,7 +1766,7 @@ export function goToStage(stageNum) {
   const hasContext = !!(window.lastAnalysis || lastAnalysis);
 
   if (stageNum > 1 && !hasContext) {
-    showToast("Please upload and analyze a proposition in Stage 1 first.", "info");
+    showToast("Please upload and analyse a proposition in Stage 1 first.", "info");
     return;
   }
 
@@ -2110,7 +2110,7 @@ window.prepareChambersBriefing = async function () {
     if ((window.currentMootDocId || null) !== mootId) return;   // another moot opened meanwhile
     chambersBriefing = data.briefing;
     if (window.saveMootProgress) window.saveMootProgress();
-    showToast('Chambers Briefing prepared', 'ok');
+    showToast('Your Chambers Briefing is ready.', 'ok');
   } catch (e) {
     showToast(e.message, 'err');
   } finally {

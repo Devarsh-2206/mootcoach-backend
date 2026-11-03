@@ -136,7 +136,7 @@ function render() {
 
 async function askColumn(question) {
   const q = question.trim();
-  if (q.length < 4) { showToast('Write a question to ask of every moot.', 'err'); return; }
+  if (q.length < 4) { showToast('Please write a question to ask of every moot.', 'err'); return; }
   const target = visibleRows().slice(0, 15);
   if (!target.length) return;
   custom = { question: q, answers: {}, pending: true };
@@ -183,7 +183,7 @@ function close() {
 function onKey(e) { if (e.key === 'Escape') close(); }
 
 export async function openReviewTable() {
-  if (!userRef()) { showToast('Sign in to compare your moots.', 'err'); return; }
+  if (!userRef()) { showToast('Please sign in to compare your moots.', 'err'); return; }
   close();
   const o = document.createElement('div');
   o.id = 'rt-overlay';
@@ -220,7 +220,7 @@ export async function openReviewTable() {
   o.querySelector('#rt-ask').addEventListener('submit', e => { e.preventDefault(); askColumn(o.querySelector('#rt-question').value); });
   o.querySelector('#rt-filter').focus();
   try { rows = await loadRows(); }
-  catch (e) { rows = []; showToast('Could not load your moots: ' + e.message, 'err'); }
+  catch (e) { rows = []; showToast('Sorry, your moots could not be loaded: ' + e.message, 'err'); }
   sortKey = 'updated';
   render();
 }

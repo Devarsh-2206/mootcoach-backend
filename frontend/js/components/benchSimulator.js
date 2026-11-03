@@ -1465,7 +1465,7 @@ export async function stopOralRound({ mark = true } = {}) {
         durationSeconds: duration
       }, idToken);
       console.log("▣ Voice session metadata logged to secure backend.");
-      showToast("Oral round saved to account.", "ok");
+      showToast("Your oral round is saved to your account.", "ok");
     } catch (err) {
       console.error("Failed to log voice session securely:", err);
     }
@@ -1694,10 +1694,10 @@ function initDiagnostics() {
   if (!available) {
     const errorMsg = document.getElementById('diag-error-msg');
     if (errorMsg) {
-      errorMsg.textContent = "Speech Recognition not supported in this browser";
+      errorMsg.textContent = "Sorry, speech recognition is not supported in this browser. Please try Chrome or Edge.";
       errorMsg.classList.remove('hidden');
     }
-    showToast("Speech Recognition not supported in this browser", "err");
+    showToast("Sorry, speech recognition is not supported in this browser. Please try Chrome or Edge.", "err");
   }
 
   // Permission status check if supported
@@ -1803,10 +1803,10 @@ function startSpeechRecognition() {
     }
     const errorMsg = document.getElementById('diag-error-msg');
     if (errorMsg) {
-      errorMsg.textContent = "Speech Recognition not supported in this browser";
+      errorMsg.textContent = "Sorry, speech recognition is not supported in this browser. Please try Chrome or Edge.";
       errorMsg.classList.remove('hidden');
     }
-    showToast("Speech Recognition not supported in this browser", "err");
+    showToast("Sorry, speech recognition is not supported in this browser. Please try Chrome or Edge.", "err");
     return;
   }
 

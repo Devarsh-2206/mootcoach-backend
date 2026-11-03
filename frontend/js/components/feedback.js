@@ -175,7 +175,7 @@ function showQuickCard(source) {
         ${[1, 2, 3, 4, 5].map(n => `<button type="button" role="radio" aria-checked="false" data-v="${n}" aria-label="${n} of 5">★</button>`).join('')}
       </div>
       <div class="fb-card-more" hidden>
-        <input type="text" maxlength="500" placeholder="One thing we could do better? (optional)">
+        <input type="text" maxlength="500" placeholder="Is there one thing we could do better? (optional)">
         <button type="button" class="mc-dialog-primary fb-send">Send</button>
       </div>`, (card) => {
     let rating = 0;
@@ -233,10 +233,10 @@ export async function pilotBeforeSignOut() {
   askedOnSignOut = true;
   const choice = await confirmDialog({
     title: 'Before you go',
-    body: 'Could you spare two minutes to tell us how MootCoach worked for you? It shapes what we build next.',
+    body: 'Before you go, could you spare two minutes to tell us how MootCoach worked for you? It really helps shape what we build next.',
     actions: [
       { label: 'Give feedback', value: 'give', primary: true },
-      { label: 'Sign out', value: 'out' },
+      { label: 'No thanks, sign out', value: 'out' },
     ],
   });
   if (choice === null) return false;

@@ -759,7 +759,7 @@ async function generateArgument() {
       if (loadingState) loadingState.classList.add('hidden');
       if (outputState) outputState.classList.remove('hidden');
       
-      showToast("Argument built successfully!", "ok");
+      showToast("Your argument is ready.", "ok");
     } else {
       throw new Error(data.error || "Failed to generate argument.");
     }
@@ -1404,9 +1404,9 @@ export function copyBuilderArgument() {
         btn.classList.remove('copied');
       }, 2000);
     }
-    showToast("IRAC argument copied to clipboard!", "ok");
+    showToast("Your IRAC argument is copied to the clipboard.", "ok");
   }).catch(err => {
-    showToast("Failed to copy argument: " + err.message, "err");
+    showToast("Sorry, the argument could not be copied: " + err.message, "err");
   });
 }
 
@@ -1419,7 +1419,7 @@ export function exportAsPDF(type) {
   console.log(`[CENTRALIZED EXPORT] Exporting type: ${type}`);
   
   if (!lastBuiltArgument) {
-    showToast("No generated content available to export.", "err");
+    showToast("There is nothing to export yet.", "err");
     return;
   }
   
@@ -1437,13 +1437,13 @@ export function exportAsPDF(type) {
       colours: coverColourFor(stance),
       title: (cp.memorialFor ? cp.memorialFor + ' — ' : '') + (window.currentMootName || 'Memorial'),
     });
-    if (!ok) showToast('Allow pop-ups for this site to export the memorial.', 'err');
+    if (!ok) showToast('Please allow pop-ups for this site to export the memorial.', 'err');
     return;
   }
 
   if (type === 'memorial') {
     if (!storedMemorialHTML) {
-      showToast("Memorial content is not generated.", "err");
+      showToast("There is no memorial to export yet.", "err");
       return;
     }
     const tempDiv = document.createElement('div');
@@ -1454,7 +1454,7 @@ export function exportAsPDF(type) {
     titleText = "Appellate Memorial - MootCoach AI";
   } else if (type === 'oral' || (type === 'active-aux' && activeAuxType === 'oral')) {
     if (!storedOralNotes) {
-      showToast("Oral notes content is not generated.", "err");
+      showToast("There are no oral notes to export yet.", "err");
       return;
     }
     printContent = storedOralNotes;
@@ -1462,7 +1462,7 @@ export function exportAsPDF(type) {
     titleText = "Oral Advocacy Notes - MootCoach AI";
   } else if (type === 'rebuttal' || (type === 'active-aux' && activeAuxType === 'rebuttal')) {
     if (!storedRebuttals) {
-      showToast("Rebuttal content is not generated.", "err");
+      showToast("There are no rebuttals to export yet.", "err");
       return;
     }
     printContent = storedRebuttals;
@@ -1470,7 +1470,7 @@ export function exportAsPDF(type) {
     titleText = "Rebuttal Strategy - MootCoach AI";
   } else if (type === 'citations' || (type === 'active-aux' && activeAuxType === 'citations')) {
     if (!storedCitations) {
-      showToast("Citations content is not generated.", "err");
+      showToast("There are no citations to export yet.", "err");
       return;
     }
     printContent = storedCitations;
@@ -1496,7 +1496,7 @@ export function exportAsPDF(type) {
   }
   
   if (!printContent || printContent.trim() === "") {
-    showToast("Content is empty or could not be loaded for export.", "err");
+    showToast("Sorry, there is nothing to export yet.", "err");
     return;
   }
   
@@ -1876,7 +1876,7 @@ window.exportAsPDF = exportAsPDF;
 
 export function openAuxPanel(type, triggerElement) {
   if (!lastBuiltArgument) {
-    showToast("Generate a submission first to unlock this workspace.", "info");
+    showToast("Please generate a submission first to open this workspace.", "info");
     return;
   }
 
@@ -1958,7 +1958,7 @@ export function closeAuxPanel() {
 
 export function openMemorialViewer() {
   if (!storedMemorialHTML) {
-    showToast("Generate a submission first to unlock the memorial.", "info");
+    showToast("Please generate a submission first to open the memorial.", "info");
     return;
   }
 
@@ -2022,9 +2022,9 @@ export function copyMemorial() {
         btn.textContent = '❐ Copy Memorial';
       }, 2000);
     }
-    showToast("Memorial copied to clipboard!", "ok");
+    showToast("Your memorial is copied to the clipboard.", "ok");
   }).catch(err => {
-    showToast("Failed to copy: " + err.message, "err");
+    showToast("Sorry, that could not be copied: " + err.message, "err");
   });
 }
 
@@ -2501,9 +2501,9 @@ function copyPanelContent() {
         btn.textContent = '❐ Copy Content';
       }, 2000);
     }
-    showToast("Content copied to clipboard!", "ok");
+    showToast("Copied to your clipboard.", "ok");
   }).catch(err => {
-    showToast("Failed to copy: " + err.message, "err");
+    showToast("Sorry, that could not be copied: " + err.message, "err");
   });
 }
 
@@ -3538,7 +3538,7 @@ function reviewMemorialPlan(plan, authorities, stance) {
         case 'replan': return close('replan');
         case 'approve': {
           const out = collect();
-          if (!out.argumentPlan.length) { showToast('Keep at least one issue to argue.', 'err'); return; }
+          if (!out.argumentPlan.length) { showToast('Please keep at least one issue to argue.', 'err'); return; }
           return close(out);
         }
         case 'up': if (issue.previousElementSibling) issue.parentNode.insertBefore(issue, issue.previousElementSibling); break;
@@ -3582,7 +3582,7 @@ window.generateAdvocacyDraft = async function() {
     notesToSend += '\n\nAuthorities to weave in:\n' + auths.map(a => `- ${a.name}: ${a.ratio}`).join('\n');
   }
   if ((!issue || issue.length < 3) && notesToSend.trim().length < 5) {
-    showToast('Add a few notes or pick an issue first.', 'err');
+    showToast('Please add a few notes or choose an issue first.', 'err');
     return;
   }
 
@@ -3653,7 +3653,7 @@ window.generateAdvocacyDraft = async function() {
       throw new Error((data && data.error) || 'Generation failed.');
     }
   } catch (e) {
-    showToast('Draft generation failed: ' + e.message, 'err');
+    showToast('Sorry, the draft could not be completed: ' + e.message, 'err');
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = btn.dataset.label || 'Generate Structured Draft'; }
   }

@@ -64,16 +64,16 @@
 
     <div id="done" hidden>
       <h1 id="done-title">Password changed</h1>
-      <p id="done-text">You can now sign in with your new password.</p>
+      <p id="done-text">Thank you. You can now sign in with your new password.</p>
       <a class="btn" href="/?signin=1">Sign in to MootCoach</a>
     </div>
 
     <div id="bad" hidden>
-      <h1 id="bad-title">This link has expired</h1>
-      <p id="bad-text">Reset links work once, expire after about an hour, and stop working when a newer reset email is sent. If you asked more than once, use the newest email. Otherwise go back to MootCoach, click "Forgot password?" and we will send you a new link.</p>
+      <h1 id="bad-title">Sorry, this link has expired</h1>
+      <p id="bad-text">Reset links work once, expire after about an hour, and stop working when a newer reset email is sent. If you asked more than once, please use the newest email. Otherwise, go back to MootCoach, click "Forgot password?" and we will send you a new link.</p>
       <a class="btn" href="/?signin=1">Back to MootCoach</a>
       <p class="muted" id="bad-code" hidden style="font-size:13px"></p>
-      <p class="muted" style="margin-top:18px">Still stuck? Email <a href="mailto:support@mootcoach.in" style="color:var(--accent)">support@mootcoach.in</a>.</p>
+      <p class="muted" style="margin-top:18px">Still need help? Please email <a href="mailto:support@mootcoach.in" style="color:var(--accent)">support@mootcoach.in</a>.</p>
     </div>
   </section>
 </main>
@@ -103,11 +103,11 @@
 
   // Never leave someone on "Checking your link…".
   const stuck = setTimeout(() => {
-    if (!$('loading').hidden) bad('Taking too long', 'We could not check your link. Check your internet connection and open the link from the email again.');
+    if (!$('loading').hidden) bad('This is taking longer than expected', 'Sorry, we could not check your link. Please check your internet connection and open the link from the email again.');
   }, 20000);
 
   async function run() {
-    if (!code) return bad('This link is incomplete', 'Open the link straight from the email. If it still does not work, ask for a new one from the MootCoach sign-in page.');
+    if (!code) return bad('This link is incomplete', 'Please open the link straight from the email. If it still does not work, you can ask for a new one from the MootCoach sign-in page.');
     try {
       if (mode === 'resetPassword') {
         document.title = 'Reset Password · MootCoach';
@@ -118,14 +118,14 @@
       } else if (mode === 'verifyEmail') {
         document.title = 'Verify Email · MootCoach';
         await auth.applyActionCode(code);
-        done('Email confirmed', 'Thanks, your email address is confirmed. Go back to MootCoach and press "I have confirmed it". If you are at NALSAR, your pilot place is ready.');
+        done('Email confirmed', 'Thank you, your email address is confirmed. Please go back to MootCoach and press "I have confirmed it".');
       } else if (mode === 'recoverEmail') {
         document.title = 'Email Restored · MootCoach';
         const info = await auth.checkActionCode(code);
         await auth.applyActionCode(code);
         done('Email address restored', `Your sign-in email is back to ${info.data.email}. If you did not ask for the change, reset your password now as well.`);
       } else {
-        bad('This link is not recognised', 'Ask for a new link from the MootCoach sign-in page.');
+        bad('Sorry, this link is not recognised', 'Please ask for a new link from the MootCoach sign-in page.');
       }
     } catch (e) {
       // The code helps support tell an expired link from anything else.
@@ -140,17 +140,17 @@
     const err = $('reset-err');
     const a = $('pw1').value, b = $('pw2').value;
     err.hidden = true;
-    if (a.length < 8) { err.textContent = 'Use at least 8 characters.'; err.hidden = false; return; }
-    if (a !== b) { err.textContent = 'The two passwords are different.'; err.hidden = false; return; }
+    if (a.length < 8) { err.textContent = 'Please use at least 8 characters.'; err.hidden = false; return; }
+    if (a !== b) { err.textContent = 'The two passwords do not match. Please type them again.'; err.hidden = false; return; }
     $('reset-btn').disabled = true; $('reset-btn').textContent = 'Saving…';
     try {
       await auth.confirmPasswordReset(code, a);
-      done('Password changed', 'You can now sign in with your new password.');
+      done('Password changed', 'Thank you. You can now sign in with your new password.');
     } catch (ex) {
       const c = ex && ex.code;
-      if (c === 'auth/weak-password') { err.textContent = 'That password is too weak. Try a longer one.'; err.hidden = false; }
+      if (c === 'auth/weak-password') { err.textContent = 'That password is a little weak. Please try a longer one.'; err.hidden = false; }
       else if (c === 'auth/expired-action-code' || c === 'auth/invalid-action-code') { bad(); return; }
-      else { err.textContent = 'Could not save it just now. Check your connection and try again.'; err.hidden = false; }
+      else { err.textContent = 'Sorry, we could not save it just now. Please check your connection and try again.'; err.hidden = false; }
       $('reset-btn').disabled = false; $('reset-btn').textContent = 'Save new password';
     }
   });

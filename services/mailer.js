@@ -4,14 +4,16 @@
  *
  *   RESEND_API_KEY   the API key; without it nothing is sent and every email
  *                    is only logged, so the app works the same either way
- *   EMAIL_FROM       default "Devarsh from MootCoach <hello@mootcoach.in>"
+ *   EMAIL_FROM       default "MootCoach <hello@mootcoach.in>"
  *   EMAIL_REPLY_TO   default support@mootcoach.in (replies land in Zoho)
  *   EMAILS           "off" stops all sending (the brake)
  *
  * The domain must be verified in Resend first (DNS records at GoDaddy),
  * otherwise Resend refuses mail from @mootcoach.in.
  */
-const FROM = () => process.env.EMAIL_FROM || 'Devarsh from MootCoach <hello@mootcoach.in>';
+// Sent as MootCoach; the letters are signed by Devarsh, so the sender line
+// does not repeat the name.
+const FROM = () => process.env.EMAIL_FROM || 'MootCoach <hello@mootcoach.in>';
 const REPLY_TO = () => process.env.EMAIL_REPLY_TO || 'support@mootcoach.in';
 
 function configured() {

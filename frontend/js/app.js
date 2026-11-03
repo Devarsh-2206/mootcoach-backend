@@ -345,7 +345,7 @@ async function handleGoogle() {
     // Closing the Google window is a choice, not an error.
     if (err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request') return;
     if (err.code === 'auth/popup-blocked') {
-      showToast("Your browser blocked the Google sign-in window. Allow pop-ups for this site and try again.", "err");
+      showToast("Your browser blocked the Google sign-in window. Please allow pop-ups for this site and try again.", "err");
     } else if (err.code === 'auth/operation-not-supported-in-this-environment') {
        showToast("Google Sign-In is blocked in this preview window. Please use Email/Password, or open your deployed site to use Google Auth.", "err");
     } else {
@@ -470,7 +470,7 @@ async function handleLogout() {
   window.__signingOut = true;
   try { await signOut(auth); } finally {
     navigate('landing');
-    showToast('Signed out.', 'ok');
+    showToast('You have signed out. See you soon.', 'ok');
     window.__signingOut = false;
   }
 }

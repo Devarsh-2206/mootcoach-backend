@@ -94,13 +94,13 @@ export function handleFileSelect(fileOrEvent) {
   const isPdf = /pdf/i.test(file.type || '') || /\.pdf$/i.test(file.name || '');
   if (!isPdf) { 
     console.warn(`[UPLOAD_DEBUG] Invalid file type selected: ${file.type}. Rejects.`);
-    showToast('Only PDF files are accepted.', 'err'); 
+    showToast('Please upload a PDF file.', 'err'); 
     return; 
   }
   if (file.size > UPLOAD_LIMITS.maxMB * 1024 * 1024) {
     const mbSel = (file.size / 1048576).toFixed(1);
     console.warn(`[UPLOAD_DEBUG] File too large: ${mbSel} MB (limit ${UPLOAD_LIMITS.maxMB} MB).`);
-    showToast(`That file is ${mbSel} MB. Upload a PDF under ${UPLOAD_LIMITS.maxMB} MB.`, 'err');
+    showToast(`Sorry, that file is ${mbSel} MB. Please upload a PDF under ${UPLOAD_LIMITS.maxMB} MB.`, 'err');
     const fi = document.getElementById('proposition-upload');
     if (fi) fi.value = '';
     return;
@@ -214,7 +214,7 @@ export async function runAnalysis() {
   // One analysis at a time. The student may be working elsewhere while one
   // runs (the wait room's "keep working"); say so instead of starting another.
   if (mcWait.isRunning()) {
-    showToast('An analysis is already running. It will tell you when it is ready.', 'info');
+    showToast('An analysis is already running. We will let you know when it is ready.', 'info');
     if (mcWait.isMinimized()) mcWait.restore();
     return;
   }
@@ -302,7 +302,7 @@ export async function runAnalysis() {
           await loadRecentSessions(); 
         } catch (fbError) {
           console.error("Failed to save to cloud:", fbError);
-          showToast("Failed to save to cloud: " + fbError.message, "err");
+          showToast("Sorry, your work could not be saved just now: " + fbError.message, "err");
         }
       }
 
