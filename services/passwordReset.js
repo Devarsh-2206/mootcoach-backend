@@ -75,8 +75,11 @@ async function sendReset(rawEmail) {
   const code = new URL(link).searchParams.get('oobCode');
   if (!code) throw new Error('Firebase returned a reset link without a code');
   const url = `${APP()}/account.html?mode=resetPassword&oobCode=${encodeURIComponent(code)}`;
-  const r = await mailer.send({ from, to: email, subject: 'Reset your MootCoach password',
-    html: page([hi, 'Someone asked to reset the password for your MootCoach account. Click the button to choose a new one. The link works once and expires in about an hour.',
+  // The time in the subject keeps each request its own email: Gmail threads
+  // same-subject emails, and only the newest link works.
+  const at = new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: 'numeric', minute: '2-digit' });
+  const r = await mailer.send({ from, to: email, subject: `Reset your MootCoach password (${at})`,
+    html: page([hi, 'Someone asked to reset the password for your MootCoach account. Click the button to choose a new one. The link works once, expires in about an hour, and stops working if you ask for another reset email.',
       'If you did not ask for this, ignore this email. Your password stays the same.'], { label: 'Choose a new password', href: url }),
     text: `${hi.replace(/<[^>]+>/g, '')}\n\nChoose a new MootCoach password here (works once, expires in about an hour):\n${url}\n\nIf you did not ask for this, ignore this email. Your password stays the same.` });
   return { ok: !!r.sent, fallback: !r.sent };

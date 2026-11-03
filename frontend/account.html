@@ -68,8 +68,9 @@
 
     <div id="bad" hidden>
       <h1 id="bad-title">This link has expired</h1>
-      <p id="bad-text">Reset links work once and expire after a while. Go back to MootCoach, click "Forgot password?" and we will send you a new one.</p>
+      <p id="bad-text">Reset links work once, expire after about an hour, and stop working when a newer reset email is sent. If you asked more than once, use the newest email. Otherwise go back to MootCoach, click "Forgot password?" and we will send you a new link.</p>
       <a class="btn" href="/?signin=1">Back to MootCoach</a>
+      <p class="muted" id="bad-code" hidden style="font-size:13px"></p>
       <p class="muted" style="margin-top:18px">Still stuck? Email <a href="mailto:support@mootcoach.in" style="color:var(--accent)">support@mootcoach.in</a>.</p>
     </div>
   </section>
@@ -125,6 +126,8 @@
         bad('This link is not recognised', 'Ask for a new link from the MootCoach sign-in page.');
       }
     } catch (e) {
+      // The code helps support tell an expired link from anything else.
+      if (e && e.code) { $('bad-code').textContent = 'Reference: ' + e.code; $('bad-code').hidden = false; }
       bad();
     }
   }
