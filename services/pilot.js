@@ -83,6 +83,17 @@ function createPilot(store, opts = {}) {
    * Where this user stands, creating their entry on first sight.
    * Returns { status, reason?, cap, active }.
    */
+  /*
+   * PLACES ARE CLAIMED BY USING MOOTCOACH, NOT BY SIGNING IN.
+   * A NALSAR address is let in to look around at once (status "active",
+   * placeTaken false) but holds no place: the whole student body, MBA and IPM
+   * included, may sign in out of curiosity, and sign-ins must not fill the 50.
+   * The first upload claims a place (claimPlace); when all are taken, that
+   * student goes to the waitlist. Members from before this have no
+   * placeTaken field and keep their place.
+   */
+  const hasPlace = (m) => !!m && m.status === 'active' && m.placeTaken !== false;
+
   async function join(user) {
     const c = config();
     if (c.mode === 'off') return { status: 'active', mode: 'off' };
@@ -101,23 +112,30 @@ function createPilot(store, opts = {}) {
       if (!m) {
         m = { uid: user.uid, email: user.email || '', name: user.name || '', joinedAt: now(), firstUseAt: null };
         if (c.mode === 'closed') { m.status = 'waitlist'; m.reason = 'closed'; }
-        else if (auto && state.active < c.cap) { m.status = 'active'; m.reason = 'auto'; state.active += 1; tx.putState(state); }
+        // Room left: look around, claim a place with the first upload.
+        // Full: told so at once, rather than at their first upload.
+        else if (auto && state.active < c.cap) { m.status = 'active'; m.reason = 'auto'; m.placeTaken = false; }
         // A NALSAR address not yet verified (signed up with email and password)
         // waits only for the verification click, not for approval.
         else { m.status = 'waitlist'; m.reason = auto ? 'full' : autoDomain ? 'verify' : 'approval'; }
         tx.putMember(m);
-      } else if (c.mode === 'on' && auto && state.active < c.cap
+      } else if (c.mode === 'on' && auto
                  && ((m.status === 'waitlist' && (m.reason === 'full' || m.reason === 'verify' || m.reason === 'approval'))
                      || (m.status === 'released' && m.reason === 'idle'))) {
-        // A NALSAR student who arrived while the pilot was full, who has just
-        // verified their address, or whose unused place lapsed, gets in on
-        // their own once there is room.
-        m.status = 'active'; m.reason = 'auto'; m.joinedAt = now(); m.firstUseAt = null;
-        state.active += 1;
-        tx.putMember(m); tx.putState(state);
+        // A NALSAR student who found the pilot full, who has just verified
+        // their address, or whose unused place lapsed, may look around again
+        // and claim a place with their next upload, if one is free.
+        if (state.active < c.cap) {
+          m.status = 'active'; m.reason = 'auto'; m.placeTaken = false; m.joinedAt = now(); m.firstUseAt = null;
+          tx.putMember(m);
+        } else if (m.status === 'waitlist' && m.reason !== 'full') {
+          m.reason = 'full';   // verified, but every place is taken
+          tx.putMember(m);
+        }
       }
       if (c.mode === 'closed' && m.status !== 'admin') return { status: 'closed', mode: c.mode, cap: c.cap, active: state.active };
       return { status: m.status, reason: m.reason, mode: c.mode, cap: c.cap, active: state.active,
+               placeTaken: m.status === 'active' ? hasPlace(m) : false,
                usage: { ...(m.usage || {}) }, limits: c.limits, voiceMinutes: c.voiceMinutes,
                feedback: { ...(m.feedback || {}) } };
     });
@@ -127,6 +145,31 @@ function createPilot(store, opts = {}) {
   async function allowed(user) {
     const s = await join(user);
     return s.status === 'active' || s.status === 'admin';
+  }
+
+  /**
+   * First upload: claim one of the places. Returns { ok:true } (place taken,
+   * or already held) or { ok:false, full:true } (all taken: moved to the
+   * waitlist, picked up again automatically once a place frees).
+   */
+  async function claimPlace(user) {
+    const c = config();
+    if (c.mode === 'off' || !user || !user.uid || isAdmin(user)) return { ok: true };
+    return store.transact(async (tx) => {
+      const m = await tx.getMember(user.uid);
+      if (!m || m.status !== 'active') return { ok: false };
+      if (hasPlace(m)) return { ok: true };
+      const state = (await tx.getState()) || { active: 0 };
+      if (state.active >= c.cap) {
+        m.status = 'waitlist'; m.reason = 'full'; m.placeTaken = false;
+        tx.putMember(m);
+        return { ok: false, full: true };
+      }
+      m.placeTaken = true; m.claimedAt = now();
+      state.active += 1;
+      tx.putMember(m); tx.putState(state);
+      return { ok: true, claimed: true };
+    });
   }
 
   /** First real use: stops the place from being released as idle. */
@@ -164,7 +207,7 @@ function createPilot(store, opts = {}) {
     const c = config();
     return store.transact(async (tx) => {
       const m = await tx.getMember(user.uid);
-      if (!m || m.status !== 'active') return { ok: false, used: 0, limit: c.limits[bucket] };
+      if (!hasPlace(m)) return { ok: false, used: 0, limit: c.limits[bucket] };
       const used = (m.usage || {})[bucket] || 0;
       if (used >= c.limits[bucket]) return { ok: false, used, limit: c.limits[bucket] };
       m.usage = { ...(m.usage || {}), [bucket]: used + 1 };
@@ -200,12 +243,12 @@ function createPilot(store, opts = {}) {
   async function releaseIdle() {
     const c = config();
     const cutoff = now() - c.releaseHours * HOUR;
-    const idle = (await store.listMembers('active')).filter(m => !m.firstUseAt && m.joinedAt < cutoff);
+    const idle = (await store.listMembers('active')).filter(m => hasPlace(m) && !m.firstUseAt && (m.claimedAt || m.joinedAt) < cutoff);
     let n = 0;
     for (const m of idle) {
       await store.transact(async (tx) => {
         const cur = await tx.getMember(m.uid);
-        if (!cur || cur.status !== 'active' || cur.firstUseAt) return;
+        if (!hasPlace(cur) || cur.firstUseAt) return;
         const state = (await tx.getState()) || { active: 0 };
         cur.status = 'released'; cur.reason = 'idle'; cur.releasedAt = now();
         state.active = Math.max(0, state.active - 1);
@@ -224,14 +267,17 @@ function createPilot(store, opts = {}) {
       if (!m) return { ok: false, error: 'No such tester.' };
       const state = (await tx.getState()) || { active: 0 };
       if (action === 'approve') {
-        if (m.status === 'active') return { ok: true, member: m };
+        if (hasPlace(m)) return { ok: true, member: m };
         if (state.active >= c.cap) return { ok: false, error: `All ${c.cap} places are taken. Release one first.` };
-        m.status = 'active'; m.reason = 'approved'; m.approvedAt = now(); m.joinedAt = now(); m.firstUseAt = m.firstUseAt || null;
+        m.status = 'active'; m.reason = m.status === 'active' ? m.reason : 'approved'; m.approvedAt = now(); m.joinedAt = now(); m.firstUseAt = m.firstUseAt || null;
+        m.placeTaken = true; m.claimedAt = now();
         state.active += 1;
       } else if (action === 'release') {
+        // "Move to waitlist": also for someone only looking around. They do
+        // not come back on their own (reason "admin").
         if (m.status !== 'active') return { ok: true, member: m };
-        m.status = 'released'; m.reason = 'admin'; m.releasedAt = now();
-        state.active = Math.max(0, state.active - 1);
+        if (hasPlace(m)) state.active = Math.max(0, state.active - 1);
+        m.status = 'released'; m.reason = 'admin'; m.releasedAt = now(); m.placeTaken = false;
       } else {
         return { ok: false, error: 'Unknown action.' };
       }
@@ -247,13 +293,14 @@ function createPilot(store, opts = {}) {
     const count = s => members.filter(m => m.status === s).length;
     return {
       mode: c.mode, cap: c.cap, releaseHours: c.releaseHours, autoDomains: c.autoDomains, limits: c.limits,
-      counts: { active: count('active'), waitlist: count('waitlist'), released: count('released'),
+      counts: { active: members.filter(hasPlace).length, browsing: members.filter(m => m.status === 'active' && !hasPlace(m)).length,
+                waitlist: count('waitlist'), released: count('released'),
                 used: members.filter(m => m.status === 'active' && m.firstUseAt).length },
       members: members.sort((a, b) => (b.joinedAt || 0) - (a.joinedAt || 0)),
     };
   }
 
-  return { join, allowed, markUsed, releaseIdle, setStatus, overview, isAdmin, config, count, consume, remaining, unlimited,
+  return { join, allowed, claimPlace, hasPlace, markUsed, releaseIdle, setStatus, overview, isAdmin, config, count, consume, remaining, unlimited,
            recordFeedback, listFeedback: () => store.listFeedback() };
 }
 

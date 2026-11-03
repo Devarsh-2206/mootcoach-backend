@@ -49,46 +49,72 @@ const outsider = (n) => ({ uid: 'o' + n, email: `x${n}@gmail.com`, emailVerified
   assert.strictEqual((await pilot.join({ uid: 'a', email: 'Boss@MootCoach.in', emailVerified: true })).status, 'admin');
   assert.ok(!(await store.listMembers()).some(m => m.uid === 'a'));
 
-  // fill the cap: n2, n3 → active (3/3); n4 → waitlist full
-  await pilot.join(nalsar(2)); await pilot.join(nalsar(3));
-  const n4 = await pilot.join(nalsar(4));
-  assert.deepStrictEqual([n4.status, n4.reason], ['waitlist', 'full']);
+  // Signing in takes no place: anyone at NALSAR may look around.
+  for (const n of [2, 3, 4, 5]) assert.strictEqual((await pilot.join(nalsar(n))).status, 'active');
+  let ov = await pilot.overview();
+  assert.deepStrictEqual([ov.counts.active, ov.counts.browsing], [0, 5], 'sign-ins fill no places');
+  assert.strictEqual((await pilot.join(nalsar(2))).placeTaken, false);
 
-  // repeated joins don't double count
-  await pilot.join(nalsar(1)); await pilot.join(nalsar(1));
-  assert.strictEqual((await pilot.overview()).counts.active, 3);
+  // The first upload claims a place: n1, n2, n3 fill the 3; n4 finds it full.
+  for (const n of [1, 2, 3]) assert.deepStrictEqual(await pilot.claimPlace(nalsar(n)), { ok: true, claimed: true });
+  assert.deepStrictEqual(await pilot.claimPlace(nalsar(1)), { ok: true }, 'claiming twice takes one place');
+  assert.strictEqual((await pilot.join(nalsar(1))).placeTaken, true);
+  const n4 = await pilot.claimPlace(nalsar(4));
+  assert.ok(!n4.ok && n4.full);
+  assert.deepStrictEqual((s => [s.status, s.reason])(await pilot.join(nalsar(4))), ['waitlist', 'full']);
+  ov = await pilot.overview();
+  assert.deepStrictEqual([ov.counts.active, ov.counts.browsing, ov.counts.waitlist], [3, 1, 3]); // waitlist: o1, f1 (verify), n4
 
   // approve while full → refused
   assert.strictEqual((await pilot.setStatus('o1', 'approve')).ok, false);
 
-  // n1 uses it; n2, n3 never do. After 72h the idle ones are released
+  // n1 uses its place; n2, n3 claimed but never used → released after 72h.
+  // n5 (only looking) holds no place, so it is never "released".
   await pilot.markUsed(nalsar(1));
   clock += 73 * HOUR;
   assert.strictEqual(await pilot.releaseIdle(), 2);
   assert.strictEqual(await pilot.allowed(nalsar(1)), true, 'a used place is kept');
-  const ov = await pilot.overview();
+  ov = await pilot.overview();
   assert.deepStrictEqual([ov.counts.active, ov.counts.released, ov.counts.used], [1, 2, 1]);
+  assert.strictEqual((await pilot.join(nalsar(5))).status, 'active');
 
-  // n4 (waitlisted because full) gets in on its own now there is room
+  // n4 (found it full) may look around again, and its next upload gets a place.
   assert.strictEqual((await pilot.join(nalsar(4))).status, 'active');
+  assert.ok((await pilot.claimPlace(nalsar(4))).ok);
   // admin approves the outsider into the last place
   assert.strictEqual((await pilot.setStatus('o1', 'approve')).ok, true);
   assert.strictEqual(await pilot.allowed(outsider(1)), true);
   assert.strictEqual((await pilot.overview()).counts.active, 3);
-  // full again: a released NALSAR student stays out until there is room
-  assert.strictEqual((await pilot.join(nalsar(2))).status, 'released');
+  // n5 tries to upload now: full, so waitlisted.
+  assert.ok((await pilot.claimPlace(nalsar(5))).full);
 
-  // admin release frees a place; the idle-released n2 then rejoins by itself
-  await pilot.setStatus('o1', 'release');
-  assert.strictEqual(await pilot.allowed(outsider(1)), false);
-  assert.strictEqual((await pilot.join(nalsar(2))).status, 'active');
+  // "Move to waitlist" (an MBA student, say): out, place freed, no way back on their own.
+  await pilot.setStatus('n4', 'release');
+  assert.strictEqual(await pilot.allowed(nalsar(4)), false);
+  assert.strictEqual((await pilot.join(nalsar(4))).status, 'released', 'removed by admin stays out');
+  assert.strictEqual((await pilot.overview()).counts.active, 2);
+  // ...and removing someone only looking around works too.
+  await pilot.join(nalsar(6));
+  await pilot.setStatus('n6', 'release');
+  assert.strictEqual((await pilot.join(nalsar(6))).status, 'released');
+  assert.strictEqual((await pilot.overview()).counts.active, 2, 'removing a browser frees nothing');
 
-  // concurrent first sign-ins never exceed the cap
+  // Members from before claim-on-upload keep their place.
+  {
+    const s3 = memoryStore();
+    const q = createPilot(s3, { now, config: cfg() });
+    await s3.transact(async tx => { tx.putMember({ uid: 'old', email: 'old@nalsar.ac.in', status: 'active', reason: 'auto', joinedAt: clock }); tx.putState({ active: 1 }); });
+    assert.strictEqual((await q.join({ uid: 'old', email: 'old@nalsar.ac.in', emailVerified: true })).placeTaken, true);
+    assert.deepStrictEqual(await q.claimPlace({ uid: 'old', email: 'old@nalsar.ac.in', emailVerified: true }), { ok: true });
+  }
+
+  // concurrent first uploads never exceed the cap
   {
     const s2 = memoryStore();
     const q = createPilot(s2, { now, config: cfg({ cap: 5 }) });
-    const res = await Promise.all(Array.from({ length: 20 }, (_, i) => q.join(nalsar(100 + i))));
-    assert.strictEqual(res.filter(r => r.status === 'active').length, 5);
+    await Promise.all(Array.from({ length: 20 }, (_, i) => q.join(nalsar(100 + i))));
+    const res = await Promise.all(Array.from({ length: 20 }, (_, i) => q.claimPlace(nalsar(100 + i))));
+    assert.strictEqual(res.filter(r => r.ok).length, 5);
     assert.strictEqual((await q.overview()).counts.active, 5);
   }
 
@@ -113,6 +139,9 @@ const outsider = (n) => ({ uid: 'o' + n, email: `x${n}@gmail.com`, emailVerified
   const t = nalsar(500);
   let st = await q.join(t);
   assert.strictEqual(q.remaining(st, 'uploads'), 2);
+  // No place yet (only signed in): no voice round.
+  assert.strictEqual((await q.consume(t, 'voiceRounds')).ok, false, 'looking around gives no voice round');
+  await q.claimPlace(t);   // the first upload
   await q.count(t, 'uploads'); await q.count(t, 'uploads');
   st = await q.join(t);
   assert.strictEqual(q.remaining(st, 'uploads'), 0, 'two uploads used');

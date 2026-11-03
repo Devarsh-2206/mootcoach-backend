@@ -83,5 +83,12 @@ const H = 3600e3, D = 24 * H;
 
   const st = await e.status();
   assert.strictEqual(st.totals.welcome, 1); assert.strictEqual(st.totals.reminder, 1); assert.strictEqual(st.unsubscribed, 1);
+  // Signed in without a place yet: welcome and reminder say the first upload claims it.
+  const browsing = { ...tester, placeTaken: false };
+  const wb = render('welcome', browsing, { releaseHours: 72, cap: 50, limits: { uploads: 2 } }, null);
+  assert.ok(/first students who upload/.test(wb.text) && !/held until/.test(wb.text), wb.text);
+  assert.strictEqual(due(browsing, { sent: { welcome: T0 }, lastSentAt: T0 }, { ...cfg, now: T0 + 25 * H }), 'reminder');
+  assert.strictEqual(due(browsing, { sent: { welcome: T0 }, lastSentAt: T0 }, { ...cfg, now: T0 + 100 * H }), 'reminder', 'no release deadline for a browser');
+  assert.ok(!/held until/.test(render('reminder', browsing, { releaseHours: 72 }, 'u').subject));
   console.log('PASS emails: schedule, content, once-only, failures, unsubscribe');
 })().catch(err => { console.error('FAIL emails:', err); process.exit(1); });

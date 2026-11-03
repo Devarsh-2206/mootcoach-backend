@@ -24,6 +24,10 @@ function copyFor(p) {
     title: 'The pilot has ended',
     body: 'Thank you for your interest in MootCoach. The pilot is over and we are working on what our testers told us. We will email you when MootCoach opens to everyone.',
   };
+  if (s === 'released' && p.reason === 'admin') return {
+    title: 'You are on the waitlist',
+    body: 'Thank you for your interest in MootCoach. The pilot places have gone to other students, so you are on the waitlist. We will email you when MootCoach opens to everyone.',
+  };
   if (s === 'released') return {
     title: 'Your place was released',
     body: 'Pilot places are held for three days, and yours was not used, so it went to someone else. You are back on the waitlist. If you are at NALSAR, signing in again gets your place back automatically whenever one is free.',
@@ -194,7 +198,9 @@ function renderAllowance() {
   if (!el) return;
   const p = state.pilot;
   if (!p || p.status !== 'active' || !p.limits) { el.hidden = true; return; }
-  el.innerHTML = `<div class="ws-sb-label">Your pilot allowance</div>` + BUCKETS.map(([k, label]) => {
+  const claim = p.placeTaken === false
+    ? `<div class="pa-claim">No place yet. Your first upload claims one of the ${esc(p.cap || 50)} pilot places, while places last.</div>` : '';
+  el.innerHTML = `<div class="ws-sb-label">Your pilot allowance</div>${claim}` + BUCKETS.map(([k, label]) => {
     const lim = p.limits[k] || 0, used = Math.min(lim, (p.usage || {})[k] || 0), rest = lim - used;
     return `<div class="pa-row${rest <= 0 ? ' out' : ''}"><span>${esc(label)}</span><b>${rest} of ${lim} left</b></div>
       <div class="pa-bar" aria-hidden="true"><i style="width:${lim ? Math.round((rest / lim) * 100) : 0}%"></i></div>`;
@@ -274,7 +280,7 @@ window.addEventListener('mc:pilot', (e) => {
 /* ───────────────────────── admin panel ───────────────────────── */
 
 const fmtDate = (t) => (t ? new Date(t).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—');
-const REASON = { auto: 'NALSAR, automatic', approved: 'approved by you', approval: 'needs approval', full: 'NALSAR, arrived when full', idle: 'unused for 3 days', verify: 'NALSAR, confirming email', admin: 'released by you', closed: 'signed up after the pilot' };
+const REASON = { auto: 'NALSAR, automatic', approved: 'approved by you', approval: 'needs approval', full: 'NALSAR, arrived when full', idle: 'unused for 3 days', verify: 'NALSAR, confirming email', admin: 'moved to waitlist by you', closed: 'signed up after the pilot' };
 
 async function openPilotAdmin() {
   let overlay = document.getElementById('pilot-admin');
@@ -379,11 +385,11 @@ function render(overlay) {
     ${tab === 'emails' ? renderEmails(ov.emails) : tab === 'spend' ? renderSpend(ov.spend) : tab === 'feedback' ? renderFeedback(fb, noFeedback) : `<div class="pilot-list">
       ${rows.length ? rows.map(m => `<div class="pilot-row">
           <div class="pilot-who"><b>${esc(m.name || '(no name)')}</b><span>${esc(m.email)}</span>
-            <span class="pilot-small">${esc(REASON[m.reason] || m.reason || '')} · joined ${esc(fmtDate(m.joinedAt))}${m.status === 'active' ? (m.firstUseAt ? ' · uploaded ' + esc(fmtDate(m.firstUseAt)) : ' · not used yet') : ''}</span>
+            <span class="pilot-small">${esc(REASON[m.reason] || m.reason || '')} · joined ${esc(fmtDate(m.joinedAt))}${m.status === 'active' ? (m.placeTaken === false ? ' · <b>looking around, no place yet</b>' : m.firstUseAt ? ' · uploaded ' + esc(fmtDate(m.firstUseAt)) : ' · place claimed, not used yet') : ''}</span>
             ${m.usage && Object.keys(m.usage).length ? `<span class="pilot-small">Used: ${esc(Object.entries(m.usage).map(([k, v]) => `${k} ${v}`).join(', '))}</span>` : ''}
             ${m.status === 'active' ? `<span class="pilot-small">${m.feedback && m.feedback.full ? '✓ Gave feedback' : 'No feedback yet'}</span>` : ''}</div>
           ${m.status === 'active'
-            ? `<button type="button" class="mc-dialog-secondary" data-uid="${esc(m.uid)}" data-action="release">Release</button>`
+            ? `<button type="button" class="mc-dialog-secondary" data-uid="${esc(m.uid)}" data-action="release">Move to waitlist</button>`
             : `<button type="button" class="mc-dialog-primary" data-uid="${esc(m.uid)}" data-action="approve" ${c.active >= ov.cap ? 'disabled title="All places are taken"' : ''}>Approve</button>`}
         </div>`).join('') : `<p class="pilot-small">Nobody here yet.</p>`}
     </div>`}

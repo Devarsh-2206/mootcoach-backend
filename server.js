@@ -152,6 +152,7 @@ async function pilotStatus(user, fresh = false) {
 }
 function pilotMessage(s) {
   if (s.status === 'closed') return "The MootCoach pilot has ended. Thank you! We'll email you when MootCoach opens to everyone.";
+  if (s.status === 'released' && s.reason === 'admin') return "The pilot's places have gone to other students. You're on the waitlist, and we'll email you when MootCoach opens to everyone.";
   if (s.status === 'released') return "Your pilot place was released because it wasn't used. You're back on the waitlist.";
   if (s.reason === 'verify') return "Confirm your NALSAR email to get your pilot place. We've sent you an email with a link.";
   if (s.reason === 'full') return "All pilot places are taken right now. You're on the waitlist.";
@@ -192,6 +193,28 @@ function pilotGate({ bucket = null, countsAsUse = false } = {}) {
       if (s.status !== 'active' && s.status !== 'admin') {
         return res.status(403).json({ success: false, code: 'pilot', pilot: s, error: pilotMessage(s) });
       }
+      // Looking around holds no place (services/pilot.js). The first upload
+      // claims one; everything else needs a place, and in practice an upload.
+      if (s.status === 'active' && s.placeTaken === false) {
+        if (bucket !== 'uploads') {
+          return res.status(403).json({ success: false, code: 'pilot', pilot: s,
+            error: 'Upload your first proposition to claim your pilot place. Then this works.' });
+        }
+        return pilot.claimPlace(u).then(r => {
+          pilotCache.delete(u.uid);
+          if (!r.ok) {
+            const full = { ...s, status: 'waitlist', reason: 'full' };
+            return res.status(403).json({ success: false, code: 'pilot', pilot: full, error: pilotMessage(full) });
+          }
+          s.placeTaken = true;
+          return proceed();
+        }).catch(err => {
+          console.error('[PILOT] claim failed:', err && err.message);
+          res.status(503).json({ success: false, error: "Couldn't claim your pilot place just now. Try again in a moment." });
+        });
+      }
+      return proceed();
+      function proceed() {
       if (bucket && s.status === 'active' && pilot.remaining(s, bucket) <= 0) {
         const limit = (s.limits || {})[bucket];
         return res.status(403).json({ success: false, code: 'limit', bucket, limit, used: (s.usage || {})[bucket] || 0, error: limitMessage(bucket) });
@@ -208,6 +231,7 @@ function pilotGate({ bucket = null, countsAsUse = false } = {}) {
         });
       }
       next();
+      }
     }).catch(err => {
       console.error('[PILOT] status check failed:', err && err.message);
       res.status(503).json({ success: false, error: "Couldn't check your pilot place just now. Try again in a moment." });

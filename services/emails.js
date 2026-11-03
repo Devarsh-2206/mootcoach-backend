@@ -61,6 +61,8 @@ function due(m, log, { now, startedAt, releaseHours }) {
   if (log.lastSentAt && now - log.lastSentAt < 20 * H) return null;
 
   if (!m.firstUseAt) {
+    // Looking around without a place: one nudge a day later, within a week.
+    if (m.placeTaken === false) return ok('reminder') && age >= 24 * H && age < 7 * 24 * H ? 'reminder' : null;
     const releaseAt = m.joinedAt + releaseHours * H;
     return ok('reminder') && age >= 24 * H && now < releaseAt - 2 * H ? 'reminder' : null;
   }
@@ -84,7 +86,7 @@ function limitsLine(limits) {
 }
 
 /** Returns { subject, paragraphs[], button? } for one email. */
-function content(key, m, { releaseHours, limits }) {
+function content(key, m, { releaseHours, limits, cap }) {
   const name = firstName(m);
   const url = appUrl();
   const heldUntil = when(m.joinedAt + releaseHours * H);
@@ -103,7 +105,20 @@ function content(key, m, { releaseHours, limits }) {
         'Nothing to do until then.',
       ],
     };
+    // Signed in, but no place yet: places go to the first students to upload.
     case 'welcome':
+      if (m.placeTaken === false) return {
+        subject: 'Welcome to the MootCoach pilot',
+        paragraphs: [
+          `Hi ${name},`,
+          `Thanks for signing up for the MootCoach pilot. ${cap || 50} students are testing MootCoach before it opens to everyone, and the places go to the first students who upload a moot proposition.`,
+          howToStart + ' Your first upload claims your place, while places last.',
+          allowance ? `With a place you get ${allowance}.` : '',
+          'I would love to hear what works and what does not. Use the "Give feedback" button in the app, or just reply to this email.',
+        ],
+        button: { label: 'Upload a proposition', href: url },
+      };
+      // falls through
     case 'approved': return {
       subject: key === 'approved' ? 'Your MootCoach place is ready' : "You're in: welcome to the MootCoach pilot",
       paragraphs: [
@@ -118,7 +133,18 @@ function content(key, m, { releaseHours, limits }) {
       ],
       button: { label: 'Open MootCoach', href: url },
     };
-    case 'reminder': return {
+    case 'reminder':
+      if (m.placeTaken === false) return {
+        subject: 'Your MootCoach pilot place is still open',
+        paragraphs: [
+          `Hi ${name},`,
+          'You signed up for the MootCoach pilot but have not uploaded a proposition yet. Places go to the first students who upload, so yours is not saved until you do.',
+          howToStart,
+          'If MootCoach is not for you right now, no problem. You can ignore this email.',
+        ],
+        button: { label: 'Upload a proposition', href: url },
+      };
+      return {
       subject: `Your MootCoach place is held until ${heldUntil}`,
       paragraphs: [
         `Hi ${name},`,

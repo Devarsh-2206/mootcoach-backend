@@ -45,7 +45,9 @@ export function showPilotWelcome(user) {
   overlay.innerHTML = `<div class="mc-dialog fb-dialog" role="dialog" aria-modal="true" aria-labelledby="pw-title">
       <div class="pilot-eyebrow">MootCoach pilot</div>
       <h3 id="pw-title">Welcome${first ? ', ' + esc(first) : ''}</h3>
-      <p>You are one of ${esc(p.cap || 50)} students testing MootCoach before it opens to everyone. Here is how it works:</p>
+      <p>${p.placeTaken === false
+        ? `MootCoach is being tested by ${esc(p.cap || 50)} students before it opens to everyone. <b>Your first upload claims your place</b>, while places last. Here is how it works:`
+        : `You are one of ${esc(p.cap || 50)} students testing MootCoach before it opens to everyone. Here is how it works:`}</p>
       <ol class="pw-steps">
         <li><b>Upload your moot proposition.</b> MootCoach finds the court, the governing law and the issues.</li>
         <li><b>Choose your issue and your side.</b></li>
