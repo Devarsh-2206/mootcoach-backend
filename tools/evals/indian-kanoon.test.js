@@ -54,5 +54,13 @@ const fetchImpl = async (url, init) => {
   assert.ok(!ik.looksIndian({ name: 'Donoghue v. Stevenson', citation: '[1932] AC 562' }, 'UK Supreme Court'));
   const st = ik.status();
   assert.ok(st.configured && st.found >= 2 && st.notFound >= 1 && st.errors >= 1 && /403: Invalid token/.test(st.lastError) && /doc keys/.test(st.lastSample), JSON.stringify(st));
+  // Safeguard 1: five searches in a row that confirm nothing pause Indian Kanoon.
+  assert.ok(ik.active());
+  for (let i = 0; i < 5; i++) await ik.confirmCase({ name: `Invented Party ${i} v. Union of India` }, { fetchImpl });
+  assert.ok(!ik.active(), 'paused after 5 misses in a row');
+  const ps = ik.status();
+  assert.ok(ps.paused && ps.missStreak >= 5 && ps.maxPerUpload === 6, JSON.stringify(ps));
+  // Safeguard 2 is the cap applied in authorityVerifier.js (MAX_PER_CHECK).
+  assert.strictEqual(ik.MAX_PER_CHECK, 6);
   console.log('PASS indian kanoon: title matching, judgment link, wrong citation dropped, invented case refused, routing');
 })().catch(e => { console.error('FAIL indian kanoon:', e); process.exit(1); });

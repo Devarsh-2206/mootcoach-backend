@@ -28,8 +28,28 @@ const PRICE_INR = { search: 0.5 };
 const configured = () => !!process.env.INDIANKANOON_API_TOKEN;
 
 /** Since the server started; shown in the Pilot panel to diagnose the link. */
-const stats = { lookups: 0, found: 0, notFound: 0, errors: 0, lastError: '', lastErrorAt: null, lastSample: '' };
-const status = () => ({ configured: configured(), ...stats });
+const stats = { lookups: 0, found: 0, notFound: 0, errors: 0, lastError: '', lastErrorAt: null, lastSample: '', missStreak: 0, paused: false };
+
+/*
+ * SAFEGUARDS, so a mismatch cannot quietly spend the credit:
+ *  1. After PAUSE_AFTER searches in a row that confirm nothing (not found or
+ *     an error), Indian Kanoon is paused until the next restart; cases fall
+ *     back to the free web check and the Pilot panel says it is paused.
+ *  2. At most MAX_PER_CHECK searches per check (one upload's case list);
+ *     any further cases use the web check (applied in authorityVerifier.js).
+ */
+const PAUSE_AFTER = Number(process.env.INDIANKANOON_PAUSE_AFTER || 5);
+const MAX_PER_CHECK = Number(process.env.INDIANKANOON_MAX_PER_UPLOAD || 6);
+function miss() {
+  stats.missStreak++;
+  if (!stats.paused && stats.missStreak >= PAUSE_AFTER) {
+    stats.paused = true;
+    console.warn(`[INDIAN KANOON] paused: ${stats.missStreak} searches in a row confirmed nothing. Web check only until restart.`);
+  }
+}
+/** Use Indian Kanoon now? Token set, and not paused by the safeguard. */
+const active = () => configured() && !stats.paused;
+const status = () => ({ configured: configured(), pauseAfter: PAUSE_AFTER, maxPerUpload: MAX_PER_CHECK, ...stats });
 
 /** Words that carry no identity in a case name. */
 const STOP = new Set(['the', 'of', 'and', 'v', 'vs', 'versus', 'ltd', 'limited', 'pvt', 'private', 'co', 'company', 'corporation',
@@ -69,12 +89,14 @@ async function search(query, { fetchImpl = fetch } = {}) {
     const e = new Error(`Indian Kanoon ${r.status}${text ? ': ' + text.replace(/\s+/g, ' ').slice(0, 120) : ''}`);
     e.status = r.status;
     stats.errors++; stats.lastError = e.message; stats.lastErrorAt = new Date().toISOString();
+    miss();
     throw e;
   }
   const raw = await r.text().catch(() => '');
   let body = {};
   try { body = JSON.parse(raw); } catch (e) {
     stats.errors++; stats.lastError = 'Reply was not JSON: ' + raw.replace(/\s+/g, ' ').slice(0, 120); stats.lastErrorAt = new Date().toISOString();
+    miss();
     throw new Error(stats.lastError);
   }
   stats.lookups++;
@@ -94,8 +116,8 @@ async function confirmCase({ name, citation }, opts = {}) {
   const docs = await search(name, opts);
   const hit = docs.find(d => titleMatches(name, strip(d.title)) && isIndianCourt(d.docsource)) ||
               docs.find(d => titleMatches(name, strip(d.title)));
-  if (!hit) { stats.notFound++; return { ...base, note: 'Not found on Indian Kanoon.' }; }
-  stats.found++;
+  if (!hit) { stats.notFound++; miss(); return { ...base, note: 'Not found on Indian Kanoon.' }; }
+  stats.found++; stats.missStreak = 0;
   const url = `https://indiankanoon.org/doc/${encodeURIComponent(hit.tid)}/`;
   const decided = hit.publishdate || '';
   const cy = yearOf(citation), dy = yearOf(decided);
@@ -124,4 +146,4 @@ function looksIndian(item, forum) {
   return /india|indian|high court of|supreme court of india/i.test(String(forum || ''));
 }
 
-module.exports = { configured, status, confirmCase, looksIndian, titleMatches, search, PRICE_INR };
+module.exports = { configured, active, status, MAX_PER_CHECK, confirmCase, looksIndian, titleMatches, search, PRICE_INR };

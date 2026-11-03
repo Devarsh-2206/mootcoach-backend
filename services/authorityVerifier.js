@@ -225,7 +225,7 @@ async function verifyAuthorities(authorities, opts = {}) {
     // a trusted source may turn up this time.
     // With Indian Kanoon switched on, an Indian case remembered from the web
     // check is looked up there once, so it gains the link to the judgment.
-    const ikUpgrade = cached && cached.source !== 'indiankanoon' && require('./indianKanoon').configured()
+    const ikUpgrade = cached && cached.source !== 'indiankanoon' && require('./indianKanoon').active()
       && require('./indianKanoon').looksIndian(items[i], opts.forum);
     if (cached && !cached.weakOnly && !ikUpgrade) out[i] = { ...cached, cached: true }; else todo.push(i);
   }
@@ -234,17 +234,20 @@ async function verifyAuthorities(authorities, opts = {}) {
   // cannot be asked about, goes on to the web check below.
   const ik = require('./indianKanoon');
   let web = todo;
-  if (todo.length && ik.configured()) {
-    const indian = todo.filter(i => ik.looksIndian(items[i], opts.forum));
+  if (todo.length && ik.active()) {
+    // At most MAX_PER_CHECK paid searches per check; the rest use the web check.
+    const indian = todo.filter(i => ik.looksIndian(items[i], opts.forum)).slice(0, ik.MAX_PER_CHECK);
     web = todo.filter(i => !indian.includes(i));
-    const found = await Promise.all(indian.map(i => ik.confirmCase(items[i]).catch(err => {
-      console.warn('[INDIAN KANOON] lookup failed:', err && err.message);
-      return null;
-    })));
-    indian.forEach((i, j) => {
-      if (found[j] && found[j].status === 'verified') { out[i] = found[j]; cacheSet(keyOf(items[i]), found[j]); }
+    // One at a time, so the pause safeguard stops the searches as soon as it trips.
+    for (const i of indian) {
+      let r = null;
+      if (ik.active()) {
+        try { r = await ik.confirmCase(items[i]); }
+        catch (err) { console.warn('[INDIAN KANOON] lookup failed:', err && err.message); }
+      }
+      if (r && r.status === 'verified') { out[i] = r; cacheSet(keyOf(items[i]), r); }
       else web.push(i);
-    });
+    }
   }
   if (web.length) {
     const batch = web.map(i => items[i]);
