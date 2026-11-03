@@ -19,6 +19,35 @@ carry `verified: 2026-10-09`.
 
 ## Re-check log
 
+### 2026-11-03 (pre-pilot update; NOT a successful re-check)
+
+**Nothing could be fetched. No date was changed, added or re-verified, and
+`verified` was NOT bumped on any entry (all ten stay at 2026-10-17).**
+
+Every organiser host failed at the network layer from this session: WebFetch
+returned `getaddrinfo ENOTFOUND` for www.vismoot.org, cisgmoot.org, iisl.space,
+blogs.icrc.org, www.nls.ac.in and moot.in, and `curl` through the agent proxy got
+`CONNECT tunnel failed, response 403` for www.vismoot.org. The session's network
+allowlist does not include these hosts. This is "unreachable", not "changed":
+per the rules every entry stands exactly as recorded on 2026-10-17.
+
+Not attempted (same allowlist problem presumed): kkluthramoot.org, itatonline.org,
+stetson.edu, ilsa.org, law.ox.ac.uk, and the Indian law-school sites. No new
+competitions were added, because nothing new could be read on an organiser's page.
+
+Hosts to allow before re-running: www.vismoot.org, cisgmoot.org, iisl.space,
+blogs.icrc.org, www.nls.ac.in, moot.in, kkluthramoot.org, itatonline.org,
+www.stetson.edu, www.ilsa.org, www.law.ox.ac.uk, mnlumumbai.edu.in, isil-aca.org,
+plus the candidate organisers (nludelhi.ac.in, nalsar.ac.in, nujs.edu, gnlu.ac.in,
+mca.nliu.ac.in, dnlu.ac.in, bci-related pages).
+
+Dates on the 10 entries that are now in the past or imminent as of today, for
+whoever re-checks first: Vis registration 12 Nov, Vis East clarifications 7 Nov
+(passed by the time of any fetch after that), Stetson registration 15 Nov and
+memorials 16/17 Nov, Luthra registration 16 Nov (tentative), Dunant orals 20-22
+Nov, Labour orals 13-15 Nov, FinTech advanced rounds 28-29 Nov. Past-dated
+milestones: Palkhivala (all), UPES Insolvency (all), Labour memorial 30 Oct.
+
 ### 2026-10-17 (daily re-check)
 
 All ten entries re-checked; `verified` set to 2026-10-17 on all ten. **No date moved.**
