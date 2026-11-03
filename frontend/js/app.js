@@ -354,6 +354,28 @@ async function handleGoogle() {
   }
 }
 
+/**
+ * Password reset: MootCoach's own email (from hello@mootcoach.in, linking to
+ * account.html) when the server can send it, Firebase's email otherwise.
+ * The message never says whether the address has an account.
+ */
+async function requestPasswordReset(email) {
+  try {
+    const r = await fetch(`${BASE_URL}/api/auth/reset`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }), signal: AbortSignal.timeout(20000),
+    });
+    const body = await r.json().catch(() => ({}));
+    if (r.status === 400) { const e = new Error(body.error); e.code = 'auth/invalid-email'; throw e; }
+    if (r.status === 429) { const e = new Error(body.error); e.code = 'auth/too-many-requests'; throw e; }
+    if (r.ok && body.success) return;
+  } catch (e) {
+    if (e && (e.code === 'auth/invalid-email' || e.code === 'auth/too-many-requests')) throw e;
+  }
+  await sendPasswordResetEmail(auth, email);
+}
+const RESET_SENT = 'If there is an account for that email, a reset link is on its way. Check your inbox and spam folder.';
+
 async function handleForgotPassword() {
   const emailInput = document.getElementById('li-email');
   const email = emailInput?.value.trim();
@@ -367,8 +389,8 @@ async function handleForgotPassword() {
     return;
   }
   try {
-    await sendPasswordResetEmail(auth, email);
-    showToast("Password reset link sent to your email!", "ok");
+    await requestPasswordReset(email);
+    showToast(RESET_SENT, "ok");
     showHint('h-li-email', false);
     markErr('li-email', false);
   } catch (err) {
@@ -404,11 +426,11 @@ async function handleOverlayForgotPassword() {
 
   try {
     setLoading('forgot-password-btn', true, 'Sending...');
-    await sendPasswordResetEmail(auth, email);
+    await requestPasswordReset(email);
     setLoading('forgot-password-btn', false, 'Forgot password?');
     if (statusMsg) {
       statusMsg.className = "text-xs text-center mt-3 text-green-400";
-      statusMsg.textContent = "Password reset link sent to your email!";
+      statusMsg.textContent = RESET_SENT;
     }
   } catch (err) {
     setLoading('forgot-password-btn', false, 'Forgot password?');

@@ -621,6 +621,24 @@ app.post("/api/welcome", signedIn, logLimiter, async (req, res) => {
   }
 });
 
+/* Password reset sent by MootCoach (services/passwordReset.js). Signed-out
+   callers, so limited per network address as well as per email inside. */
+const resetLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, max: 10, keyGenerator: identityKey,
+  standardHeaders: true, legacyHeaders: false, validate: { trustProxy: false },
+  handler: (req, res) => res.status(429).json({ success: false, error: 'Too many requests. Try again in a few minutes.' }),
+});
+app.post("/api/auth/reset", resetLimiter, async (req, res) => {
+  try {
+    const r = await require('./services/passwordReset').sendReset(req.body && req.body.email);
+    if (r.error === 'bad-email') return res.status(400).json({ success: false, error: 'Enter a valid email address.' });
+    return res.json({ success: !!r.ok, fallback: !!r.fallback });
+  } catch (e) {
+    console.error('[RESET] failed:', e && e.message);
+    return res.json({ success: false, fallback: true });
+  }
+});
+
 app.get("/health", (req, res) => {
   res.json({ status: "ok" });
 });
