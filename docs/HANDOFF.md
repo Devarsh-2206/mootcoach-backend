@@ -88,4 +88,9 @@ Vertex AI for text and voice (judge transcript fixed for Vertex's message order)
 5. Draft the NALSAR email and LinkedIn post.
 6. Optional: allow organiser sites in the network → run the `moot-calendar` agent to refresh dates and add competitions.
 7. Before public launch: real logo (favicon, preview, emails), robots.txt/sitemap, BIMI only if worth it.
-8. Watch: Google for Startups application reply; AWS Activate / other credits optional.
+8. Startup credits (status 4 Nov 2026):
+   - Google for Startups: applied, confirmation 3 Nov; watch devarsh@mootcoach.in for reply / identity check; follow up ~10 Nov.
+   - Together AI accelerator: submitted 4 Nov (no reference number); reply expected by email.
+   - Microsoft for Startups: signed up without investor code; only $200 Azure via "Verify with LinkedIn" (owner, optional).
+   - Anthropic startup programme: cohort full, not accepting applications.
+   - AWS Activate Founders: not started — needs a paid-tier AWS account (card). Skipped for now; MootCoach does not run on AWS.
