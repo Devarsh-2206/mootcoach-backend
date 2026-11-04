@@ -37,7 +37,7 @@ function allow(email, now = Date.now()) {
 function page(paragraphs, button) {
   return `<!doctype html><html><body style="margin:0;padding:0;background:#f6f4ef">
 <div style="max-width:560px;margin:0 auto;padding:28px 24px;font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:1.6;color:#1f1d1a;background:#fffdf9">
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 22px"><tr><td style="padding:0 10px 0 0;vertical-align:middle"><img src="https://mootcoach.in/icon-192.png" width="30" height="30" alt="MootCoach" style="display:block;border:0;width:30px;height:30px"></td><td style="vertical-align:middle;font-family:Arial,sans-serif;font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:#a23b2c"><b>MootCoach</b></td></tr></table>
+<p style="margin:0 0 22px;font-family:Arial,sans-serif;font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:#a23b2c"><b>MootCoach</b></p>
 ${paragraphs.map(p => `<p style="margin:0 0 14px">${p}</p>`).join('\n')}
 ${button ? `<p style="margin:22px 0"><a href="${esc(button.href)}" style="display:inline-block;background:#a23b2c;color:#ffffff;text-decoration:none;padding:11px 20px;border-radius:6px;font-family:Arial,sans-serif;font-size:14px">${esc(button.label)}</a></p>` : ''}
 <p style="margin:22px 0 0">The MootCoach team</p>

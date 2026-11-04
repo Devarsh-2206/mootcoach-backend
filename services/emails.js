@@ -191,7 +191,7 @@ function render(key, m, cfg, unsubscribeUrl) {
   const followUp = FOLLOW_UPS.includes(key);
   const html = `<!doctype html><html><body style="margin:0;padding:0;background:#f6f4ef">
 <div style="max-width:560px;margin:0 auto;padding:28px 24px;font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:1.6;color:#1f1d1a;background:#fffdf9">
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 22px"><tr><td style="padding:0 10px 0 0;vertical-align:middle"><img src="https://mootcoach.in/icon-192.png" width="30" height="30" alt="MootCoach" style="display:block;border:0;width:30px;height:30px"></td><td style="vertical-align:middle;font-family:Arial,sans-serif;font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:#a23b2c"><b>MootCoach</b></td></tr></table>
+<p style="margin:0 0 22px;font-family:Arial,sans-serif;font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:#a23b2c"><b>MootCoach</b></p>
 ${paras.map(p => `<p style="margin:0 0 14px">${esc(p)}</p>`).join('\n')}
 ${c.button ? `<p style="margin:22px 0"><a href="${esc(c.button.href)}" style="display:inline-block;background:#a23b2c;color:#ffffff;text-decoration:none;padding:11px 20px;border-radius:6px;font-family:Arial,sans-serif;font-size:14px">${esc(c.button.label)}</a></p>` : ''}
 <p style="margin:22px 0 0">Cheers,<br>Devarsh<br><span style="color:#6b665e">Founder, MootCoach</span></p>
