@@ -486,7 +486,12 @@ function extractAndParseJSON(rawResponse, isIrac = false) {
   return parsed;
 }
 
-function parsePdfAsync(buffer) {
+/* At most PDF_WORKERS PDFs are read at once (see services/limiter.js). */
+const { limiter } = require("./services/limiter");
+const pdfSlots = limiter(Number(process.env.PDF_WORKERS || 2), { name: 'pdf' });
+function parsePdfAsync(buffer) { return pdfSlots.run(() => parsePdfOnce(buffer)); }
+
+function parsePdfOnce(buffer) {
   return new Promise((resolve, reject) => {
     const worker = new Worker(path.join(__dirname, "pdf-worker.js"), {
       workerData: { buffer: buffer }
@@ -926,7 +931,10 @@ async function runEnrichment(rawPropIntel, propIntelError, forumContext) {
 }
 
 /* ─── /analyze (Now fully powered by Groq & Native JSON Mode) ─── */
-app.post("/analyze", requireUser({ allowPrewarm: true }), pilotGate({ bucket: 'uploads', countsAsUse: true }), aiLimiter, singlePdf("file"), async (req, res) => {
+/* At most ANALYSES_AT_ONCE analyses run together; the rest wait in line (a
+   few seconds each) instead of all hitting Gemini and memory at once. */
+const analyzeSlots = limiter(Number(process.env.ANALYSES_AT_ONCE || 8), { maxQueue: 40, name: 'analyze' });
+app.post("/analyze", requireUser({ allowPrewarm: true }), pilotGate({ bucket: 'uploads', countsAsUse: true }), aiLimiter, analyzeSlots.middleware("A lot of people are uploading right now. Please try again in a minute."), singlePdf("file"), async (req, res) => {
   let filePath = null;
 
   try {
@@ -1918,6 +1926,7 @@ app.post("/api/pilot/admin/overview", signedIn, logLimiter, pilotAdminOnly, asyn
   try {
     const overview = await pilot.overview();
     overview.ai = require("./services/genaiClient").aiStatus();
+    overview.load = { pdf: pdfSlots.status(), analyze: analyzeSlots.status(), voice: { active: voiceActive, max: VOICE_AT_ONCE } };
     overview.spend = spend.report();
     overview.indianKanoon = require("./services/indianKanoon").status();
     overview.emails = await emails.status().catch(() => null);
@@ -2538,6 +2547,12 @@ app.post("/api/log-session", aiLimiter, express.json(), async (req, res) => {
 // const { WebSocketServer } = require("ws");
 // const wss = new WebSocketServer({ server });
 
+/* Live voice rounds running right now. Each holds an open connection to
+   Google's voice model, and Google limits how many can run at once (the exact
+   number for this account is not known), so past VOICE_AT_ONCE a new round is
+   asked to wait a few minutes (close code 4413) instead of failing midway. */
+let voiceActive = 0;
+const VOICE_AT_ONCE = Number(process.env.VOICE_AT_ONCE || 10);
 wss.on("connection", (ws, req) => {
   ws.isAlive = true;
   ws.on("pong", () => {
@@ -2577,6 +2592,13 @@ wss.on("connection", (ws, req) => {
           return;
         }
         if (st.status === 'active') {
+          // Checked before the round is counted, so a "busy" refusal never
+          // costs the student one of their voice rounds.
+          if (voiceActive >= VOICE_AT_ONCE) {
+            ws.resume();
+            try { ws.close(4413, 'Voice bench busy'); } catch (e) {}
+            return;
+          }
           const gate = await voiceRoundGate(user, st, req.url);
           if (!gate.ok) {
             ws.resume();
@@ -2586,6 +2608,8 @@ wss.on("connection", (ws, req) => {
           limitMs = gate.remainingMs;
         }
       }
+      voiceActive++;
+      ws.once('close', () => { voiceActive = Math.max(0, voiceActive - 1); });
       startVoice();
       ws.resume();
       if (limitMs > 0) {

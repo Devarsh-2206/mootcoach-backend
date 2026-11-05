@@ -356,6 +356,13 @@ Begin the hearing with one opening question tailored to this issue and stance. K
       if (onClose) onClose();
       return;
     }
+    if (ev && ev.code === 4413) {
+      // Too many voice rounds running at once; this round was not counted.
+      voiceSessionActive = false;
+      if (onError) onError(new Error("A lot of people are in voice rounds right now. Please try again in a few minutes. This attempt didn't use up one of your rounds."));
+      if (onClose) onClose();
+      return;
+    }
     if (ev && ev.code === 4503) {
       voiceSessionActive = false;
       if (onError) onError(new Error("MootCoach's AI features are paused for a short while. Please try again later."));
