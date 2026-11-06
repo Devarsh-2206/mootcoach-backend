@@ -77,6 +77,10 @@ const fetchImpl = async (url, init) => {
   assert.ok(ps.paused && ps.missStreak >= 5 && ps.maxPerUpload === 6, JSON.stringify(ps));
   // Safeguard 2 is the cap applied in authorityVerifier.js (MAX_PER_CHECK).
   assert.strictEqual(ik.MAX_PER_CHECK, 6);
+  // Abbreviated parties in Indian Kanoon titles still match.
+  assert.ok(ik.titleMatches('Shreya Singhal v. Union of India', 'Shreya Singhal vs U.O.I on 24 March, 2015'));
+  assert.ok(!ik.titleMatches('Imaginary Traders v. Union of India', 'Shreya Singhal vs U.O.I on 24 March, 2015'));
+
   // Searches aim at titles and the Supreme Court, by the most distinctive party.
   assert.strictEqual(ik.buildQuery('Shreya Singhal v. Union of India', '(2015) 5 SCC 1'), 'title: shreya singhal doctypes: supremecourt');
   assert.strictEqual(ik.buildQuery('K.S. Puttaswamy v. Union of India', '(2017) 10 SCC 1'), 'title: puttaswamy doctypes: supremecourt');

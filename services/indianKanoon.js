@@ -54,7 +54,21 @@ const status = () => ({ configured: configured(), pauseAfter: PAUSE_AFTER, maxPe
 /** Words that carry no identity in a case name. */
 const STOP = new Set(['the', 'of', 'and', 'v', 'vs', 'versus', 'ltd', 'limited', 'pvt', 'private', 'co', 'company', 'corporation',
   'mr', 'ms', 'dr', 'smt', 'shri', 'sri', 'm', 's', 'anr', 'ors', 'others', 'another', 'retd', 'on', 'in', 're', 'and', 'by', 'through', 'thr']);
-const words = (s) => String(s || '').toLowerCase().replace(/&/g, ' and ').replace(/[^a-z0-9 ]+/g, ' ').split(/\s+/).filter(w => w && !STOP.has(w));
+/*
+ * Indian Kanoon titles often abbreviate a party: "Shreya Singhal vs U.O.I"
+ * (production, 6 Nov 2026: the only one of six cases not matched). Expand the
+ * common forms before comparing.
+ */
+const ABBREV = [
+  [/\bU\.?\s?O\.?\s?I\b\.?/gi, ' union of india '],
+  [/\bGovt\b\.?/gi, ' government '],
+  [/\bNct\b/gi, ' nct '],
+  [/\bCorpn\b\.?/gi, ' corporation '],
+  [/\bComm(?:r|issr)\b\.?/gi, ' commissioner '],
+  [/\bAssn\b\.?/gi, ' association '],
+];
+const expand = (s) => ABBREV.reduce((t, [re, to]) => t.replace(re, to), String(s || ''));
+const words = (s) => expand(s).toLowerCase().replace(/&/g, ' and ').replace(/[^a-z0-9 ]+/g, ' ').split(/\s+/).filter(w => w && !STOP.has(w));
 
 /** "A v. B" → [A words, B words]; a single-party name → [words]. */
 function sides(name) {
