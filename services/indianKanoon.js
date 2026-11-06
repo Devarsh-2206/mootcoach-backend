@@ -77,6 +77,37 @@ const isIndianCourt = (src) => /supreme court of india|high court|tribunal|commi
 const yearOf = (s) => { const m = String(s || '').match(/\b(18|19|20)\d{2}\b/); return m ? Number(m[0]) : null; };
 const strip = (s) => String(s || '').replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;/g, "'").trim();
 
+/*
+ * How a case is searched. A plain search runs over the FULL TEXT of every
+ * document, so "Shreya Singhal v. Union of India" returned Section 66A of the
+ * IT Act and judgments that cite Shreya Singhal, never the judgment itself
+ * (production, 6 Nov 2026: 9 searches, 1 match). So the search is aimed at
+ * TITLES, using the most distinctive party name, and at the Supreme Court
+ * when the citation is a Supreme Court report.
+ *
+ * NOTE: "title:" and "doctypes:" are Indian Kanoon's search operators as best
+ * known; they could not be checked against its documentation from the build
+ * environment. INDIANKANOON_QUERY=plain restores the old full-name search.
+ */
+const GENERIC = new Set(['for', 'to', 'a', 'an', 'with', 'from', 'union', 'india', 'state', 'government', 'commissioner', 'collector', 'municipal', 'corporation',
+  'district', 'magistrate', 'secretary', 'director', 'officer', 'board', 'authority', 'council', 'republic', 'people',
+  'peoples', 'public', 'prosecutor', 'kerala', 'bihar', 'maharashtra', 'karnataka', 'rajasthan', 'madhya', 'pradesh',
+  'uttar', 'tamil', 'nadu', 'west', 'bengal', 'punjab', 'haryana', 'gujarat', 'delhi', 'bombay', 'andhra', 'telangana',
+  'orissa', 'odisha', 'assam', 'jharkhand', 'chhattisgarh', 'uttarakhand', 'himachal', 'goa', 'manipur', 'tripura', 'nct']);
+const SC_CITATION = /\bSCC\b|\bSCR\b|\bSCALE\b|\bAIR\s*\d{4}\s*SC\b|\bINSC\b|\bSCC OnLine SC\b/i;
+
+/** Pure: the search sent to Indian Kanoon for one case. */
+function buildQuery(name, citation) {
+  if (String(process.env.INDIANKANOON_QUERY || '').toLowerCase() === 'plain') return String(name || '');
+  const ss = sides(name);
+  // The side with the most non-generic words names the case best.
+  const scored = ss.map(w => w.filter(x => !GENERIC.has(x) && x.length > 1));
+  const best = scored.sort((a, b) => b.length - a.length)[0] || [];
+  const words = (best.length ? best : (ss[0] || [])).slice(0, 4);
+  if (!words.length) return String(name || '');
+  return `title: ${words.join(' ')}` + (SC_CITATION.test(String(citation || '')) ? ' doctypes: supremecourt' : '');
+}
+
 async function search(query, { fetchImpl = fetch } = {}) {
   const url = `${BASE}/search/?formInput=${encodeURIComponent(query)}&pagenum=0`;
   const r = await fetchImpl(url, {
@@ -113,7 +144,8 @@ async function search(query, { fetchImpl = fetch } = {}) {
  */
 async function confirmCase({ name, citation }, opts = {}) {
   const base = { name, citation: citation || '', status: 'unverified', sources: [] };
-  const docs = await search(name, opts);
+  const query = buildQuery(name, citation);
+  const docs = await search(query, opts);
   const named = docs.filter(d => titleMatches(name, strip(d.title)));
   const indianFirst = [...named.filter(d => isIndianCourt(d.docsource)), ...named.filter(d => !isIndianCourt(d.docsource))];
   // Many judgments share one name ("People's Union for Civil Liberties v.
@@ -129,7 +161,7 @@ async function confirmCase({ name, citation }, opts = {}) {
     stats.notFound++; miss();
     // For diagnosis in the Pilot panel: what was asked, and the titles Indian
     // Kanoon returned (case titles are public; no student text is kept).
-    stats.lastMisses.unshift({ query: String(name).slice(0, 120), results: docs.length,
+    stats.lastMisses.unshift({ query: String(name).slice(0, 80) + '  [searched: ' + String(query).slice(0, 80) + ']', results: docs.length,
       titles: docs.slice(0, 3).map(d => strip(d.title).slice(0, 120)),
       courts: docs.slice(0, 3).map(d => strip(d.docsource).slice(0, 60)) });
     stats.lastMisses = stats.lastMisses.slice(0, 3);
@@ -164,4 +196,4 @@ function looksIndian(item, forum) {
   return /india|indian|high court of|supreme court of india/i.test(String(forum || ''));
 }
 
-module.exports = { configured, active, status, MAX_PER_CHECK, confirmCase, looksIndian, titleMatches, search, PRICE_INR };
+module.exports = { configured, active, status, MAX_PER_CHECK, confirmCase, looksIndian, titleMatches, buildQuery, search, PRICE_INR };

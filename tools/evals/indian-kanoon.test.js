@@ -77,5 +77,14 @@ const fetchImpl = async (url, init) => {
   assert.ok(ps.paused && ps.missStreak >= 5 && ps.maxPerUpload === 6, JSON.stringify(ps));
   // Safeguard 2 is the cap applied in authorityVerifier.js (MAX_PER_CHECK).
   assert.strictEqual(ik.MAX_PER_CHECK, 6);
+  // Searches aim at titles and the Supreme Court, by the most distinctive party.
+  assert.strictEqual(ik.buildQuery('Shreya Singhal v. Union of India', '(2015) 5 SCC 1'), 'title: shreya singhal doctypes: supremecourt');
+  assert.strictEqual(ik.buildQuery('K.S. Puttaswamy v. Union of India', '(2017) 10 SCC 1'), 'title: puttaswamy doctypes: supremecourt');
+  assert.strictEqual(ik.buildQuery('State of Punjab v. Gurmit Singh', 'AIR 1996 SC 1393'), 'title: gurmit singh doctypes: supremecourt');
+  assert.strictEqual(ik.buildQuery('Romesh Thappar v. State of Madras', ''), 'title: romesh thappar');
+  process.env.INDIANKANOON_QUERY = 'plain';
+  assert.strictEqual(ik.buildQuery('Shreya Singhal v. Union of India', '(2015) 5 SCC 1'), 'Shreya Singhal v. Union of India');
+  delete process.env.INDIANKANOON_QUERY;
+
   console.log('PASS indian kanoon: title matching, judgment link, same-name judgments by year, invented case refused, routing');
 })().catch(e => { console.error('FAIL indian kanoon:', e); process.exit(1); });
