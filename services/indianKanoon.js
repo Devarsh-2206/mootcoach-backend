@@ -28,7 +28,7 @@ const PRICE_INR = { search: 0.5 };
 const configured = () => !!process.env.INDIANKANOON_API_TOKEN;
 
 /** Since the server started; shown in the Pilot panel to diagnose the link. */
-const stats = { lookups: 0, found: 0, notFound: 0, errors: 0, lastError: '', lastErrorAt: null, lastSample: '', missStreak: 0, paused: false };
+const stats = { lookups: 0, found: 0, notFound: 0, errors: 0, lastError: '', lastErrorAt: null, lastSample: '', missStreak: 0, paused: false, lastMisses: [] };
 
 /*
  * SAFEGUARDS, so a mismatch cannot quietly spend the credit:
@@ -116,7 +116,16 @@ async function confirmCase({ name, citation }, opts = {}) {
   const docs = await search(name, opts);
   const hit = docs.find(d => titleMatches(name, strip(d.title)) && isIndianCourt(d.docsource)) ||
               docs.find(d => titleMatches(name, strip(d.title)));
-  if (!hit) { stats.notFound++; miss(); return { ...base, note: 'Not found on Indian Kanoon.' }; }
+  if (!hit) {
+    stats.notFound++; miss();
+    // For diagnosis in the Pilot panel: what was asked, and the titles Indian
+    // Kanoon returned (case titles are public; no student text is kept).
+    stats.lastMisses.unshift({ query: String(name).slice(0, 120), results: docs.length,
+      titles: docs.slice(0, 3).map(d => strip(d.title).slice(0, 120)),
+      courts: docs.slice(0, 3).map(d => strip(d.docsource).slice(0, 60)) });
+    stats.lastMisses = stats.lastMisses.slice(0, 3);
+    return { ...base, note: 'Not found on Indian Kanoon.' };
+  }
   stats.found++; stats.missStreak = 0;
   const url = `https://indiankanoon.org/doc/${encodeURIComponent(hit.tid)}/`;
   const decided = hit.publishdate || '';
