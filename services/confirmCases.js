@@ -24,9 +24,9 @@ const nameOf = c => String((c && (c.caseName || c.name)) || (typeof c === 'strin
 
 async function confirmPrecedents(analysis, { forum, timeoutMs = 45000, verify = verifyAuthorities } = {}) {
   if (!analysis || typeof analysis !== 'object') return null;
-  if (analysis.casesCheck && !analysis.casesCheck.failed) return analysis.casesCheck;
-  // A check that failed earlier is retried on the cases it held back.
-  if (analysis.casesCheck && analysis.casesCheck.failed) {
+  if (analysis.casesCheck && !analysis.casesCheck.failed && !analysis.casesCheck.pending) return analysis.casesCheck;
+  // A check that failed earlier, or was deferred, runs on the cases held back.
+  if (analysis.casesCheck && (analysis.casesCheck.failed || analysis.casesCheck.pending)) {
     analysis.precedentsNeeded = analysis.precedentsPending || [];
     delete analysis.casesCheck;
   }
@@ -75,4 +75,23 @@ async function confirmPrecedents(analysis, { forum, timeoutMs = 45000, verify = 
   return analysis.casesCheck;
 }
 
-module.exports = { confirmPrecedents };
+/**
+ * Defer the check: the analysis is sent to the student at once, with its
+ * suggested cases held back in precedentsPending (nothing unconfirmed is ever
+ * shown), and the page asks /api/confirm-cases to check them. This takes the
+ * 25-40 s case check off the wait for the analysis itself.
+ */
+function markPending(analysis) {
+  if (!analysis || typeof analysis !== 'object') return null;
+  if (analysis.casesCheck && !analysis.casesCheck.failed && !analysis.casesCheck.pending) return analysis.casesCheck;
+  const list = (Array.isArray(analysis.precedentsPending) && analysis.precedentsPending.length ? analysis.precedentsPending
+    : Array.isArray(analysis.precedentsNeeded) ? analysis.precedentsNeeded : [])
+    .map(c => (typeof c === 'string' ? { caseName: c } : c)).filter(c => c && nameOf(c));
+  if (!list.length) { analysis.precedentsNeeded = []; analysis.casesCheck = { suggested: 0, kept: 0, removed: 0 }; return analysis.casesCheck; }
+  analysis.precedentsPending = list;
+  analysis.precedentsNeeded = [];
+  analysis.casesCheck = { pending: true, suggested: list.length, kept: 0, removed: 0 };
+  return analysis.casesCheck;
+}
+
+module.exports = { confirmPrecedents, markPending };

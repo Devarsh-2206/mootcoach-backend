@@ -45,7 +45,7 @@ const FEATURES = {
  * analysis opens, so it counts towards the upload.
  */
 const ROUTES = [
-  [/^\/(analyze|extract-issues)\b|^\/api\/verify-authorities\b/, 'upload', /^\/analyze\b/],
+  [/^\/(analyze|extract-issues)\b|^\/api\/(verify-authorities|confirm-cases)\b/, 'upload', /^\/analyze\b/],
   [/^\/api\/build-argument\b/, 'draft', /^\/api\/build-argument\b/],
   [/^\/api\/(memorial-plan|build-memorial)\b/, 'memorial', /^\/api\/build-memorial\b/],
   [/^\/api\/analyse-memorial\b/, 'memorialReview', /^\/api\/analyse-memorial\b/],

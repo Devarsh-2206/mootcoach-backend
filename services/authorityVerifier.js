@@ -232,29 +232,45 @@ async function verifyAuthorities(authorities, opts = {}) {
   // Indian cases: Indian Kanoon's own database first (services/indianKanoon.js),
   // which also gives a link to the judgment. Anything it does not find, or
   // cannot be asked about, goes on to the web check below.
+  //
+  // For speed, the web check for the other cases starts at once, alongside
+  // Indian Kanoon, and Indian Kanoon is asked about up to 3 cases at a time
+  // (not one by one). Cases Indian Kanoon does not confirm get a second web check.
   const ik = require('./indianKanoon');
-  let web = todo;
-  if (todo.length && ik.active()) {
-    // At most MAX_PER_CHECK paid searches per check; the rest use the web check.
-    const indian = todo.filter(i => ik.looksIndian(items[i], opts.forum)).slice(0, ik.MAX_PER_CHECK);
-    web = todo.filter(i => !indian.includes(i));
-    // One at a time, so the pause safeguard stops the searches as soon as it trips.
-    for (const i of indian) {
-      let r = null;
-      if (ik.active()) {
-        try { r = await ik.confirmCase(items[i]); }
-        catch (err) { console.warn('[INDIAN KANOON] lookup failed:', err && err.message); }
-      }
-      if (r && r.status === 'verified') { out[i] = r; cacheSet(keyOf(items[i]), r); }
-      else web.push(i);
-    }
-  }
-  if (web.length) {
-    const batch = web.map(i => items[i]);
+  const IK_AT_ONCE = Number(process.env.INDIANKANOON_PARALLEL || 3);
+  const webCheck = async (idx) => {
+    if (!idx.length) return;
+    const batch = idx.map(i => items[i]);
     const { text, gm } = await groundedCall(buildPrompt(batch, opts.forum));
     const res = interpret(batch, text, gm);
-    for (let j = 0; j < web.length; j++) { out[web[j]] = res[j]; await cacheSet(keyOf(batch[j]), res[j]); }
+    for (let j = 0; j < idx.length; j++) { out[idx[j]] = res[j]; await cacheSet(keyOf(batch[j]), res[j]); }
+  };
+  let indian = [];
+  if (todo.length && ik.active()) {
+    // At most MAX_PER_CHECK paid searches per check; the rest use the web check.
+    indian = todo.filter(i => ik.looksIndian(items[i], opts.forum)).slice(0, ik.MAX_PER_CHECK);
   }
+  const firstWeb = todo.filter(i => !indian.includes(i));
+  const ikMisses = [];
+  const ikRun = (async () => {
+    for (let k = 0; k < indian.length; k += IK_AT_ONCE) {
+      const group = indian.slice(k, k + IK_AT_ONCE);
+      // The pause safeguard is checked before each group, so a run of misses
+      // still stops the searches early.
+      if (!ik.active()) { ikMisses.push(...group); continue; }
+      const found = await Promise.all(group.map(async (i) => {
+        try { return await ik.confirmCase(items[i]); }
+        catch (err) { console.warn('[INDIAN KANOON] lookup failed:', err && err.message); return null; }
+      }));
+      group.forEach((i, j) => {
+        const r = found[j];
+        if (r && r.status === 'verified') { out[i] = r; cacheSet(keyOf(items[i]), r); }
+        else ikMisses.push(i);
+      });
+    }
+  })();
+  await Promise.all([webCheck(firstWeb), ikRun]);
+  if (ikMisses.length) await webCheck(ikMisses);
   return out;
 }
 

@@ -43,5 +43,18 @@ const fake = (map) => async (items) => items.map(i => map[i.name] || { status: '
   const c = { precedentsNeeded: [{ caseName: 'Slow v. Check' }] };
   const r4 = await confirmPrecedents(c, { verify: () => new Promise(() => {}), timeoutMs: 50 });
   assert.ok(r4.failed); assert.strictEqual(c.precedentsNeeded.length, 0);
+  // Deferred check: the analysis goes out with its cases held back, none shown.
+  {
+    const { markPending, confirmPrecedents: cp } = require('../../services/confirmCases');
+    const a = { precedentsNeeded: [{ caseName: 'A v. B', citation: '(2017) 10 SCC 1' }, 'C v. D'] };
+    const c = markPending(a);
+    assert.deepStrictEqual(a.precedentsNeeded, []);
+    assert.strictEqual(a.precedentsPending.length, 2);
+    assert.ok(c.pending && c.suggested === 2);
+    // The later check runs on the held-back cases.
+    await cp(a, { verify: async (items) => items.map(it => ({ status: /A v\. B/.test(it.name) ? 'verified' : 'unverified', sources: [] })) });
+    assert.strictEqual(a.precedentsNeeded.length, 1); assert.ok(!a.precedentsPending); assert.ok(!a.casesCheck.pending);
+    assert.strictEqual(a.casesCheck.removed, 1);
+  }
   console.log('PASS confirm cases: keeps confirmed, corrects citations, leaves out the rest, holds back on failure');
 })().catch(e => { console.error('FAIL confirm cases:', e); process.exit(1); });

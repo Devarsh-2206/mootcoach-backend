@@ -910,51 +910,60 @@ function checkLink(c) {
   return ` <a class="cite-check-link" href="${esc(href)}" target="_blank" rel="noopener noreferrer">${indian ? 'Check on Indian Kanoon' : 'Check on Google Scholar'} ↗</a>`;
 }
 
-/* Confirms the held-back cases (a failed check, or an analysis saved before
-   cases were confirmed) and keeps only those confirmed. */
-window.checkCaseCitations = async function () {
+/* Confirms the held-back cases and keeps only those confirmed: a new
+   analysis (its cases are checked just after it is shown, so the student is
+   not kept waiting), a check that failed, or an analysis saved before cases
+   were confirmed. The server does the checking (/api/confirm-cases). */
+window.checkCaseCitations = async function (opts = {}) {
   const data = window.__casesData;
   const btn = document.getElementById('btn-check-citations');
-  if (!data || !btn) return;
-  const pool = ((data.casesCheck && data.casesCheck.failed ? data.precedentsPending : data.precedentsNeeded) || [])
+  if (!data) return;
+  if (data.__checking) return;
+  const held = data.casesCheck && (data.casesCheck.failed || data.casesCheck.pending);
+  const pool = ((held ? data.precedentsPending : data.precedentsNeeded) || [])
     .map(c => (typeof c === 'string' ? { caseName: c } : c)).filter(c => c && c.caseName);
   if (!pool.length) return;
-  btn.disabled = true; btn.textContent = 'Confirming…';
+  data.__checking = true;
+  if (btn) { btn.disabled = true; btn.textContent = 'Confirming…'; }
   try {
-    const forum = (lastAnalysis && lastAnalysis.detectedForum && lastAnalysis.detectedForum.forum) || '';
-    const kept = [];
-    for (let i = 0; i < pool.length; i += 12) {
-      const part = pool.slice(i, i + 12);
-      const res = await requestJson('/api/verify-authorities', { body: { authorities: part.map(c => ({ name: c.caseName, citation: c.citation && c.citation !== 'Citation unverified' ? c.citation : '' })), forum } });
-      (res.results || []).forEach((r, j) => {
-        r = regrade(r);
-        if (!r || (r.status !== 'verified' && r.status !== 'corrected')) return;
-        const c = { ...part[j] };
-        if (r.status === 'corrected' && r.foundCitation) { c.citationGiven = c.citation; c.citation = r.foundCitation; }
-        if (r.citationDropped) { c.citationGiven = c.citation; c.citation = ''; }
-        if (r.court) c.court = r.court;
-        if (r.date) c.decided = r.date;
-        if (r.url) c.judgmentUrl = r.url;
-        c.verification = { status: r.status, source: r.source || 'web', court: r.court, date: r.date, url: r.url, sources: (r.sources || []).slice(0, 2) };
-        kept.push(c);
-      });
-    }
+    const forum = (lastAnalysis && lastAnalysis.detectedForum && lastAnalysis.detectedForum.forum)
+      || (window.detectedForum && (window.detectedForum.forum || window.detectedForum.specificBody)) || '';
+    const res = await requestJson('/api/confirm-cases', { timeoutMs: 90000, body: { cases: pool, forum } });
+    const kept = res.precedentsNeeded || [];
     data.precedentsNeeded = kept;
     delete data.precedentsPending;
-    data.casesCheck = { suggested: pool.length, kept: kept.length, removed: pool.length - kept.length, checkedAt: new Date().toISOString() };
+    data.casesCheck = res.casesCheck || { suggested: pool.length, kept: kept.length, removed: pool.length - kept.length, checkedAt: new Date().toISOString() };
     // The analysis is also kept as text (lastAnalysis), which the Advocacy
     // authority list reads: give it the confirmed cases too.
     try {
       const o = JSON.parse(window.lastAnalysis || lastAnalysis);
-      o.precedentsNeeded = kept; o.casesCheck = data.casesCheck; delete o.precedentsPending;
+      const target = o.response && typeof o.response === 'object' ? o.response : o;
+      target.precedentsNeeded = kept; target.casesCheck = data.casesCheck; delete target.precedentsPending;
       const str = JSON.stringify(o); setLastAnalysis(str); window.lastAnalysis = str;
     } catch (e) { /* the page still shows the confirmed list */ }
+    // Saved with the moot, so reopening it shows the confirmed list straight away.
+    try {
+      const docId = window.currentMootDocId;
+      if (docId && docId !== 'default' && currentUser && db) {
+        db.collection('artifacts').doc('moot.coach').collection('users').doc(currentUser.uid)
+          .collection('analyses').doc(docId)
+          .update({ 'analysisData.precedentsNeeded': kept, 'analysisData.casesCheck': data.casesCheck, 'analysisData.precedentsPending': [] })
+          .catch(e => console.warn('[CASES] Could not save the confirmed cases:', e && e.message));
+      }
+    } catch (e) { /* the page still shows them */ }
     const block = document.getElementById('cases-block');
     if (block) block.innerHTML = renderCases('', kept, data);
-    showToast(`${kept.length} of ${pool.length} cases confirmed.`, 'ok');
+    try { window.dispatchEvent(new CustomEvent('mc:cases-confirmed', { detail: { kept: kept.length, suggested: pool.length } })); } catch (e) {}
+    if (!opts.auto) showToast(`${kept.length} of ${pool.length} cases confirmed.`, 'ok');
   } catch (err) {
-    btn.disabled = false; btn.textContent = 'Check the cases now';
-    showToast(err.message || 'Could not confirm the cases just now.', 'err');
+    // Nothing unconfirmed is shown; offer to try again.
+    data.casesCheck = { failed: true, suggested: pool.length, kept: 0, removed: 0 };
+    data.precedentsPending = pool; data.precedentsNeeded = [];
+    const block = document.getElementById('cases-block');
+    if (block) block.innerHTML = renderCases('', [], data);
+    if (!opts.auto) showToast(err.message || 'Could not confirm the cases just now.', 'err');
+  } finally {
+    data.__checking = false;
   }
 };
 
@@ -981,6 +990,15 @@ function casesSummary(check, shown) {
 
 export function renderCases(content, rawCasesArray, data) {
   const check = data && data.casesCheck;
+  // A new analysis: its cases are being checked right now (nothing is listed
+  // until confirmed). The check starts on its own.
+  if (check && check.pending) {
+    if (data) {
+      window.__casesData = data;
+      if (!data.__autoStarted) { data.__autoStarted = true; setTimeout(() => window.checkCaseCitations({ auto: true }), 0); }
+    }
+    return `<div class="cases-trust">Checking the ${check.suggested || ''} suggested cases on Indian Kanoon, court websites and law databases… Only the ones confirmed will appear here, usually within half a minute. You can read the rest of the analysis meanwhile.</div>`;
+  }
   // The check could not run: nothing unconfirmed is shown; offer to try again.
   if (check && check.failed) {
     if (data) window.__casesData = data;

@@ -567,6 +567,8 @@ const benchForecastRoute = require("./routes/benchForecast");
 // Services
 const { handleLiveVoiceConnection, getChatCompletion } = require("./services/geminiService");
 const usageMeter = require("./services/usageMeter");
+// CASES_INLINE=1 restores checking the suggested cases inside /analyze.
+const CASES_INLINE = process.env.CASES_INLINE === '1';
 const analysisCache = require("./services/analysisCache");
 const { createEmptyMemory, evaluateExchange } = require("./services/memoryEngine");
 const { extractPropositionIntelligence } = require("./services/propositionEngine");
@@ -598,7 +600,7 @@ const buildClaimExtractionPrompt = require("./prompts/claimExtractionPrompt");
 const { buildIndianLegalDirective } = require("./prompts/indianLegalFramework");
 const { buildForumDirective } = require("./prompts/forumDirective");
 const { applyCitationGuard, verifyFlaggedAuthorities } = require("./services/citationGuard");
-const { confirmPrecedents } = require("./services/confirmCases");
+const { confirmPrecedents, markPending } = require("./services/confirmCases");
 const { verifyAuthorities } = require("./services/authorityVerifier");
 const REVIEW_COLUMN = require("./services/reviewColumn");
 const { runAssistant } = require("./services/assistant");
@@ -1037,9 +1039,10 @@ app.post("/analyze", requireUser({ allowPrewarm: true }), pilotGate({ bucket: 'u
           ', seen ' + (hit.hits + 1) + ' times). No provider call made.');
         // Analyses cached before cases were confirmed are checked now (the
         // verifier's own cache makes this quick), so no unconfirmed case is shown.
-        if (hit.payload && hit.payload.response && (!hit.payload.response.casesCheck || hit.payload.response.casesCheck.failed)) {
+        if (hit.payload && hit.payload.response && (!hit.payload.response.casesCheck || hit.payload.response.casesCheck.failed || hit.payload.response.casesCheck.pending)) {
           const f = hit.payload.detectedForum;
-          await confirmPrecedents(hit.payload.response, { forum: f && (f.forum || f.specificBody || f.name) });
+          if (CASES_INLINE) await confirmPrecedents(hit.payload.response, { forum: f && (f.forum || f.specificBody || f.name) });
+          else markPending(hit.payload.response);
         }
         return res.json(Object.assign({ success: true, cached: true }, hit.payload));
       }
@@ -1360,8 +1363,12 @@ app.post("/analyze", requireUser({ allowPrewarm: true }), pilotGate({ bucket: 'u
       issueIntelligence, authorityIntelligence, advocacyIntelligence
     }] = await Promise.all([
       runEnrichment(rawPropIntel, propIntelError, forumContext),
-      confirmPrecedents(analysisData, { forum: forumContext && (forumContext.forum || forumContext.specificBody || forumContext.name) })
-        .catch(err => console.error('[CASES] confirm failed:', err && err.message)),
+      // By default the case check runs after the response (/api/confirm-cases,
+      // asked for by the page), so the student reads the analysis ~30 s sooner.
+      CASES_INLINE
+        ? confirmPrecedents(analysisData, { forum: forumContext && (forumContext.forum || forumContext.specificBody || forumContext.name) })
+            .catch(err => console.error('[CASES] confirm failed:', err && err.message))
+        : Promise.resolve(markPending(analysisData)),
     ]);
 
     const payload = {
@@ -2079,6 +2086,37 @@ app.post("/api/review-column", featureGate("reviewColumn"), signedIn, pilotGate(
    returns, per authority, verified / corrected / unverified with sources.
    An authority is never "verified" on the model's word alone: see
    services/authorityVerifier.js. Cached, so re-checking a case costs nothing. */
+/**
+ * The analysis's suggested cases, checked after the analysis is shown (see
+ * markPending in services/confirmCases.js). Part of the upload, so it does
+ * not count against the student's other allowances. Returns only the cases
+ * confirmed, and how many were left out.
+ */
+app.post("/api/confirm-cases", signedIn, requirePilot, aiLimiter, express.json({ limit: '64kb' }), async (req, res) => {
+  const cases = (Array.isArray(req.body && req.body.cases) ? req.body.cases : [])
+    .filter(c => c && typeof c === 'object' && String(c.caseName || c.name || '').trim())
+    .slice(0, 20)
+    .map(c => ({
+      caseName: String(c.caseName || c.name).slice(0, 300),
+      citation: String(c.citation || '').slice(0, 200),
+      jurisdiction: String(c.jurisdiction || '').slice(0, 60),
+      holdingRelevant: String(c.holdingRelevant || '').slice(0, 1500),
+      confidenceLevel: String(c.confidenceLevel || '').slice(0, 20),
+      caveat: c.caveat == null ? null : String(c.caveat).slice(0, 300),
+    }));
+  if (!cases.length) return res.json({ success: true, precedentsNeeded: [], casesCheck: { suggested: 0, kept: 0, removed: 0 } });
+  const forum = typeof req.body.forum === 'string' ? req.body.forum.slice(0, 200) : '';
+  const analysis = { precedentsNeeded: cases };
+  try {
+    // Not on the student's wait any more, so it can take longer than the inline check.
+    await confirmPrecedents(analysis, { forum, timeoutMs: 75000 });
+    return res.json({ success: true, precedentsNeeded: analysis.precedentsNeeded || [], casesCheck: analysis.casesCheck });
+  } catch (error) {
+    console.error('/api/confirm-cases error:', String(error && error.message).slice(0, 200));
+    return res.status(502).json({ success: false, error: 'Could not check the cases just now. Try again in a moment.' });
+  }
+});
+
 app.post("/api/verify-authorities", signedIn, pilotGate({ bucket: 'extras' }), aiLimiter, express.json({ limit: '32kb' }), async (req, res) => {
   const list = Array.isArray(req.body && req.body.authorities) ? req.body.authorities : null;
   if (!list || !list.length) return res.status(400).json({ success: false, error: 'Send the authorities to check.' });

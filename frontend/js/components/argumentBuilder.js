@@ -4124,3 +4124,13 @@ export async function generateBenchForecast() {
 }
 
 window.generateBenchForecast = generateBenchForecast;
+
+// The analysis's cases are now confirmed just after it is shown. If the student
+// is already in Advocacy when they arrive, refresh the authority lists.
+window.addEventListener('mc:cases-confirmed', () => {
+  try { renderPreDraftAuthorities(); } catch (e) { /* not on screen */ }
+  try {
+    const t = document.getElementById('advocacy-active-issue-title');
+    if (document.getElementById('advocacy-authority-dock') && t) renderAdvocacyAuthorities(t.textContent || '');
+  } catch (e) { /* not on screen */ }
+});
