@@ -81,6 +81,27 @@ const fetchImpl = async (url, init) => {
   assert.ok(ik.titleMatches('Shreya Singhal v. Union of India', 'Shreya Singhal vs U.O.I on 24 March, 2015'));
   assert.ok(!ik.titleMatches('Imaginary Traders v. Union of India', 'Shreya Singhal vs U.O.I on 24 March, 2015'));
 
+  // Realistic Indian Kanoon titles: abbreviations, initials, truncation — and
+  // near-misses that must NOT match.
+  const PAIRS = [
+    ['State of Uttar Pradesh v. Raj Narain', 'State Of U.P. vs Raj Narain & Ors on 24 January, 1975', true],
+    ['Additional District Magistrate, Jabalpur v. Shivkant Shukla', 'ADM Jabalpur vs Shivkant Shukla on 28 April, 1976', true],
+    ['Commissioner of Income Tax v. Vatika Township', 'CIT vs M/S Vatika Township P.Ltd on 15 September, 2014', true],
+    ['PUCL v. Union of India', "People'S Union For Civil Liberties vs Union Of India on 13 September, 2013", true],
+    ['Government of NCT of Delhi v. Union of India', 'Govt Of Nct Of Delhi vs Union Of India on 4 July, 2018', true],
+    ['Indian Medical Association v. Union of India', 'Indian Medical Assn. vs U.O.I on 7 May, 2024', true],
+    ['State of Tamil Nadu v. K. Balu', 'State Of T.N. & Anr vs K. Balu & Anr on 15 December, 2016', true],
+    ['Kesavananda Bharati v. State of Kerala', 'Kesavananda Bharati Sripadagalvaru ... vs State Of Kerala And Anr on 24 April, 1973', true],
+    ['K.S. Puttaswamy v. Union of India', 'Justice K.S.Puttaswamy(Retd) vs Union Of India on 26 September, 2018', true],
+    ['Modern Dental College and Research Centre v. State of Madhya Pradesh', 'Modern Dental College & Research Cen vs State Of Madhya Pradesh & Ors on 2 May, 2016', true],
+    ['A.P. Shah v. Union of India', 'State Of Andhra Pradesh vs Shah on 1 May, 2000', false],
+    ['State of Uttar Pradesh v. Raj Narain', 'State Of M.P. vs Raj Narain on 1 May, 1980', false],
+    ['CIT v. Vatika Township', 'Central Bureau Of Investigation vs Vatika Township on 1 Jan, 2014', false],
+  ];
+  for (const [n, t, want] of PAIRS) assert.strictEqual(ik.titleMatches(n, t), want, `${n} <> ${t}`);
+  assert.strictEqual(ik.buildQuery('CIT v. Vatika Township', '(2015) 1 SCC 1'), 'title: vatika township doctypes: supremecourt');
+  assert.strictEqual(ik.buildQuery('ADM Jabalpur v. Shivkant Shukla', '(1976) 2 SCC 521'), 'title: shivkant shukla doctypes: supremecourt');
+
   // Searches aim at titles and the Supreme Court, by the most distinctive party.
   assert.strictEqual(ik.buildQuery('Shreya Singhal v. Union of India', '(2015) 5 SCC 1'), 'title: shreya singhal doctypes: supremecourt');
   assert.strictEqual(ik.buildQuery('K.S. Puttaswamy v. Union of India', '(2017) 10 SCC 1'), 'title: puttaswamy doctypes: supremecourt');

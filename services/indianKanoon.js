@@ -60,19 +60,53 @@ const STOP = new Set(['the', 'of', 'and', 'v', 'vs', 'versus', 'ltd', 'limited',
  * common forms before comparing.
  */
 const ABBREV = [
+  // Union, government, offices.
   [/\bU\.?\s?O\.?\s?I\b\.?/gi, ' union of india '],
   [/\bGovt\b\.?/gi, ' government '],
-  [/\bNct\b/gi, ' nct '],
+  [/\bG\.?\s?N\.?\s?C\.?\s?T\.?\s?D\b\.?/gi, ' government of nct of delhi '],
   [/\bCorpn\b\.?/gi, ' corporation '],
   [/\bComm(?:r|issr)\b\.?/gi, ' commissioner '],
-  [/\bAssn\b\.?/gi, ' association '],
+  [/\bAddl\b\.?/gi, ' additional '],
+  [/\bDy\b\.?/gi, ' deputy '],
+  [/\bAsstt?\b\.?/gi, ' assistant '],
+  [/\bSupdt\b\.?/gi, ' superintendent '],
+  [/\bSecy\b\.?/gi, ' secretary '],
+  [/\bDeptt?\b\.?/gi, ' department '],
+  [/\bDistt?\b\.?/gi, ' district '],
+  [/\bMunl?\b\.?/gi, ' municipal '],
+  [/\bInsp\b\.?/gi, ' inspector '],
+  [/\bAssn\b\.?|\bAssoc\b\.?/gi, ' association '],
+  [/\bCo-?op\b\.?/gi, ' cooperative '],
+  [/\bSoc\b\.?/gi, ' society '],
+  [/\bUniv\b\.?/gi, ' university '],
+  [/\bInstt?\b\.?/gi, ' institute '],
+  [/\bMfg\b\.?/gi, ' manufacturing '],
+  [/\bInds?\b\.(?=\s|$)/gi, ' industries '],
+  [/\bBros\b\.?/gi, ' brothers '],
+  // Bodies usually written as acronyms on one side and in full on the other.
+  [/\bC\.?\s?I\.?\s?T\b\.?/g, ' commissioner of income tax '],
+  [/\bC\.?\s?B\.?\s?I\b\.?/g, ' central bureau of investigation '],
+  [/\bS\.?\s?E\.?\s?B\.?\s?I\b\.?/g, ' securities and exchange board of india '],
+  [/\bR\.?\s?B\.?\s?I\b\.?/g, ' reserve bank of india '],
+  [/\bP\.?\s?U\.?\s?C\.?\s?L\b\.?/g, ' peoples union for civil liberties '],
+  [/\bA\.?\s?D\.?\s?M\b\.?/g, ' additional district magistrate '],
+  [/\bL\.?\s?I\.?\s?C\b\.?/g, ' life insurance corporation '],
+  // State abbreviations ONLY after "State of" / "Government of", so a
+  // person's initials ("A.P. Shah") are never read as a state.
+  [/\b((?:state|government|govt\.?)\s+of)\s+U\.\s?P\b\.?/gi, ' $1 uttar pradesh '],
+  [/\b((?:state|government|govt\.?)\s+of)\s+M\.\s?P\b\.?/gi, ' $1 madhya pradesh '],
+  [/\b((?:state|government|govt\.?)\s+of)\s+A\.\s?P\b\.?/gi, ' $1 andhra pradesh '],
+  [/\b((?:state|government|govt\.?)\s+of)\s+H\.\s?P\b\.?/gi, ' $1 himachal pradesh '],
+  [/\b((?:state|government|govt\.?)\s+of)\s+T\.\s?N\b\.?/gi, ' $1 tamil nadu '],
+  [/\b((?:state|government|govt\.?)\s+of)\s+W\.\s?B\b\.?/gi, ' $1 west bengal '],
+  [/\b((?:state|government|govt\.?)\s+of)\s+J\.?\s?(?:&|and)\s?K\b\.?/gi, ' $1 jammu and kashmir '],
 ];
 const expand = (s) => ABBREV.reduce((t, [re, to]) => t.replace(re, to), String(s || ''));
 const words = (s) => expand(s).toLowerCase().replace(/&/g, ' and ').replace(/[^a-z0-9 ]+/g, ' ').split(/\s+/).filter(w => w && !STOP.has(w));
 
 /** "A v. B" → [A words, B words]; a single-party name → [words]. */
 function sides(name) {
-  const parts = String(name || '').split(/\s+(?:v\.?|vs\.?|versus)\s+/i);
+  const parts = expand(name).split(/\s+(?:v\.?|vs\.?|v\/s\.?|versus)\s+/i);
   return parts.slice(0, 2).map(words).filter(p => p.length);
 }
 
@@ -82,8 +116,13 @@ function titleMatches(caseName, title) {
   const ss = sides(caseName);
   if (!ss.length) return false;
   return ss.every(side => {
-    const hit = side.filter(w => t.has(w)).length;
-    return hit >= Math.max(1, Math.ceil(side.length * 0.6));
+    // Single letters (initials) are not counted: titles write them in many ways.
+    const real = side.filter(w => w.length > 1);
+    const need = real.length ? real : side;
+    const hit = need.filter(w => t.has(w)).length;
+    // A short party name must match completely ("State of Uttar Pradesh" is not
+    // "State of M.P."); a long one may be abbreviated in the title, so 60%.
+    return need.length <= 3 ? hit === need.length : hit >= Math.ceil(need.length * 0.6);
   });
 }
 
@@ -103,7 +142,7 @@ const strip = (s) => String(s || '').replace(/<[^>]+>/g, '').replace(/&amp;/g, '
  * known; they could not be checked against its documentation from the build
  * environment. INDIANKANOON_QUERY=plain restores the old full-name search.
  */
-const GENERIC = new Set(['for', 'to', 'a', 'an', 'with', 'from', 'union', 'india', 'state', 'government', 'commissioner', 'collector', 'municipal', 'corporation',
+const GENERIC = new Set(['for', 'to', 'a', 'an', 'with', 'from', 'additional', 'deputy', 'assistant', 'superintendent', 'inspector', 'income', 'tax', 'central', 'bureau', 'investigation', 'securities', 'exchange', 'reserve', 'bank', 'life', 'insurance', 'police', 'station', 'union', 'india', 'state', 'government', 'commissioner', 'collector', 'municipal', 'corporation',
   'district', 'magistrate', 'secretary', 'director', 'officer', 'board', 'authority', 'council', 'republic', 'people',
   'peoples', 'public', 'prosecutor', 'kerala', 'bihar', 'maharashtra', 'karnataka', 'rajasthan', 'madhya', 'pradesh',
   'uttar', 'tamil', 'nadu', 'west', 'bengal', 'punjab', 'haryana', 'gujarat', 'delhi', 'bombay', 'andhra', 'telangana',
