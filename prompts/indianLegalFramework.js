@@ -57,6 +57,10 @@ CRIMINAL — NOTE THE 2023 RECODIFICATION
   Bharatiya Sakshya Adhiniyam 2023 replaced the Indian Evidence Act 1872.
   All three took effect on 1 July 2024. Offences committed BEFORE that date continue
   to be tried under the old codes, so identify the date of the offence before citing.
+  Apply this event by event: an arrest, search or production on or after 1 July 2024 is
+  governed by the BNSS even in an older case. Never write paired references such as
+  "Section 41A CrPC / Section 35 BNSS": cite the provision that governs that event, and
+  give the old section only as "(formerly s. 41A CrPC)".
   Special Acts: NDPS 1985, POCSO 2012, PMLA 2002, UAPA 1967, Prevention of Corruption 1988,
   SC/ST (Prevention of Atrocities) Act 1989, Juvenile Justice Act 2015.
 

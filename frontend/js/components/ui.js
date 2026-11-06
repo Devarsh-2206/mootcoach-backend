@@ -1894,6 +1894,25 @@ export function renderStage2Issues() {
     return;
   }
 
+  // Give each issue the bench question (or weakness) that best matches it,
+  // each used once. Shared words like "petitioner" or "article" made one
+  // question match every issue, so the same text appeared under several.
+  const COMMON = new Set(('whether petitioner respondent article articles constitution court supreme high under section '
+    + 'india state union order orders right rights violate violates liable their there which would should could '
+    + 'about against within without being under issue issues petition').split(' '));
+  const sigWords = w => new Set((String(w).toLowerCase().match(/[a-z][a-z0-9()]{4,}|\b\d{2,3}\b/g) || []).filter(x => !COMMON.has(x)));
+  const assign = (list) => {
+    const out = issues.map(() => null);
+    const pairs = [];
+    issues.forEach((iss, i) => { const mine = sigWords(iss);
+      list.forEach((q, j) => { let n = 0; sigWords(q).forEach(w => { if (mine.has(w)) n++; }); if (n >= 2) pairs.push({ i, j, n }); }); });
+    pairs.sort((a, b) => b.n - a.n);
+    const usedI = new Set(), usedJ = new Set();
+    for (const { i, j } of pairs) { if (usedI.has(i) || usedJ.has(j)) continue; out[i] = list[j]; usedI.add(i); usedJ.add(j); }
+    return out;
+  };
+  const benchFor = assign(benchQs), vulnFor = assign(vulns);
+
   const selectEl = document.getElementById('builder-issue-select');
   const currentVal = selectEl ? selectEl.value : '';
 
@@ -1940,17 +1959,10 @@ export function renderStage2Issues() {
           advice = intel.issueDefinition.whyItMatters;
           adviceLabel = 'Why it matters';
         } else {
-          // The bench question (or known weakness) that shares the most
-          // substantive words with this issue - shown only on a real match.
-          const words = w => new Set(String(w).toLowerCase().match(/[a-z][a-z0-9()]{4,}/g) || []);
-          const mine = words(issue);
-          const best = (list) => {
-            let top = null, score = 0;
-            list.forEach(q => { let n = 0; words(q).forEach(w => { if (mine.has(w)) n++; }); if (n > score) { score = n; top = q; } });
-            return score >= 2 ? top : null;
-          };
-          const q = best(benchQs);
-          const v = best(vulns);
+          // The bench question (or known weakness) matched to this issue
+          // above — shown only on a real match, never reused for another issue.
+          const q = benchFor[idx];
+          const v = vulnFor[idx];
           if (q) { advice = q; adviceLabel = 'Expect from the bench'; }
           else if (v) { advice = v; adviceLabel = 'Watch for'; }
         }
