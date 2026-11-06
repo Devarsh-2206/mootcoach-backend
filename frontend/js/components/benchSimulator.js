@@ -970,7 +970,11 @@ export async function submitToBench() {
       ? `\n[Known weaknesses in the advocate's side — probe these relentlessly]\n- ${defects.slice(0, 4).join('\n- ')}\n`
       : '';
 
-    const judgeDirective = getJudgeDirective();
+    // The server builds the presiding judge's persona from judges.json when it
+    // is told which judge was picked, so the directive is only sent here as a
+    // fallback when there is no judge id.
+    const presiding = getPresidingJudge();
+    const judgeDirective = presiding && presiding.id ? '' : getJudgeDirective();
     const depthDirective = getDepthDirective();
     const contextPrefix = `${forumDirective}${judgeDirective ? '\n' + judgeDirective : ''}${depthDirective ? '\n' + depthDirective : ''}\n[Advocate Side: ${String(selectedStance).toUpperCase()}] [Target Issue: ${selectedIssue || 'General'}] [Selected Authorities: ${selectedAuthsText}]${draftBlock}${predictedBlock}${defectBlock}\n\n`;
 
@@ -995,6 +999,8 @@ export async function submitToBench() {
           };
         })(),
         propositionSummary: contextPrefix + (currentPropositionContext || ''),
+        judgeId: (presiding && presiding.id) || '',
+        rosterKey: getActiveRosterKey() || '',
         difficulty: benchDifficultyMode,
         studentStatement: statement,
         claimLedger: claimLedger

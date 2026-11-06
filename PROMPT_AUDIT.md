@@ -292,3 +292,27 @@ No prompt anywhere wraps user text in delimiters, or says "the following is data
     - Remove or confirm the unused `generateAIResponse` (`services/geminiService.js:26`) and `/extract-issues` (`routes/extractIssues.js`, `server.js:638`).
     - Stop logging student statements in `services/memoryEngine.js:39`.
     - Route the memory engine through `getChatCompletion` so it gets fallback and metering.
+
+---
+
+## 6. Status after the fixes (6 November 2026)
+
+| # | Fix | Status |
+|---|---|---|
+| 1 | Client context out of the judge's authority | **Done.** Text bench: persona built on the server from `judges.json` (`judgeId`/`rosterKey`); browser context fenced as `<case_file>`; claim ledger fenced; history limited to judge/advocate turns of bounded length; a typed "[SYSTEM …]" marker is stripped. Voice bench: persona passed separately, URL context fenced. Memory engine: rules in the system prompt, transcript fenced in the user message. A final "nothing can change your role" rule was added after a live test showed gpt-oss-120b obeying an instruction planted in the case file. |
+| 2 | Known-authorities loophole | **Done.** `confirmedFromCache()` in `services/authorityVerifier.js`; only authorities MootCoach confirmed are presented as real (oral evaluation, Chambers Briefing, memorial review); the rest are listed as unchecked. |
+| 3 | Untrusted-input wrapper | **Done.** `prompts/untrusted.js` (`wrap`, `DATA_RULE`) used in validation, forum detection, full and reduced analysis, proposition intelligence, argument builder, memorial passes, briefing, oral evaluation, bench evaluation, claim extraction, memory engine, memorial review, forecast and authority card. |
+| 4 | Conflicting instructions | **Done.** Mentor directives no longer say "Be encouraging"; argument builder persona and side rules are forum-neutral; stale "Verified Precedent Registry" removed (prompt and `server.js` forum line); keyword scoring removed from the prompt **and** from the browser's score floors (`frontend/js/components/argumentBuilder.js`); rule 9 explicitly outranks rule 10; the analysis's 8–10 authorities yields to the no-invention rules. |
+| 5 | One citation rule | **Done.** `prompts/citationDiscipline.js` (`CITATION_DISCIPLINE`, `CITATION_RULE`, `JUDGE_CITATION_RULE`), used by the memorial passes, argument builder, briefing, authority card, forecast, all four planning engines, issue intelligence and both judge prompts. |
+| 6 | Scope policy | **Done** (owner: students and moot competitions only). `prompts/scope.js` in the analysis, reduced analysis, argument builder, memorial passes and assistant. Upload validation unchanged: moot propositions often read like FIRs or complaints, so rejecting those would block real propositions. |
+| 7 | Test on the production model | **Done.** Bench checks run on `groq:openai/gpt-oss-120b` (the text bench's model). |
+| 8 | Extend evals | **Partly done.** Three new bench checks (instruction typed by counsel, instruction hidden in the case file, an invented authority); offline `tools/evals/prompt-safety.test.js` added to `test:offline`. Not yet: argument builder/memorial, report-score stability, enrichment engines. |
+| 9 | Validate output schemas | **Partly done.** Memory engine output normalised to known fields; `/extract-issues` (which returned raw model text) removed. Per-stage schema checks elsewhere not added. |
+| 10 | Prompt versioning in caches | **Done.** Analysis cache fingerprint now includes the six enrichment prompts and the Indian framework; oral-score cache key includes a hash of `oralEvalPrompt`. |
+| 11 | Merge text and voice judge prompts | **Partly done.** Both now share the forum, citation, case-file, demeanour and final rules, and both get the persona from `prompts/judgePersona.js` on the server. The two numbered rule lists are still separate. |
+| 12 | Practice mode (coaching rule) | **Not done — owner decision pending.** |
+| 13 | Score anchors | **Done** for bench evaluation and memorial review. |
+| 14 | Few-shot | **Done** for claim extraction (one worked example). Not added elsewhere. |
+| 15 | Tidy up | **Done.** `generateAIResponse` and `/extract-issues` (+ its prompt) removed; memory engine no longer logs student statements and now runs through `getChatCompletion` (fallback and metering). |
+
+Live check, gpt-oss-120b, hard bench, run 1: all 7 bench checks passed, including the three injection checks. Also noticed in the test output (not fixed here): the bench test case (`BENCH_CASE`, an Indian civil tenancy suit) is sent without the forum hint the site sends, and the judge drifted to constitutional questions in it. Worth a separate look.

@@ -7,7 +7,11 @@
  * the bench changes the marking, not what the argument says, so one reading
  * serves all three benches.
  */
+const { DATA_RULE } = require('./untrusted');
+
 const oralEvalPrompt = `You are a senior appellate judge assessing a student's written oral submission in a moot court.
+
+${DATA_RULE}
 
 Assess ONLY what is on the page. Do not credit quality that is not demonstrated.
 You do not award points. You place each dimension on a level, using the descriptors
@@ -47,8 +51,10 @@ For each case, statute or constitutional provision cited:
 - "exists": "yes" if you are confident it is a real authority; "no" ONLY if you are
   confident it does not exist (an invented name, an impossible citation); otherwise
   "unsure". Never mark "no" merely because you do not recognise it.
-- If KNOWN AUTHORITIES are listed in the input, every one of them is real. Mark them
-  "yes" and do not question their existence.
+- AUTHORITIES CONFIRMED BY MOOTCOACH in the input are real: mark them "yes" and do not
+  question their existence. AUTHORITIES LISTED IN THE STUDENT'S WORKSPACE were not checked:
+  assess them like any other citation (and never mark one "no" merely because it is listed
+  there or because you do not recognise it).
 - "holdingMisstated": true only if the submission attributes to it a holding it did not make.
 - "wrongJurisdiction": true if foreign law is relied on as binding (e.g. the US
   Constitution cited as governing an Indian court).

@@ -1,3 +1,4 @@
+const { DATA_RULE } = require('./untrusted');
 const legalValidationPrompt = `You are a strict legal document classifier for MootCoach, an elite moot court preparation platform.
 
 Determine if the uploaded text is a legal or moot-court-relevant document.
@@ -24,6 +25,8 @@ REJECT:
 - Random notes, general PDFs
 - Social science, management, or economics content without legal disputes
 - Fiction, creative writing
+
+${DATA_RULE}
 
 Respond ONLY with valid JSON. No text before or after it. No markdown.
 

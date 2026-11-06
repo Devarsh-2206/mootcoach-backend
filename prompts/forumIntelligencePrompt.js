@@ -1,3 +1,4 @@
+const { CITATION_RULE } = require('./citationDiscipline');
 const FORUM_INTELLIGENCE_PROMPT = `You are the Forum Intelligence Engine for an elite Moot Court platform.
 Your objective is to analyze the Proposition Intelligence and Procedural Hierarchy, and determine the exact adjudicatory body, applicable procedural rules, burden of proof, and correct terminology.
 
@@ -10,6 +11,8 @@ RULES:
 3. Identify the adjudicator model (e.g., Arbitral Tribunal, Constitutional Bench).
 4. Provide strict terminology overrides (what to call the court, judge, plaintiff, and defendant).
 5. Explain how the forum's rules impact the first two levels of the procedural hierarchy.
+
+${CITATION_RULE}
 
 RETURN ONLY VALID JSON MATCHING THE FOLLOWING SCHEMA:
 {

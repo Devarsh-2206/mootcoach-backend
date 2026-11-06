@@ -258,4 +258,25 @@ async function verifyAuthorities(authorities, opts = {}) {
   return out;
 }
 
-module.exports = { verifyAuthorities, interpret, buildPrompt, grade, tierOf, MAX_ITEMS };
+/**
+ * Which of these authority strings MootCoach has itself confirmed (from the
+ * verification cache: Indian Kanoon or a trusted web source), without new
+ * lookups. Used where the browser sends "the authorities in this moot": only
+ * the ones confirmed here may be presented to a model as real. A string is
+ * tried as "Name, citation" and as the name alone. At most `max` are checked.
+ */
+async function confirmedFromCache(list, max = 30) {
+  const out = new Set();
+  const items = [...new Set((Array.isArray(list) ? list : []).map(x => String(x || '').trim()).filter(Boolean))].slice(0, max);
+  await Promise.all(items.map(async (raw) => {
+    const m = raw.match(/^(.*?),\s*((?:\(|\[|AIR\b|\d).*)$/);
+    const tries = m ? [{ name: m[1], citation: m[2] }, { name: m[1], citation: '' }] : [{ name: raw, citation: '' }];
+    for (const t of tries) {
+      const v = grade(await cacheGet(keyOf(t)));
+      if (v && !v.weakOnly && (v.status === 'verified' || v.status === 'corrected')) { out.add(raw); return; }
+    }
+  }));
+  return out;
+}
+
+module.exports = { confirmedFromCache, verifyAuthorities, interpret, buildPrompt, grade, tierOf, MAX_ITEMS };

@@ -17,7 +17,7 @@ async function extractPropositionIntelligence(fullText) {
         { role: "system", content: PROPOSITION_INTELLIGENCE_PROMPT },
         {
           role: "user",
-          content: `Extract the intelligence from this proposition. Return ONLY valid JSON matching the schema.\n\n${fullText.slice(0, 45000)}`
+          content: `Extract the intelligence from this proposition. Return ONLY valid JSON matching the schema.\n\n${require('../prompts/untrusted').wrap('proposition', fullText.slice(0, 45000))}`
         }
       ],
       temperature: 0.1, // Very low temperature for highly structured schema adherence

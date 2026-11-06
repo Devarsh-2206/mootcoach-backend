@@ -1,9 +1,22 @@
-const Groq = require("groq-sdk");
-const { buildMemoryExtractionPrompt } = require("../prompts/memoryExtractionPrompt");
+const { MEMORY_EXTRACTION_SYSTEM, buildMemoryExtractionUser } = require("../prompts/memoryExtractionPrompt");
 
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY
-});
+/** Keep only the fields and types the bench uses; anything else is dropped. */
+function normaliseMemoryResult(r) {
+  const o = r && typeof r === "object" ? r : {};
+  const arr = (v) => (Array.isArray(v) ? v : []);
+  const str = (v, n = 400) => String(v == null ? "" : v).slice(0, n);
+  const ev = o.evasion && typeof o.evasion === "object" ? o.evasion : {};
+  return {
+    new_concessions: arr(o.new_concessions).slice(0, 5).map(c => ({
+      statement: str(c && c.statement), issueContext: str(c && c.issueContext, 200),
+      confidence: Math.max(0, Math.min(1, Number(c && c.confidence) || 0)) })).filter(c => c.statement),
+    evasion: { detected: ev.detected === true, reason: str(ev.reason, 300),
+      severity: ["low", "medium", "blatant"].includes(ev.severity) ? ev.severity : "" },
+    unanswered_questions: arr(o.unanswered_questions).slice(0, 5).map(q => str(q, 300)).filter(Boolean),
+    contradictions: arr(o.contradictions).slice(0, 5).map(c => ({
+      statement: str(c && c.statement), conflictsWith: str(c && c.conflictsWith) })).filter(c => c.statement),
+  };
+}
 
 function createEmptyMemory() {
   return {
@@ -21,22 +34,26 @@ function createEmptyMemory() {
 async function evaluateExchange(currentMemory, exchangeTranscript) {
   if (!exchangeTranscript || exchangeTranscript.trim() === "") return null;
 
-  const prompt = buildMemoryExtractionPrompt(currentMemory, exchangeTranscript);
-
   try {
-    const response = await groq.chat.completions.create({
-      model: "openai/gpt-oss-120b",
+    // Through the shared client (lazily: geminiService requires this file), so
+    // the call gets the Gemini fallback, the usage meter and the spend meter.
+    const { getChatCompletion } = require("./geminiService");
+    const call = await getChatCompletion({
       messages: [
-        { role: "system", content: prompt },
-        { role: "user", content: "Extract memory states strictly following the JSON schema." }
+        { role: "system", content: MEMORY_EXTRACTION_SYSTEM },
+        { role: "user", content: buildMemoryExtractionUser(currentMemory, exchangeTranscript) }
       ],
       temperature: 0.1,
       max_tokens: 1500,
-      response_format: { type: "json_object" }
+      primaryProvider: "groq",
+      geminiMaxAttempts: 1,
+      groqMaxAttempts: 1,
+      requestLabel: "Bench memory (shadow evaluator)"
     });
 
-    const result = JSON.parse(response.choices[0].message.content);
-    console.log("[MEMORY ENGINE] Shadow Evaluator Result:", JSON.stringify(result, null, 2));
+    const result = normaliseMemoryResult(JSON.parse(String(call.text || "").replace(/```json|```/g, "").trim()));
+    // Counts only: the result quotes the student's own words.
+    console.log(`[MEMORY ENGINE] concessions ${result.new_concessions.length}, evasion ${result.evasion.detected ? result.evasion.severity || 'yes' : 'no'}, unanswered ${result.unanswered_questions.length}, contradictions ${result.contradictions.length}`);
 
     return applyMemoryUpdates(currentMemory, result);
   } catch (error) {
@@ -97,6 +114,7 @@ function applyMemoryUpdates(currentMemory, updates) {
 }
 
 module.exports = {
+  _normaliseMemoryResult: normaliseMemoryResult,
   createEmptyMemory,
   evaluateExchange
 };

@@ -19,6 +19,9 @@
  * as reduced so the interface can say so.
  */
 
+const { DATA_RULE } = require('./untrusted');
+const { SCOPE_RULE } = require('./scope');
+
 module.exports = `You are a senior mooting coach reading a moot proposition for an advocate who needs to start work now.
 
 You are producing a SHORT working analysis, not a complete one. Do four things well rather than ten things thinly.
@@ -37,6 +40,10 @@ RETURN ONLY a valid JSON object, no markdown fences, in exactly this shape:
     "One line per argument the respondent/defendant can actually run. These must genuinely answer the petitioner's points, not restate them in the negative."
   ]
 }
+
+${DATA_RULE}
+
+${SCOPE_RULE}
 
 RULES
 

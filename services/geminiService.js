@@ -23,51 +23,6 @@ const withTimeout = (promise, ms = 120000) => {
   ]);
 };
 
-const generateAIResponse = async (prompt, retries = 2) => {
-  const safetySettings = [
-    { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
-    { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
-    { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
-    { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
-  ];
-
-  for (let attempt = 0; attempt <= retries; attempt++) {
-    try {
-      const result = await withTimeout(
-        ai.models.generateContent({
-          model: "gemini-3.8-flash",
-          contents: prompt,
-          config: {
-            responseMimeType: "application/json",
-            safetySettings
-          }
-        }),
-        120000 // 2 minutes
-      );
-
-      const response = result?.text;
-
-      if (!response || response.trim().length === 0) {
-        throw new Error("Empty Gemini response");
-      }
-
-      return response;
-    } catch (error) {
-      console.error(`Gemini attempt ${attempt + 1} failed:`, error.message);
-      
-      if (error.message.includes("404") || error.message.includes("API key")) {
-        throw error; // Fatal error, don't retry
-      }
-
-      if (attempt < retries) {
-        await delay(2000 * (attempt + 1));
-        continue;
-      }
-      throw error;
-    }
-  }
-};
-
 /**
  * Live (voice bench) models, newest first. gemini-3.8-live is the current Live
  * model; 3.1-flash-live-preview is what the bench ran on before and stays as the
@@ -97,7 +52,7 @@ const handleLiveVoiceConnection = async (ws, benchLevel = 'moderate', propositio
   console.log(`🎙️ Judge: ${(voiceJudge && voiceJudge.name) || '(unspecified)'} | voice ${voiceName} | language ${languageCode || 'default'}`);
 
   let session;
-  const liveSystemInstruction = buildLiveJudgePrompt(benchLevel, propositionSummary);
+  const liveSystemInstruction = buildLiveJudgePrompt(benchLevel, propositionSummary, (voiceJudge && voiceJudge.persona) || '');
   
   // Initialize Judicial Memory Engine state for this session
   let benchMemory = createEmptyMemory();
@@ -754,4 +709,4 @@ async function getChatCompletion({
   }
 }
 
-module.exports = { generateAIResponse, handleLiveVoiceConnection, getChatCompletion, _orderByHealth: orderByHealth, _coolDown: coolDown };
+module.exports = { handleLiveVoiceConnection, getChatCompletion, _orderByHealth: orderByHealth, _coolDown: coolDown };

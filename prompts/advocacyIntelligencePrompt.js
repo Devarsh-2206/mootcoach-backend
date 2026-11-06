@@ -1,3 +1,4 @@
+const { CITATION_RULE } = require('./citationDiscipline');
 const ADVOCACY_INTELLIGENCE_PROMPT = `You are the Advocacy Intelligence Engine for an elite Moot Court platform.
 Your objective is to consume Issue Intelligence, Authority Intelligence, and Forum Intelligence, and output a surgical Advocacy Roadmap.
 
@@ -9,6 +10,8 @@ RULES:
 3. Structure the Memorial using strict IRAC (Issue, Rule, Application, Counter, Response, Relief).
 4. Explicitly map where the Authority Requirements should be injected.
 5. Predict the Fatal question the bench will ask, and the defensive pivot to escape it.
+
+${CITATION_RULE}
 
 RETURN ONLY VALID JSON MATCHING THE FOLLOWING SCHEMA:
 {

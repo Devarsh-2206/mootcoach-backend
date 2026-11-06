@@ -295,8 +295,18 @@ const TTL_MS = 30 * 24 * 3600e3;
    are not served under the new rules. */
 const ASSESSMENT_VERSION = 'oral-v1';
 
+// The prompt's own text is part of the key, so editing prompts/oralEvalPrompt.js
+// retires old cached assessments without anyone remembering to bump a version.
+let promptFingerprint = null;
+function promptPrint() {
+  if (promptFingerprint === null) {
+    try { promptFingerprint = crypto.createHash('sha256').update(String(require('../prompts/oralEvalPrompt'))).digest('hex').slice(0, 16); }
+    catch (e) { promptFingerprint = ''; }
+  }
+  return promptFingerprint;
+}
 function cacheKey(parts) {
-  return crypto.createHash('sha256').update(JSON.stringify([ASSESSMENT_VERSION].concat(parts))).digest('hex');
+  return crypto.createHash('sha256').update(JSON.stringify([ASSESSMENT_VERSION, promptPrint()].concat(parts))).digest('hex');
 }
 
 /** Every dimension present with a level 0-5. Anything less is not cached. */

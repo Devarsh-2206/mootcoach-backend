@@ -1,3 +1,4 @@
+const { wrap, DATA_RULE } = require('./untrusted');
 /**
  * Post-round report for a bench session — text or oral.
  *
@@ -15,7 +16,7 @@
 const benchEvaluationPrompt = (difficulty, propositionSummary, conversationHistory, claimLedger = [], opts = {}) => {
   const ledgerContext = claimLedger && claimLedger.length > 0
     ? `ADVOCATE'S PAST CLAIMS (CLAIM LEDGER):
-${claimLedger.map(c => `- Claim: "${c.claim}" (Authority: ${c.authority || 'None'}, Principle: ${c.principle})`).join('\n')}`
+${wrap('claim_ledger', claimLedger.slice(-30).map(c => `- Claim: "${String(c.claim || '').slice(0, 300)}" (Authority: ${String(c.authority || 'None').slice(0, 200)}, Principle: ${String(c.principle || '').slice(0, 120)})`).join('\n'))}`
     : `ADVOCATE'S PAST CLAIMS: No specific claims successfully extracted.`;
 
   // An oral round is transcribed from speech, so the text carries filler,
@@ -40,15 +41,17 @@ Your feedback must answer three questions:
 
 You ALSO mark the round, the way a moot judge would.
 ${oralNote}
+${DATA_RULE}
+
 CASE CONTEXT:
-${propositionSummary || "A constitutional/statutory law matter."}
+${wrap('case_file', propositionSummary || 'A moot court matter; infer the forum from the transcript.')}
 
 BENCH INTENSITY: ${String(difficulty || 'moderate').toUpperCase()}
 
 ${ledgerContext}
 
 TRANSCRIPT TO EVALUATE:
-${JSON.stringify(conversationHistory, null, 2)}
+${wrap('transcript', JSON.stringify(conversationHistory, null, 2))}
 
 ════════════════════════════════════
 MARKING — HOW A MOOT BENCH ACTUALLY SCORES
@@ -63,6 +66,15 @@ because that is what separates oralists once everyone has read the same cases.
 3. responseToQuestions (max 25) — THE DECIDING CRITERION. Did they answer the question asked, or the question they wished had been asked? Did they concede cleanly when the point was lost, or fight on and lose credit? Did they return to their own argument afterwards? Deduct heavily for evasion, for answering a different question, and for conceding something fatal without noticing.
 4. courtCraft (max 15) — Forms of address, decorum under pressure, not interrupting the bench, handling an adverse question without defensiveness.
 5. structureAndTime (max 10) — A roadmap the bench can follow, issues taken in a sensible order, and a submission that gets where it is going.
+
+WHAT EACH BAND MEANS — apply to every criterion, as a share of its maximum:
+- 90–100%: exceptional; nothing a strict competition bench would add. Rare.
+- 75–89%: strong; correct and well handled, at most one minor slip.
+- 60–74%: competent; the essentials are right but development or handling is uneven.
+- 40–59%: weak; real gaps — unsupported assertions, evasions, or errors a bench would punish.
+- 20–39%: very poor; little beyond assertion, or largely wrong.
+- 0–19%: absent or not attempted in this transcript.
+When torn between two bands, choose the lower one.
 
 MARKING DISCIPLINE:
 - Mark against a competitive moot standard, not against a beginner. A competent round is around 60–70, not 85.

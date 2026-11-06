@@ -6,12 +6,18 @@
  * so none of the fields the dialog reads ever came back and every tab showed
  * "undefined". This is the dialog's own, small schema.
  */
+const { DATA_RULE } = require('./untrusted');
+const { CITATION_RULE } = require('./citationDiscipline');
 const AUTHORITY_CARD_PROMPT = `You are a senior advocate briefing a junior on ONE authority they plan to cite in a moot court.
 Use the proposition facts, the advocate's side and their notes. Be specific to THIS case — a line that would fit any case is a failed line.
 
 LEGAL PRECISION:
 - State the ratio as the judgment does. If you are not sure of the exact holding, describe what the authority is generally relied on for and add "(verify the exact ratio)". Never invent a holding, a citation or a paragraph number.
 - If the authority is hypothetical or unclear (e.g. "Hypothetical case on…"), say so plainly in "ratioDecidendi" and explain how to argue from the principle instead.
+
+${CITATION_RULE}
+
+${DATA_RULE}
 
 Return ONLY valid JSON:
 {

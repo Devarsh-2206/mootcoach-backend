@@ -121,8 +121,9 @@ ceiling every route is sized against.
 - `GET /api/usage` — what the day's allowance went on, by model, route and
   outcome, on the Pacific day Google resets on. Signed-in only.
 - `WS /ws/voice` — the live voice bridge.
-- `routes/` holds `extractIssues.js`, `authorityIntelligence.js`,
-  `benchForecast.js`.
+- `routes/` holds `authorityIntelligence.js` and `benchForecast.js`.
+  (`/extract-issues` was removed in Nov 2026: nothing called it, and it scored the
+  proposition itself, which the analysis prompt forbids.)
 
 **Rate limiting** is keyed on the *person*, not the address. It was 15 per 15
 minutes per IP, which is the right shape for stopping a script and the wrong

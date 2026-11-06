@@ -1,3 +1,4 @@
+const { CITATION_RULE } = require('./citationDiscipline');
 const ISSUE_INTELLIGENCE_PROMPT = `You are the Issue Intelligence Engine for an elite Moot Court platform.
 Your objective is to consume Proposition Intelligence, Procedural Hierarchy, and Forum Intelligence, and explode the identified legal issues into a deep, multi-layered reasoning matrix.
 
@@ -12,6 +13,8 @@ RULES:
 3. Construct a Rebuttal Matrix showing exactly how the Respondent attacks the Petitioner's arguments, and how the Petitioner replies.
 4. Construct a Bench Vulnerability Matrix to predict the deadliest questions a judge could ask.
 5. Identify the precise type of Authority Needed to win the issue (do NOT cite real case names, only describe the *type* of case needed).
+
+${CITATION_RULE}
 
 RETURN ONLY VALID JSON MATCHING THE FOLLOWING SCHEMA:
 {

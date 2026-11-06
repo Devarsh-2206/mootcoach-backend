@@ -7,6 +7,7 @@
 // real advocate uploaded a Karnataka civil suit and got constitutional analysis
 // back, because nothing in the schema could say "trial court", "civil suit" or
 // "Karnataka". Court level, proceeding type and state are now first-class.
+const { DATA_RULE } = require('./untrusted');
 const FORUM_DETECTION_PROMPT = `You are the Forum Detection Engine for an elite moot court and advocacy platform.
 Read the document and determine, as precisely as the text allows, the adjudicatory forum, its LEVEL in the court hierarchy, the TYPE of proceeding, the jurisdiction (including the STATE where applicable), the governing law and the adjudicator type.
 
@@ -33,6 +34,8 @@ CRITICAL RULES:
 - Identify the STATE when the document names a court, district or statute tied to one (e.g. "City Civil Court, Bengaluru" -> Karnataka; "Karnataka Rent Act" -> Karnataka). State matters because state amendments to the CPC, state legislation, court-fee Acts and High Court rules differ.
 - Constitutional provisions are engaged ONLY where the document actually raises them. Do not manufacture an Article 14/19/21 issue in a contract, property, family or commercial dispute.
 - For Indian criminal matters, the three codes move together by DATE OF OFFENCE, never mixed. Offences on or after 1 July 2024: Bharatiya Nyaya Sanhita 2023 + Bharatiya Nagarik Suraksha Sanhita 2023 + Bharatiya Sakshya Adhiniyam 2023. Offences before that date: Indian Penal Code 1860 + Code of Criminal Procedure 1973 + Indian Evidence Act 1872. Do NOT pair the BNS with the CrPC, or the IPC with the BNSS.
+
+${DATA_RULE}
 
 RETURN ONLY VALID JSON, no markdown, matching:
 {

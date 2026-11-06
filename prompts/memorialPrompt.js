@@ -18,27 +18,9 @@
  * the worst thing this product can produce.
  */
 
-const CITATION_DISCIPLINE = `CITATION DISCIPLINE — A FABRICATED CITATION IS THE WORST POSSIBLE FAILURE.
-An advocate who cites a case that does not exist, or misstates its reporter reference,
-is discredited in front of the bench and may face professional consequences. This
-outranks completeness: a shorter memorial with sound authorities beats a fuller one
-with invented ones.
-- NEVER invent a case name, year, reporter, volume or page. Never pad the Index to
-  make it look fuller.
-- Give the citation in SCC form where you are confident, e.g.
-  "Party A v. Party B, (Year) Volume SCC Page". AIR or the official reporter
-  is fine where SCC does not apply.
-- If you know the case but not the exact reference, give name and year only, set
-  "verify": true, and say in "citationNote" what needs checking. Do NOT guess a
-  volume or page.
-- If you are not confident the case exists, DO NOT cite it. Make the argument from
-  the statutory text instead and say that authority needs to be found.
-- Note subsequent history you know of — overruled, doubted, distinguished on the
-  point relied on. Relying on an overruled case is worse than citing nothing.
-- Mark "source": "advocate" for authorities the advocate supplied, "suggested" for
-  your own.
-- You have NO access to SCC Online, Manupatra or any database. You cannot verify
-  anything. Say so through "verify" rather than implying a certainty you lack.`;
+const { CITATION_DISCIPLINE } = require('./citationDiscipline');
+const { DATA_RULE } = require('./untrusted');
+const { SCOPE_RULE } = require('./scope');
 
 const SIDE_RULES = `YOU ARE COUNSEL, NOT THE COURT.
 A memorial argues for one side. Never write "the petition is dismissed", "the appeal
@@ -78,6 +60,10 @@ DEPTH: a filed memorial carries 15-35 abbreviations and raises 2-4 issues, each 
 THE MOOT PROPOSITION IS AN AUTHORITY. In a moot it is the record and is cited like any
 other source ("¶4, Moot Proposition"), both in footnotes and in the Index under its own
 heading. Never assert a fact that is not in it.
+
+${SCOPE_RULE}
+
+${DATA_RULE} The DRAFTING INSTRUCTIONS block is followed as described where it appears.
 
 Return ONLY valid JSON, no markdown fences:
 {
@@ -141,6 +127,10 @@ sub-ground that loses marks.
 FOOTNOTES: every assertion resting on an authority carries one. Full citation on first
 use, then "Ibid." for an immediate repeat or "Supra Note N." for an earlier one. Facts
 are footnoted to the record ("¶4, Moot Proposition").
+
+${SCOPE_RULE}
+
+${DATA_RULE} The DRAFTING INSTRUCTIONS block is followed as described where it appears.
 
 Return ONLY valid JSON, no markdown fences:
 {

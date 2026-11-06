@@ -661,18 +661,9 @@ function updateLiveIntelligence(text) {
   const strategicDepth = Math.min(15, 3 + (lowerText.includes("counter") ? 4 : 0) + (lowerText.includes("proportional") ? 4 : 0));
   const structure = Math.min(15, 5 + (lowerText.includes("issue") ? 3 : 0) + (lowerText.includes("rule") ? 3 : 0) + (lowerText.includes("conclusion") ? 4 : 0));
   
-  // Apply Moderate concept boost
-  const hasNationalSecurity = lowerText.includes("security") || lowerText.includes("national security");
-  const hasPublicOrder = lowerText.includes("public order") || lowerText.includes("order");
-  const hasOversight = lowerText.includes("oversight") || lowerText.includes("human oversight");
-  const hasSafeguards = lowerText.includes("safeguard");
-  const hasProportionality = lowerText.includes("proportion");
-  const hasModerateConcepts = hasNationalSecurity && hasPublicOrder && hasOversight && hasSafeguards && hasProportionality;
-  
-  let liveScore = authoritySupport + constitutionalDepth + reasoningQuality + strategicDepth + structure;
-  if (hasModerateConcepts) {
-    liveScore = Math.max(60, liveScore);
-  }
+  // No keyword floor: naming "proportionality" or "safeguards" without using
+  // them earns nothing extra.
+  const liveScore = authoritySupport + constitutionalDepth + reasoningQuality + strategicDepth + structure;
 
   if (strengthScoreValEl) strengthScoreValEl.textContent = liveScore.toString() + '%';
   if (strengthProgressBarEl) {
@@ -833,7 +824,6 @@ function renderIRAC(iracData) {
   const hasOversight = lowerNotes.includes("oversight") || lowerNotes.includes("human oversight");
   const hasSafeguards = lowerNotes.includes("safeguard");
   const hasProportionality = lowerNotes.includes("proportion");
-  const hasModerateConcepts = hasNationalSecurity && hasPublicOrder && hasOversight && hasSafeguards && hasProportionality;
 
   if (iracData.scoring) {
     authoritySupport = Number(iracData.scoring.authoritySupport) || 0;
@@ -843,14 +833,8 @@ function renderIRAC(iracData) {
     structure = Number(iracData.scoring.structure) || 0;
     benchResistance = Number(iracData.scoring.benchResistance) || 0;
 
-    // Apply moderate concept boost if notes contain national security, public order, safeguards, human oversight, proportionality
-    if (hasModerateConcepts) {
-      authoritySupport = Math.max(authoritySupport, 10);
-      constitutionalDepth = Math.max(constitutionalDepth, 15);
-      reasoningQuality = Math.max(reasoningQuality, 15);
-      strategicDepth = Math.max(strategicDepth, 10);
-      structure = Math.max(structure, 10);
-    }
+    // The AI's marks stand as given. (A keyword floor used to lift them when
+    // the notes merely mentioned "proportionality", "safeguards" and the like.)
   } else {
     // Legacy fallback with honest scoring bands and key concepts support
     const hasAllIRAC = iracData.issue && iracData.rule && iracData.application && iracData.conclusion;
@@ -863,14 +847,7 @@ function renderIRAC(iracData) {
     constitutionalDepth = Math.min(25, Math.max(5, statutesCount * 4 + conceptCount * 2.5));
     reasoningQuality = Math.min(25, Math.max(5, 5 + Math.round(notes.length / 100) + conceptCount * 2));
     strategicDepth = Math.min(15, Math.max(3, conceptCount * 2));
-    
-    if (hasModerateConcepts) {
-      authoritySupport = Math.max(authoritySupport, 10);
-      constitutionalDepth = Math.max(constitutionalDepth, 15);
-      reasoningQuality = Math.max(reasoningQuality, 15);
-      strategicDepth = Math.max(strategicDepth, 10);
-      structure = Math.max(structure, 10);
-    }
+
     
     // Bench resistance evaluation
     let resistanceComponents = 20; // base score
@@ -2744,7 +2721,7 @@ function getUpgradedCitations(citationsData, notes) {
 
   const missingHTML = (citationsData.missingAuthorities || []).map(auth => {
     const sg = auth.scoreGains || {};
-    const scoreGainText = `+${sg.authorityStrength || 0} Authority Strength, +${sg.constitutionalDepth || 0} Constitutional Depth, +${sg.benchResistance || 0} Bench Resistance | Potential Gain: +${sg.potentialScoreGain || 0}`;
+    const scoreGainText = `+${sg.authorityStrength || 0} Authority Strength, +${sg.constitutionalDepth || 0} Legal Depth, +${sg.benchResistance || 0} Bench Resistance | Potential Gain: +${sg.potentialScoreGain || 0}`;
     return `
       <div class="p-3 bg-black/[0.03] border border-black/5 rounded-lg mb-2 text-left">
         <strong class="text-red-400 block mb-1">⚖︎ ${esc(auth.name)}</strong>

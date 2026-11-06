@@ -1,3 +1,4 @@
+const { DATA_RULE } = require('./untrusted');
 const PROPOSITION_INTELLIGENCE_PROMPT = `You are the core Proposition Intelligence Engine for a Moot Court OS.
 Your objective is to deeply understand a raw, unstructured legal proposition (a moot court problem) and extract the foundational truth into a highly structured, flawless JSON object.
 
@@ -8,6 +9,8 @@ RULES:
 2. If a specific piece of metadata is missing from the proposition (e.g., Year, Competition Name), return null for that field. Do NOT guess.
 3. Be exhaustive in the "factualMatrix" and "proceduralContext". This is the only place facts are stored for downstream use.
 4. Distinguish between Explicit Issues (clearly written in the problem) and Implicit Issues (legal questions that must be answered to solve the explicit issues).
+
+${DATA_RULE}
 
 RETURN ONLY VALID JSON MATCHING THE FOLLOWING SCHEMA:
 {

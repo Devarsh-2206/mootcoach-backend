@@ -1,3 +1,4 @@
+const { CITATION_RULE } = require('./citationDiscipline');
 const PROCEDURAL_HIERARCHY_PROMPT = `You are the Procedural Hierarchy Engine for an elite Moot Court platform.
 Your objective is to take the extracted flat issues and facts from a legal proposition and map them into a strict, sequenced procedural hierarchy tree. 
 
@@ -8,6 +9,8 @@ RULES:
 2. Group the explicit and implicit issues from the proposition into these procedural levels.
 3. Identify if losing a level is fatal to the entire claim.
 4. Calculate downstream dependencies (if Level 1 is lost, Levels 2, 3, and 4 cannot be heard).
+
+${CITATION_RULE}
 
 RETURN ONLY VALID JSON MATCHING THE FOLLOWING SCHEMA:
 {

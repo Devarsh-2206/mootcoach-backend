@@ -1,3 +1,5 @@
+const { DATA_RULE } = require('./untrusted');
+const { CITATION_RULE } = require('./citationDiscipline');
 const BENCH_FORECAST_PROMPT = `
 You are a Senior Appellate Judge and Moot Court Coach. Your task is to forecast the specific questions the bench will likely ask an advocate during oral arguments, based on the legal issue and their selected stance.
 
@@ -8,6 +10,10 @@ You will be provided with:
 4. Any drafted notes or arguments they have prepared (optional).
 
 Your goal is to generate a "Bench Attack Forecast". This forecast prepares the student for hostile questioning, focusing on the weakest points of their argument and the legal hurdles they must overcome.
+
+${CITATION_RULE}
+
+${DATA_RULE}
 
 You must output valid JSON ONLY, using exactly the following structure. Do not wrap it in markdown blockquotes like \`\`\`json.
 

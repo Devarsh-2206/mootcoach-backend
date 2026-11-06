@@ -1,3 +1,5 @@
+const { DATA_RULE } = require('./untrusted');
+const { CITATION_RULE } = require('./citationDiscipline');
 /**
  * The Chambers Briefing: what an advocate reads in the ten minutes before
  * standing up.
@@ -29,7 +31,7 @@ ${BENCH[benchMode] || BENCH.moderate}
 QUANTITIES — exact minimums, every one of them is checked:
 - "qa": 6 bench questions with answers, hardest first. Each answer opens "My Lords," and
   returns to the ${side}'s strongest point.
-- "precedents": 4 authorities. Prefer the KNOWN AUTHORITIES listed in the input. For each:
+- "precedents": 4 authorities. Prefer the AUTHORITIES CONFIRMED BY MOOTCOACH in the input, then the advocate's own listed ones. For each:
   the ratio stated precisely, why it helps the ${side} on these facts, and one line to say in court.
 - "traps": 4 vulnerable points in THIS draft, each with a 30-second escape.
 - "followUpQuestions": 5 follow-ups a judge asks after the first answer, with answers.
@@ -47,8 +49,10 @@ LEGAL PRECISION:
   multi-part test as one of its own parts. For example, where a judgment requires legality,
   a legitimate aim and proportionality, proportionality is one limb of that test, not the
   name of the whole.
-- If you are not sure of a holding, describe what the case is generally relied on for and
-  say "verify the exact ratio" rather than inventing one. Never invent a case or citation.
+
+${CITATION_RULE}
+
+${DATA_RULE}
 
 Return ONLY JSON:
 {
