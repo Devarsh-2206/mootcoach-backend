@@ -46,9 +46,7 @@ QUANTITIES — exact minimums, every one of them is checked:
 
 LEGAL PRECISION:
 - State a test by its components exactly as the judgment does. Do not relabel a
-  multi-part test as one of its own parts. For example, where a judgment requires legality,
-  a legitimate aim and proportionality, proportionality is one limb of that test, not the
-  name of the whole.
+  multi-part test as one of its own parts. For example, where a judgment lays down a test of several limbs (for example the ingredients of an offence, the conditions for an injunction, or the elements of a restriction on a right), one limb is not the name of the whole test.
 
 ${CITATION_RULE}
 

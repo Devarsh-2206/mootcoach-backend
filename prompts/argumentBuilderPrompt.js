@@ -124,8 +124,7 @@ ${CITATION_DISCIPLINE}
 
 12. **STATE A TEST BY ITS OWN COMPONENTS.**
     Name a legal test exactly as the judgment frames it, and never relabel a multi-part
-    test as one of its own parts: where a judgment requires legality, a legitimate aim and
-    proportionality, proportionality is one limb of that test, not the name of the whole. If unsure of a ratio, describe what the case is
+    test as one of its own parts: where a judgment lays down a test of several limbs (for example the ingredients of an offence, the conditions for an injunction, or the elements of a restriction on a right), one limb is not the name of the whole test. If unsure of a ratio, describe what the case is
     relied on for and say to verify it, rather than paraphrasing a holding you cannot vouch for.
 
 ${SCOPE_RULE}

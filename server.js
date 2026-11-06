@@ -2086,13 +2086,34 @@ app.post("/api/review-column", featureGate("reviewColumn"), signedIn, pilotGate(
    returns, per authority, verified / corrected / unverified with sources.
    An authority is never "verified" on the model's word alone: see
    services/authorityVerifier.js. Cached, so re-checking a case costs nothing. */
+const { checkCitedCases } = require("./services/citedCases");
+/** Only the analysis fields the cited-case check reads, as bounded strings. */
+function sanitiseCitedTexts(t) {
+  if (!t || typeof t !== 'object') return null;
+  const str = (v, n = 4000) => (typeof v === 'string' ? v.slice(0, n) : '');
+  const list = (v, n = 20) => (Array.isArray(v) ? v.slice(0, n).map(x => str(x)) : []);
+  const objs = (v, keys, n = 12) => (Array.isArray(v) ? v.slice(0, n).map(x => {
+    const o = (x && typeof x === 'object') ? x : {};
+    const r = {}; keys.forEach(k => { if (typeof o[k] === 'string') r[k] = str(o[k], 2000); }); return r;
+  }) : []);
+  const d = t.argumentDefects && typeof t.argumentDefects === 'object' ? t.argumentDefects : {};
+  return {
+    petitionerArguments: list(t.petitionerArguments),
+    respondentArguments: list(t.respondentArguments),
+    additionalIssues: objs(t.additionalIssues, ['issue', 'legalBasis', 'whyItEarnsMarks']),
+    argumentDefects: { petitioner: objs(d.petitioner, ['explanation'], 20), respondent: objs(d.respondent, ['explanation'], 20) },
+    benchQuestions: list(t.benchQuestions),
+    benchVulnerabilities: list(t.benchVulnerabilities),
+  };
+}
+
 /**
  * The analysis's suggested cases, checked after the analysis is shown (see
  * markPending in services/confirmCases.js). Part of the upload, so it does
  * not count against the student's other allowances. Returns only the cases
  * confirmed, and how many were left out.
  */
-app.post("/api/confirm-cases", signedIn, requirePilot, aiLimiter, express.json({ limit: '64kb' }), async (req, res) => {
+app.post("/api/confirm-cases", signedIn, requirePilot, aiLimiter, express.json({ limit: '256kb' }), async (req, res) => {
   const cases = (Array.isArray(req.body && req.body.cases) ? req.body.cases : [])
     .filter(c => c && typeof c === 'object' && String(c.caseName || c.name || '').trim())
     .slice(0, 20)
@@ -2104,13 +2125,21 @@ app.post("/api/confirm-cases", signedIn, requirePilot, aiLimiter, express.json({
       confidenceLevel: String(c.confidenceLevel || '').slice(0, 20),
       caveat: c.caveat == null ? null : String(c.caveat).slice(0, 300),
     }));
-  if (!cases.length) return res.json({ success: true, precedentsNeeded: [], casesCheck: { suggested: 0, kept: 0, removed: 0 } });
   const forum = typeof req.body.forum === 'string' ? req.body.forum.slice(0, 200) : '';
+  const texts = sanitiseCitedTexts(req.body && req.body.texts);
   const analysis = { precedentsNeeded: cases };
   try {
     // Not on the student's wait any more, so it can take longer than the inline check.
-    await confirmPrecedents(analysis, { forum, timeoutMs: 75000 });
-    return res.json({ success: true, precedentsNeeded: analysis.precedentsNeeded || [], casesCheck: analysis.casesCheck });
+    if (cases.length) await confirmPrecedents(analysis, { forum, timeoutMs: 75000 });
+    else analysis.casesCheck = { suggested: 0, kept: 0, removed: 0 };
+    // Then the cases cited inside the analysis's text (services/citedCases.js).
+    let cited = null;
+    if (texts) {
+      try { cited = await checkCitedCases(texts, { forum, confirmed: analysis.precedentsNeeded || [] }); }
+      catch (e) { console.warn('[CITED CASES] check failed, text left unchanged:', e && e.message); }
+    }
+    return res.json({ success: true, precedentsNeeded: analysis.precedentsNeeded || [], casesCheck: analysis.casesCheck,
+      texts: cited ? cited.texts : null, citedCheck: cited ? cited.citedCheck : null });
   } catch (error) {
     console.error('/api/confirm-cases error:', String(error && error.message).slice(0, 200));
     return res.status(502).json({ success: false, error: 'Could not check the cases just now. Try again in a moment.' });

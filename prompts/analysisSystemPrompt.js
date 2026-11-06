@@ -60,7 +60,7 @@ ISSUE SELECTION — FILTER, DO NOT DUMP
 - MERGE overlapping issues into one well-framed question.
 - ORDER from most to least outcome-determinative (threshold/jurisdiction issues first where relevant).
 - Each issue must be a precise legal question, not a topic label.
-- CAPTURE SUB-LAYERS: most real issues contain explicit sub-questions the proposition raises (e.g., a proportionality issue layers into legitimate aim → necessity → least-restrictive means → procedural safeguards; a jurisdiction issue layers into ratione materiae / personae / temporis). Phrase each issue so its decisive sub-layers are visible, and ensure the arguments below actually engage each sub-layer rather than the issue in the abstract. Do not flatten a multi-layered issue into a one-line topic.
+- CAPTURE SUB-LAYERS: most real issues contain explicit sub-questions the proposition raises (e.g., a limitation issue layers into accrual of the cause of action → applicable article → condonation; a specific-performance issue into a concluded contract → readiness and willingness → discretion; a jurisdiction issue into ratione materiae / personae / temporis; a challenge to a restriction on a right into its legal basis → aim → necessity). Phrase each issue so its decisive sub-layers are visible, and ensure the arguments below actually engage each sub-layer rather than the issue in the abstract. Do not flatten a multi-layered issue into a one-line topic.
 
 ════════════════════════════════════
 ADDITIONAL ISSUES — MARKS BEYOND THE FOUR CORNERS

@@ -914,6 +914,36 @@ function checkLink(c) {
    analysis (its cases are checked just after it is shown, so the student is
    not kept waiting), a check that failed, or an analysis saved before cases
    were confirmed. The server does the checking (/api/confirm-cases). */
+const CITED_FIELDS = ['petitionerArguments', 'respondentArguments', 'additionalIssues', 'argumentDefects', 'benchQuestions', 'benchVulnerabilities'];
+/* Puts the checked text back: unconfirmed cases taken out, wrong citations
+   corrected (services/citedCases.js), and redraws those sections in place. */
+function applyCitedTexts(data, t, citedCheck) {
+  const swapList = (k) => { if (Array.isArray(t[k]) && Array.isArray(data[k]) && t[k].length === data[k].length) data[k] = t[k]; };
+  ['petitionerArguments', 'respondentArguments', 'benchQuestions', 'benchVulnerabilities'].forEach(swapList);
+  // Additional issues keep their objects (and the student's add/dismiss decisions).
+  (Array.isArray(t.additionalIssues) ? t.additionalIssues : []).forEach((x, i) => {
+    const o = data.additionalIssues && data.additionalIssues[i];
+    if (o && typeof o === 'object' && x) ['issue', 'legalBasis', 'whyItEarnsMarks'].forEach(k => { if (typeof x[k] === 'string') o[k] = x[k]; });
+  });
+  for (const side of ['petitioner', 'respondent']) {
+    const src = t.argumentDefects && t.argumentDefects[side];
+    const dst = data.argumentDefects && data.argumentDefects[side];
+    if (Array.isArray(src) && Array.isArray(dst)) src.forEach((x, i) => { if (dst[i] && x && typeof x.explanation === 'string') dst[i].explanation = x.explanation; });
+  }
+  data.citedCheck = citedCheck;
+  if (!citedCheck.removed && !citedCheck.corrected) return;
+  const toList = arr => (arr || []).map(x => `- ${x}`).join('\n');
+  const put = (type, html) => document.querySelectorAll(`[data-sec="${type}"]`).forEach(el => { el.innerHTML = html; });
+  try {
+    put('petitioner', renderSectionBody('petitioner', toList(data.petitionerArguments)));
+    put('respondent', renderSectionBody('respondent', toList(data.respondentArguments)));
+    put('bench', renderSectionBody('bench', toList(data.benchQuestions)));
+    put('vulnerability', renderSectionBody('vulnerability', toList(data.benchVulnerabilities)));
+    put('argDefects', renderArgumentDefects(data.argumentDefects));
+    put('addIssues', renderAdditionalIssues(data.additionalIssues, (data.legalIssues || []).length));
+  } catch (e) { console.warn('[CITED CASES] could not redraw a section:', e && e.message); }
+}
+
 window.checkCaseCitations = async function (opts = {}) {
   const data = window.__casesData;
   const btn = document.getElementById('btn-check-citations');
@@ -922,13 +952,22 @@ window.checkCaseCitations = async function (opts = {}) {
   const held = data.casesCheck && (data.casesCheck.failed || data.casesCheck.pending);
   const pool = ((held ? data.precedentsPending : data.precedentsNeeded) || [])
     .map(c => (typeof c === 'string' ? { caseName: c } : c)).filter(c => c && c.caseName);
-  if (!pool.length) return;
+  if (!pool.length && data.citedCheck) return;
   data.__checking = true;
   if (btn) { btn.disabled = true; btn.textContent = 'Confirming…'; }
   try {
     const forum = (lastAnalysis && lastAnalysis.detectedForum && lastAnalysis.detectedForum.forum)
       || (window.detectedForum && (window.detectedForum.forum || window.detectedForum.specificBody)) || '';
-    const res = await requestJson('/api/confirm-cases', { timeoutMs: 90000, body: { cases: pool, forum } });
+    // The first check of a new analysis also checks the cases cited inside its
+    // text (arguments, additional issues, defects, bench questions).
+    const withText = !data.citedCheck;
+    const texts = withText ? {
+      petitionerArguments: data.petitionerArguments, respondentArguments: data.respondentArguments,
+      additionalIssues: data.additionalIssues, argumentDefects: data.argumentDefects,
+      benchQuestions: data.benchQuestions, benchVulnerabilities: data.benchVulnerabilities,
+    } : null;
+    const res = await requestJson('/api/confirm-cases', { timeoutMs: 120000, body: { cases: pool, forum, texts } });
+    if (res.texts && res.citedCheck) applyCitedTexts(data, res.texts, res.citedCheck);
     const kept = res.precedentsNeeded || [];
     data.precedentsNeeded = kept;
     delete data.precedentsPending;
@@ -939,6 +978,8 @@ window.checkCaseCitations = async function (opts = {}) {
       const o = JSON.parse(window.lastAnalysis || lastAnalysis);
       const target = o.response && typeof o.response === 'object' ? o.response : o;
       target.precedentsNeeded = kept; target.casesCheck = data.casesCheck; delete target.precedentsPending;
+      if (data.citedCheck) for (const k of CITED_FIELDS) if (data[k] !== undefined) target[k] = data[k];
+      if (data.citedCheck) target.citedCheck = data.citedCheck;
       const str = JSON.stringify(o); setLastAnalysis(str); window.lastAnalysis = str;
     } catch (e) { /* the page still shows the confirmed list */ }
     // Saved with the moot, so reopening it shows the confirmed list straight away.
@@ -947,7 +988,8 @@ window.checkCaseCitations = async function (opts = {}) {
       if (docId && docId !== 'default' && currentUser && db) {
         db.collection('artifacts').doc('moot.coach').collection('users').doc(currentUser.uid)
           .collection('analyses').doc(docId)
-          .update({ 'analysisData.precedentsNeeded': kept, 'analysisData.casesCheck': data.casesCheck, 'analysisData.precedentsPending': [] })
+          .update(Object.assign({ 'analysisData.precedentsNeeded': kept, 'analysisData.casesCheck': data.casesCheck, 'analysisData.precedentsPending': [] },
+            data.citedCheck ? Object.fromEntries(CITED_FIELDS.filter(k => data[k] !== undefined).map(k => ['analysisData.' + k, data[k]]).concat([['analysisData.citedCheck', data.citedCheck]])) : {}))
           .catch(e => console.warn('[CASES] Could not save the confirmed cases:', e && e.message));
       }
     } catch (e) { /* the page still shows them */ }
@@ -997,7 +1039,7 @@ export function renderCases(content, rawCasesArray, data) {
       window.__casesData = data;
       if (!data.__autoStarted) { data.__autoStarted = true; setTimeout(() => window.checkCaseCitations({ auto: true }), 0); }
     }
-    return `<div class="cases-trust">Checking the ${check.suggested || ''} suggested cases on Indian Kanoon, court websites and law databases… Only the ones confirmed will appear here, usually within half a minute. You can read the rest of the analysis meanwhile.</div>`;
+    return `<div class="cases-trust">Checking the ${check.suggested || ''} suggested cases, and the cases cited in the arguments, on Indian Kanoon, court websites and law databases… Only confirmed cases will appear, usually within half a minute. You can read the rest of the analysis meanwhile.</div>`;
   }
   // The check could not run: nothing unconfirmed is shown; offer to try again.
   if (check && check.failed) {
@@ -1572,9 +1614,11 @@ export function showStructuredResults(data) {
     const cardsHTML = sections.map((sec, i) => {
       const cfg = SECTION_CONFIGS[sec.type] || SECTION_CONFIGS.default;
       let body;
-      if (sec.type === 'argDefects')                      body = renderArgumentDefects(sec._raw);
-      else if (sec.type === 'addIssues')                   body = renderAdditionalIssues(sec._rawAddIssues, sec._framedCount);
+      // data-sec marks the sections whose text the cited-case check may update.
+      if (sec.type === 'argDefects')                      body = `<div data-sec="argDefects">${renderArgumentDefects(sec._raw)}</div>`;
+      else if (sec.type === 'addIssues')                   body = `<div data-sec="addIssues">${renderAdditionalIssues(sec._rawAddIssues, sec._framedCount)}</div>`;
       else if (sec.type === 'cases' && sec._rawCases)     body = `<div id="cases-block">${renderCases(sec.content, sec._rawCases, sec._data)}</div>`;
+      else if (['petitioner', 'respondent', 'bench', 'vulnerability'].includes(sec.type)) body = `<div data-sec="${sec.type}">${renderSectionBody(sec.type, sec.content)}</div>`;
       else                                                body = renderSectionBody(sec.type, sec.content);
 
       // Every card is capped at 450px with an inner scrollbar. That suits a
