@@ -138,9 +138,12 @@ const strip = (s) => String(s || '').replace(/<[^>]+>/g, '').replace(/&amp;/g, '
  * TITLES, using the most distinctive party name, and at the Supreme Court
  * when the citation is a Supreme Court report.
  *
- * NOTE: "title:" and "doctypes:" are Indian Kanoon's search operators as best
- * known; they could not be checked against its documentation from the build
- * environment. INDIANKANOON_QUERY=plain restores the old full-name search.
+ * "title:" and "doctypes:" are documented by Indian Kanoon (API documentation,
+ * Search API parameters): title: matches words in a document's title;
+ * doctypes: supremecourt limits to the Supreme Court, and doctypes: judgments
+ * to judgments of all courts (no Acts or Rules, which a plain search returned,
+ * e.g. "Section 66A in The Information Technology Act"). Charged per page of
+ * results; one page is fetched. INDIANKANOON_QUERY=plain restores the old search.
  */
 const GENERIC = new Set(['for', 'to', 'a', 'an', 'with', 'from', 'additional', 'deputy', 'assistant', 'superintendent', 'inspector', 'income', 'tax', 'central', 'bureau', 'investigation', 'securities', 'exchange', 'reserve', 'bank', 'life', 'insurance', 'police', 'station', 'union', 'india', 'state', 'government', 'commissioner', 'collector', 'municipal', 'corporation',
   'district', 'magistrate', 'secretary', 'director', 'officer', 'board', 'authority', 'council', 'republic', 'people',
@@ -158,7 +161,7 @@ function buildQuery(name, citation) {
   const best = scored.sort((a, b) => b.length - a.length)[0] || [];
   const words = (best.length ? best : (ss[0] || [])).slice(0, 4);
   if (!words.length) return String(name || '');
-  return `title: ${words.join(' ')}` + (SC_CITATION.test(String(citation || '')) ? ' doctypes: supremecourt' : '');
+  return `title: ${words.join(' ')}` + (SC_CITATION.test(String(citation || '')) ? ' doctypes: supremecourt' : ' doctypes: judgments');
 }
 
 async function search(query, { fetchImpl = fetch } = {}) {

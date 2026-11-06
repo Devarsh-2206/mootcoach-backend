@@ -106,7 +106,7 @@ const fetchImpl = async (url, init) => {
   assert.strictEqual(ik.buildQuery('Shreya Singhal v. Union of India', '(2015) 5 SCC 1'), 'title: shreya singhal doctypes: supremecourt');
   assert.strictEqual(ik.buildQuery('K.S. Puttaswamy v. Union of India', '(2017) 10 SCC 1'), 'title: puttaswamy doctypes: supremecourt');
   assert.strictEqual(ik.buildQuery('State of Punjab v. Gurmit Singh', 'AIR 1996 SC 1393'), 'title: gurmit singh doctypes: supremecourt');
-  assert.strictEqual(ik.buildQuery('Romesh Thappar v. State of Madras', ''), 'title: romesh thappar');
+  assert.strictEqual(ik.buildQuery('Romesh Thappar v. State of Madras', ''), 'title: romesh thappar doctypes: judgments');
   process.env.INDIANKANOON_QUERY = 'plain';
   assert.strictEqual(ik.buildQuery('Shreya Singhal v. Union of India', '(2015) 5 SCC 1'), 'Shreya Singhal v. Union of India');
   delete process.env.INDIANKANOON_QUERY;
