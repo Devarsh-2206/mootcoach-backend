@@ -114,8 +114,17 @@ async function search(query, { fetchImpl = fetch } = {}) {
 async function confirmCase({ name, citation }, opts = {}) {
   const base = { name, citation: citation || '', status: 'unverified', sources: [] };
   const docs = await search(name, opts);
-  const hit = docs.find(d => titleMatches(name, strip(d.title)) && isIndianCourt(d.docsource)) ||
-              docs.find(d => titleMatches(name, strip(d.title)));
+  const named = docs.filter(d => titleMatches(name, strip(d.title)));
+  const indianFirst = [...named.filter(d => isIndianCourt(d.docsource)), ...named.filter(d => !isIndianCourt(d.docsource))];
+  // Many judgments share one name ("People's Union for Civil Liberties v.
+  // Union of India" has dozens). With a citation year, only a judgment decided
+  // within a year of it is the case meant; without one that fits, this is not a
+  // confirmation (production: a 2023 citation was "confirmed" by a 2009
+  // judgment of the same name and the student was sent to the wrong case).
+  const wantYear = yearOf(citation);
+  const hit = wantYear
+    ? indianFirst.find(d => { const y = yearOf(d.publishdate) || yearOf(d.title); return y && Math.abs(y - wantYear) <= 1; })
+    : indianFirst[0];
   if (!hit) {
     stats.notFound++; miss();
     // For diagnosis in the Pilot panel: what was asked, and the titles Indian
@@ -124,7 +133,7 @@ async function confirmCase({ name, citation }, opts = {}) {
       titles: docs.slice(0, 3).map(d => strip(d.title).slice(0, 120)),
       courts: docs.slice(0, 3).map(d => strip(d.docsource).slice(0, 60)) });
     stats.lastMisses = stats.lastMisses.slice(0, 3);
-    return { ...base, note: 'Not found on Indian Kanoon.' };
+    return { ...base, note: named.length ? 'Judgments with this name exist on Indian Kanoon, but none from the year cited.' : 'Not found on Indian Kanoon.' };
   }
   stats.found++; stats.missStreak = 0;
   const url = `https://indiankanoon.org/doc/${encodeURIComponent(hit.tid)}/`;

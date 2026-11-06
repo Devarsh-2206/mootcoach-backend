@@ -36,9 +36,24 @@ const fetchImpl = async (url, init) => {
   assert.strictEqual(calls[0].init.method, 'POST');
   assert.strictEqual(calls[0].init.headers.Authorization, 'Token test-token');
 
-  // Real case, wrong year in the citation: the citation is dropped, not shown.
+  // Same name, citation year far from the judgment's: NOT confirmed here (it may
+  // be a different judgment between the same parties); the web check decides.
   r = await ik.confirmCase({ name: 'Minerva Mills Ltd. v. Union of India', citation: '(1985) 3 SCC 625' }, { fetchImpl });
-  assert.strictEqual(r.status, 'verified'); assert.ok(r.citationDropped); assert.strictEqual(r.foundCitation, '');
+  assert.strictEqual(r.status, 'unverified'); assert.match(r.note, /none from the year cited/);
+
+  // Many judgments, one name: the one from the cited year is chosen.
+  const PUCL = [
+    { tid: 2009, title: 'People\'S Union For Civil Liberties vs Union Of India on 23 February, 2009', docsource: 'Supreme Court of India', publishdate: '2009-02-23' },
+    { tid: 2022, title: 'People\'S Union For Civil Liberties vs Union Of India on 12 October, 2022', docsource: 'Supreme Court of India', publishdate: '2022-10-12' },
+  ];
+  const pucl = async () => ({ ok: true, status: 200, text: async () => JSON.stringify({ docs: PUCL }) });
+  r = await ik.confirmCase({ name: 'Peoples Union for Civil Liberties v. Union of India', citation: '(2023) 14 SCC 535' }, { fetchImpl: pucl });
+  assert.strictEqual(r.status, 'verified'); assert.strictEqual(r.url, 'https://indiankanoon.org/doc/2022/');
+  r = await ik.confirmCase({ name: 'Peoples Union for Civil Liberties v. Union of India', citation: '(2015) 5 SCC 1' }, { fetchImpl: pucl });
+  assert.strictEqual(r.status, 'unverified', 'no same-name judgment near 2015: not confirmed');
+  // No citation: the first judgment with the name is accepted.
+  r = await ik.confirmCase({ name: 'Peoples Union for Civil Liberties v. Union of India' }, { fetchImpl: pucl });
+  assert.strictEqual(r.status, 'verified');
 
   // Invented case: not found.
   r = await ik.confirmCase({ name: 'Imaginary Traders v. Union of India', citation: '(2031) 9 SCC 9' }, { fetchImpl });
@@ -62,5 +77,5 @@ const fetchImpl = async (url, init) => {
   assert.ok(ps.paused && ps.missStreak >= 5 && ps.maxPerUpload === 6, JSON.stringify(ps));
   // Safeguard 2 is the cap applied in authorityVerifier.js (MAX_PER_CHECK).
   assert.strictEqual(ik.MAX_PER_CHECK, 6);
-  console.log('PASS indian kanoon: title matching, judgment link, wrong citation dropped, invented case refused, routing');
+  console.log('PASS indian kanoon: title matching, judgment link, same-name judgments by year, invented case refused, routing');
 })().catch(e => { console.error('FAIL indian kanoon:', e); process.exit(1); });
