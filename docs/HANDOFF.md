@@ -1,6 +1,6 @@
 # MootCoach — handoff notes
 
-For the next working session (human or Claude). Last updated **4 November 2026**, build **2026-11-03.30** (`0778ffc`).
+For the next working session (human or Claude). Last updated **7 November 2026**, build **2026-11-06.10** (`27937d0`).
 Read this first, then `docs/ARCHITECTURE.md`. Never put keys or passwords in this file.
 
 ---
@@ -55,11 +55,13 @@ Optional switches: `AI_PAUSED=1` (emergency brake for all AI), `PILOT_LIMITS` (o
 - Password reset and email confirmation are sent by MootCoach (not Firebase) and open `frontend/account.html`; signed "The MootCoach team".
 - Pilot panel → Emails tab → "Send me a preview of every email".
 
-## 7. Cases: only confirmed ones are shown (services/confirmCases.js, authorityVerifier.js, indianKanoon.js)
+## 7. Cases: only confirmed ones are shown (services/confirmCases.js, citedCases.js, authorityVerifier.js, indianKanoon.js)
 
-- **Decision (owner):** a case MootCoach cannot confirm is **left out, never shown with a "check it yourself" warning.** The analysis checks every suggested case alongside its enrichment, keeps confirmed ones (corrected citation if needed), counts the rest ("N were left out"). Failed check → cases held back with "Check the cases now". Memorials: an unconfirmed authority is removed from index and text.
-- Trusted sources only: court/government sites, law databases (Indian Kanoon, SCC Online, Manupatra, CaseMine, LiveLaw…), national newspapers. Quora/blogs/student notes never count.
-- **Indian Kanoon API** for Indian cases (₹0.50 per search): link to the judgment, court and date. **Open problem:** the first live upload made 10 searches (₹5) and matched none — every case fell back to the web check. Suspect `titleMatches` or the reply format. Next step: upload a fresh proposition and read the Pilot panel line "Indian Kanoon since the last restart: … reply keys: …", then fix. Safeguards: pause after 5 misses in a row (until restart), max 6 searches per upload.
+- **Decision (owner):** a case MootCoach cannot confirm is **left out, never shown with a "check it yourself" warning.**
+- **Flow (since 6 Nov):** `/analyze` returns as soon as the analysis is written (~60–65 s); its suggested cases wait in `precedentsPending` (`casesCheck.pending`). The page calls `/api/confirm-cases`, which confirms the case list AND the cases cited inside the text (arguments, additional issues, defect explanations, bench questions; `services/citedCases.js`, max 12 per analysis). Confirmed: kept, wrong citation corrected. Unconfirmed: removed (bracketed citation dropped; inline → "[unconfirmed authority removed]"). Saved back to the moot. `CASES_INLINE=1` restores the old in-request check.
+- **Indian Kanoon** (₹0.50/search, max 6 per check, 3 at a time, pause after 5 misses in a row): searches `title: <distinctive party> doctypes: supremecourt` (SC citation) or `doctypes: judgments` (per the API docs); picks the judgment within a year of the cited year when several share a name; expands title abbreviations (U.O.I, Govt, CIT, ADM, State of U.P. …); short party names must match fully. Sahyadri test: 5 of 6 confirmed before the abbreviation fix. `INDIANKANOON_QUERY=plain` reverts the search. Pilot panel shows the last unmatched searches and returned titles.
+- Web check for the rest: trusted sources only (court/government sites, law databases, national newspapers).
+- **Token:** the owner must rotate `INDIANKANOON_API_TOKEN` (it appeared in a documentation PDF shared in the session, 6 Nov).
 
 ## 8. Costs (Pilot panel → Spend tab, services/spend.js)
 
@@ -81,16 +83,15 @@ Vertex AI for text and voice (judge transcript fixed for Vertex's message order)
 
 ## 11. Pending, in order
 
-1. Indian Kanoon matching fix (needs one fresh upload + the Pilot panel line).
-2. Checks: Render `EMAIL_FROM` absent; `PILOT_LIMITS` not overriding voice; Clarity masking Strict; Google Billing by SKU vs Spend tab.
-3. Decide memorial drafts limit (2 or 4).
-4. Update and send the 5-friend soft-launch message (mention: first upload gets a spot; NALSAR friends use Continue with Google or confirm their email).
-5. Draft the NALSAR email and LinkedIn post.
-6. Optional: allow organiser sites in the network → run the `moot-calendar` agent to refresh dates and add competitions.
-7. Before public launch: real logo (favicon, preview, emails), robots.txt/sitemap, BIMI only if worth it.
-8. Startup credits (status 4 Nov 2026):
-   - Google for Startups: applied, confirmation 3 Nov; watch devarsh@mootcoach.in for reply / identity check; follow up ~10 Nov.
-   - Together AI accelerator: submitted 4 Nov (no reference number); reply expected by email.
-   - Microsoft for Startups: signed up without investor code; only $200 Azure via "Verify with LinkedIn" (owner, optional).
-   - Anthropic startup programme: cohort full, not accepting applications.
-   - AWS Activate Founders: not started — needs a paid-tier AWS account (card). Skipped for now; MootCoach does not run on AWS.
+1. Owner: rotate the Indian Kanoon token; upgrade Render backend to $25 (1 CPU, 2 GB); check `EMAIL_FROM` absent and `PILOT_LIMITS` not overriding voice rounds.
+2. **Srushti** (5th-year NALSAR law student, helping build MootCoach) is doing a full review. Then fix what she finds.
+3. Then launch: `PILOT_CAP=15` → NALSAR announcement (draft ready in the session; via moot court society / batch groups, evening 8–9 pm) + LinkedIn → raise to 50 after 1–2 smooth days.
+4. Watch on first real uses: the "Checking cases…" step in the browser, cited-case removals, text-bench persona (now server-built), voice round after the prompt changes. Known weakness: the judge sometimes re-asks after "I don't know" (1 of 2 runs).
+5. Decisions open: practice mode (answer before seeing answers); whether "[unconfirmed authority removed]" should be visible; memorial drafts limit (2 or 4).
+6. Later: Kaggle SC judgments dataset (licence/columns check first); company registration (Pvt Ltd, neutral name; MootCoach + advocate product later); real logo; Google for Startups / Together AI replies.
+
+## 12. Done 5–7 Nov (summary)
+- Load test → queue for PDFs (2), analyses (8, 40 waiting), voice rounds (10); memory peak 870 MB → 134 MB.
+- Prompt audit (`PROMPT_AUDIT.md`) and fixes: student text fenced as material (`prompts/untrusted.js`), judge persona built on the server, one citation rule (`prompts/citationDiscipline.js`), scope rule (moot competitions only, `prompts/scope.js`), no buzzword scoring, client-listed authorities no longer trusted as real, memory engine through `getChatCompletion`, `/extract-issues` and `generateAIResponse` removed, bench injection evals on gpt-oss-120b.
+- One bench question per issue; criminal codes cited event by event (BNSS after 1 Jul 2024).
+- Cost: Google Billing 1–3 Nov ₹65.35 gross (text ₹45.65, voice ₹19.63), all on credit; reducing AI "thinking" on the case check was tested and rejected (missed a real case).
