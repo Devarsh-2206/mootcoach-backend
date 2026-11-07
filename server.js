@@ -1,6 +1,12 @@
 require("dotenv").config();
+// Error reports (services/sentry.js): first, so it can hook into express.
+const sentry = require("./services/sentry");
 
-if (process.env.NODE_ENV !== "production") {
+// TLS certificate checks stay ON unless explicitly switched off for local
+// testing behind a proxy. (They used to be off whenever NODE_ENV was not
+// "production", which on a host that does not set NODE_ENV meant always.)
+if (process.env.ALLOW_INSECURE_TLS === '1') {
+  console.warn('⚠️ ALLOW_INSECURE_TLS=1: TLS certificate checks are OFF. Local testing only.');
   process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 }
 
@@ -647,6 +653,7 @@ app.use((req, res, next) => {
   next();
 });
 app.disable('x-powered-by');
+app.use(sentry.watchServerErrors());
 app.use(express.json());
 // Serve the app, never leftovers: dotfiles, backups and dev fixtures are not public.
 app.use((req, res, next) => {
@@ -2655,6 +2662,9 @@ app.post("/api/log-session", aiLimiter, express.json(), async (req, res) => {
 // const server = app.listen(PORT, '0.0.0.0', ...
 // const { WebSocketServer } = require("ws");
 // const wss = new WebSocketServer({ server });
+
+// Unhandled route errors go to Sentry (no-op without SENTRY_DSN).
+sentry.attachErrorHandler(app);
 
 /* Live voice rounds running right now. Each holds an open connection to
    Google's voice model, and Google limits how many can run at once (the exact
