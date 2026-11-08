@@ -305,6 +305,18 @@ async function openPilotAdmin() {
         prev.disabled = false; prev.textContent = 'Send me a preview of every email';
         return;
       }
+      const st = e.target.closest('[data-act="sentry-test"]');
+      if (st) {
+        st.disabled = true; st.textContent = 'Sending…';
+        try {
+          const r = await requestJson('/api/pilot/admin/sentry-test', { body: {}, timeoutMs: 30000 });
+          alertIn(overlay, !r.enabled ? 'Sentry is not switched on: SENTRY_DSN is not set in Render.'
+            : r.sent ? `Test error sent (id ${r.eventId}). Open Sentry → Issues: it should appear within a minute, with an email. If it does not, the DSN in Render is probably wrong.`
+            : 'Sentry is on, but the test error could not be confirmed as delivered. Check the Render logs for "[SENTRY] test event".');
+        } catch (err) { alertIn(overlay, err.message); }
+        st.disabled = false; st.textContent = 'Send a test error to Sentry';
+        return;
+      }
       const reset = e.target.closest('[data-act="spend-reset"]');
       if (reset) {
         // Two clicks, so a stray click cannot wipe the numbers.
@@ -438,7 +450,8 @@ function renderSpend(sp) {
       ${sp.models.length ? `<p class="pilot-small">By model: ${sp.models.map(m => `${esc(m.model)} ${inr(m.inr)} (${m.calls})`).join(' · ')}</p>` : ''}
     </div>
     <p class="pilot-small">These are estimates from the token counts Gemini reports, priced at list rates that may be out of date${sp.pricesOverridden ? ' (prices set with SPEND_PRICES)' : ''}, at ₹${sp.rate.toFixed(2)} per dollar. Google Cloud Billing is the real figure and shows it about a day late. "Each" divides by successful uses, so extra steps after an upload (issues, authorities, forecast) are included in the upload's cost.${sp.since ? ' Counting since ' + esc(fmtDate(sp.since)) + '.' : ''}</p>
-    <div class="pilot-actions"><button type="button" class="mc-dialog-secondary" data-act="spend-reset">Reset the spend figures</button></div>`;
+    <div class="pilot-actions"><button type="button" class="mc-dialog-secondary" data-act="spend-reset">Reset the spend figures</button>
+      <button type="button" class="mc-dialog-secondary" data-act="sentry-test">Send a test error to Sentry</button></div>`;
 }
 
 const FB_LABELS = {

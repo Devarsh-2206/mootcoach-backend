@@ -86,4 +86,18 @@ function watchServerErrors() {
   };
 }
 
-module.exports = { attachErrorHandler, watchServerErrors, report, enabled: () => !!Sentry };
+/**
+ * Admin test: send one test event and wait for Sentry to accept it, so the
+ * owner can see the whole chain work before real testers arrive.
+ * Returns { enabled, sent, eventId }.
+ */
+async function sendTest() {
+  if (!Sentry) return { enabled: false, sent: false };
+  const eventId = Sentry.captureMessage('MootCoach test error (sent from the Pilot panel; safe to ignore)', { level: 'error', tags: { test: 'yes' } });
+  let sent = false;
+  try { sent = await Sentry.flush(8000); } catch (e) { sent = false; }
+  console.log(`[SENTRY] test event ${eventId} ${sent ? 'handed to Sentry' : 'still queued after 8 s'} (check Sentry → Issues to confirm it arrived)`);
+  return { enabled: true, sent, eventId };
+}
+
+module.exports = { attachErrorHandler, watchServerErrors, report, sendTest, enabled: () => !!Sentry };

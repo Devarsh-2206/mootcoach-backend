@@ -2027,6 +2027,10 @@ app.post("/api/pilot/admin/spend-reset", signedIn, logLimiter, pilotAdminOnly, a
   await spend.reset();
   return res.json({ success: true, spend: spend.report() });
 });
+// Sends one test event to Sentry (admin only), to prove error reports arrive.
+app.post("/api/pilot/admin/sentry-test", signedIn, logLimiter, pilotAdminOnly, async (req, res) => {
+  return res.json({ success: true, ...(await sentry.sendTest()) });
+});
 app.post("/api/pilot/admin/set", signedIn, logLimiter, pilotAdminOnly, express.json({ limit: '4kb' }), async (req, res) => {
   const uid = typeof (req.body && req.body.uid) === 'string' ? req.body.uid.slice(0, 128) : '';
   const action = req.body && req.body.action;
