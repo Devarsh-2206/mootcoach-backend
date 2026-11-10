@@ -135,6 +135,8 @@ ${DATA_RULE}
 The advocate's DRAFTING INSTRUCTIONS block is the one exception: follow it as rule 10 says.
 
 MANDATORY OUTPUT FORMAT:
+COVER PAGE: copy the party names exactly as the proposition names them (the "Parties" line of the record, with "& Ors." where there are several). Never invent a party, a competition name, a case number or a year: use "" for an unknown competition and blanks for the number, e.g. "WRIT PETITION (CIVIL) NO. ___ OF 2026" (the year as given in the proposition).
+
 You must respond with ONLY a valid JSON object. No preamble, no explanation, no markdown fences (like \`\`\`json).
 
 JSON Schema:

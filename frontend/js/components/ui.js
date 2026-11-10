@@ -687,7 +687,7 @@ export async function loadSavedSession(docId) {
     issueModule.populateIssueStack(data);
 
     if (data.analysisData) {
-      showStructuredResults(data.analysisData);
+      showStructuredResults(data.analysisData, data.propositionIntelligence);
       
       // Highlight ONLY the selected recent moot — clear any previous highlight first.
       document.querySelectorAll('#ws-recent-list .ws-sb-item').forEach(b =>
@@ -1544,18 +1544,48 @@ export function refreshAdditionalIssuesCard() {
 /* What the drafting, coaching and simulator calls are told about the case:
    the summary, then the issues, so it is never empty when the analysis
    exists. */
-function buildPropositionContext(data) {
+/**
+ * What every later step (the drafts, the memorial, the bench, the briefing)
+ * is told about the proposition. It used to be the summary and the issues
+ * only, about 2,400 characters, so the memorial writer never saw the parties
+ * or the facts: it invented party names for the cover ("Association for
+ * Student Integrity" for "Vindhyachal Students' Collective"), dropped the
+ * lead petitioner's story and every figure, and cited the wrong paragraphs.
+ * The analysis already extracts the parties, material facts, chronology and
+ * relief (propositionIntelligence), so they are carried here.
+ */
+function buildPropositionContext(data, facts) {
   const parts = [];
+  const str = (v) => (typeof v === 'string' ? v : '').trim();
   const summary = data.summary || data.caseSummary || data.executiveSummary || '';
   if (summary) parts.push(String(summary));
   const issues = (Array.isArray(data.legalIssues) ? data.legalIssues : [])
     .map(i => typeof i === 'string' ? i : (i && (i.issue || i.title || i.question)) || '')
     .filter(Boolean);
   if (issues.length) parts.push('Issues: ' + issues.map((t, n) => `(${n + 1}) ${t}`).join(' '));
-  return parts.join('\n').slice(0, 2400);
+
+  const pi = (facts && typeof facts === 'object') ? facts : {};
+  const pa = pi.parties || {};
+  const pet = str(pa.claimant_petitioner && pa.claimant_petitioner.name);
+  const res = str(pa.respondent && pa.respondent.name);
+  const others = (Array.isArray(pa.thirdParties) ? pa.thirdParties : []).map(str).filter(Boolean);
+  if (pet || res) {
+    parts.push(`Parties (as named in the proposition): Petitioner/Claimant: ${pet || 'not stated'}; `
+      + `Respondent: ${res || 'not stated'}${others.length ? '; Others: ' + others.slice(0, 6).join('; ') : ''}`);
+  }
+  const fm = pi.factualMatrix || {};
+  const material = (Array.isArray(fm.materialFacts) ? fm.materialFacts : []).map(str).filter(Boolean);
+  if (material.length) parts.push('Material facts:\n- ' + material.slice(0, 25).join('\n- '));
+  const chron = (Array.isArray(fm.chronology) ? fm.chronology : [])
+    .map(c => c && (str(c.date) || str(c.event)) ? `${str(c.date)}${str(c.date) && str(c.event) ? ': ' : ''}${str(c.event)}` : '')
+    .filter(Boolean);
+  if (chron.length) parts.push('Chronology:\n- ' + chron.slice(0, 20).join('\n- '));
+  const relief = ((pi.proceduralContext || {}).reliefSought || []);
+  if (Array.isArray(relief) && relief.length) parts.push('Relief sought: ' + relief.map(str).filter(Boolean).slice(0, 8).join('; '));
+  return parts.join('\n').slice(0, 8000);
 }
 
-export function showStructuredResults(data) {
+export function showStructuredResults(data, facts) {
   if (!data || Object.keys(data).length === 0) {
     showError("No structured analysis data available for this session.");
     return;
@@ -1566,7 +1596,7 @@ export function showStructuredResults(data) {
     // draft, Oral Coach, briefing and simulator all ran without the facts.
     if (!data.summary && data.caseSummary) data.summary = data.caseSummary;
     lastAnalysis = JSON.stringify(data, null, 2);
-    currentPropositionContext = buildPropositionContext(data);
+    currentPropositionContext = buildPropositionContext(data, facts);
     populateIssuesFromAnalysis();
 
     // Legacy: Ensure the Stage 2 issue sidebar always populates from the analysis

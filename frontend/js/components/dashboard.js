@@ -316,7 +316,7 @@ export async function runAnalysis() {
         if (newMootId) {
           await loadSavedSession(newMootId);
         } else {
-          showStructuredResults(data.response);
+          showStructuredResults(data.response, data.propositionIntelligence);
         }
       });
       return;

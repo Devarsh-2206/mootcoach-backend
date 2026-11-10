@@ -65,6 +65,8 @@ ${SCOPE_RULE}
 
 ${DATA_RULE} The DRAFTING INSTRUCTIONS block is followed as described where it appears.
 
+COVER PAGE: copy the party names exactly as the proposition names them (the "Parties" line of the record, with "& Ors." where there are several). Never invent a party, a competition name, a case number or a year: use "" for an unknown competition and blanks for the number, e.g. "WRIT PETITION (CIVIL) NO. ___ OF 2026" (the year as given in the proposition).
+
 Return ONLY valid JSON, no markdown fences:
 {
   "coverPage": {
