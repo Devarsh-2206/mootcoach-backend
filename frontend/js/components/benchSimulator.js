@@ -37,6 +37,9 @@ export let voiceSessionActive = false;
 export let voiceSessionStartTime = null;
 
 // Local Voice State
+// True once Gemini sends the advocate's words (userText): from then on they
+// are the record, and the browser's speech recognition is not written down.
+let geminiHears = false;
 let recognition = null;
 let voiceTimerInterval = null;
 let voiceElapsedTime = 0;
@@ -1258,6 +1261,7 @@ export async function startOralRound() {
   };
   console.log("◉ Initiating oral round...");
   console.log("[DEBUG AUDIT] Starting oral round...");
+  geminiHears = false;
   benchConversation = [];
   voiceSessionActive = true;
   voiceSessionStartTime = Date.now();
@@ -1380,6 +1384,18 @@ export async function startOralRound() {
         // once the text has gone quiet (sooner if the turn already ended).
         clearTimeout(judgeFlushTimer);
         judgeFlushTimer = setTimeout(flushJudgeLine, judgeTurnEnded ? 1200 : 4000);
+      },
+      onUserText: (text) => {
+        if (!geminiHears) {
+          geminiHears = true;
+          // The browser may already have written this turn's opening words;
+          // Gemini's version replaces them rather than repeating them.
+          const last = oralTranscript[oralTranscript.length - 1];
+          if (last && last.role === 'advocate' && last.fromBrowser) oralTranscript.pop();
+          simStudentReset();
+          document.getElementById('cr-interim-bubble')?.remove();
+        }
+        appendTranscript('advocate', text, true);
       },
       onTurnComplete: () => {
         judgeTurnEnded = true;
@@ -1630,11 +1646,16 @@ function recordTurn(role, text, isChunk) {
   // Speech recognition can fire the same final result twice; a duplicated turn
   // would read to the marker as the advocate repeating themselves.
   if (last && last.role === role && last.content === t) return;
-  oralTranscript.push({ role, content: t });
+  const turn = { role, content: t };
+  if (role === 'advocate' && !geminiHears) turn.fromBrowser = true;
+  oralTranscript.push(turn);
 }
 
 export function appendTranscript(role, text, isChunk = false) {
-  if (role === 'advocate') simVoiceStudent(text, false);
+  // Browser speech recognition (whole sentences, never chunks) is ignored once
+  // Gemini's own transcript of the advocate is arriving.
+  if (role === 'advocate' && !isChunk && geminiHears) return;
+  if (role === 'advocate') simVoiceStudent(text, false, isChunk);
   const panel = document.getElementById('bench-transcript-panel');
   if (!panel) return;
 
@@ -1688,6 +1709,12 @@ export function appendTranscript(role, text, isChunk = false) {
     currentJudgeBubble = null;
     currentJudgeSpeech = '';
 
+    // Gemini sends the advocate's words in pieces: add to the open bubble.
+    const lastEl = panel.lastElementChild;
+    if (isChunk && lastEl && lastEl.classList.contains('bench-msg-advocate') && lastEl.id !== 'cr-interim-bubble') {
+      const t = lastEl.querySelector('.cr-msg-text');
+      if (t) { t.textContent = (t.textContent + text).replace(/\s+/g, ' '); panel.scrollTop = panel.scrollHeight; return; }
+    }
     const div = document.createElement('div');
     div.className = 'bench-msg bench-msg-advocate';
     div.innerHTML = `<div class="bm-role bm-role-advocate">Counsel</div>
@@ -1707,6 +1734,7 @@ export function appendTranscript(role, text, isChunk = false) {
 }
 
 export function showInterimUserSpeech(text) {
+  if (geminiHears) return;
   simVoiceStudent(text, true);
   const panel = document.getElementById('bench-transcript-panel');
   if (!panel) return;
@@ -2110,13 +2138,54 @@ function simAuthority(evt) {
 }
 
 /** Show these cases as "checking", then ask the server's case check about them. */
+/* The parties of a case name, without its citation or a bracketed tag, for
+   matching "Anuradha Bhasin v. Union of India, (2020) 3 SCC 637" (from the
+   analysis) with "Anuradha Bhasin v. Union of India" (said in the round). */
+function partiesKey(name) {
+  const n = String(name || '')
+    .replace(/\((?:privacy|aadhaar)[^)]*\)/ig, ' ')
+    .split(/,|\s\(\d|\s\[\d|\sAIR\b|\s\d{4}\b/)[0];
+  return normCase(n);
+}
+function splitCitation(raw) {
+  const m = String(raw || '').match(/^(.*?),\s*((?:\(|\[|AIR\b|\d).*)$/);
+  return m ? { name: m[1].trim(), citation: m[2].trim() } : { name: String(raw || '').trim(), citation: '' };
+}
+// A name half-heard or cut short ("Union of India v. ...") is not checked.
+function plausibleCaseName(name) {
+  if (/\.\.\.|…/.test(name)) return false;
+  const sides = String(name).split(/\sv(?:s)?\.?\s|\sversus\s/i);
+  return sides.length < 2 || sides.every(x => x.replace(/[^a-z]/gi, '').length >= 3);
+}
+/* What the analysis already confirmed about this case, if anything: the
+   courtroom shows that at once instead of checking it again (and a second
+   check by name alone could come back weaker than the first). */
+function knownCase(name) {
+  let a = null;
+  try { a = typeof lastAnalysis === 'string' ? JSON.parse(lastAnalysis) : lastAnalysis; } catch (e) { a = null; }
+  const list = (a && Array.isArray(a.precedentsNeeded)) ? a.precedentsNeeded : [];
+  const key = partiesKey(name);
+  if (!key) return null;
+  for (const c of list) {
+    if (!c || typeof c !== 'object') continue;
+    const k = partiesKey(c.caseName || c.name);
+    if (!k || !(k === key || k.includes(key) || key.includes(k))) continue;
+    const v = c.verification || {};
+    const url = c.judgmentUrl || v.url || (Array.isArray(v.sources) && v.sources[0] && v.sources[0].url) || '';
+    return { status: v.status === 'corrected' ? 'corrected' : 'verified', citation: c.citation || v.foundCitation || '', url };
+  }
+  return null;
+}
+
 async function simCheckCases(names) {
   const fresh = [];
   for (const raw of names) {
     const name = String(raw || '').trim().slice(0, 200);
-    const key = normCase(name);
-    if (!key || simAuthSeen.has(key)) continue;
+    const key = partiesKey(name);
+    if (!key || simAuthSeen.has(key) || !plausibleCaseName(name)) continue;
     simAuthSeen.set(key, name);
+    const known = knownCase(name);
+    if (known) { simAuthority(Object.assign({ name: splitCitation(name).name }, known)); continue; }
     fresh.push(name);
   }
   if (!fresh.length) return;
@@ -2130,7 +2199,7 @@ async function simCheckCases(names) {
   const mySim = sim;
   try {
     const data = await requestJson('/api/verify-authorities', { timeoutMs: 90000, body: {
-      authorities: fresh.map(name => ({ name })), forum } });
+      authorities: fresh.map(splitCitation), forum } });
     if (sim !== mySim) return;
     const results = (data && data.results) || [];
     fresh.forEach((name, i) => {
@@ -2433,14 +2502,21 @@ function simVoiceJudgeEnd() {
   simJudgeOpen = false;
   sim.endJudgeSpeech();
 }
-function simVoiceStudent(text, interim) {
+function simVoiceStudent(text, interim, isChunk) {
   if (!sim || !simVoice) return;
+  if (isChunk) {
+    // Gemini's pieces carry their own spacing.
+    simStudentDone = (simStudentDone + String(text || '')).replace(/\s+/g, ' ').replace(/^\s+/, '');
+    if (simStudentDone) sim.pushTranscript(simStudentDone, false);
+    return;
+  }
   const t = String(text || '').trim();
   if (!t) return;
   if (interim) { sim.pushTranscript((simStudentDone + ' ' + t).trim(), false); return; }
   simStudentDone = (simStudentDone + ' ' + t).trim();
   sim.pushTranscript(simStudentDone, false);
 }
+function simStudentReset() { simStudentDone = ''; }
 // Counsel's line closes when the judge starts or the round ends.
 function simFinishTranscript() {
   if (!sim || !simVoice) return;

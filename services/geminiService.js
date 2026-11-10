@@ -71,6 +71,17 @@ const handleLiveVoiceConnection = async (ws, benchLevel = 'moderate', propositio
       ATTEMPTS.push({ backend, model, languageCode: null });
     }
   }
+  // The advocate's words as Gemini heard them: the same audio the judge
+  // answers, and far better on Indian English than the browser's speech
+  // recognition, which turned "quashed" into "Quest" and "(2020) 3 SCC 637"
+  // into "2023 SCC 637" in a test round, and the report then marked the
+  // advocate down for it. Each attempt is tried with it first, then without,
+  // so a model that refuses the setting still gives the student a round.
+  // VOICE_INPUT_TRANSCRIPTION=off turns it off.
+  if (String(process.env.VOICE_INPUT_TRANSCRIPTION || '').toLowerCase() !== 'off') {
+    const plain = ATTEMPTS.splice(0, ATTEMPTS.length);
+    for (const a of plain) ATTEMPTS.push({ ...a, inputTx: true }, { ...a, inputTx: false });
+  }
   let modelIndex = 0, setupDone = false, liveAttempt = 0, clientGone = false;
   // Estimated spend: one meter for the round, on whichever attempt connected.
   let meter = null, meterDone = false;
@@ -82,6 +93,9 @@ const handleLiveVoiceConnection = async (ws, benchLevel = 'moderate', propositio
     // The AI Studio key sent these unasked; Vertex AI sends them only when
     // asked, which left Vertex rounds with an empty judge transcript.
     outputAudioTranscription: {},
+    // The counsel transcript (inputAudioTranscription) is added per attempt:
+    // see inputTx where ATTEMPTS is built, so a refusal of that one setting
+    // falls back to a round without it rather than to no round at all.
     speechConfig: {
       voiceConfig: {
         prebuiltVoiceConfig: { voiceName }
@@ -102,12 +116,13 @@ const handleLiveVoiceConnection = async (ws, benchLevel = 'moderate', propositio
   };
   async function openLive() {
     const attemptId = ++liveAttempt;
-    const { backend, model, languageCode: lang } = ATTEMPTS[modelIndex];
+    const { backend, model, languageCode: lang, inputTx } = ATTEMPTS[modelIndex];
     setupDone = false;
-    console.log(`🎙️ Opening Gemini Live session on ${model}${lang ? ` (${lang})` : ''} via ${backend}`);
-    const config = lang
+    console.log(`🎙️ Opening Gemini Live session on ${model}${lang ? ` (${lang})` : ''} via ${backend}${inputTx ? ' + counsel transcript' : ''}`);
+    let config = lang
       ? { ...liveConfig, speechConfig: { ...liveConfig.speechConfig, languageCode: lang } }
       : liveConfig;
+    if (inputTx) config = { ...config, inputAudioTranscription: {} };
     session = await liveClient(backend).live.connect({
       model,
       config,
@@ -126,7 +141,11 @@ const handleLiveVoiceConnection = async (ws, benchLevel = 'moderate', propositio
           try {
             if (message.serverContent) {
               if (AI_DEBUG) debugLog("[DEBUG TRACE] Raw serverContent:", JSON.stringify(message.serverContent, null, 2));
-              const { modelTurn, turnComplete, interrupted, outputTranscription } = message.serverContent;
+              const { modelTurn, turnComplete, interrupted, outputTranscription, inputTranscription } = message.serverContent;
+
+              if (inputTranscription?.text) {
+                ws.send(JSON.stringify({ type: "userText", text: inputTranscription.text }));
+              }
   
               if (outputTranscription?.text) {
                 debugLog("[TRANSCRIPT DEBUG] outputTranscription:", outputTranscription.text);

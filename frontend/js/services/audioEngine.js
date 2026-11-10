@@ -306,6 +306,9 @@ Begin the hearing with one opening question tailored to this issue and stance. K
           scheduleVoicePlayback(float32Data);
           if (onAudio) onAudio(float32Data);
         }
+      } else if (msg.type === 'userText') {
+        // The advocate's words as Gemini heard them (see geminiService.js).
+        if (msg.text && callbacks.onUserText) callbacks.onUserText(msg.text);
       } else if (msg.type === 'text') {
         console.log("[DEBUG TRACE] Frontend received text packet from backend:", msg.text.substring(0, 50));
         if (msg.text && msg.text.trim()) {

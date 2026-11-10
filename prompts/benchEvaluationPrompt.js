@@ -26,6 +26,7 @@ ${wrap('claim_ledger', claimLedger.slice(-30).map(c => `- Claim: "${String(c.cla
     ? `
 ROUND FORMAT: SPOKEN. This transcript came from live speech recognition.
 - Ignore transcription artefacts: dropped words, run-on sentences, homophones and missing punctuation are the recogniser, not the advocate.
+- Case names and citations are often mis-heard (e.g. "(2020) 3 SCC 637" written as "2023 SCC 637", "quashed" as "Quest", a party name garbled). Where a citation or name is plausibly a mis-hearing of a real authority, treat it as correctly cited: deduct under knowledgeOfLaw only for what the advocate said the case held, never for how the recogniser spelled it. Do not quote a garbled phrase back as if the advocate said it; quote the sense.
 - Do NOT comment on filler words, hesitation or verbal tics unless they are so pervasive that they obscure the submission.
 - DO judge what a bench judges in an oral round: whether the question asked was the question answered, whether concessions were made cleanly or dragged out, and whether they came back to their own structure after being taken off it.
 ${opts.durationSeconds ? `- The round ran about ${Math.round(opts.durationSeconds / 60)} minute(s). Judge time management against that, not against an ideal.` : ''}
