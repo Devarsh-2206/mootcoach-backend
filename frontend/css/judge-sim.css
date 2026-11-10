@@ -1,0 +1,379 @@
+/* MootCoach Judge Simulator 1.0.0. Everything is scoped under .mc-judgesim; no global rules.
+   The host page loads the fonts (EB Garamond, Cormorant Garamond, IBM Plex Mono) and gives the
+   container a height. Theme = CSS variables below; dark theme = .mc-dark on the root. */
+.mc-judgesim {
+  /* colour: Case File identity (locked) */
+  --mc-paper: #F2E9D6;
+  --mc-paper-2: #E9DDC4;
+  --mc-paper-3: #DCCDAD;
+  --mc-wall: #E4D6B8;
+  --mc-ink: #1C1814;
+  --mc-ink-2: #453D35;
+  --mc-ink-3: #655B50;
+  --mc-rule: #C6B797;
+  --mc-crimson: #B0392E;
+  --mc-crimson-text: #A63328;
+  --mc-crimson-wash: rgba(176, 57, 46, .09);
+  --mc-brass: #A98C4F;
+  --mc-brass-ink: #2E230C;
+  --mc-ok: #2C5637;
+  --mc-shadow: rgba(28, 24, 20, .16);
+  --mc-scrim: rgba(28, 24, 20, .46);
+  /* artwork colours (fixed in both themes: the judge is a printed plate) */
+  --mc-art-ink: #1B1613;
+  --mc-art-paper: #F1E7D0;
+  --mc-art-bench: #241C17;
+  --mc-art-benchtop: #B89B6C;
+  /* type */
+  --mc-serif: "EB Garamond", "Iowan Old Style", Georgia, serif;
+  --mc-display: "Cormorant Garamond", "EB Garamond", Georgia, serif;
+  --mc-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --mc-fs-xs: 10.5px;
+  --mc-fs-sm: 12px;
+  --mc-fs-base: 16px;
+  --mc-fs-md: 18px;
+  --mc-fs-lg: 23px;
+  --mc-fs-xl: 32px;
+  --mc-fs-xxl: 64px;
+  /* spacing + radii */
+  --mc-s1: 4px; --mc-s2: 8px; --mc-s3: 12px; --mc-s4: 16px; --mc-s5: 24px; --mc-s6: 36px;
+  --mc-r0: 0px; --mc-r1: 2px; --mc-round: 999px;
+  --mc-ease: cubic-bezier(.3, .7, .2, 1);
+}
+/* dark theme: class on the root, tokens only (options.theme / controller.setTheme) */
+.mc-judgesim.mc-dark {
+  --mc-paper: #191512; --mc-paper-2: #221C17; --mc-paper-3: #30281F; --mc-wall: #2B241C;
+  --mc-ink: #EEE4D0; --mc-ink-2: #D2C7B1; --mc-ink-3: #A99E8D; --mc-rule: #4A4034;
+  --mc-crimson-text: #E38374; --mc-crimson-wash: rgba(176, 57, 46, .2);
+  --mc-brass-ink: #2E230C; --mc-ok: #8DBB98; --mc-shadow: rgba(0, 0, 0, .5); --mc-scrim: rgba(0, 0, 0, .62);
+}
+
+.mc-judgesim, .mc-judgesim * { box-sizing: border-box; }
+.mc-judgesim [hidden] { display: none !important; }
+.mc-judgesim {
+  position: relative; height: 100%; min-height: 0; overflow: hidden; overflow: clip;
+  display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  background-color: var(--mc-paper);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .35 0 0 0 0 .3 0 0 0 0 .22 0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)' opacity='.22'/%3E%3C/svg%3E");
+  color: var(--mc-ink); font-family: var(--mc-serif); font-size: var(--mc-fs-base); line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+}
+.mc-judgesim button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+.mc-judgesim :focus-visible { outline: 2px solid var(--mc-crimson-text); outline-offset: 3px; }
+.mc-judgesim .mc-mono { font-family: var(--mc-mono); font-size: var(--mc-fs-xs); letter-spacing: .09em; text-transform: uppercase; color: var(--mc-ink-3); }
+.mc-judgesim .mc-vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.mc-judgesim svg.mc-ico { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+
+/* ---- top strip: cause title + phases ---- */
+.mc-judgesim .mc-top { display: flex; align-items: center; gap: var(--mc-s4); min-height: 46px; border-bottom: 1px solid var(--mc-ink); }
+.mc-judgesim .mc-brand { font-family: var(--mc-mono); font-size: var(--mc-fs-sm); font-weight: 600; letter-spacing: .14em; white-space: nowrap; }
+.mc-judgesim .mc-brand b { color: var(--mc-crimson-text); font-weight: 600; }
+.mc-judgesim .mc-matter { font-family: var(--mc-display); font-style: italic; font-weight: 500; font-size: var(--mc-fs-md); color: var(--mc-ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 0 1 auto; }
+.mc-judgesim .mc-phases { display: flex; gap: var(--mc-s4); list-style: none; margin: 0 0 0 auto; padding: 0; }
+.mc-judgesim .mc-phases li { font-family: var(--mc-mono); font-size: var(--mc-fs-xs); letter-spacing: .09em; text-transform: uppercase; color: var(--mc-ink-3); padding: 3px 0; border-bottom: 2px solid transparent; white-space: nowrap; }
+.mc-judgesim .mc-phases li[data-on="done"] { color: var(--mc-ink-2); text-decoration: line-through; text-decoration-thickness: 1px; }
+.mc-judgesim .mc-phases li[data-on="now"] { color: var(--mc-ink); font-weight: 600; border-bottom-color: var(--mc-crimson); }
+.mc-judgesim .mc-tools { display: flex; gap: 2px; }
+.mc-judgesim .mc-tool { width: 36px; height: 36px; display: grid; place-items: center; color: var(--mc-ink-2); border-radius: var(--mc-r1); }
+.mc-judgesim .mc-tool:hover { background: var(--mc-paper-2); color: var(--mc-ink); }
+.mc-judgesim .mc-tool[aria-pressed="true"] { color: var(--mc-crimson-text); }
+
+/* ---- body grid ---- */
+.mc-judgesim .mc-body { display: grid; grid-template-columns: 216px minmax(0, 1fr) auto; min-height: 0; }
+
+/* ---- bench notes: the left margin of the file ---- */
+.mc-judgesim .mc-notes { border-right: 3px double var(--mc-crimson); padding: var(--mc-s4) var(--mc-s4) var(--mc-s4) 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: var(--mc-s3); }
+.mc-judgesim .mc-panelhead { display: flex; align-items: baseline; justify-content: space-between; gap: var(--mc-s2); }
+.mc-judgesim .mc-panelhead h2 { font-family: var(--mc-display); font-weight: 600; font-style: italic; font-size: var(--mc-fs-lg); margin: 0; line-height: 1.1; }
+.mc-judgesim .mc-notelist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--mc-s4); }
+.mc-judgesim .mc-note { font-family: var(--mc-display); font-style: italic; font-weight: 600; font-size: 19px; line-height: 1.22; color: var(--mc-crimson-text); transform: rotate(-1.4deg); transform-origin: left center; }
+.mc-judgesim .mc-note:nth-child(even) { transform: rotate(.9deg); padding-left: var(--mc-s3); }
+.mc-judgesim .mc-note:nth-child(3n) { padding-left: var(--mc-s2); transform: rotate(-.4deg); }
+.mc-judgesim .mc-note span { display: block; font-family: var(--mc-mono); font-style: normal; font-weight: 400; font-size: var(--mc-fs-xs); letter-spacing: .08em; color: var(--mc-ink-3); margin-bottom: 1px; }
+.mc-judgesim .mc-note.mc-new { animation: mc-write .9s var(--mc-ease) both; }
+.mc-judgesim .mc-note u { text-decoration: underline; text-decoration-style: wavy; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+.mc-judgesim .mc-empty { font-style: italic; color: var(--mc-ink-3); margin: 0; font-size: 15px; }
+@keyframes mc-write { from { clip-path: inset(0 100% 0 0); opacity: .4; } to { clip-path: inset(0 -10% 0 0); opacity: 1; } }
+
+/* ---- stage ---- */
+.mc-judgesim .mc-stage { display: grid; grid-template-rows: minmax(0, 1fr) auto auto; min-width: 0; min-height: 0; }
+.mc-judgesim .mc-bencharea { position: relative; min-height: 0; overflow: hidden; background-color: var(--mc-wall);
+  background-image: repeating-linear-gradient(90deg, transparent 0 71px, var(--mc-rule) 71px 72px); }
+.mc-judgesim .mc-bencharea::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 7px; border-bottom: 1px solid var(--mc-rule); background: var(--mc-paper-3); }
+.mc-judgesim .mc-bencharea::after { content: ""; position: absolute; left: 0; right: 0; bottom: 18.6%; height: 30%; border-top: 5px solid var(--mc-paper-3); box-shadow: 0 -1px 0 var(--mc-rule); background-color: var(--mc-wall); background-image: linear-gradient(var(--mc-rule), var(--mc-rule)), repeating-linear-gradient(90deg, transparent 0 9px, var(--mc-rule) 9px 10px, transparent 10px 62px, var(--mc-rule) 62px 63px, transparent 63px 72px); background-size: 100% 1px, 72px 100%; background-position: 0 8px, 0 0; background-repeat: no-repeat, repeat-x; }
+.mc-judgesim .mc-benchband { z-index: 1; position: absolute; left: 0; right: 0; bottom: 0; height: 18.6%; background: var(--mc-art-bench); border-top: 1px solid var(--mc-art-ink); }
+.mc-judgesim .mc-benchband::before { content: ""; position: absolute; left: 0; right: 0; bottom: 100%; height: 22%; background: var(--mc-art-benchtop); border-top: 1.5px solid var(--mc-art-ink); }
+.mc-judgesim .mc-judgebox { z-index: 2; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); height: 100%; aspect-ratio: 480 / 420; max-width: 100%; }
+.mc-judgesim .mc-judgebox svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.mc-judgesim.mc-nogavel [data-layer="gavel"] { display: none; }
+.mc-judgesim .mc-usher { z-index: 3; position: absolute; left: var(--mc-s4); top: var(--mc-s5); font-family: var(--mc-mono); font-size: var(--mc-fs-sm); letter-spacing: .12em; text-transform: uppercase; color: var(--mc-ink); background: var(--mc-paper); border: 1px solid var(--mc-ink); padding: 5px 10px; opacity: 0; transition: opacity .5s; pointer-events: none; }
+.mc-judgesim .mc-usher.mc-show { opacity: 1; }
+.mc-judgesim .mc-courtno { z-index: 3; position: absolute; right: var(--mc-s4); top: var(--mc-s5); text-align: right; line-height: 1.5; }
+
+/* ---- temper of the bench: one hand-ruled line ---- */
+.mc-judgesim .mc-temper { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: var(--mc-s3); padding: 7px 0 5px var(--mc-s4); }
+.mc-judgesim .mc-temperline { position: relative; height: 9px; }
+.mc-judgesim .mc-temperline::before { content: ""; position: absolute; left: 0; right: 0; top: 4px; border-top: 1px dashed var(--mc-rule); }
+.mc-judgesim .mc-temperink { position: absolute; left: 0; top: 3px; height: 3px; width: 100%; background: var(--mc-crimson); transform-origin: left center; transform: scaleX(.7); transition: transform 1.4s var(--mc-ease); border-radius: 0 2px 2px 0 / 0 60% 40% 0; }
+.mc-judgesim .mc-temperink::after { content: ""; position: absolute; right: -1px; top: -3px; width: 2px; height: 9px; background: var(--mc-crimson); transform: rotate(8deg); }
+
+/* ---- podium ---- */
+.mc-judgesim .mc-podium { display: grid; grid-template-columns: minmax(230px, .82fr) minmax(0, 1.3fr); grid-template-rows: minmax(0, 1fr) auto; gap: var(--mc-s3) var(--mc-s5); height: clamp(228px, 35vh, 300px); padding: var(--mc-s2) 0 var(--mc-s4) var(--mc-s4); border-top: 1px solid var(--mc-ink); }
+.mc-judgesim .mc-slipzone { grid-row: 1 / 3; position: relative; min-height: 0; padding: var(--mc-s2) var(--mc-s2) 0 0; }
+.mc-judgesim .mc-slip { position: relative; height: 100%; background: var(--mc-paper-2); border: 1px solid var(--mc-ink); padding: var(--mc-s3) var(--mc-s4) var(--mc-s3); transform: rotate(-.7deg); box-shadow: 2px 3px 0 var(--mc-shadow); clip-path: polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 110%, 0 110%); display: flex; flex-direction: column; gap: var(--mc-s2); overflow: hidden; }
+.mc-judgesim .mc-slip::after { content: ""; position: absolute; right: 0; top: 0; width: 20px; height: 20px; background: linear-gradient(225deg, transparent 50%, var(--mc-paper-3) 50%); border-left: 1px solid var(--mc-ink); border-bottom: 1px solid var(--mc-ink); }
+.mc-judgesim .mc-sliphead { display: flex; gap: var(--mc-s2); align-items: center; }
+.mc-judgesim .mc-sliphead b { font-family: var(--mc-mono); font-size: var(--mc-fs-xs); letter-spacing: .1em; text-transform: uppercase; font-weight: 600; color: #FBF3E4; background: var(--mc-crimson); padding: 1px 6px; }
+.mc-judgesim .mc-sliptext { font-family: var(--mc-display); font-weight: 600; font-size: clamp(19px, 1.75vw, 25px); line-height: 1.18; margin: 0; text-wrap: balance; overflow: auto; min-height: 0; }
+.mc-judgesim .mc-sliptext i { color: var(--mc-ink-3); font-weight: 500; }
+.mc-judgesim .mc-slip.mc-slide { animation: mc-slide .62s var(--mc-ease) both; }
+@keyframes mc-slide { 0% { transform: translateY(-150px) rotate(-5deg); opacity: 0; } 60% { opacity: 1; } 82% { transform: translateY(5px) rotate(.3deg); } 100% { transform: translateY(0) rotate(-.7deg); } }
+
+.mc-judgesim .mc-record { min-height: 0; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.mc-judgesim .mc-lines { flex: 1; min-height: 0; overflow: auto; margin: 0; padding: 4px 0; list-style: none; border-top: 1px solid var(--mc-rule); border-bottom: 1px solid var(--mc-rule); font-family: var(--mc-mono); font-size: 13px; line-height: 1.55; scrollbar-width: thin; }
+.mc-judgesim .mc-lines li { display: grid; grid-template-columns: 30px minmax(0, 1fr); }
+.mc-judgesim .mc-lines li::before { content: attr(data-n); color: var(--mc-ink-3); font-size: var(--mc-fs-xs); padding-top: 2px; border-right: 1px solid var(--mc-rule); margin-right: 8px; }
+.mc-judgesim .mc-lines li p { margin: 0 0 3px; padding-left: 8px; min-width: 0; overflow-wrap: anywhere; }
+.mc-judgesim .mc-lines li[data-kind="mark"] p { color: var(--mc-crimson-text); font-family: var(--mc-serif); font-style: italic; font-size: 15px; }
+.mc-judgesim .mc-lines li[data-kind="cue"] p { color: var(--mc-ink-3); font-family: var(--mc-serif); font-style: italic; font-size: 16px; }
+.mc-judgesim .mc-lines li[data-kind="cue"] q { color: var(--mc-ink); quotes: "\201C" "\201D"; }
+.mc-judgesim .mc-lines li.mc-live p::after { content: ""; display: inline-block; width: 7px; height: 14px; background: var(--mc-ink); margin-left: 2px; vertical-align: -2px; animation: mc-caret 1s steps(1) infinite; }
+@keyframes mc-caret { 50% { opacity: 0; } }
+
+.mc-judgesim .mc-controls { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: var(--mc-s4); }
+.mc-judgesim .mc-mic { position: relative; width: 58px; height: 58px; border-radius: var(--mc-round); background: var(--mc-ink); color: var(--mc-paper); display: grid; place-items: center; transition: background .3s, transform .15s; }
+.mc-judgesim .mc-mic svg { width: 26px; height: 26px; }
+.mc-judgesim .mc-mic:active { transform: scale(.95); }
+.mc-judgesim .mc-mic::after { content: ""; position: absolute; inset: -6px; border-radius: inherit; border: 1.5px solid transparent; }
+.mc-judgesim [data-mic="live"] .mc-mic::after { border-color: var(--mc-ink); animation: mc-ring 1.6s ease-out infinite; }
+.mc-judgesim [data-mic="answer"] .mc-mic { background: var(--mc-crimson); color: #FBF3E4; }
+.mc-judgesim [data-mic="answer"] .mc-mic::after { border-color: var(--mc-crimson); animation: mc-ring 1.1s ease-out infinite; }
+.mc-judgesim [data-mic="ducked"] .mc-mic { background: var(--mc-paper-3); color: var(--mc-ink-3); }
+.mc-judgesim [data-mic="ducked"] .mc-mic::before { content: ""; position: absolute; width: 36px; border-top: 2px solid var(--mc-crimson); transform: rotate(-38deg); }
+.mc-judgesim [data-mic="closed"] .mc-mic { background: var(--mc-paper-3); color: var(--mc-ink-3); }
+@keyframes mc-ring { from { transform: scale(.92); opacity: 1; } to { transform: scale(1.28); opacity: 0; } }
+.mc-judgesim .mc-micstate { min-width: 0; }
+.mc-judgesim .mc-micstate strong { display: block; font-family: var(--mc-mono); font-size: var(--mc-fs-sm); letter-spacing: .09em; text-transform: uppercase; font-weight: 600; }
+.mc-judgesim [data-mic="answer"] .mc-micstate strong { color: var(--mc-crimson-text); }
+.mc-judgesim .mc-micstate span { display: block; font-style: italic; color: var(--mc-ink-2); font-size: 15px; line-height: 1.25; }
+.mc-judgesim .mc-timer { text-align: right; min-width: 132px; }
+.mc-judgesim .mc-clock { font-family: var(--mc-mono); font-weight: 500; font-size: 30px; line-height: 1; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+.mc-judgesim .mc-inkbar { height: 5px; margin-top: 7px; border-bottom: 1px solid var(--mc-ink-3); position: relative; }
+.mc-judgesim .mc-inkbar i { position: absolute; inset: 0 0 1px auto; width: 100%; background: var(--mc-ink); transform-origin: right center; transition: transform 1s linear; }
+.mc-judgesim .mc-timer[data-warn="1"] .mc-clock { color: var(--mc-crimson-text); }
+.mc-judgesim .mc-timer[data-warn="1"] .mc-inkbar i { background: var(--mc-crimson); animation: mc-pulse 1s steps(2) infinite; }
+.mc-judgesim .mc-timer .mc-mono { display: block; margin-top: 4px; }
+@keyframes mc-pulse { 50% { opacity: .55; } }
+.mc-judgesim .mc-sheetbtns { display: none; }
+.mc-judgesim .mc-rechead { display: flex; align-items: center; justify-content: space-between; gap: var(--mc-s2); min-height: 18px; }
+
+/* ---- authorities drawer ---- */
+.mc-judgesim .mc-auth { width: 258px; border-left: 1px solid var(--mc-ink); padding: var(--mc-s4) 0 var(--mc-s4) var(--mc-s4); margin-left: var(--mc-s4); min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: var(--mc-s3); transition: width .35s var(--mc-ease); }
+.mc-judgesim .mc-auth[data-open="0"] { width: 44px; padding-left: 0; overflow: hidden; }
+.mc-judgesim .mc-auth[data-open="0"] > :not(.mc-authtab) { display: none; }
+.mc-judgesim .mc-authtab { display: none; writing-mode: vertical-rl; gap: var(--mc-s2); align-items: center; padding: var(--mc-s3) 0; margin: 0 auto; }
+.mc-judgesim .mc-auth[data-open="0"] .mc-authtab { display: inline-flex; }
+.mc-judgesim .mc-authlist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.mc-judgesim .mc-authlist li { padding: var(--mc-s3) 0; border-top: 1px solid var(--mc-rule); display: grid; gap: 5px; }
+.mc-judgesim .mc-authlist li.mc-new { animation: mc-flash 1.6s ease-out; }
+@keyframes mc-flash { from { background: var(--mc-crimson-wash); } to { background: transparent; } }
+.mc-judgesim .mc-authlist cite { font-style: italic; font-size: 16.5px; line-height: 1.25; }
+.mc-judgesim .mc-tag { justify-self: start; display: inline-flex; align-items: center; gap: 4px; font-family: var(--mc-mono); font-size: var(--mc-fs-xs); font-weight: 600; letter-spacing: .1em; text-transform: uppercase; padding: 1px 6px 1px 4px; border: 1.5px solid currentColor; transform: rotate(-1.5deg); filter: url(#mc-rough); }
+.mc-judgesim .mc-tag svg { width: 12px; height: 12px; stroke-width: 2.2; }
+.mc-judgesim .mc-tag[data-s="verified"] { color: var(--mc-ok); }
+.mc-judgesim .mc-tag[data-s="check_this"] { color: var(--mc-crimson-text); }
+.mc-judgesim .mc-tag[data-s="unknown"] { color: var(--mc-ink-3); border-style: dashed; }
+.mc-judgesim .mc-fine { font-size: 13.5px; font-style: italic; color: var(--mc-ink-3); margin: auto 0 0; line-height: 1.3; }
+.mc-judgesim .mc-x { display: none; }
+
+/* ---- overlays: cover, pause, verdict ---- */
+.mc-judgesim .mc-overlay { position: absolute; inset: 0; z-index: 30; display: grid; overflow: auto; padding: var(--mc-s5) max(16px, env(safe-area-inset-right, 0px)) var(--mc-s5) max(16px, env(safe-area-inset-left, 0px)); }
+.mc-judgesim .mc-cover { background-color: var(--mc-paper); background-image: inherit; align-content: center; justify-items: center; }
+.mc-judgesim .mc-coverin { width: min(980px, 100%); display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: var(--mc-s4) var(--mc-s6); align-items: start; }
+.mc-judgesim .mc-coverhead { grid-column: 1 / -1; display: flex; justify-content: space-between; gap: var(--mc-s4); padding: 0 0 var(--mc-s2); border-bottom: 3px double var(--mc-crimson); }
+.mc-judgesim .mc-cover h1 { font-family: var(--mc-display); font-weight: 600; font-size: clamp(40px, 5.4vw, 70px); line-height: .96; letter-spacing: -.012em; margin: var(--mc-s2) 0 var(--mc-s4); text-wrap: balance; }
+.mc-judgesim .mc-docket { border-top: 1px solid var(--mc-ink); margin: 0; padding: var(--mc-s3) 0 0; display: grid; grid-template-columns: auto 1fr; gap: 3px var(--mc-s4); font-size: 17px; }
+.mc-judgesim .mc-docket dt { font-family: var(--mc-mono); font-size: var(--mc-fs-xs); letter-spacing: .09em; text-transform: uppercase; color: var(--mc-ink-3); padding-top: 5px; }
+.mc-judgesim .mc-docket dd { margin: 0; }
+.mc-judgesim .mc-pick { border: 0; margin: 0; padding: 0; min-width: 0; }
+.mc-judgesim .mc-pick .mc-picklegend { padding: var(--mc-s3) 0 var(--mc-s2); }
+.mc-judgesim .mc-pick .mc-seat { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: var(--mc-s3); align-items: center; padding: var(--mc-s2) var(--mc-s3); border-top: 1px solid var(--mc-rule); position: relative; }
+.mc-judgesim .mc-pick .mc-seat:last-child { border-bottom: 1px solid var(--mc-rule); }
+.mc-judgesim .mc-pick .mc-thumb { width: 76px; height: 70px; overflow: hidden; background: var(--mc-wall); border: 1px solid var(--mc-ink); }
+.mc-judgesim .mc-pick .mc-thumb svg { width: 150%; margin: -14% 0 0 -25%; display: block; }
+.mc-judgesim .mc-pick strong { font-family: var(--mc-display); font-size: 24px; font-weight: 600; line-height: 1.05; display: block; }
+.mc-judgesim .mc-pick small { font-size: 15px; font-style: italic; color: var(--mc-ink-2); display: block; line-height: 1.25; }
+.mc-judgesim .mc-pick .mc-seat.mc-on { background: var(--mc-crimson-wash); box-shadow: inset 4px 0 0 var(--mc-crimson); }
+.mc-judgesim .mc-pick .mc-mono { display: block; line-height: 1.35; margin-top: 3px; }
+.mc-judgesim .mc-btn { display: inline-flex; align-items: center; gap: var(--mc-s2); font-family: var(--mc-mono); font-size: var(--mc-fs-sm); font-weight: 600; letter-spacing: .1em; text-transform: uppercase; padding: 13px 18px; background: var(--mc-ink); color: var(--mc-paper); border: 1px solid var(--mc-ink); border-radius: var(--mc-r1); }
+.mc-judgesim .mc-btn:hover { background: var(--mc-crimson); border-color: var(--mc-crimson); color: #FBF3E4; }
+.mc-judgesim .mc-btn.mc-ghost { background: transparent; color: var(--mc-ink); }
+.mc-judgesim .mc-btn.mc-ghost:hover { background: var(--mc-paper-2); border-color: var(--mc-ink); color: var(--mc-ink); }
+.mc-judgesim .mc-coveract { display: flex; flex-wrap: wrap; gap: var(--mc-s3); align-items: center; margin-top: var(--mc-s4); }
+
+.mc-judgesim .mc-pausev { background: var(--mc-scrim); place-items: center; }
+.mc-judgesim .mc-pausecard { background: var(--mc-paper); border: 1px solid var(--mc-ink); padding: var(--mc-s5); max-width: 380px; text-align: left; box-shadow: 4px 5px 0 var(--mc-shadow); }
+.mc-judgesim .mc-pausecard h2 { font-family: var(--mc-display); font-size: var(--mc-fs-xl); font-weight: 600; margin: 0 0 var(--mc-s2); line-height: 1; }
+.mc-judgesim .mc-pausecard p { margin: 0 0 var(--mc-s4); color: var(--mc-ink-2); }
+
+.mc-judgesim .mc-verdictv { background: var(--mc-scrim); place-items: center; }
+.mc-judgesim .mc-file { position: relative; width: min(760px, 100%); background: var(--mc-paper); background-image: inherit; border: 1px solid var(--mc-ink); padding: var(--mc-s5) var(--mc-s5) var(--mc-s5) var(--mc-s6); box-shadow: 6px 8px 0 var(--mc-shadow); clip-path: polygon(0 0, calc(100% - 34px) 0, 100% 34px, 100% 105%, 0 105%); animation: mc-filein .5s var(--mc-ease) both; }
+.mc-judgesim .mc-file::before { content: ""; position: absolute; left: 20px; top: 0; bottom: 0; border-left: 3px double var(--mc-crimson); }
+.mc-judgesim .mc-file::after { content: ""; position: absolute; right: 0; top: 0; width: 34px; height: 34px; background: linear-gradient(225deg, transparent 50%, var(--mc-paper-3) 50%); border-left: 1px solid var(--mc-ink); border-bottom: 1px solid var(--mc-ink); }
+.mc-judgesim .mc-file > .mc-mono { display: block; padding-right: 44px; }
+.mc-judgesim .mc-file.mc-thud { animation: mc-thud .28s ease-out; }
+@keyframes mc-filein { from { transform: translateY(30px) rotate(1.2deg); opacity: 0; } }
+@keyframes mc-thud { 30% { transform: translate(2px, 3px) rotate(.25deg); } }
+.mc-judgesim .mc-scorerow { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--mc-s5); align-items: end; margin: 46px 0 var(--mc-s4); padding-bottom: var(--mc-s4); border-bottom: 1px solid var(--mc-ink); }
+.mc-judgesim .mc-score { font-family: var(--mc-display); font-weight: 700; font-size: clamp(84px, 13vw, 128px); line-height: .78; letter-spacing: -.03em; }
+.mc-judgesim .mc-score small { font-family: var(--mc-mono); font-size: var(--mc-fs-sm); font-weight: 400; letter-spacing: .08em; color: var(--mc-ink-3); margin-left: 4px; }
+.mc-judgesim .mc-summary { font-style: italic; font-size: 19px; line-height: 1.3; margin: 0; max-width: 46ch; }
+.mc-judgesim .mc-stamp { position: absolute; right: 48px; top: 20px; font-family: var(--mc-mono); font-weight: 600; font-size: 17px; letter-spacing: .16em; text-transform: uppercase; color: var(--mc-crimson-text); border: 3px double currentColor; padding: 7px 12px 6px; transform: rotate(-9deg); filter: url(#mc-rough); opacity: 0; text-align: center; line-height: 1.15; }
+.mc-judgesim .mc-stamp small { display: block; font-size: 9.5px; letter-spacing: .14em; font-weight: 500; }
+.mc-judgesim .mc-stamp.mc-land { animation: mc-stamp .26s cubic-bezier(.5, 0, .9, .4) both; }
+@keyframes mc-stamp { from { transform: rotate(-20deg) scale(3); opacity: 0; } 70% { opacity: 1; } to { transform: rotate(-9deg) scale(1); opacity: .92; } }
+.mc-judgesim .mc-findings { display: grid; grid-template-columns: 1fr 1fr; gap: var(--mc-s5); }
+.mc-judgesim .mc-findings h3 { font-family: var(--mc-mono); font-size: var(--mc-fs-xs); letter-spacing: .1em; text-transform: uppercase; font-weight: 600; margin: 0 0 var(--mc-s2); }
+.mc-judgesim .mc-findings .mc-against h3 { color: var(--mc-crimson-text); }
+.mc-judgesim .mc-findings ol { margin: 0; padding: 0 0 0 1.1em; font-size: 16.5px; line-height: 1.3; display: grid; gap: 6px; }
+.mc-judgesim .mc-findings ol li::marker { font-family: var(--mc-mono); font-size: var(--mc-fs-sm); color: var(--mc-ink-3); }
+.mc-judgesim .mc-fileact { display: flex; flex-wrap: wrap; gap: var(--mc-s3); align-items: center; margin-top: var(--mc-s5); }
+
+
+/* ---- mobile portrait ---- */
+@media (max-width: 860px) {
+  .mc-judgesim .mc-top { gap: var(--mc-s2); min-height: 44px; }
+  .mc-judgesim .mc-matter { display: none; }
+  .mc-judgesim .mc-phases li { display: none; }
+  .mc-judgesim .mc-phases li[data-on="now"] { display: block; }
+  .mc-judgesim .mc-body { grid-template-columns: minmax(0, 1fr); }
+  .mc-judgesim .mc-stage { grid-template-rows: 45% auto minmax(0, 1fr); }
+  .mc-judgesim .mc-bencharea { margin: 0 calc(-1 * max(16px, env(safe-area-inset-left, 0px))); }
+  .mc-judgesim .mc-courtno { display: none; }
+  .mc-judgesim .mc-temper { padding-left: 0; }
+  .mc-judgesim .mc-podium { height: auto; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr) auto; gap: var(--mc-s2); padding: var(--mc-s2) 0 calc(var(--mc-s3) + env(safe-area-inset-bottom, 0px)); }
+  .mc-judgesim .mc-slipzone { grid-row: auto; padding: 0 3px 3px 0; }
+  .mc-judgesim .mc-slip { height: auto; min-height: 76px; max-height: 118px; padding: var(--mc-s2) var(--mc-s3); }
+  .mc-judgesim .mc-sliptext { font-size: 18.5px; }
+  .mc-judgesim .mc-lines { font-size: 12px; }
+  .mc-judgesim .mc-controls { grid-template-columns: auto minmax(0, 1fr) auto; gap: var(--mc-s3); }
+  .mc-judgesim .mc-mic { width: 62px; height: 62px; }
+  .mc-judgesim .mc-timer { min-width: 86px; }
+  .mc-judgesim .mc-clock { font-size: 24px; }
+  .mc-judgesim .mc-timer .mc-mono { display: none; }
+  .mc-judgesim .mc-micstate span { font-size: 13.5px; }
+  .mc-judgesim .mc-sheetbtns { display: flex; gap: 6px; }
+  .mc-judgesim .mc-wide { display: none; }
+  .mc-judgesim .mc-sheetbtns svg.mc-ico { width: 14px; height: 14px; }
+  .mc-judgesim .mc-sheetbtns button { font-family: var(--mc-mono); font-size: var(--mc-fs-xs); letter-spacing: .08em; text-transform: uppercase; border: 1px solid var(--mc-ink-3); padding: 6px 8px; min-height: 30px; border-radius: var(--mc-r1); display: inline-flex; gap: 4px; align-items: center; white-space: nowrap; }
+  .mc-judgesim .mc-sheetbtns b { color: var(--mc-crimson-text); }
+  .mc-judgesim .mc-notes, .mc-judgesim .mc-auth, .mc-judgesim .mc-auth[data-open="0"] { position: absolute; z-index: 25; left: 0; right: 0; bottom: 0; width: auto; max-height: 68%; margin: 0; background: var(--mc-paper); border: 0; border-top: 1px solid var(--mc-ink); box-shadow: 0 -6px 0 var(--mc-shadow); padding: var(--mc-s4) max(16px, env(safe-area-inset-right, 0px)) calc(var(--mc-s5) + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); transform: translateY(105%); visibility: hidden; transition: transform .34s var(--mc-ease), visibility 0s .34s; overflow: auto; }
+  .mc-judgesim .mc-notes[data-sheet="1"], .mc-judgesim .mc-auth[data-sheet="1"] { transform: none; visibility: visible; transition: transform .34s var(--mc-ease); }
+  .mc-judgesim .mc-auth[data-open="0"] > :not(.mc-authtab) { display: revert; }
+  .mc-judgesim .mc-auth[data-open="0"] .mc-authtab, .mc-judgesim .mc-authtoggle { display: none; }
+  .mc-judgesim .mc-notes { border-left: 0; }
+  .mc-judgesim .mc-x { display: grid; }
+  .mc-judgesim .mc-coverin { grid-template-columns: minmax(0, 1fr); gap: var(--mc-s4); align-items: start; }
+  .mc-judgesim .mc-cover { align-content: start; }
+  .mc-judgesim .mc-cover h1 { font-size: 40px; margin: var(--mc-s2) 0 var(--mc-s3); }
+  .mc-judgesim .mc-pick .mc-picklegend { padding-top: 0; }
+  .mc-judgesim .mc-pick .mc-seat { grid-template-columns: 58px minmax(0, 1fr); }
+  .mc-judgesim .mc-pick .mc-thumb { width: 58px; height: 54px; }
+  .mc-judgesim .mc-pick strong { font-size: 21px; }
+  .mc-judgesim .mc-file { padding: var(--mc-s4) var(--mc-s4) var(--mc-s4) var(--mc-s6); }
+  .mc-judgesim .mc-scorerow { grid-template-columns: 1fr; gap: var(--mc-s3); }
+  .mc-judgesim .mc-score { font-size: 92px; }
+  .mc-judgesim .mc-stamp { right: 30px; top: 40px; font-size: 14px; }
+  .mc-judgesim .mc-scorerow { margin-top: 64px; }
+  .mc-judgesim .mc-findings { grid-template-columns: 1fr; gap: var(--mc-s4); }
+  .mc-judgesim .mc-verdictv { place-items: start center; }
+}
+@media (max-height: 620px) and (min-width: 861px) { .mc-judgesim .mc-podium { height: 210px; } }
+
+/* ---- reduced motion: state changes only ---- */
+@media (prefers-reduced-motion: reduce) {
+  .mc-judgesim *, .mc-judgesim *::before, .mc-judgesim *::after { animation: none !important; transition: none !important; }
+  .mc-judgesim .mc-stamp.mc-land { opacity: .92; }
+}
+.mc-judgesim.mc-reduced *, .mc-judgesim.mc-reduced *::before, .mc-judgesim.mc-reduced *::after { animation: none !important; transition: none !important; }
+.mc-judgesim.mc-reduced .mc-stamp.mc-land { opacity: .92; }
+
+/* ---- cover: the bench you are appearing before ---- */
+.mc-judgesim .mc-covernote { margin: var(--mc-s3) 0 0; }
+
+/* ---- "the bench is considering" ---- */
+.mc-judgesim [data-mic="considering"] .mc-micstate strong::after { content: "\2026"; display: inline-block; width: 1.4em; text-align: left; overflow: hidden; vertical-align: bottom; animation: mc-dots 1.4s steps(4, jump-none) infinite; }
+@keyframes mc-dots { 0% { width: 0; } 100% { width: 1.4em; } }
+.mc-judgesim [data-mic="considering"] .mc-mic, .mc-judgesim [data-mic="adjourned"] .mc-mic { background: var(--mc-paper-3); color: var(--mc-ink-3); }
+
+/* ---- text mode: a writing desk in place of the mic ---- */
+.mc-judgesim .mc-controls.mc-textmode { grid-template-columns: minmax(0, 1fr) auto auto; align-items: end; margin: 0; }
+.mc-judgesim .mc-compose { min-width: 0; display: grid; gap: 3px; }
+.mc-judgesim .mc-textmode .mc-micstate span { display: none; }
+.mc-judgesim .mc-textmode .mc-micstate strong { color: var(--mc-ink-2); }
+.mc-judgesim .mc-compose textarea { display: block; width: 100%; height: 58px; resize: none; margin: 0; padding: 7px 10px; font-family: var(--mc-serif); font-size: 17px; line-height: 1.3; color: var(--mc-ink); background: var(--mc-paper-2); border: 1px solid var(--mc-ink); border-radius: var(--mc-r1); box-shadow: 2px 3px 0 var(--mc-shadow); }
+.mc-judgesim .mc-compose textarea::placeholder { color: var(--mc-ink-3); font-style: italic; opacity: 1; }
+.mc-judgesim .mc-compose textarea:disabled { background: var(--mc-paper); border-color: var(--mc-rule); box-shadow: none; }
+.mc-judgesim .mc-send { height: 58px; }
+.mc-judgesim .mc-btn:disabled { background: var(--mc-paper-3); border-color: var(--mc-paper-3); color: var(--mc-ink-3); cursor: default; }
+
+/* ---- authorities: honest statuses ---- */
+.mc-judgesim .mc-cit { font-family: var(--mc-mono); font-size: var(--mc-fs-sm); color: var(--mc-ink-2); overflow-wrap: anywhere; }
+.mc-judgesim .mc-tag[data-s="corrected"] { color: var(--mc-crimson-text); }
+.mc-judgesim .mc-tag[data-s="unconfirmed"] { color: var(--mc-ink-2); border-style: dashed; }
+.mc-judgesim .mc-tag[data-s="checking"] { color: var(--mc-ink-3); border-style: dotted; }
+.mc-judgesim .mc-authlink { justify-self: start; font-family: var(--mc-mono); font-size: var(--mc-fs-sm); color: var(--mc-ink); text-decoration: underline; text-underline-offset: 3px; }
+.mc-judgesim .mc-authlink:hover { color: var(--mc-crimson-text); }
+
+/* ---- error card ---- */
+.mc-judgesim .mc-cardact { display: flex; flex-wrap: wrap; gap: var(--mc-s3); }
+.mc-judgesim .mc-pausecard p { overflow-wrap: anywhere; }
+
+/* ---- assessment: moments, criteria, priorities ---- */
+.mc-judgesim .mc-quote { margin: 0 0 6px; padding: 0 0 0 var(--mc-s3); border-left: 2px solid var(--mc-ink-3); font-style: italic; font-size: 16.5px; line-height: 1.3; }
+.mc-judgesim .mc-against .mc-quote { border-left-color: var(--mc-crimson); }
+.mc-judgesim .mc-findings p { margin: 0 0 6px; font-size: 16px; line-height: 1.3; }
+.mc-judgesim .mc-findings .mc-better b { display: block; color: var(--mc-ok); font-weight: 600; margin-top: 2px; }
+.mc-judgesim .mc-criteria, .mc-judgesim .mc-priorities { margin-top: var(--mc-s4); padding-top: var(--mc-s3); border-top: 1px solid var(--mc-rule); }
+.mc-judgesim .mc-criteria h3, .mc-judgesim .mc-priorities h3 { font-family: var(--mc-mono); font-size: var(--mc-fs-xs); letter-spacing: .1em; text-transform: uppercase; font-weight: 600; margin: 0 0 var(--mc-s2); }
+.mc-judgesim .mc-criteria dl { margin: 0; display: grid; }
+.mc-judgesim .mc-crit { display: grid; grid-template-columns: 172px 56px minmax(0, 1fr); gap: 0 var(--mc-s3); align-items: baseline; padding: 5px 0; border-top: 1px dotted var(--mc-rule); }
+.mc-judgesim .mc-crit:first-child { border-top: 0; }
+.mc-judgesim .mc-crit dt { font-size: 16px; font-weight: 500; line-height: 1.2; }
+.mc-judgesim .mc-crit dd { margin: 0; }
+.mc-judgesim .mc-critbar { display: block; height: 3px; margin-top: 4px; background: var(--mc-paper-3); }
+.mc-judgesim .mc-critbar i { display: block; height: 100%; background: var(--mc-ink); }
+.mc-judgesim .mc-critscore { font-family: var(--mc-mono); font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; text-align: right; }
+.mc-judgesim .mc-critscore small { font-size: var(--mc-fs-sm); font-weight: 400; color: var(--mc-ink-3); }
+.mc-judgesim .mc-critcomment { font-size: 15.5px; line-height: 1.3; color: var(--mc-ink-2); }
+.mc-judgesim .mc-priorities ol { margin: 0; padding: 0 0 0 1.1em; font-size: 16.5px; line-height: 1.3; display: grid; gap: 6px; }
+.mc-judgesim .mc-priorities ol li::marker { font-family: var(--mc-mono); font-size: var(--mc-fs-sm); color: var(--mc-ink-3); }
+
+/* ---- Full Bench: three seats, the speaking judge in full ink ---- */
+.mc-judgesim [data-plate="mark"] { display: none; }
+.mc-judgesim .mc-seats { position: absolute; inset: 0; z-index: 2; display: flex; align-items: flex-end; justify-content: center; }
+.mc-judgesim .mc-seatbox { flex: 0 1 auto; height: 100%; aspect-ratio: 280 / 392; max-width: 33.34%; min-width: 0; }
+.mc-judgesim .mc-seatbox svg { display: block; width: 100%; height: 100%; }
+.mc-judgesim .mc-seatbox [data-layer="chair"], .mc-judgesim .mc-seatbox [data-part="figure"], .mc-judgesim .mc-seatbox [data-layer="hands"] { transition: filter .45s var(--mc-ease); }
+.mc-judgesim .mc-seatbox[data-on="0"] [data-layer="chair"], .mc-judgesim .mc-seatbox[data-on="0"] [data-part="figure"], .mc-judgesim .mc-seatbox[data-on="0"] [data-layer="hands"] { filter: saturate(.35) opacity(.62); }
+.mc-judgesim .mc-seatbox[data-on="1"] [data-plate="mark"] { display: block; }
+.mc-judgesim.mc-full .mc-benchband { height: 20.4%; }
+.mc-judgesim.mc-full .mc-bencharea::after { bottom: 20.4%; }
+
+@media (max-width: 860px) {
+  .mc-judgesim .mc-controls.mc-textmode { grid-template-columns: minmax(0, 1fr) auto; gap: var(--mc-s2); }
+  .mc-judgesim .mc-textmode .mc-send { height: 54px; padding: 0 14px; }
+  .mc-judgesim .mc-textmode .mc-timer { grid-column: 1 / -1; justify-self: end; }
+  .mc-judgesim .mc-compose textarea { height: 54px; font-size: 16px; }
+  .mc-judgesim.mc-full .mc-stage { grid-template-rows: 36% auto minmax(0, 1fr); }
+  .mc-judgesim[data-mode="text"] .mc-stage { grid-template-rows: 38% auto minmax(0, 1fr); }
+  .mc-judgesim .mc-crit { grid-template-columns: minmax(0, 1fr) auto; }
+  .mc-judgesim .mc-critcomment { grid-column: 1 / -1; margin-top: 3px; }
+}
+@media (max-width: 480px) {
+  .mc-judgesim .mc-brandname { display: none; }
+  .mc-judgesim .mc-tool { width: 34px; }
+  .mc-judgesim .mc-top { gap: 6px; }
+}

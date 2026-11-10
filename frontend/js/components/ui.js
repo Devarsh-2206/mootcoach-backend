@@ -1840,6 +1840,7 @@ export function goToStage(stageNum) {
   refreshStepper();
 
   if (stageNum === 4 && window.renderLobbyBrief) window.renderLobbyBrief();
+  if (stageNum === 4 && window.renderBenchViewSwitch) window.renderBenchViewSwitch();
 
   // Advocacy's "Case Summary Context" card was never filled, so it asked
   // for an upload even with a proposition loaded.

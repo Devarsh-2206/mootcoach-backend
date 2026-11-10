@@ -459,6 +459,9 @@ export function renderLobbyBrief() {
 window.renderLobbyBrief = renderLobbyBrief;
 
 export function startBenchSession() {
+  // The courtroom view, unless the advocate chose the classic chat (or the
+  // courtroom could not load, in which case the chat is used).
+  if (getBenchView() === 'courtroom' && startCourtroomText()) return;
   window.__benchMootId = window.currentMootDocId || null;
   benchConversation = [];
   claimLedger = [];
@@ -911,6 +914,77 @@ export function appendBenchPerformanceReview(review, source = 'bench') {
   div.scrollIntoView({ block: 'start', behavior: 'smooth' });
 }
 
+/**
+ * The request body for one bench turn: the forum, judge and depth directives,
+ * the advocate's side, issue, authorities and drafts, and the analysis's
+ * predicted questions and known weaknesses. Shared by the classic chat bench
+ * and the courtroom view, so both send the judge exactly the same thing.
+ * The advocate's statement must already be the last turn in benchConversation.
+ */
+function buildBenchBody(statement) {
+  // Read the live, shared moot state (set by the Issues + Advocacy stages).
+  const ms = window.mootState || {};
+  const sel = readBenchSelections();
+  const selectedIssue = sel.issue;
+  const selectedStance = sel.stance;
+  const selectedAuthsText = sel.authorities.map(a => `${a.name}: ${a.ratio}`).join(', ') || 'None deployed';
+
+  // Carry the advocate's actual drafts so the Bench questions their own submissions.
+  const memorialDraft = sel.memorialDraft;
+  const oralDraft = sel.oralDraft;
+  const draftBlock =
+    (memorialDraft ? `\n[Advocate's Written Memorial Draft]\n${memorialDraft.slice(0, 1500)}\n` : '') +
+    (oralDraft ? `\n[Advocate's Oral Submission Draft]\n${oralDraft.slice(0, 1500)}\n` : '');
+
+  // Forum directive so the AI adjudicator adopts the correct persona/terminology.
+  const fp = getForumProfile();
+  const forumDirective = `[Forum: ${fp.benchType}${fp.specificBody ? ' — ' + fp.specificBody : ''}] [You are the ${fp.judgePlural}; refer to yourselves as the ${fp.court}; the advocate addresses you as "${fp.addressing}". Questioning style: ${fp.questioningStyle || 'rigorous and probing'}. Standard of review: ${fp.standardOfReview}.]`;
+
+  // Use the analysis's issue-specific intelligence to DRIVE questioning:
+  // the predicted bench questions and the side's known weaknesses.
+  const plan = ms.plan || {};
+  const predicted = [];
+  (plan.fatalQuestions || []).forEach(q => { const t = (q && (q.question || q)) || ''; if (t) predicted.push(t); });
+  (plan.benchQuestions || []).forEach(q => { if (q) predicted.push(q); });
+  const predictedBlock = predicted.length
+    ? `\n[Predicted questions for this issue — press the advocate on these first, phrased in your own words]\n- ${predicted.slice(0, 6).join('\n- ')}\n`
+    : '';
+  const defects = (plan.defects || []).map(d => `${d.defectType || 'Weakness'}: ${d.explanation || d}`);
+  const defectBlock = defects.length
+    ? `\n[Known weaknesses in the advocate's side — probe these relentlessly]\n- ${defects.slice(0, 4).join('\n- ')}\n`
+    : '';
+
+  // The server builds the presiding judge's persona from judges.json when it
+  // is told which judge was picked, so the directive is only sent here as a
+  // fallback when there is no judge id.
+  const presiding = getPresidingJudge();
+  const judgeDirective = presiding && presiding.id ? '' : getJudgeDirective();
+  const depthDirective = getDepthDirective();
+  const contextPrefix = `${forumDirective}${judgeDirective ? '\n' + judgeDirective : ''}${depthDirective ? '\n' + depthDirective : ''}\n[Advocate Side: ${String(selectedStance).toUpperCase()}] [Target Issue: ${selectedIssue || 'General'}] [Selected Authorities: ${selectedAuthsText}]${draftBlock}${predictedBlock}${defectBlock}\n\n`;
+
+  return {
+      conversationHistory: benchConversation.slice(-10),
+      // Lets the backend ground an Indian bench in the law that governs —
+      // the CPC and the substantive Act for a civil suit, not writ doctrine.
+      forumHint: (() => {
+        const fp = getForumProfile();
+        return {
+          jurisdiction: fp.courtJurisdiction === 'india' ? 'India' : fp.courtJurisdiction,
+          courtLevel: fp.courtLevel,
+          proceedingType: fp.proceedingType,
+          state: fp.state,
+          isConstitutionalMatter: fp.isConstitutionalMatter
+        };
+      })(),
+      propositionSummary: contextPrefix + (currentPropositionContext || ''),
+      judgeId: (presiding && presiding.id) || '',
+      rosterKey: getActiveRosterKey() || '',
+      difficulty: benchDifficultyMode,
+      studentStatement: statement,
+      claimLedger: claimLedger
+  };
+}
+
 export async function submitToBench() {
   if (benchSubmitting || !benchActive) return;
   const input = document.getElementById('bench-input');
@@ -938,73 +1012,9 @@ export async function submitToBench() {
   }
 
   try {
-    // Read the live, shared moot state (set by the Issues + Advocacy stages).
-    const ms = window.mootState || {};
-    const sel = readBenchSelections();
-    const selectedIssue = sel.issue;
-    const selectedStance = sel.stance;
-    const selectedAuthsText = sel.authorities.map(a => `${a.name}: ${a.ratio}`).join(', ') || 'None deployed';
-
-    // Carry the advocate's actual drafts so the Bench questions their own submissions.
-    const memorialDraft = sel.memorialDraft;
-    const oralDraft = sel.oralDraft;
-    const draftBlock =
-      (memorialDraft ? `\n[Advocate's Written Memorial Draft]\n${memorialDraft.slice(0, 1500)}\n` : '') +
-      (oralDraft ? `\n[Advocate's Oral Submission Draft]\n${oralDraft.slice(0, 1500)}\n` : '');
-
-    // Forum directive so the AI adjudicator adopts the correct persona/terminology.
-    const fp = getForumProfile();
-    const forumDirective = `[Forum: ${fp.benchType}${fp.specificBody ? ' — ' + fp.specificBody : ''}] [You are the ${fp.judgePlural}; refer to yourselves as the ${fp.court}; the advocate addresses you as "${fp.addressing}". Questioning style: ${fp.questioningStyle || 'rigorous and probing'}. Standard of review: ${fp.standardOfReview}.]`;
-
-    // Use the analysis's issue-specific intelligence to DRIVE questioning:
-    // the predicted bench questions and the side's known weaknesses.
-    const plan = ms.plan || {};
-    const predicted = [];
-    (plan.fatalQuestions || []).forEach(q => { const t = (q && (q.question || q)) || ''; if (t) predicted.push(t); });
-    (plan.benchQuestions || []).forEach(q => { if (q) predicted.push(q); });
-    const predictedBlock = predicted.length
-      ? `\n[Predicted questions for this issue — press the advocate on these first, phrased in your own words]\n- ${predicted.slice(0, 6).join('\n- ')}\n`
-      : '';
-    const defects = (plan.defects || []).map(d => `${d.defectType || 'Weakness'}: ${d.explanation || d}`);
-    const defectBlock = defects.length
-      ? `\n[Known weaknesses in the advocate's side — probe these relentlessly]\n- ${defects.slice(0, 4).join('\n- ')}\n`
-      : '';
-
-    // The server builds the presiding judge's persona from judges.json when it
-    // is told which judge was picked, so the directive is only sent here as a
-    // fallback when there is no judge id.
-    const presiding = getPresidingJudge();
-    const judgeDirective = presiding && presiding.id ? '' : getJudgeDirective();
-    const depthDirective = getDepthDirective();
-    const contextPrefix = `${forumDirective}${judgeDirective ? '\n' + judgeDirective : ''}${depthDirective ? '\n' + depthDirective : ''}\n[Advocate Side: ${String(selectedStance).toUpperCase()}] [Target Issue: ${selectedIssue || 'General'}] [Selected Authorities: ${selectedAuthsText}]${draftBlock}${predictedBlock}${defectBlock}\n\n`;
-
-    // Reset judge's text container to clear old judge text
     const judgeTextContainer = document.getElementById('judge-text-container');
-    if (judgeTextContainer) {
-      judgeTextContainer.innerHTML = "";
-    }
-
-    const data = await requestJson('/simulate-bench', { timeoutMs: 120000, body: {
-        conversationHistory: benchConversation.slice(-10),
-        // Lets the backend ground an Indian bench in the law that governs —
-        // the CPC and the substantive Act for a civil suit, not writ doctrine.
-        forumHint: (() => {
-          const fp = getForumProfile();
-          return {
-            jurisdiction: fp.courtJurisdiction === 'india' ? 'India' : fp.courtJurisdiction,
-            courtLevel: fp.courtLevel,
-            proceedingType: fp.proceedingType,
-            state: fp.state,
-            isConstitutionalMatter: fp.isConstitutionalMatter
-          };
-        })(),
-        propositionSummary: contextPrefix + (currentPropositionContext || ''),
-        judgeId: (presiding && presiding.id) || '',
-        rosterKey: getActiveRosterKey() || '',
-        difficulty: benchDifficultyMode,
-        studentStatement: statement,
-        claimLedger: claimLedger
-    } });
+    if (judgeTextContainer) judgeTextContainer.innerHTML = '';
+    const data = await requestJson('/simulate-bench', { timeoutMs: 120000, body: buildBenchBody(statement) });
 
     // Fire-and-forget Claim Extraction to build the ledger without adding latency
     requestJson('/simulate-bench/extract-claims', { timeoutMs: 60000, body: { studentStatement: statement } })
@@ -1983,4 +1993,341 @@ function updateVoiceTimerDisplay() {
   const mins = Math.floor(voiceElapsedTime / 60).toString().padStart(2, '0');
   const secs = (voiceElapsedTime % 60).toString().padStart(2, '0');
   timerEl.textContent = `ELAPSED: ${mins}:${secs}`;
+}
+
+/* ───────────────────────── COURTROOM VIEW (text round) ─────────────────────────
+ * The illustrated courtroom (js/vendor/judge-sim.js, MootCoachJudgeSim) shown in
+ * place of the chat for a text round. It is only the stage: every judge turn,
+ * case check and scoresheet still comes from the same server routes as the
+ * classic bench (/simulate-bench, /api/verify-authorities,
+ * /simulate-bench/oral-review), with the same per-tester limits.
+ *
+ * The classic chat stays available: the lobby's "Courtroom view" switch, kept
+ * per browser. If the component did not load, the classic bench is used.
+ */
+const VIEW_KEY = 'mc.benchView';
+const MAX_CASE_CHECKS_PER_ROUND = 5;   // each one counts against the tester's "extras"
+let sim = null;
+let simOpening = '';
+let simCaseChecks = 0;
+let simAuthSeen = new Map();           // normalised name → shown name
+
+export function getBenchView() {
+  let v = null;
+  try { v = localStorage.getItem(VIEW_KEY); } catch (e) {}
+  return v === 'classic' ? 'classic' : 'courtroom';
+}
+export function setBenchView(v) {
+  const view = v === 'classic' ? 'classic' : 'courtroom';
+  try { localStorage.setItem(VIEW_KEY, view); } catch (e) {}
+  renderBenchViewSwitch();
+}
+window.setBenchView = setBenchView;
+
+export function renderBenchViewSwitch() {
+  const view = getBenchView();
+  document.querySelectorAll('[data-bench-view]').forEach(b => {
+    const on = b.getAttribute('data-bench-view') === view;
+    b.classList.toggle('active-moderate', on);
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+}
+window.renderBenchViewSwitch = renderBenchViewSwitch;
+
+function courtroomAvailable() {
+  return !!(window.MootCoachJudgeSim && typeof window.MootCoachJudgeSim.mount === 'function');
+}
+
+function simJudges() {
+  const j = getPresidingJudge();
+  if (j && j.id === FULL_BENCH.id) {
+    // Full Bench: the presiding member in the middle, two colleagues either side.
+    const members = getActiveRoster().filter(m => m.id !== FULL_BENCH.id);
+    const presiding = members.find(m => m.presiding) || members[0];
+    const others = members.filter(m => m !== presiding).slice(0, 2);
+    if (presiding && others.length === 2) {
+      return { bench: [others[0], presiding, others[1]].map(m => ({ id: m.id, name: m.name, archetype: m.archetype })) };
+    }
+  }
+  return { judge: j ? { id: j.id, name: j.name, archetype: j.archetype } : { name: 'The Presiding Judge', archetype: '' } };
+}
+
+function normCase(name) {
+  return String(name || '').toLowerCase().replace(/\b(the|of|and)\b/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+}
+// Only reported cases go to the case check; statutes and articles do not.
+function looksLikeCase(name) {
+  return /\sv(?:s)?\.?\s|\sversus\s/i.test(String(name || '')) || /^in re\b/i.test(String(name || ''));
+}
+
+function simAuthority(evt) {
+  if (sim) sim.handleEvent(Object.assign({ type: 'authority' }, evt));
+}
+
+/** Show these cases as "checking", then ask the server's case check about them. */
+async function simCheckCases(names) {
+  const fresh = [];
+  for (const raw of names) {
+    const name = String(raw || '').trim().slice(0, 200);
+    const key = normCase(name);
+    if (!key || simAuthSeen.has(key)) continue;
+    simAuthSeen.set(key, name);
+    fresh.push(name);
+  }
+  if (!fresh.length) return;
+  if (simCaseChecks >= MAX_CASE_CHECKS_PER_ROUND) {
+    fresh.forEach(name => simAuthority({ name, status: 'unconfirmed', citation: '' }));
+    return;
+  }
+  simCaseChecks++;
+  fresh.forEach(name => simAuthority({ name, status: 'checking' }));
+  const forum = (() => { const fp = getForumProfile(); return `${fp.benchType || ''} ${fp.specificBody || ''}`.trim(); })();
+  const mySim = sim;
+  try {
+    const data = await requestJson('/api/verify-authorities', { timeoutMs: 90000, body: {
+      authorities: fresh.map(name => ({ name })), forum } });
+    if (sim !== mySim) return;
+    const results = (data && data.results) || [];
+    fresh.forEach((name, i) => {
+      const r = results[i] || {};
+      const status = r.status === 'verified' || r.status === 'corrected' ? r.status : 'unconfirmed';
+      const url = r.url || (Array.isArray(r.sources) && r.sources[0] && r.sources[0].url) || '';
+      simAuthority({ name, status, citation: r.foundCitation || r.citation || '', url });
+    });
+  } catch (err) {
+    if (sim !== mySim) return;
+    fresh.forEach(name => simAuthority({ name, status: 'unconfirmed', citation: '' }));
+  }
+}
+
+function simOpeningLine() {
+  const fp = getForumProfile();
+  const sel = readBenchSelections();
+  const openingMap = {
+    easy: `Good morning, Counsel. This ${fp.court} is ready to hear your submissions. Please state the nature of your case and establish your standing before proceeding.`,
+    moderate: `Counsel, you may proceed. This ${fp.isArbitration ? 'Tribunal' : 'Bench'} has read the proposition. Begin with your first issue and your primary submission on it. Be precise.`,
+    hard: `Counsel — before you commence your submissions on the merits, satisfy this ${fp.court} on one thing: on what precise basis does this ${fp.court} have jurisdiction to entertain this matter?`
+  };
+  let opening = openingMap[benchDifficultyMode] || openingMap.moderate;
+  if (sel.issue) {
+    opening = `Counsel for the ${sel.stance}, we are taking up your issue — "${String(sel.issue).trim().replace(/[.:;,!?\s]+$/, '')}." ${opening}`;
+  }
+  return opening;
+}
+
+function resetRoundState() {
+  window.__benchMootId = window.currentMootDocId || null;
+  benchConversation = [];
+  claimLedger = [];
+  roundMarked = false;
+  textSessionStartTime = Date.now();
+  benchActive = true;
+  window.benchActive = true;
+  benchSubmitting = false;
+  simCaseChecks = 0;
+  simAuthSeen = new Map();
+}
+
+async function simSubmit(text) {
+  const statement = String(text || '').trim();
+  if (!sim || !benchActive) return;
+  if (statement.length < 3) {
+    sim.handleEvent({ type: 'error', message: 'Say a little more before you send it to the bench.' });
+    return;
+  }
+  const mySim = sim;
+  benchSubmitting = true;
+  benchConversation.push({ role: 'advocate', content: statement });
+  try {
+    const data = await requestJson('/simulate-bench', { timeoutMs: 120000, body: buildBenchBody(statement) });
+    if (sim !== mySim) return;
+
+    // The cases the advocate relied on, from the claim extraction, go to the
+    // case check and the Authorities panel. Fire-and-forget, as in the chat.
+    requestJson('/simulate-bench/extract-claims', { timeoutMs: 60000, body: { studentStatement: statement } })
+      .then(d => {
+        if (sim !== mySim || !d || !d.success || !Array.isArray(d.claims)) return;
+        const cited = [];
+        d.claims.forEach(c => {
+          if (c.confidence >= 0.8) claimLedger.push(c);
+          if (c && c.authority && looksLikeCase(c.authority)) cited.push(c.authority);
+        });
+        simCheckCases(cited);
+      })
+      .catch(err => console.error('[CLAIM GRAPH] Extraction failed:', err));
+
+    if (data.isSessionEnd) {
+      sim.handleEvent({ type: 'session_end', reason: 'bench_closed' });
+      benchActive = false; window.benchActive = false;
+      if (data.performanceReview) simShowVerdict(data.performanceReview);
+      else await simMarkRound();
+      return;
+    }
+    const judgeText = data.judgeResponse || 'Proceed, Counsel.';
+    benchConversation.push({ role: 'judge', content: judgeText, targetWeakness: data.targetWeakness });
+    sim.handleEvent({
+      type: 'judge_turn', text: judgeText,
+      speakingJudge: data.speakingJudge || '',
+      pressureLevel: data.pressureLevel,
+      targetWeakness: data.targetWeakness || '',
+    });
+  } catch (err) {
+    // The bench never heard it: take it back out of the record. "Try again"
+    // in the courtroom sends the same text through simSubmit again.
+    const last = benchConversation[benchConversation.length - 1];
+    if (last && last.role === 'advocate' && last.content === statement) benchConversation.pop();
+    if (sim === mySim) sim.handleEvent({ type: 'error', message: (err && err.message) || 'The bench did not respond. Try again.' });
+  } finally {
+    benchSubmitting = false;
+  }
+}
+
+function simShowVerdict(review) {
+  if (!sim) return;
+  // Same side effects as the chat scoresheet: the feedback prompt and the
+  // moot's feedback loop. The chat itself is hidden while the courtroom is up.
+  appendBenchPerformanceReview(review, 'bench');
+  roundMarked = true;
+  setExitLabel('Exit Chambers');
+  sim.handleEvent(Object.assign({ type: 'verdict' }, review));
+}
+
+async function simMarkRound() {
+  const mySim = sim;
+  const turns = benchConversation.slice();
+  const seconds = textSessionStartTime ? Math.floor((Date.now() - textSessionStartTime) / 1000) : 0;
+  try {
+    const data = await requestJson('/simulate-bench/oral-review', { body: {
+      transcript: turns,
+      propositionSummary: getBenchContextString(),
+      intensity: benchDifficultyMode,
+      claimLedger: claimLedger,
+      durationSeconds: seconds,
+    } });
+    if (sim !== mySim) return;
+    if (!data || !data.performanceReview) throw new Error('The report came back empty.');
+    simShowVerdict(data.performanceReview);
+  } catch (err) {
+    if (sim !== mySim) return;
+    const choice = await confirmDialog({
+      title: 'Round not marked',
+      body: `${(err && err.message) || 'The bench could not mark the round.'} You can try again.`,
+      actions: [
+        { label: 'Mark again', value: 'again', primary: true },
+        { label: 'Leave without a score', value: 'leave', danger: true },
+      ],
+    });
+    if (sim !== mySim) return;
+    if (choice === 'again') return simMarkRound();
+    closeCourtroom();
+  }
+}
+
+/** The courtroom's Leave button: the same choices as Exit Chambers. */
+async function simLeave() {
+  if (!sim) return;
+  if (roundMarked || !benchActive) { closeCourtroom(); return; }
+  const adv = benchConversation.filter(t => t.role === 'advocate');
+  if (adv.length === 0) { closeCourtroom(); return; }
+  const chars = adv.reduce((n, t) => n + String(t.content || '').length, 0);
+  if (adv.length < 2 || chars < 200) {
+    const short = await confirmDialog({
+      title: 'Too short to mark yet',
+      body: `You have made ${adv.length} submission${adv.length === 1 ? '' : 's'}. The bench needs at least two substantive submissions before it can mark a round.`,
+      actions: [
+        { label: 'Keep arguing', value: 'stay', primary: true },
+        { label: 'Leave without a score', value: 'leave', danger: true },
+      ],
+    });
+    if (short === 'leave') closeCourtroom();
+    return;
+  }
+  const choice = await confirmDialog({
+    title: 'End this round?',
+    body: `You have made ${adv.length} submission${adv.length === 1 ? '' : 's'}. End the round now and the bench will mark it on a scoresheet.`,
+    actions: [
+      { label: 'End round and get my scoresheet', value: 'mark', primary: true },
+      { label: 'Keep arguing', value: 'stay' },
+      { label: 'Leave without a score', value: 'leave', danger: true },
+    ],
+  });
+  if (!sim) return;
+  if (choice === 'leave') { closeCourtroom(); return; }
+  if (choice !== 'mark') return;
+  if (benchSubmitting) {
+    showToast('The bench is still answering. End the round once it has replied.', 'info');
+    return;
+  }
+  benchActive = false; window.benchActive = false;
+  sim.handleEvent({ type: 'session_end', reason: 'counsel_closed' });
+  sim.setConsidering(true);
+  await simMarkRound();
+}
+
+function closeCourtroom() {
+  const stage = document.getElementById('judgesim-stage');
+  if (sim) { try { sim.destroy(); } catch (e) {} }
+  sim = null;
+  if (stage) { stage.hidden = true; stage.textContent = ''; }
+  document.documentElement.classList.remove('mc-courtroom-open');
+  clearBenchSession();
+}
+window.closeCourtroom = closeCourtroom;
+
+/** Open the courtroom for a text round. Returns false if it cannot be shown. */
+export function startCourtroomText() {
+  const stage = document.getElementById('judgesim-stage');
+  if (!stage || !courtroomAvailable()) return false;
+  if (sim) { try { sim.destroy(); } catch (e) {} sim = null; }
+
+  resetRoundState();
+  const fp = getForumProfile();
+  const sel = readBenchSelections();
+  const mootName = document.getElementById('ws-moot-name')?.value?.trim() || window.currentMootName || 'General appellate docket';
+  const who = simJudges();
+  const authNote = 'Cases you cite are checked against Indian Kanoon and trusted law sources. A case marked unconfirmed may still exist; check it before relying on it.';
+
+  stage.hidden = false;
+  stage.textContent = '';
+  document.documentElement.classList.add('mc-courtroom-open');
+  simOpening = simOpeningLine();
+
+  try {
+    sim = window.MootCoachJudgeSim.mount(stage, Object.assign({
+      mode: 'text',
+      difficulty: benchDifficultyMode,
+      matter: mootName,
+      side: `Counsel for the ${sel.stance || 'Petitioner'}`,
+      forumLabel: fp.isArbitration ? 'Members of the Tribunal' : 'Hon’ble Presiding Judge',
+      durationSec: null,
+      note: authNote,
+      copy: fp.isArbitration ? {
+        courtLabel: 'Arbitral Tribunal',
+        openingCue: 'May it please the Tribunal.',
+        interjects: 'The Tribunal interjects.',
+        adjourned: 'The hearing is adjourned.',
+      } : {},
+      onSubmit: simSubmit,
+      onExit: simLeave,
+      onRunAgain: () => {
+        resetRoundState();
+        sim && sim.start();
+      },
+      onChangeBench: () => closeCourtroom(),
+      onEvent: (evt) => {
+        if (!evt || evt.type !== 'round_started' || !sim) return;
+        benchConversation.push({ role: 'judge', content: simOpening });
+        sim.handleEvent({ type: 'judge_turn', text: simOpening, pressureLevel: 1, targetWeakness: '' });
+        // The authorities the advocate chose for this issue, checked up front.
+        simCheckCases(sel.authorities.map(a => a && a.name).filter(n => n && !isHypotheticalAuthority(n)));
+      },
+    }, who));
+  } catch (err) {
+    console.error('[COURTROOM] could not open:', err);
+    sim = null;
+    stage.hidden = true;
+    document.documentElement.classList.remove('mc-courtroom-open');
+    return false;
+  }
+  return true;
 }

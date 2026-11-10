@@ -66,6 +66,7 @@
 
 <!-- Tailwind utilities, prebuilt (npm run build:css). They must come before the page's own <style>, as the CDN's did, so the page's rules win. -->
 <link rel="stylesheet" href="/css/tailwind.css"/>
+<link rel="stylesheet" href="/css/judge-sim.css"/>
 
 <!-- Firebase Compat SDKs (For Vanilla JS integration) -->
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -959,6 +960,10 @@ p  { color:var(--white-2); }
 .mc-error-retry { background:var(--gold); color:#FCF9EF; }
 .mc-error-retry:hover { background:var(--gold-light); }
 .mc-error-dismiss { background:transparent; color:var(--gold); }
+.judgesim-stage { position:fixed; inset:0; z-index:9000; background:#F2E9D6; }
+.judgesim-stage[hidden] { display:none; }
+html.mc-courtroom-open, html.mc-courtroom-open body { overflow:hidden; }
+html.mc-courtroom-open .ws-floating-nav, html.mc-courtroom-open .theme-toggle { display:none !important; }
 .mc-dialog-overlay {
   position:fixed; inset:0; z-index:13000; background:rgba(20,16,12,.5);
   display:flex; align-items:center; justify-content:center; padding:16px;
@@ -4662,6 +4667,14 @@ html:root #view-workspace .issue-card.selected:not(.mc-paper *){background:var(-
                   </div>
                 </div>
 
+                <div class="ws-field flex flex-col gap-2" style="margin-bottom: 24px;">
+                  <span class="text-[10px] tracking-widest uppercase text-white-muted font-sans font-semibold" style="font-size: 9px; letter-spacing: 0.1em; color:var(--white-muted);">Text round view</span>
+                  <div class="oral-difficulty-row flex gap-2 w-full" role="group" aria-label="Text round view" style="display: flex; gap: 8px; width: 100%; margin-top: 6px;">
+                    <button class="diff-btn text-[10px] uppercase font-sans tracking-wider py-1.5 px-3 flex-1" data-bench-view="courtroom" onclick="setBenchView('courtroom')" style="flex: 1; text-align: center;">Courtroom</button>
+                    <button class="diff-btn text-[10px] uppercase font-sans tracking-wider py-1.5 px-3 flex-1" data-bench-view="classic" onclick="setBenchView('classic')" style="flex: 1; text-align: center;">Classic chat</button>
+                  </div>
+                </div>
+
                 <!-- What the bench will be given. Filled when the stage opens. -->
                 <div id="bench-lobby-brief" class="bench-ctx" style="margin-bottom:24px;"></div>
 
@@ -5176,6 +5189,10 @@ html:root #view-workspace .issue-card.selected:not(.mc-paper *){background:var(-
   if (reduced){ runSheet(); }
 })();
 </script>
+<!-- The illustrated courtroom for a text round (js/vendor/judge-sim.js), mounted by
+     benchSimulator.js startCourtroomText(). At page level so it covers everything. -->
+<div id="judgesim-stage" class="judgesim-stage" hidden></div>
+<script src="./js/vendor/judge-sim.js" defer></script>
 <script type="module" src="./js/app.js"></script>
 </body>
 </html>
