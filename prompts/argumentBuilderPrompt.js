@@ -87,6 +87,8 @@ CRITICAL INSTRUCTIONS:
     a sentence. Where you genuinely lack an authority for a point, make the argument from
     the statutory text and say so, rather than padding the Index with invented cases:
     rule 9 outranks this one, always.
+    When the input carries a SCOPE line (a draft on a single issue), follow its figures
+    instead: they are this rule scaled to one issue, not a lower standard of argument.
 
 8. **YOU ARE COUNSEL, NOT THE COURT.** A memorial argues for one side. Never write
    "the petition is dismissed", "the appeal is allowed", or any other judicial

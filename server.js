@@ -2236,6 +2236,19 @@ app.post("/api/build-argument", signedIn, pilotGate({ bucket: 'memorials' }), ai
     : '';
 
   /**
+   * This route drafts ONE issue. Rule 7d's depth (40-70 paragraphs, 25-50
+   * authorities) describes a whole filed memorial; asked of a single-issue
+   * draft it ran past the 150s generation limit on a real proposition (147s,
+   * "took too long", nothing shown). The whole memorial, issue by issue, is
+   * /api/build-memorial. Here the depth is scaled to one issue.
+   */
+  const scopeLine = '\nSCOPE: this is a draft on the ONE issue below, not the whole memorial. '
+    + "Rule 7d's figures describe a full memorial; for one issue aim for 12-20 numbered "
+    + 'paragraphs over 2-3 sub-grounds and 8-15 authorities, each sub-ground argued out '
+    + '(statute, authority, application to the facts, submission). Keep oralAdvocacy, '
+    + 'rebuttals and citations concise.\n';
+
+  /**
    * The advocate's drafting instructions used to be concatenated into `notes` and
    * handed over under the heading "RAW NOTES & AUTHORITIES PROVIDED", so a request
    * like "put an index of authorities at the start" read as material to summarise
@@ -2288,7 +2301,7 @@ ${fence('drafting_instructions', String(instructions).trim().slice(0, 4000))}\n`
           role: "user",
           content: `PROPOSITION FACTS / CONTEXT:
 ${fence('proposition', propositionContext.trim())}
-${forumLine}${focusLine}${instructionBlock}${authorityBlock}
+${forumLine}${scopeLine}${focusLine}${instructionBlock}${authorityBlock}
 STANCE / SIDE: ${String(stance).slice(0, 60)}
 ISSUE SELECTED:
 ${fence('case_file', String(issue).slice(0, 1000))}
