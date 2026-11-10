@@ -31,6 +31,10 @@ const { WebSocketServer } = require("ws");
 // never echoed back.
 const wss = new WebSocketServer({
   server,
+  // Voice messages are small audio chunks (a few KB). The library's default
+  // allows 100 MB per message, enough for one signed-in user to exhaust the
+  // server's memory; anything over 2 MB closes the connection.
+  maxPayload: 2 * 1024 * 1024,
   handleProtocols: (protocols) => (protocols.has('mootcoach') ? 'mootcoach' : false),
 });
 const cors = require("cors");
@@ -74,7 +78,11 @@ try {
  *                          deployed server.
  */
 const PREWARM_KEY = process.env.PREWARM_KEY || '';
-const ALLOW_UNAUTHENTICATED = process.env.ALLOW_UNAUTHENTICATED === '1';
+// Development only: it signs every request in as an admin ("dev"). On Render
+// it is IGNORED, so a stray environment variable can never open the live site.
+const ON_RENDER = !!(process.env.RENDER || process.env.RENDER_SERVICE_ID);
+const ALLOW_UNAUTHENTICATED = process.env.ALLOW_UNAUTHENTICATED === '1' && !ON_RENDER;
+if (process.env.ALLOW_UNAUTHENTICATED === '1' && ON_RENDER) console.error('⛔ ALLOW_UNAUTHENTICATED=1 is set on Render and has been IGNORED. Remove it from the environment.');
 if (ALLOW_UNAUTHENTICATED) console.warn('⚠️ ALLOW_UNAUTHENTICATED=1: AI routes accept anonymous calls. Development only.');
 
 async function verifiedUser(token) {
@@ -2124,7 +2132,20 @@ function sanitiseCitedTexts(t) {
  * not count against the student's other allowances. Returns only the cases
  * confirmed, and how many were left out.
  */
-app.post("/api/confirm-cases", signedIn, requirePilot, aiLimiter, express.json({ limit: '256kb' }), async (req, res) => {
+// Each case check can make paid Indian Kanoon searches and AI calls, and the
+// route is cheap to call in a loop, so testers get CASE_CHECKS_PER_DAY a day
+// (an upload needs one; reopening a moot may need another). Admins: no cap.
+const caseCheckCap = require("./services/dailyCap").createDailyCap(Number(process.env.CASE_CHECKS_PER_DAY || 10));
+function caseCheckAllowance(req, res, next) {
+  const u = req.user || {};
+  if (u.uid === 'dev' || pilot.isAdmin(u)) return next();
+  if (!caseCheckCap.take(u.uid)) {
+    return res.status(429).json({ success: false, code: 'limit',
+      error: "You've checked cases many times today. The cases will be checked again tomorrow, or upload a new proposition then." });
+  }
+  next();
+}
+app.post("/api/confirm-cases", signedIn, requirePilot, aiLimiter, caseCheckAllowance, express.json({ limit: '256kb' }), async (req, res) => {
   const cases = (Array.isArray(req.body && req.body.cases) ? req.body.cases : [])
     .filter(c => c && typeof c === 'object' && String(c.caseName || c.name || '').trim())
     .slice(0, 20)

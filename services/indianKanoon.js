@@ -39,6 +39,15 @@ const stats = { lookups: 0, found: 0, notFound: 0, errors: 0, lastError: '', las
  *     any further cases use the web check (applied in authorityVerifier.js).
  */
 const PAUSE_AFTER = Number(process.env.INDIANKANOON_PAUSE_AFTER || 5);
+/*
+ * 3. A whole-site daily ceiling on paid searches (India time), whatever any
+ *    one user does: INDIANKANOON_DAILY_MAX (default 200 searches = Rs 100).
+ *    Counted before each search is sent, so parallel searches cannot overshoot.
+ */
+const DAILY_MAX = Number(process.env.INDIANKANOON_DAILY_MAX || 200);
+const daily = { day: '', count: 0 };
+const istDay = () => new Date(Date.now() + 5.5 * 3600e3).toISOString().slice(0, 10);
+function dailyLeft() { const d = istDay(); if (d !== daily.day) { daily.day = d; daily.count = 0; } return DAILY_MAX - daily.count; }
 const MAX_PER_CHECK = Number(process.env.INDIANKANOON_MAX_PER_UPLOAD || 6);
 function miss() {
   stats.missStreak++;
@@ -48,8 +57,8 @@ function miss() {
   }
 }
 /** Use Indian Kanoon now? Token set, and not paused by the safeguard. */
-const active = () => configured() && !stats.paused;
-const status = () => ({ configured: configured(), pauseAfter: PAUSE_AFTER, maxPerUpload: MAX_PER_CHECK, ...stats });
+const active = () => configured() && !stats.paused && dailyLeft() > 0;
+const status = () => ({ configured: configured(), pauseAfter: PAUSE_AFTER, maxPerUpload: MAX_PER_CHECK, dailyMax: DAILY_MAX, usedToday: (dailyLeft(), daily.count), ...stats });
 
 /** Words that carry no identity in a case name. */
 const STOP = new Set(['the', 'of', 'and', 'v', 'vs', 'versus', 'ltd', 'limited', 'pvt', 'private', 'co', 'company', 'corporation',
@@ -165,6 +174,8 @@ function buildQuery(name, citation) {
 }
 
 async function search(query, { fetchImpl = fetch } = {}) {
+  if (dailyLeft() <= 0) throw new Error(`Indian Kanoon daily limit reached (${DAILY_MAX} searches); using the web check until tomorrow.`);
+  daily.count++;
   const url = `${BASE}/search/?formInput=${encodeURIComponent(query)}&pagenum=0`;
   const r = await fetchImpl(url, {
     method: 'POST',

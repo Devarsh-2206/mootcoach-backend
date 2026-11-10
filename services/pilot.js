@@ -28,7 +28,16 @@ const HOUR = 3600e3;
 
 function readConfig(env = process.env) {
   const list = v => String(v || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
-  const mode = ['on', 'closed'].includes(String(env.PILOT_MODE || '').toLowerCase()) ? env.PILOT_MODE.toLowerCase() : 'off';
+  // Fails CLOSED on the live server: a missing or mistyped PILOT_MODE on Render
+  // means "on" (the pilot rules and limits apply), never "open to everyone".
+  // "off" must be written out to switch the pilot off.
+  const raw = String(env.PILOT_MODE || '').trim().toLowerCase();
+  const onRender = !!(env.RENDER || env.RENDER_SERVICE_ID);
+  const mode = ['on', 'closed', 'off'].includes(raw) ? raw : (onRender ? 'on' : 'off');
+  if (onRender && raw && !['on', 'closed', 'off'].includes(raw) && !readConfig._warned) {
+    readConfig._warned = true;
+    console.error(`⛔ PILOT_MODE="${env.PILOT_MODE}" is not recognised; treating it as "on".`);
+  }
   return {
     mode,
     cap: Math.max(0, Number(env.PILOT_CAP || 50)),
