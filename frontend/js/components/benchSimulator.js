@@ -15,7 +15,8 @@ import {
   startOralRound as engineStartOralRound,
   stopOralRound as engineStopOralRound,
   getSocketState,
-  sendSpeechText
+  sendSpeechText,
+  getPlaybackAnalyser
 } from '../services/audioEngine.js';
 import { logSessionSecurely, requestJson } from '../services/api.js';
 import { getCurrentSelectedSide, selectedAuthorities, isHypotheticalAuthority } from './argumentBuilder.js';
@@ -580,16 +581,21 @@ function setExitLabel(text) {
  * Now an unmarked round asks first, and ending it marks it in place. Once
  * the scoresheet is on screen, Exit just leaves.
  */
+// Leaving: through the courtroom when it is up (it tidies up after itself).
+function leaveBench() {
+  if (sim) closeCourtroom(); else clearBenchSession();
+}
+
 export async function exitChambers() {
   const turns = voiceSessionActive ? getOralTranscript() : benchConversation;
   const argued = turns.filter(t => t.role === 'advocate').length;
 
-  if (roundMarked) { clearBenchSession(); return; }
+  if (roundMarked) { leaveBench(); return; }
   if (argued === 0) {
     // A voice round where nothing was captured: end it and say so, rather
     // than dropping straight back to the lobby with no explanation.
     if (voiceSessionActive) { await stopOralRound(); return; }
-    clearBenchSession();
+    leaveBench();
     return;
   }
 
@@ -605,7 +611,7 @@ export async function exitChambers() {
         { label: 'Leave without a score', value: 'leave', danger: true },
       ],
     });
-    if (short === 'leave') clearBenchSession();
+    if (short === 'leave') leaveBench();
     return;
   }
 
@@ -619,7 +625,7 @@ export async function exitChambers() {
     ],
   });
 
-  if (choice === 'leave') { clearBenchSession(); return; }
+  if (choice === 'leave') { leaveBench(); return; }
   if (choice !== 'mark') return;
 
   if (voiceSessionActive) {
@@ -1215,6 +1221,8 @@ export async function startOralRound() {
   }
   // Closed pilot: no voice rounds left means say so now, before the courtroom opens.
   if (window.pilotBlocks && window.pilotBlocks('voiceRounds')) return;
+  // The illustrated courtroom, unless the advocate chose the classic view.
+  if (getBenchView() === 'courtroom') openCourtroomVoice();
 
   // Browser SpeechSynthesis iOS warmup removed in favor of Gemini Live native audio.
 
@@ -1329,6 +1337,7 @@ export async function startOralRound() {
           updateBenchState('listening');
           safeStartRecognition();
         } else if (status === 'speaking') {
+          simVoiceJudgeAudio();
           if (getSocketState() === 'open') {
             updateBenchState('speaking');
             // safeAbortRecognition() is natively called inside updateBenchState('speaking')
@@ -1350,6 +1359,7 @@ export async function startOralRound() {
         // Low-latency sentence-boundary chunking for real-time TTS responsiveness
         console.log("[DEBUG AUDIT] AI response chunk received:", text);
         fullJudgeResponse += text;
+        simVoiceJudgeText(fullJudgeResponse);
         // Vertex AI can deliver the transcript after "turn complete", or with
         // no turn signal at all. Keep collecting, and write the judge's line
         // once the text has gone quiet (sooner if the turn already ended).
@@ -1362,6 +1372,7 @@ export async function startOralRound() {
         judgeFlushTimer = setTimeout(flushJudgeLine, 1200);
       },
       onInterrupted: () => {
+        simVoiceJudgeEnd();
         clearTimeout(judgeFlushTimer);
         judgeTurnEnded = false;
         const cleanResponse = fullJudgeResponse.trim();
@@ -1374,9 +1385,10 @@ export async function startOralRound() {
       onError: (message) => {
         console.log("[DEBUG AUDIT] AI response error received:", message);
         appendTranscript('system', `Judge Error: ${message}`);
+        simVoiceError(message);
       },
       // Pilot notices (time limit, round allowance): said plainly, not as an error.
-      onNotice: (text) => appendTranscript('system', text),
+      onNotice: (text) => { appendTranscript('system', text); simVoiceNotice(text); },
       onClose: () => {
         console.log("[DEBUG AUDIT] Engine connection closed.");
         // A judge line still being collected belongs in the transcript and report.
@@ -1387,6 +1399,7 @@ export async function startOralRound() {
       },
       onPlaybackComplete: () => {
         console.log("[DEBUG AUDIT] Gemini Live playback completed. Transitioning to listening and reactivating mic...");
+        simVoiceJudgeEnd();
         if (benchAdjourned) {
           benchAdjourned = false;
           appendTranscript('system', 'The Bench has adjourned. The round is over.');
@@ -1397,9 +1410,12 @@ export async function startOralRound() {
         safeStartRecognition();
       }
     });
+    // Lip-sync: the judge's mouth follows the real voice from here on.
+    if (sim) sim.attachJudgeAudio(getPlaybackAnalyser());
   } catch (err) {
     console.error("Failed to start oral round:", err);
     appendTranscript('system', `Failed to start: ${err.message}`);
+    simVoiceError(`Could not start the voice round: ${err.message}`);
     stopOralRound();
   }
 }
@@ -1408,6 +1424,12 @@ export async function stopOralRound({ mark = true } = {}) {
   if (!voiceSessionActive) return;
   console.log("◉ Stopping oral round...");
   voiceSessionActive = false;
+  if (sim && mark) {
+    const limit = (window.pilotLimits && window.pilotLimits.voiceMinutes) || 0;
+    const ran = voiceSessionStartTime ? (Date.now() - voiceSessionStartTime) / 1000 : 0;
+    simFinishTranscript();
+    sim.handleEvent({ type: 'session_end', reason: limit && ran >= limit * 60 - 5 ? 'time' : 'counsel_closed' });
+  }
 
   const btnOral = document.getElementById('btn-bench-oral');
   const btnStart = document.getElementById('btn-bench-start');
@@ -1503,6 +1525,7 @@ async function requestOralReview(durationSeconds, transcript) {
   // Nothing was said. Saying so beats a scorecard invented from silence.
   if (advocateTurns.length < 2 || advocateTurns.reduce((n, t) => n + t.content.length, 0) < 200) {
     appendBenchSystemNote('That round was too short to mark. Argue for a few exchanges and the bench will have something to assess.');
+    simVoiceNotice('That round was too short to mark. Argue for a few exchanges and the bench will have something to assess.');
     roundMarked = true;           // nothing to lose by leaving now
     setExitLabel('Exit Chambers');
     return;
@@ -1529,6 +1552,7 @@ async function requestOralReview(durationSeconds, transcript) {
       if (data.performanceReview) {
         appendBenchPerformanceReview(data.performanceReview, 'voice');
         roundMarked = true;
+        if (sim) sim.handleEvent(Object.assign({ type: 'verdict' }, data.performanceReview));
         setExitLabel('Exit Chambers');
       } else {
         throw new Error('The report came back empty.');
@@ -1536,6 +1560,7 @@ async function requestOralReview(durationSeconds, transcript) {
     } catch (err) {
       console.error('[ORAL REVIEW] failed:', err);
       document.getElementById('oral-review-pending')?.remove();
+      if (sim) simVoiceMarkFailed(err, markRound, pending, chat);
       const box = renderActionError(chat, {
         title: 'Round not marked',
         message: err.message + ' Your transcript is still on screen.',
@@ -1592,6 +1617,7 @@ function recordTurn(role, text, isChunk) {
 }
 
 export function appendTranscript(role, text, isChunk = false) {
+  if (role === 'advocate') simVoiceStudent(text, false);
   const panel = document.getElementById('bench-transcript-panel');
   if (!panel) return;
 
@@ -1664,6 +1690,7 @@ export function appendTranscript(role, text, isChunk = false) {
 }
 
 export function showInterimUserSpeech(text) {
+  simVoiceStudent(text, true);
   const panel = document.getElementById('bench-transcript-panel');
   if (!panel) return;
 
@@ -2007,6 +2034,7 @@ function updateVoiceTimerDisplay() {
  */
 const VIEW_KEY = 'mc.benchView';
 const MAX_CASE_CHECKS_PER_ROUND = 5;   // each one counts against the tester's "extras"
+const AUTH_NOTE = 'Cases you cite are checked against Indian Kanoon and trusted law sources. A case marked unconfirmed may still exist; check it before relying on it.';
 let sim = null;
 let simOpening = '';
 let simCaseChecks = 0;
@@ -2266,47 +2294,62 @@ async function simLeave() {
 
 function closeCourtroom() {
   const stage = document.getElementById('judgesim-stage');
-  if (sim) { try { sim.destroy(); } catch (e) {} }
+  const s0 = sim;
   sim = null;
+  simVoice = false;
+  if (s0) { try { s0.destroy(); } catch (e) {} }
   if (stage) { stage.hidden = true; stage.textContent = ''; }
   document.documentElement.classList.remove('mc-courtroom-open');
   clearBenchSession();
 }
 window.closeCourtroom = closeCourtroom;
 
-/** Open the courtroom for a text round. Returns false if it cannot be shown. */
-export function startCourtroomText() {
-  const stage = document.getElementById('judgesim-stage');
-  if (!stage || !courtroomAvailable()) return false;
-  if (sim) { try { sim.destroy(); } catch (e) {} sim = null; }
-
-  resetRoundState();
+/** What both rounds give the courtroom: the judge(s), the matter, the forum's words. */
+function simBaseOptions(mode) {
   const fp = getForumProfile();
   const sel = readBenchSelections();
   const mootName = document.getElementById('ws-moot-name')?.value?.trim() || window.currentMootName || 'General appellate docket';
-  const who = simJudges();
-  const authNote = 'Cases you cite are checked against Indian Kanoon and trusted law sources. A case marked unconfirmed may still exist; check it before relying on it.';
+  return Object.assign({
+    mode,
+    difficulty: benchDifficultyMode,
+    matter: mootName,
+    side: `Counsel for the ${sel.stance || 'Petitioner'}`,
+    forumLabel: fp.isArbitration ? 'Members of the Tribunal' : 'Hon’ble Presiding Judge',
+    copy: fp.isArbitration ? {
+      courtLabel: 'Arbitral Tribunal',
+      openingCue: 'May it please the Tribunal.',
+      interjects: 'The Tribunal interjects.',
+      adjourned: 'The hearing is adjourned.',
+    } : {},
+  }, simJudges());
+}
 
+function showStage() {
+  const stage = document.getElementById('judgesim-stage');
+  if (!stage || !courtroomAvailable()) return null;
+  if (sim) { try { sim.destroy(); } catch (e) {} sim = null; }
   stage.hidden = false;
   stage.textContent = '';
   document.documentElement.classList.add('mc-courtroom-open');
-  simOpening = simOpeningLine();
+  return stage;
+}
+function hideStage(stage) {
+  sim = null;
+  if (stage) stage.hidden = true;
+  document.documentElement.classList.remove('mc-courtroom-open');
+}
 
+/** Open the courtroom for a text round. Returns false if it cannot be shown. */
+export function startCourtroomText() {
+  const stage = showStage();
+  if (!stage) return false;
+  resetRoundState();
+  const sel = readBenchSelections();
+  simOpening = simOpeningLine();
   try {
-    sim = window.MootCoachJudgeSim.mount(stage, Object.assign({
-      mode: 'text',
-      difficulty: benchDifficultyMode,
-      matter: mootName,
-      side: `Counsel for the ${sel.stance || 'Petitioner'}`,
-      forumLabel: fp.isArbitration ? 'Members of the Tribunal' : 'Hon’ble Presiding Judge',
+    sim = window.MootCoachJudgeSim.mount(stage, Object.assign(simBaseOptions('text'), {
       durationSec: null,
-      note: authNote,
-      copy: fp.isArbitration ? {
-        courtLabel: 'Arbitral Tribunal',
-        openingCue: 'May it please the Tribunal.',
-        interjects: 'The Tribunal interjects.',
-        adjourned: 'The hearing is adjourned.',
-      } : {},
+      note: AUTH_NOTE,
       onSubmit: simSubmit,
       onExit: simLeave,
       onRunAgain: () => {
@@ -2321,12 +2364,138 @@ export function startCourtroomText() {
         // The authorities the advocate chose for this issue, checked up front.
         simCheckCases(sel.authorities.map(a => a && a.name).filter(n => n && !isHypotheticalAuthority(n)));
       },
-    }, who));
+    }));
   } catch (err) {
     console.error('[COURTROOM] could not open:', err);
-    sim = null;
-    stage.hidden = true;
-    document.documentElement.classList.remove('mc-courtroom-open');
+    hideStage(stage);
+    return false;
+  }
+  return true;
+}
+
+/* ── the voice round in the courtroom ──
+ * The voice engine (services/audioEngine.js) is unchanged: Gemini Live hears
+ * the microphone the whole time and the browser's speech recognition writes
+ * the advocate's words. The courtroom is told what happens:
+ *  - judge audio starts  → a streaming judge turn (mouth follows the audio
+ *    through the playback analyser, attached once the engine is up)
+ *  - judge transcript    → the question slip, as it arrives
+ *  - playback finished   → the turn ends and the floor returns to counsel
+ *  - advocate speech     → counsel's line in the record, live
+ */
+let simVoice = false;
+let simJudgeOpen = false;      // a streaming judge turn is open
+let simJudgeSent = '';         // judge text already handed to the slip
+let simStudentDone = '';       // counsel's finished sentences in the current turn
+
+function simVoiceJudgeAudio() {
+  if (!sim || !simVoice || simJudgeOpen) return;
+  simFinishTranscript();
+  simJudgeOpen = true;
+  simJudgeSent = '';
+  sim.handleEvent({ type: 'judge_turn', text: '', streaming: true });
+}
+function simVoiceJudgeText(full) {
+  if (!sim || !simVoice) return;
+  if (!simJudgeOpen) simVoiceJudgeAudio();
+  // A Full Bench speaker tag ("[Justice Iyer] …") is not part of the question.
+  const shown = String(full || '').replace(/^\s*\[[^\]]{1,80}\]\s*/, '');
+  if (!shown.startsWith(simJudgeSent)) return;
+  const delta = shown.slice(simJudgeSent.length);
+  if (!delta) return;
+  // The slip opens a moment after the turn starts; until then the text waits
+  // here and is offered again shortly.
+  if (sim.appendJudgeText(delta)) simJudgeSent = shown;
+  else if (simJudgeOpen) {
+    const mySim = sim;
+    setTimeout(() => { if (sim === mySim && simJudgeOpen) simVoiceJudgeText(full); }, 300);
+  }
+}
+function simVoiceJudgeEnd() {
+  if (!sim || !simVoice || !simJudgeOpen) return;
+  simJudgeOpen = false;
+  sim.endJudgeSpeech();
+}
+function simVoiceStudent(text, interim) {
+  if (!sim || !simVoice) return;
+  const t = String(text || '').trim();
+  if (!t) return;
+  if (interim) { sim.pushTranscript((simStudentDone + ' ' + t).trim(), false); return; }
+  simStudentDone = (simStudentDone + ' ' + t).trim();
+  sim.pushTranscript(simStudentDone, false);
+}
+// Counsel's line closes when the judge starts or the round ends.
+function simFinishTranscript() {
+  if (!sim || !simVoice) return;
+  const said = simStudentDone;
+  simStudentDone = '';
+  if (!said) return;
+  sim.pushTranscript(said, true);
+  // The cases counsel relied on go to the case check, as in the text round.
+  // (Only for the Authorities panel: the voice round's marking is unchanged.)
+  if (said.length < 40) return;
+  const mySim = sim;
+  requestJson('/simulate-bench/extract-claims', { timeoutMs: 60000, body: { studentStatement: said.slice(0, 4000) } })
+    .then(d => {
+      if (sim !== mySim || !d || !d.success || !Array.isArray(d.claims)) return;
+      simCheckCases(d.claims.map(c => c && c.authority).filter(a => a && looksLikeCase(a)));
+    })
+    .catch(err => console.warn('[COURTROOM] claim extraction failed:', err && err.message));
+}
+function simVoiceNotice(text) {
+  if (!sim || !simVoice) return;
+  showToast(String(text || ''), 'info');
+}
+function simVoiceError(message) {
+  if (!sim || !simVoice) return;
+  sim.handleEvent({ type: 'error', message: String((message && message.message) || message || 'The voice bench stopped.') });
+}
+async function simVoiceMarkFailed(err, markRound) {
+  const mySim = sim;
+  const choice = await confirmDialog({
+    title: 'Round not marked',
+    body: `${(err && err.message) || 'The bench could not mark the round.'} You can try again.`,
+    actions: [
+      { label: 'Mark again', value: 'again', primary: true },
+      { label: 'Leave without a score', value: 'leave', danger: true },
+    ],
+  });
+  if (sim !== mySim) return;
+  if (choice === 'again') markRound(); else closeCourtroom();
+}
+
+/** Open the courtroom for a voice round (called by startOralRound). */
+function openCourtroomVoice() {
+  const stage = showStage();
+  if (!stage) return false;
+  simVoice = true; simJudgeOpen = false; simJudgeSent = ''; simStudentDone = '';
+  simCaseChecks = 0;
+  simAuthSeen = new Map();
+  const chosen = readBenchSelections().authorities.map(a => a && a.name).filter(n => n && !isHypotheticalAuthority(n));
+  const minutes = window.pilotLimits && window.pilotLimits.voiceMinutes;
+  try {
+    sim = window.MootCoachJudgeSim.mount(stage, Object.assign(simBaseOptions('voice'), {
+      durationSec: minutes ? minutes * 60 : null,
+      note: AUTH_NOTE,
+      onEvent: (evt) => { if (evt && evt.type === 'round_started' && chosen.length) simCheckCases(chosen); },
+      // The microphone is open for the whole round (the bench hears you as
+      // you speak); the mic button only marks the start and end of your turn.
+      onMicStart() {},
+      onMicStop() { simFinishTranscript(); },
+      onExit: () => {
+        const argued = getOralTranscript().filter(t => t.role === 'advocate').length;
+        if (voiceSessionActive && !argued && !roundMarked) { closeCourtroom(); return; }
+        exitChambers();
+      },
+      onRunAgain: () => { closeCourtroom(); startOralRound(); },
+      onChangeBench: () => closeCourtroom(),
+      onRetry: () => {},    // "Try again" just closes the card; the round carries on
+    }));
+    sim.start();             // the Start button already was the student's "enter"
+  } catch (err) {
+    console.error('[COURTROOM] could not open the voice round:', err);
+    simVoice = false;
+    hideStage(stage);
     return false;
   }
   return true;

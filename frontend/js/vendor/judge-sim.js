@@ -460,7 +460,7 @@ var PHASES = [['entry', 'Entry'], ['opening', 'Opening'], ['cross', 'Questions']
 var MIC_COPY = {
   voice: {
     closed:      ['Mic closed', 'The Court is not yet in session.'],
-    idle:        ['Your floor', 'Tap the mic and begin when ready.'],
+    idle:        ['Your floor', 'Begin when ready. The bench can hear you.'],  /* MootCoach: the mic is open for the whole round */
     live:        ['You have the floor', 'The bench is listening.'],
     ducked:      ['Hold, Counsel', 'The bench is speaking.'],
     answer:      ['You may answer', 'Answer the question that was asked.'],

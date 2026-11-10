@@ -87,6 +87,11 @@ function base64ToFloat32Array(base64) {
   return float32Array;
 }
 
+/** The analyser the judge's voice plays through (for the courtroom's lip-sync). */
+export function getPlaybackAnalyser() {
+  return playbackAnalyser;
+}
+
 export function isSessionActive() {
   return voiceSessionActive;
 }
@@ -629,6 +634,12 @@ export async function startOralRound(callbacks) {
     silenceNode.connect(voiceAudioContext.destination);
 
     setupWebSocketHandlers(callbacks);
+    // The socket is created before the microphone prompt. If the student took
+    // a moment to allow the microphone, it opened before onopen was attached
+    // and the opening (the case briefing to the judge) would never be sent.
+    if (voiceWebSocket && voiceWebSocket.readyState === WebSocket.OPEN && voiceWebSocket.onopen) {
+      voiceWebSocket.onopen();
+    }
 
   } catch (err) {
     console.error("Failed to start oral round:", err);
