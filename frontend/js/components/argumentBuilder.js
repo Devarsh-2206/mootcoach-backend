@@ -722,7 +722,22 @@ async function generateArgument() {
   if (loadingState) loadingState.classList.remove('hidden');
 
   try {
-    const data = await buildArgument(stance, issue, notesToSend, currentPropositionContext);
+    // The notes box is where students write requirements ("SCC citations",
+    // "30 pages", "Index of Authorities first"). Sent only as raw notes they
+    // were material to summarise and often ignored; sent as instructions the
+    // server treats them as binding and says which it could not follow. The
+    // chosen authorities and the forum go too, as the full memorial does.
+    const fp = (typeof window.getForumProfile === 'function') ? window.getForumProfile() : null;
+    const df = window.detectedForum || {};
+    const forumPayload = {
+      forum: df.forum || (fp && (fp.specificBody || fp.benchType)) || '',
+      benchType: fp ? fp.benchType : '', broadType: fp ? fp.broadType : '',
+      jurisdiction: df.jurisdiction || '', governingLaw: df.governingLaw || '',
+    };
+    const data = await buildArgument(stance, issue, notesToSend, currentPropositionContext, forumPayload, {
+      instructions: notes,
+      authorities: selectedAuthorities.map(a => ({ name: a.name, ratio: a.ratio })),
+    });
     
     if (data.success && data.response) {
       lastBuiltArgument = decodeEntitiesDeep(data.response);
@@ -954,6 +969,7 @@ function renderIRAC(iracData) {
 
   outputState.innerHTML = `
 <div class="flex flex-col gap-5 w-full h-full font-sans">
+  <div class="draft-honesty" role="note">AI-assisted draft, for practice and research. Read and verify every authority before relying on it, and check your competition's rules on the use of AI before submitting any part of it.</div>
   
   <!-- Quick Actions & Status Toolbar -->
   <div class="flex flex-wrap items-center justify-between gap-3 border-b border-black/10 pb-4">

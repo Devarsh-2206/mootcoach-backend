@@ -964,6 +964,7 @@ p  { color:var(--white-2); }
 .judgesim-stage[hidden] { display:none; }
 html.mc-courtroom-open, html.mc-courtroom-open body { overflow:hidden; }
 html.mc-courtroom-open .ws-floating-nav, html.mc-courtroom-open .theme-toggle { display:none !important; }
+.draft-honesty { font-size:.78rem; line-height:1.5; padding:10px 12px; border:1px solid rgba(180,131,15,.35); background:rgba(251,191,36,.12); color:var(--ink, #1C1710); border-radius:8px; }
 .mc-dialog-overlay {
   position:fixed; inset:0; z-index:13000; background:rgba(20,16,12,.5);
   display:flex; align-items:center; justify-content:center; padding:16px;
@@ -4451,7 +4452,7 @@ html:root #view-workspace .issue-card.selected:not(.mc-paper *){background:var(-
               <form id="builder-form" onsubmit="event.preventDefault();" class="flex flex-col space-y-3">
                 <div class="ws-field flex flex-col gap-2 mb-0">
                   <label for="builder-notes-input" class="tracking-wide text-xs font-semibold uppercase text-white-2">Draft Notes & Custom Arguments</label>
-                  <textarea id="builder-notes-input" class="oral-textarea w-full min-h-[100px] resize-y mt-1 mb-2" rows="3" placeholder="Enter raw thoughts, facts, or custom arguments. Selected authorities will be automatically included..." style="font-size:.82rem;"></textarea>
+                  <textarea id="builder-notes-input" class="oral-textarea w-full min-h-[100px] resize-y mt-1 mb-2" rows="3" placeholder="Your points, and any requirements the draft must follow, e.g. &quot;SCC citations; footnotes; Index of Authorities first; about 20 paragraphs; focus on necessity&quot;. Selected authorities are included automatically." style="font-size:.82rem;"></textarea>
                 </div>
                 <button class="btn-analyze w-full py-2.5 text-xs tracking-widest font-medium transition-all duration-300 hover:shadow-[0_0_20px_rgba(176,57,46,0.3)]" id="btn-builder-submit" disabled>
                   Generate Structured Draft →

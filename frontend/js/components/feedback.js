@@ -88,7 +88,8 @@ const FULL_FORM = [
   q(7, 'Would you use MootCoach to prepare for a real moot?', pills('realMoot', [['yes', 'Yes'], ['maybe', 'Maybe'], ['no', 'No']]), true),
   q(8, 'Would you pay for MootCoach?', pills('pay', [['no', 'No'], ['upto199', 'Up to ₹199 a month'], ['200to499', '₹200–499 a month'], ['500plus', '₹500+ a month']])),
   q(9, 'How likely are you to recommend MootCoach to a friend?', scale('recommend', 0, 10, 'Not likely', 'Very likely'), true),
-  q(10, 'Anything else you would like to tell us?', text('comments', 'Ideas, wishes, anything.', 3)),
+  q(10, 'If you draft memorials for competitions, which rules must they follow?', text('memorialRules', 'e.g. page limit, font and spacing, citation style (SCC, OSCOLA), cover format, no names.')),
+  q(11, 'Anything else you would like to tell us?', text('comments', 'Ideas, wishes, anything.', 3)),
 ].join('');
 
 let formOpen = false;

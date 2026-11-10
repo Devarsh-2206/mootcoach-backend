@@ -457,7 +457,7 @@ function renderSpend(sp) {
 const FB_LABELS = {
   overall: 'Useful (1–5)', favourite: 'Helped most', accuracy: 'Analysis accuracy (1–5)', wrongCases: 'Wrong cases?',
   wrongCasesDetail: 'Which cases', judge: 'Judge realism (1–5)', problems: 'Problems', realMoot: 'Use for a real moot',
-  pay: 'Would pay', recommend: 'Recommend (0–10)', comments: 'Comments', rating: 'Round rating (1–5)', improve: 'Improve', source: 'Round type',
+  pay: 'Would pay', recommend: 'Recommend (0–10)', memorialRules: 'Memorial rules', comments: 'Comments', rating: 'Round rating (1–5)', improve: 'Improve', source: 'Round type',
 };
 const FB_KEYS = Object.keys(FB_LABELS);
 

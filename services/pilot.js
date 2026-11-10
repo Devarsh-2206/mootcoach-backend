@@ -344,6 +344,7 @@ const FEEDBACK_SCHEMA = {
     realMoot: ['enum', ['yes', 'maybe', 'no'], true],
     pay: ['enum', ['no', 'upto199', '200to499', '500plus']],
     recommend: ['int', 0, 10, true],
+    memorialRules: ['str', 1000],
     comments: ['str', 1500],
   },
 };
