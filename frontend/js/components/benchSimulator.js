@@ -1227,6 +1227,7 @@ export async function startOralRound() {
   // Browser SpeechSynthesis iOS warmup removed in favor of Gemini Live native audio.
 
   let benchAdjourned = false;
+  let judgePlaying = false;     // the judge's audio is still playing
   let fullJudgeResponse = '';
   let judgeFlushTimer = null, judgeTurnEnded = false;
   // Writes the judge's collected words as one transcript line.
@@ -1240,7 +1241,20 @@ export async function startOralRound() {
     appendTranscript('judge', cleanResponse);
     // The bench closed the hearing: end the round (and mark it) once the
     // judge has finished speaking, instead of letting it run on.
-    if (/court (is|stands) adjourned/i.test(cleanResponse)) benchAdjourned = true;
+    if (/court (is|stands) adjourned/i.test(cleanResponse)) {
+      benchAdjourned = true;
+      // The words often arrive after the audio has already finished, when
+      // the playback-complete check below has run and found nothing. End
+      // the round here in that case, or it would carry on with no report.
+      if (!judgePlaying) {
+        setTimeout(() => {
+          if (!benchAdjourned || judgePlaying || !voiceSessionActive) return;
+          benchAdjourned = false;
+          appendTranscript('system', 'The Bench has adjourned. The round is over.');
+          stopOralRound();
+        }, 800);
+      }
+    }
   };
   console.log("◉ Initiating oral round...");
   console.log("[DEBUG AUDIT] Starting oral round...");
@@ -1337,6 +1351,7 @@ export async function startOralRound() {
           updateBenchState('listening');
           safeStartRecognition();
         } else if (status === 'speaking') {
+          judgePlaying = true;
           simVoiceJudgeAudio();
           if (getSocketState() === 'open') {
             updateBenchState('speaking');
@@ -1372,6 +1387,7 @@ export async function startOralRound() {
         judgeFlushTimer = setTimeout(flushJudgeLine, 1200);
       },
       onInterrupted: () => {
+        judgePlaying = false;
         simVoiceJudgeEnd();
         clearTimeout(judgeFlushTimer);
         judgeTurnEnded = false;
@@ -1400,6 +1416,7 @@ export async function startOralRound() {
       onPlaybackComplete: () => {
         console.log("[DEBUG AUDIT] Gemini Live playback completed. Transitioning to listening and reactivating mic...");
         simVoiceJudgeEnd();
+        judgePlaying = false;
         if (benchAdjourned) {
           benchAdjourned = false;
           appendTranscript('system', 'The Bench has adjourned. The round is over.');
@@ -1525,7 +1542,7 @@ async function requestOralReview(durationSeconds, transcript) {
   // Nothing was said. Saying so beats a scorecard invented from silence.
   if (advocateTurns.length < 2 || advocateTurns.reduce((n, t) => n + t.content.length, 0) < 200) {
     appendBenchSystemNote('That round was too short to mark. Argue for a few exchanges and the bench will have something to assess.');
-    simVoiceNotice('That round was too short to mark. Argue for a few exchanges and the bench will have something to assess.');
+    if (sim) simTooShort(advocateTurns.length);
     roundMarked = true;           // nothing to lose by leaving now
     setExitLabel('Exit Chambers');
     return;
@@ -2462,6 +2479,27 @@ async function simVoiceMarkFailed(err, markRound) {
   });
   if (sim !== mySim) return;
   if (choice === 'again') markRound(); else closeCourtroom();
+}
+
+/**
+ * A voice round that ended before there was enough to mark (the judge
+ * adjourned, time ran out, or counsel ended it early). Said plainly in the
+ * courtroom, with the two ways on, instead of leaving "The assessment will
+ * follow" on screen with no assessment coming.
+ */
+async function simTooShort(turns) {
+  const mySim = sim;
+  const choice = await confirmDialog({
+    title: 'Too short to mark',
+    body: `The bench needs at least two full answers (a few sentences in all) to write a scoresheet. This round had ${turns} short answer${turns === 1 ? '' : 's'}. Start a new round and argue for a few exchanges.`,
+    actions: [
+      { label: 'Start a new round', value: 'again', primary: true },
+      { label: 'Leave the courtroom', value: 'leave' },
+    ],
+  });
+  if (sim !== mySim) return;
+  closeCourtroom();
+  if (choice === 'again') startOralRound();
 }
 
 /** Open the courtroom for a voice round (called by startOralRound). */
