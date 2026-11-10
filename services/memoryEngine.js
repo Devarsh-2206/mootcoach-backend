@@ -31,7 +31,27 @@ function createEmptyMemory() {
   };
 }
 
-async function evaluateExchange(currentMemory, exchangeTranscript) {
+/**
+ * The bench's reading of one exchange, for the courtroom's temper line and
+ * bench notes in the voice round (whose judge sends speech only).
+ * pressureLevel 1-5 as in the text bench; note is one short line.
+ */
+function benchReadOf(r) {
+  let level = 2, note = '';
+  const cut = (t, n = 140) => { t = String(t || '').trim(); return t.length > n ? t.slice(0, n - 1) + '…' : t; };
+  if (r.contradictions.length) { level = 4; note = 'Contradiction: ' + cut(r.contradictions[0].statement, 120); }
+  if (r.evasion.detected) {
+    level = r.evasion.severity === 'blatant' ? 5 : r.evasion.severity === 'medium' ? 4 : 3;
+    note = 'Evasion: ' + cut(r.evasion.reason || 'the question was not answered', 130);
+  } else if (r.unanswered_questions.length && level < 3) {
+    level = 3; note = 'Unanswered: ' + cut(r.unanswered_questions[0], 125);
+  }
+  const conceded = r.new_concessions.filter(c => c.confidence >= 0.7);
+  if (conceded.length && !note) { level = Math.max(level, 3); note = 'Conceded: ' + cut(conceded[0].statement, 125); }
+  return { pressureLevel: level, note };
+}
+
+async function evaluateExchange(currentMemory, exchangeTranscript, opts = {}) {
   if (!exchangeTranscript || exchangeTranscript.trim() === "") return null;
 
   try {
@@ -55,7 +75,9 @@ async function evaluateExchange(currentMemory, exchangeTranscript) {
     // Counts only: the result quotes the student's own words.
     console.log(`[MEMORY ENGINE] concessions ${result.new_concessions.length}, evasion ${result.evasion.detected ? result.evasion.severity || 'yes' : 'no'}, unanswered ${result.unanswered_questions.length}, contradictions ${result.contradictions.length}`);
 
-    return applyMemoryUpdates(currentMemory, result);
+    const applied = applyMemoryUpdates(currentMemory, result);
+    if (opts.withRead) applied.read = benchReadOf(result);
+    return applied;
   } catch (error) {
     console.error("[MEMORY ENGINE] Error in Shadow Evaluator:", error.message);
     return null; // Return null on failure to not interrupt the main session
@@ -115,6 +137,7 @@ function applyMemoryUpdates(currentMemory, updates) {
 
 module.exports = {
   _normaliseMemoryResult: normaliseMemoryResult,
+  _benchReadOf: benchReadOf,
   createEmptyMemory,
   evaluateExchange
 };

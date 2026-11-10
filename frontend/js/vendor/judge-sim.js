@@ -1053,6 +1053,15 @@ function mount(container, options) {
         else if (evt.type === 'verdict') onVerdict(evt);
         else if (evt.type === 'error') onError(evt);
         else if (evt.type === 'phase') { if (!S.verdict && S.started) setPhase(evt.phase); }
+        /* MootCoach addition: the bench's reading of an exchange that arrives after the
+           judge has spoken (the voice round, whose judge sends speech only). Moves the
+           temper line and adds a bench note without starting a judge turn. */
+        else if (evt.type === 'bench_read') {
+          if (S.verdict || S.ended || !S.started) return false;
+          var lv = Math.round(Number(evt.pressureLevel));
+          if (lv >= 1 && lv <= 5) { setPatience(PRESSURE[lv]); S.prevLevel = lv; }
+          var nt = str(evt.targetWeakness, 160); if (nt) addNote(nt);
+        }
         else { console.warn('[MootCoachJudgeSim] ignored event', evt.type); return false; }
         return true;
       } catch (err) { console.warn('[MootCoachJudgeSim] bad event ignored', err); S.speech = null; S.busy = false; return false; }

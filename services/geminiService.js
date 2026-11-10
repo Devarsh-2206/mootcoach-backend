@@ -57,6 +57,7 @@ const handleLiveVoiceConnection = async (ws, benchLevel = 'moderate', propositio
   // Initialize Judicial Memory Engine state for this session
   let benchMemory = createEmptyMemory();
   let currentExchange = "";
+  let lastSpeaker = '', judgeTurnText = '';
   
   debugLog(`[DEBUG AUDIT] Live prompt for bench level ${benchLevel}:\n${liveSystemInstruction}`);
 
@@ -145,11 +146,18 @@ const handleLiveVoiceConnection = async (ws, benchLevel = 'moderate', propositio
 
               if (inputTranscription?.text) {
                 ws.send(JSON.stringify({ type: "userText", text: inputTranscription.text }));
+                // Counsel's words for the shadow evaluator below. Before this,
+                // only the browser fallback ever wrote "Advocate:", so the
+                // evaluator almost never ran in a voice round.
+                if (lastSpeaker !== 'advocate') { currentExchange += `\nAdvocate: `; lastSpeaker = 'advocate'; }
+                currentExchange += inputTranscription.text;
               }
   
               if (outputTranscription?.text) {
                 debugLog("[TRANSCRIPT DEBUG] outputTranscription:", outputTranscription.text);
-                currentExchange += `Judge: ${outputTranscription.text}\n`;
+                if (lastSpeaker !== 'judge') { currentExchange += `\nJudge: `; lastSpeaker = 'judge'; judgeTurnText = ''; }
+                currentExchange += outputTranscription.text;
+                judgeTurnText += outputTranscription.text;
                 ws.send(JSON.stringify({
                   type: "text",
                   text: outputTranscription.text
@@ -186,9 +194,20 @@ const handleLiveVoiceConnection = async (ws, benchLevel = 'moderate', propositio
                 // Trigger Shadow Evaluator asynchronous check
                 if (currentExchange.includes("Advocate:")) {
                   const evalBuffer = currentExchange;
-                  currentExchange = ""; // Reset for next turn
+                  // The judge's latest words stay as the question the next
+                  // answer is measured against (was: reset to nothing).
+                  currentExchange = judgeTurnText ? `Judge: ${judgeTurnText}` : "";
                   
-                  spend.run("voice", () => evaluateExchange(benchMemory, evalBuffer)).then((result) => {
+                  spend.run("voice", () => evaluateExchange(benchMemory, evalBuffer, { withRead: true })).then((result) => {
+                    if (result && result.read && !clientGone) {
+                      try { ws.send(JSON.stringify({ type: "benchRead", pressureLevel: result.read.pressureLevel, note: result.read.note })); } catch (e) {}
+                    }
+                    // (benchMemory is updated in place by evaluateExchange.)
+                    // Whispers into the live judge stay off unless switched on
+                    // (VOICE_MEMORY_WHISPER=on): a text sent into the Live
+                    // session can make the judge speak out of turn, and that
+                    // has not been tested.
+                    if (String(process.env.VOICE_MEMORY_WHISPER || '').toLowerCase() !== 'on') return;
                     if (result && result.whisperToken) {
                       console.log("[MEMORY ENGINE] Injecting Whisper:", result.whisperToken);
                       // Send the whisper directly into the active voice stream
@@ -260,7 +279,8 @@ const handleLiveVoiceConnection = async (ws, benchLevel = 'moderate', propositio
       } else {
         const data = JSON.parse(message.toString());
         if (data.type === "text") {
-          currentExchange += `Advocate: ${data.text}\n`;
+          if (lastSpeaker !== 'advocate') { currentExchange += `\nAdvocate: `; lastSpeaker = 'advocate'; }
+          currentExchange += `${data.text} `;
           await session.sendRealtimeInput({
             text: data.text
           });

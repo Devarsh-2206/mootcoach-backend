@@ -1385,6 +1385,11 @@ export async function startOralRound() {
         clearTimeout(judgeFlushTimer);
         judgeFlushTimer = setTimeout(flushJudgeLine, judgeTurnEnded ? 1200 : 4000);
       },
+      // The bench's reading of the last exchange (services/memoryEngine.js):
+      // moves the courtroom's temper line and adds a bench note.
+      onBenchRead: (read) => {
+        if (sim && simVoice) sim.handleEvent({ type: 'bench_read', pressureLevel: read.pressureLevel, targetWeakness: read.note || '' });
+      },
       onUserText: (text) => {
         if (!geminiHears) {
           geminiHears = true;
