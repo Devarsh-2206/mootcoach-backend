@@ -9,7 +9,7 @@ This runs the website and the backend on your computer, using the real AI (Verte
 
 ## 1. One-time setup
 
-You need Node.js 20 or newer (`node -v` to check) and Python 3 (for the small website server), or any static server.
+You need Node.js 20 or newer (`node -v` to check).
 
 ```bash
 git clone https://github.com/Devarsh-2206/mootcoach-backend.git
@@ -33,22 +33,15 @@ INDIANKANOON_API_TOKEN=...        # optional; without it cases are checked on th
 
 Leave out `PILOT_MODE`, `SENTRY_DSN` and the email settings, so local errors and emails do not mix with the live ones.
 
-## 3. Start it (two terminal windows)
+## 3. Start it
 
-Window 1, the backend:
 ```bash
 cd mootcoach-backend
 npm start
 ```
-Wait for `MootCoach AI running on port 3000`.
+Wait for `MootCoach AI running on port 3000`, then open **http://localhost:3000** in Chrome.
 
-Window 2, the website:
-```bash
-cd mootcoach-backend
-python3 -m http.server 5500 -d frontend
-```
-
-Open **http://localhost:5500** in Chrome. (Use `localhost`, not `127.0.0.1`, so Google sign-in is allowed.)
+The backend serves the website too, so this one window is all you need. (Use `localhost`, not `127.0.0.1`, so Google sign-in is allowed.)
 
 ## 4. What to test in the new courtroom
 
@@ -72,4 +65,4 @@ Things to report back: anything that looks wrong, a judge that does not speak or
 
 ## 5. Stop
 
-Press `Ctrl+C` in both windows.
+Press `Ctrl+C` in the terminal.
