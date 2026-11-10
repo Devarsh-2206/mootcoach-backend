@@ -710,6 +710,36 @@ app.post("/api/auth/reset", resetLimiter, async (req, res) => {
   }
 });
 
+/**
+ * Delete my account: everything MootCoach holds about this person goes —
+ * their moots, analyses, drafts, sessions and progress (users/{uid} and all
+ * below it), their pilot record and feedback (a place they held is freed),
+ * their email log, and finally the sign-in account itself. Data first, the
+ * account last, so a failure part-way never leaves data with no owner.
+ * Shared caches keyed by document text (analysis cache, case checks) are not
+ * linked to a person and stay. Body must be { confirm: "DELETE" }.
+ */
+app.post("/api/account/delete", signedIn, resetLimiter, express.json({ limit: '1kb' }), async (req, res) => {
+  if (!req.body || req.body.confirm !== 'DELETE') return res.status(400).json({ success: false, error: 'Please confirm by typing DELETE.' });
+  const uid = req.user && req.user.uid;
+  if (!uid || uid === 'dev' || uid === 'prewarm' || !admin.apps.length) return res.status(400).json({ success: false, error: 'This account cannot be deleted here.' });
+  try {
+    const db = admin.firestore();
+    const root = db.collection('artifacts').doc('moot.coach');
+    await pilot.forget(uid);
+    pilotCache.delete(uid);
+    await root.collection('emailLog').doc(uid).delete().catch(() => {});
+    await db.recursiveDelete(root.collection('users').doc(uid));
+    await admin.auth().deleteUser(uid);
+    console.log('[ACCOUNT] deleted an account and all its data at the user\'s request');
+    return res.json({ success: true });
+  } catch (e) {
+    console.error('[ACCOUNT] delete failed:', e && e.message);
+    sentry.report(e, 'account-delete');
+    return res.status(500).json({ success: false, error: 'Could not delete your account just now. Please try again, or email support@mootcoach.in and we will do it.' });
+  }
+});
+
 app.post("/api/auth/verify-email", signedIn, resetLimiter, async (req, res) => {
   try {
     const r = await require('./services/passwordReset').sendVerification(req.user.uid);
@@ -729,22 +759,12 @@ app.get("/health", (req, res) => {
  *
  * Both free tiers cap by the day, and until this existed nothing could say
  * how much was left or which route had spent it - a quota wall simply
- * arrived. Signed-in only: it is not user data, but it is not public either.
+ * arrived. Admins only (security review, Nov 2026).
  *
  *   GET /api/usage            today, Pacific (the day Google resets on)
  *   GET /api/usage?day=YYYY-MM-DD
  */
-app.get("/api/usage", async (req, res) => {
-  const authHeader = req.headers.authorization || "";
-  const idToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
-  if (!idToken || !admin.apps.length) {
-    return res.status(401).json({ success: false, error: "Please sign in to continue." });
-  }
-  try {
-    await admin.auth().verifyIdToken(idToken);
-  } catch (e) {
-    return res.status(401).json({ success: false, error: "Your session has expired. Please sign in again." });
-  }
+app.get("/api/usage", signedIn, logLimiter, pilotAdminOnly, async (req, res) => {
   try {
     // Checked without a regex on purpose. A YYYY-MM-DD shape, and a date
     // that actually parses; anything else falls back to today rather than
@@ -759,7 +779,8 @@ app.get("/api/usage", async (req, res) => {
     const cache = await analysisCache.stats().catch(() => null);
     return res.json({ success: true, usage: snap, cache });
   } catch (e) {
-    return res.status(500).json({ success: false, error: "Could not read usage: " + (e && e.message) });
+    console.error("/api/usage failed:", e && e.message);
+    return res.status(500).json({ success: false, error: "Could not read usage just now." });
   }
 });
 

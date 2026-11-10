@@ -42,5 +42,23 @@ const R = path.join(__dirname, '..', '..');
   // Certificate checks only off on purpose.
   assert.ok(!/NODE_ENV !== "production"\)\s*\{\s*process\.env\.NODE_TLS_REJECT_UNAUTHORIZED/.test(server));
 
-  console.log('PASS security: daily caps (burst-proof), Indian Kanoon ceiling, voice size limit, pilot fails closed, dev switch ignored on Render');
+  // Account deletion: the pilot place is freed and the record removed.
+  {
+    const p = require(R + '/services/pilot');
+    const pl = p.createPilot(p.memoryStore(), { config: p.readConfig({ PILOT_MODE: 'on', PILOT_CAP: '2' }) });
+    const u = { uid: 'del1', email: 'del1@nalsar.ac.in', emailVerified: true, name: 'D' };
+    await pl.join(u); assert.ok((await pl.claimPlace(u)).ok);
+    assert.strictEqual((await pl.overview()).counts.active, 1);
+    await pl.forget('del1');
+    const o = await pl.overview();
+    assert.strictEqual(o.counts.active, 0, 'place freed');
+    assert.ok(!o.members.some(m => m.uid === 'del1'), 'record removed');
+    assert.match(server, /app\.post\("\/api\/account\/delete", signedIn,/);
+    assert.match(server, /confirm !== 'DELETE'/);
+  }
+  // Usage statistics are admins only; links only http(s).
+  assert.match(server, /app\.get\("\/api\/usage", signedIn, logLimiter, pilotAdminOnly,/);
+  assert.match(fs.readFileSync(R + '/frontend/js/components/ui.js', 'utf8'), /export function safeUrl/);
+
+  console.log('PASS security: daily caps (burst-proof), Indian Kanoon ceiling, voice size limit, pilot fails closed, dev switch ignored on Render, account deletion frees the place, admin-only usage');
 })().catch(e => { console.error(e); process.exit(1); });

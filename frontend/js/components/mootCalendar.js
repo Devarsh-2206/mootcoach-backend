@@ -635,7 +635,7 @@ function renderDetail() {
     ${field('Team', mo.team)}
     ${field('Fee', mo.fee)}
     ${mo.verified ? `<div style="${MONO}font-size:10px;color:var(--white-muted);margin-top:11px;">Last verified ${esc(fmt(mo.verified))} · always confirm against the brochure</div>` : ''}
-    ${mo.link ? `<a href="${esc(mo.link)}" target="_blank" rel="noopener noreferrer" style="display:inline-block;margin-top:8px;font-size:.8rem;color:var(--gold);">Official brochure →</a>` : ''}
+    ${mo.link && /^https?:\/\//i.test(String(mo.link)) ? `<a href="${esc(mo.link)}" target="_blank" rel="noopener noreferrer" style="display:inline-block;margin-top:8px;font-size:.8rem;color:var(--gold);">Official brochure →</a>` : ''}
 
     <h3 style="margin:20px 0 4px;${MONO}font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--white-muted);">Key dates</h3>
     ${dates}

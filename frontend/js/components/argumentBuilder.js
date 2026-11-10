@@ -5,6 +5,7 @@ import {
   showToast, 
   fmtInline, 
   esc,
+  safeUrl,
   renderActionError,
   startElapsed
 } from './ui.js';
@@ -1152,7 +1153,7 @@ function renderMemorial(memorialData) {
           const verify = e.verify
             ? `<span class="text-[10px] font-sans font-bold text-amber-700 ml-2">[VERIFY]</span>`
             : e.source === 'verified'
-              ? `<span class="cite-badge ok ml-2">✓ Found${src ? ` · <a href="${esc(src.url)}" target="_blank" rel="noopener noreferrer">${esc(src.title)}</a>` : ''}</span>` : '';
+              ? `<span class="cite-badge ok ml-2">✓ Found${src ? ` · <a href="${esc(safeUrl(src.url))}" target="_blank" rel="noopener noreferrer">${esc(src.title)}</a>` : ''}</span>` : '';
           const prop = has(e.proposition) ? `<div class="text-[12px] text-slate-500 pl-4">Cited for: ${esc(e.proposition)}</div>` : '';
           const note = has(e.citationNote) ? `<div class="text-[11px] ${e.verify ? 'text-amber-800' : 'text-slate-500'} pl-4">${esc(e.citationNote)}</div>` : '';
           return `<div class="mb-1">${bits}${yours}${verify}${prop}${note}</div>`;

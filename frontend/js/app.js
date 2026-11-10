@@ -19,6 +19,7 @@ import './components/reviewTable.js';
 import './components/assistantPanel.js';
 import './services/mootProgress.js';
 import { ensureFreshBuild } from './services/freshness.js';
+import { requestJson } from './services/api.js';
 import { 
   showToast,
   getFriendlyError,
@@ -828,6 +829,38 @@ window.handleGoogle = handleGoogle;
 window.handleForgotPassword = handleForgotPassword;
 window.handleOverlayForgotPassword = handleOverlayForgotPassword;
 window.handleLogout = handleLogout;
+
+/* Delete my account and everything MootCoach holds about me (server:
+   /api/account/delete). Two steps: an explanation, then typing DELETE. */
+async function deleteMyAccount() {
+  const go = await confirmDialog({
+    title: 'Delete your MootCoach account?',
+    body: 'This permanently deletes your account and everything in it: your moots, analyses, drafts, memorials, practice rounds and pilot feedback. If you hold a pilot place, it is released. This cannot be undone.',
+    actions: [
+      { label: 'Keep my account', value: null, primary: true },
+      { label: 'Continue to delete', value: 'go' },
+    ],
+  });
+  if (go !== 'go') return;
+  const typed = window.prompt('To confirm, type DELETE in capitals.');
+  if (typed !== 'DELETE') { if (typed !== null) showToast('Not deleted: the confirmation did not match.', 'err'); return; }
+  try {
+    await requestJson('/api/account/delete', { body: { confirm: 'DELETE' }, timeoutMs: 60000 });
+  } catch (err) {
+    showToast(err.message || 'Could not delete your account just now.', 'err');
+    return;
+  }
+  if (typeof window.resetWorkspace === 'function') window.resetWorkspace();
+  window.currentMootDocId = null;
+  window.__signingOut = true;
+  try { await signOut(auth); } catch (e) { /* the account is already gone */ }
+  finally {
+    navigate('landing');
+    showToast('Your account and all of its data have been deleted.', 'ok');
+    window.__signingOut = false;
+  }
+}
+window.deleteMyAccount = deleteMyAccount;
 
 window.openLegalModal = openLegalModal;
 window.closeLegalModal = closeLegalModal;

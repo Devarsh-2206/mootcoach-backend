@@ -890,7 +890,7 @@ function citationBadge(v) {
   if (!v) return '';
   v = regrade(v);
   const src = (v.sources || [])[0];
-  const link = src ? ` · <a href="${esc(src.url)}" target="_blank" rel="noopener noreferrer">${esc(src.title)}</a>` : '';
+  const link = src ? ` · <a href="${esc(safeUrl(src.url))}" target="_blank" rel="noopener noreferrer">${esc(src.title)}</a>` : '';
   if (v.status === 'verified') return `<span class="cite-badge ok">✓ Found${link}</span>`;
   if (v.status === 'corrected') return `<span class="cite-badge fix">Corrected citation: ${esc(v.foundCitation || '')}${link}</span>`;
   // Found, but only on Q&A sites, blogs or student notes (see the source rule
@@ -907,7 +907,7 @@ function checkLink(c) {
   const href = indian
     ? 'https://indiankanoon.org/search/?formInput=' + encodeURIComponent(name)
     : 'https://scholar.google.com/scholar?as_sdt=2006&q=' + encodeURIComponent('"' + name + '"');
-  return ` <a class="cite-check-link" href="${esc(href)}" target="_blank" rel="noopener noreferrer">${indian ? 'Check on Indian Kanoon' : 'Check on Google Scholar'} ↗</a>`;
+  return ` <a class="cite-check-link" href="${esc(safeUrl(href))}" target="_blank" rel="noopener noreferrer">${indian ? 'Check on Indian Kanoon' : 'Check on Google Scholar'} ↗</a>`;
 }
 
 /* Confirms the held-back cases and keeps only those confirmed: a new
@@ -1019,7 +1019,7 @@ function confirmedBadge(c) {
   const url = c.judgmentUrl || v.url;
   if (v.source === 'indiankanoon' || /indiankanoon\.org\/doc\//.test(url || '')) {
     const where = [c.court || v.court, (c.decided || v.date) ? fmtDecided(c.decided || v.date) : ''].filter(Boolean).join(', ');
-    return `<span class="cite-badge ok">✓ On Indian Kanoon${where ? ' · ' + esc(where) : ''}</span>${url ? ` <a class="cite-check-link" href="${esc(url)}" target="_blank" rel="noopener noreferrer">Read the judgment ↗</a>` : ''}`;
+    return `<span class="cite-badge ok">✓ On Indian Kanoon${where ? ' · ' + esc(where) : ''}</span>${url ? ` <a class="cite-check-link" href="${esc(safeUrl(url))}" target="_blank" rel="noopener noreferrer">Read the judgment ↗</a>` : ''}`;
   }
   return citationBadge(v);
 }
@@ -1775,6 +1775,9 @@ export function copyAnalysis() {
 
 export function hideLoading() { document.getElementById('loading-overlay').classList.remove('show'); }
 export function sleep(ms) { return new Promise(r=>setTimeout(r,ms)); }
+/* Only http(s) addresses become links; anything else (javascript:, data:)
+   becomes an inert "#". Links shown come from search results and saved data. */
+export function safeUrl(u){ const s = String(u ?? '').trim(); return /^https?:\/\//i.test(s) ? s : '#'; }
 export function esc(s){ return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 
 export let currentStage = 1;

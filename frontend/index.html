@@ -3395,6 +3395,10 @@ button, input, select, textarea, optgroup { font-family: inherit; }
 /* Keyboard focus: a themed ring everywhere. */
 :focus-visible { outline: 2px solid var(--gold) !important; outline-offset: 2px; }
 
+.ws-sb-delete { display:block; width:100%; margin-top:6px; background:none; border:0; padding:4px 12px; text-align:left; font:400 11px/1.4 var(--sans, sans-serif); color:var(--white-muted); opacity:.75; cursor:pointer; text-decoration:underline; text-underline-offset:2px; }
+.ws-sb-delete:hover { color:var(--accent, #B0392E); opacity:1; }
+.i-skip-tap { display:none; }
+@media (hover: none) and (pointer: coarse) { .i-skip-click { display:none; } .i-skip-tap { display:inline; } }
 /* Sidebar: Sign Out in the same mono as its neighbours. */
 .ws-sb-bottom .logout { font-family: var(--mono) !important; }
 
@@ -3750,7 +3754,7 @@ html:root #view-workspace .issue-card.selected:not(.mc-paper *){background:var(-
   <div class="i-cap">The bench is now in session</div>
   <span class="i-stamp">In Session</span>
   <div class="i-timer"></div>
-  <div class="i-skip">Click anywhere to enter</div>
+  <div class="i-skip"><span class="i-skip-click">Click</span><span class="i-skip-tap">Tap</span> anywhere to enter</div>
 </div>
 
 <!-- ═══ VIEW 1 — LANDING ═══ -->
@@ -4222,6 +4226,7 @@ html:root #view-workspace .issue-card.selected:not(.mc-paper *){background:var(-
         <button class="logout" onclick="handleLogout()">
           <span class="ws-sb-icon">⇥</span> Sign Out
         </button>
+        <button class="ws-sb-delete" onclick="window.deleteMyAccount && window.deleteMyAccount()" title="Permanently delete your account and all of its data">Delete my account</button>
       </div>
     </aside>
 

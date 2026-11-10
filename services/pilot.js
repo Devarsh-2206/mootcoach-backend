@@ -309,7 +309,22 @@ function createPilot(store, opts = {}) {
     };
   }
 
-  return { join, allowed, claimPlace, hasPlace, markUsed, releaseIdle, setStatus, overview, isAdmin, config, count, consume, remaining, unlimited,
+  /**
+   * Account deletion: the person's pilot record and feedback are removed, and
+   * a place they held goes back to the pool.
+   */
+  async function forget(uid) {
+    await store.transact(async (tx) => {
+      const m = await tx.getMember(uid);
+      if (!m) return;
+      const state = (await tx.getState()) || { active: 0 };
+      if (hasPlace(m)) { state.active = Math.max(0, state.active - 1); tx.putState(state); }
+      tx.deleteMember(uid);
+    });
+    if (store.deleteFeedbackFor) await store.deleteFeedbackFor(uid);
+  }
+
+  return { join, allowed, claimPlace, hasPlace, markUsed, releaseIdle, setStatus, forget, overview, isAdmin, config, count, consume, remaining, unlimited,
            recordFeedback, listFeedback: () => store.listFeedback() };
 }
 
@@ -373,6 +388,7 @@ function memoryStore() {
           getState: async () => (state ? { ...state } : null),
           putMember: m => writes.push(() => members.set(m.uid, { ...m })),
           putState: s => writes.push(() => { state = { ...s }; }),
+          deleteMember: uid => writes.push(() => members.delete(uid)),
         };
         const out = await fn(tx);
         writes.forEach(w => w());
@@ -386,6 +402,7 @@ function memoryStore() {
     },
     async addFeedback(entry) { feedback.push({ ...entry }); },
     async listFeedback() { return feedback.slice().reverse(); },
+    async deleteFeedbackFor(uid) { for (let i = feedback.length - 1; i >= 0; i--) if (feedback[i].uid === uid) feedback.splice(i, 1); },
   };
 }
 
@@ -402,6 +419,7 @@ function firestoreStore(db) {
           getState: async () => { const s = await t.get(stateRef); return s.exists ? s.data() : null; },
           putMember: m => t.set(membersCol.doc(m.uid), m),
           putState: s => t.set(stateRef, s),
+          deleteMember: uid => t.delete(membersCol.doc(uid)),
         };
         return fn(tx);
       });
@@ -415,6 +433,10 @@ function firestoreStore(db) {
     async listFeedback() {
       const snap = await root.collection('pilotFeedback').orderBy('createdAt', 'desc').limit(1000).get();
       return snap.docs.map(d => d.data());
+    },
+    async deleteFeedbackFor(uid) {
+      const snap = await root.collection('pilotFeedback').where('uid', '==', uid).get();
+      await Promise.all(snap.docs.map(d => d.ref.delete()));
     },
   };
 }
