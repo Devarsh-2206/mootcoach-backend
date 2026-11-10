@@ -966,7 +966,7 @@ window.checkCaseCitations = async function (opts = {}) {
       additionalIssues: data.additionalIssues, argumentDefects: data.argumentDefects,
       benchQuestions: data.benchQuestions, benchVulnerabilities: data.benchVulnerabilities,
     } : null;
-    const res = await requestJson('/api/confirm-cases', { timeoutMs: 120000, body: { cases: pool, forum, texts } });
+    const res = await requestJson('/api/confirm-cases', { timeoutMs: 120000, retries: 1, body: { cases: pool, forum, texts } });
     if (res.texts && res.citedCheck) applyCitedTexts(data, res.texts, res.citedCheck);
     const kept = res.precedentsNeeded || [];
     data.precedentsNeeded = kept;

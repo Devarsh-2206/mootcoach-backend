@@ -151,7 +151,7 @@ export function pilotState() { return state; }
 export async function checkPilot(user) {
   state = { pilot: null, admin: false, email: (user && user.email) || '', user: user || null };
   try {
-    const data = await requestJson('/api/pilot/me', { body: {}, timeoutMs: 30000 });
+    const data = await requestJson('/api/pilot/me', { body: {}, timeoutMs: 30000, retries: 1 });
     state.pilot = data.pilot; state.admin = !!data.admin;
   } catch (e) {
     return null;
@@ -254,7 +254,7 @@ function refreshSoon() {
   clearTimeout(refreshTimer);
   refreshTimer = setTimeout(async () => {
     try {
-      const data = await requestJson('/api/pilot/me', { body: {}, timeoutMs: 30000 });
+      const data = await requestJson('/api/pilot/me', { body: {}, timeoutMs: 30000, retries: 1 });
       if (data && data.pilot) { state.pilot = data.pilot; renderAllowance(); }
     } catch (e) { /* the next call will try again */ }
   }, 2500);
@@ -362,8 +362,8 @@ function alertIn(overlay, msg) {
 async function load(overlay) {
   try {
     const [data, fb] = await Promise.all([
-      requestJson('/api/pilot/admin/overview', { body: {}, timeoutMs: 30000 }),
-      requestJson('/api/pilot/admin/feedback', { body: {}, timeoutMs: 30000 }).catch(() => ({ feedback: [] })),
+      requestJson('/api/pilot/admin/overview', { body: {}, timeoutMs: 30000, retries: 1 }),
+      requestJson('/api/pilot/admin/feedback', { body: {}, timeoutMs: 30000, retries: 1 }).catch(() => ({ feedback: [] })),
     ]);
     overlay._ov = data.overview;
     overlay._fb = fb.feedback || [];

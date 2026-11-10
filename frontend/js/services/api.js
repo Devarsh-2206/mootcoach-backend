@@ -33,7 +33,28 @@ async function identityHeaders() {
  * came back at all, which left a spinner running forever. The server gives up
  * at 180s, so the browser waits a little longer than that and then says so.
  */
-export async function requestJson(path, { body, formData, timeoutMs = 190000 } = {}) {
+/**
+ * A request that failed because the server did not answer at all (network
+ * error, or a gateway page while Render restarts or redeploys) is tried once
+ * more after a short wait, when the caller says it is safe to repeat
+ * (retries: 1). Seen in testing: the case check, the memorial and the Pilot
+ * panel each failed once and worked on a manual retry. Only for requests that
+ * do no harm twice; a refusal or an error the server wrote is never retried.
+ */
+class TransientError extends Error {}
+export async function requestJson(path, opts = {}) {
+  const tries = 1 + Math.max(0, Math.min(2, Number(opts.retries) || 0));
+  for (let i = 1; ; i++) {
+    try { return await requestJsonOnce(path, opts); }
+    catch (e) {
+      if (!(e instanceof TransientError) || i >= tries) throw e;
+      console.warn(`[api] ${path} did not answer (${e.message}); trying again.`);
+      await new Promise(r => setTimeout(r, 3000 * i));
+    }
+  }
+}
+
+async function requestJsonOnce(path, { body, formData, timeoutMs = 190000 } = {}) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   let res;
@@ -49,14 +70,15 @@ export async function requestJson(path, { body, formData, timeoutMs = 190000 } =
     if (e && e.name === 'AbortError') {
       throw new Error('The server took too long to answer. Nothing you wrote has been lost. Try again.');
     }
-    throw new Error("Couldn't reach the MootCoach server. If it has been idle it can take up to a minute to wake up. Try again shortly.");
+    throw new TransientError("Couldn't reach the MootCoach server. If it has been idle it can take up to a minute to wake up. Try again shortly.");
   }
   clearTimeout(timer);
   const text = await res.text().catch(() => '');
   let data = null;
   try { data = text ? JSON.parse(text) : null; } catch (e) { /* not JSON: a gateway or host error page */ }
   if (!data) {
-    throw new Error(`The server could not finish that request (status ${res.status}). It may have restarted or timed out. Try again.`);
+    const msg = `The server could not finish that request (status ${res.status}). It may have restarted or timed out. Try again.`;
+    throw ([0, 502, 503, 504].includes(res.status) ? new TransientError(msg) : new Error(msg));
   }
   // A rejection ("this is not a legal document") is an answer, not a failure:
   // the caller has its own screen for it.
