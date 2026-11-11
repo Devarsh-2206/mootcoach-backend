@@ -673,6 +673,26 @@ function mount(container, options) {
     var open = S.started && !S.verdict && !S.ended && S.phase !== 'entry' && S.phase !== 'cover';
     R.input.disabled = !open; R.send.disabled = !open || S.considering;
   }
+  /* MootCoach addition: the temper line is a spring. Each exchange kicks it (down for a
+     dodge, up for a strong answer); it holds there for a moment, then cools back toward
+     the bench's resting temper with a slight elastic overshoot. The resting temper moves
+     a third of the way toward each reading, so a run of dodges leaves the bench short-
+     tempered even after it calms. Reduced motion: the same jumps, no wobble. */
+  function kickPatience(level) {
+    var t = PRESSURE[level]; if (t == null) return;
+    S.tBase += (t - S.tBase) * 0.33; S.tGoal = t; S.tHold = 1.8;
+    if (S.reduced) setPatience(t);
+  }
+  function tickTemper(dt) {
+    if (S.tHold == null) return;
+    var holding = S.tHold > 0; if (holding) S.tHold -= dt;
+    var goal = holding ? S.tGoal : S.tBase, p = S.patience;
+    if (S.reduced) { if (!holding && Math.abs(p - goal) > .5) setPatience(goal); return; }
+    var k = holding ? 90 : 5, c = 2 * Math.sqrt(k) * (holding ? .5 : .45);
+    S.tVel += (k * (goal - p) - c * S.tVel) * dt;
+    var np = p + S.tVel * dt;
+    if (Math.abs(np - p) > .02 || Math.abs(goal - p) > .05) setPatience(np);
+  }
   function setPatience(v) {
     S.patience = clamp(v, 0, 100); seats.forEach(function (j) { j.setPatience(S.patience); });
     R.temper.style.transform = 'scaleX(' + (S.patience / 100).toFixed(3) + ')';
@@ -787,7 +807,7 @@ function mount(container, options) {
     S.busy = true; S.considering = false;
     if (o.full && e.speaker) { var i = findSeat(e.speaker); if (i >= 0 && i !== S.active) { benchState('idle'); setActive(i); } }
     if (S.phase === 'opening' && S.studentTurns > 0) setPhase('cross');
-    if (e.level) { setPatience(PRESSURE[e.level]); S.prevLevel = e.level; }
+    if (e.level) { kickPatience(e.level); S.prevLevel = e.level; }
     if (e.interrupt) {
       if (S.studentLive) { studentEnd(true); addLine('mark', o.copy.interjects); }
       setMic('ducked'); benchState('interrupting'); sound.rustle();
@@ -937,7 +957,7 @@ function mount(container, options) {
     R.sliptext.textContent = ''; R.sliptext.appendChild(el('i', '', 'The bench has not yet spoken.')); R.sliplabel.textContent = 'From the bench'; R.slipflag.hidden = true; R.slip.classList.remove('mc-slide');
     R.verdictv.hidden = true; R.pausev.hidden = true; R.errorv.hidden = true; R.timer.setAttribute('data-warn', '0'); R.usher.classList.remove('mc-show');
     if (R.input) R.input.value = '';
-    setActive(presiding); setPatience(DIFFICULTY[o.difficulty][1]); setMic('closed'); benchState('idle'); drawClock(); sound.murmur(false);
+    setActive(presiding); setPatience(DIFFICULTY[o.difficulty][1]); S.tBase = S.tGoal = DIFFICULTY[o.difficulty][1]; S.tVel = 0; S.tHold = 0; setMic('closed'); benchState('idle'); drawClock(); sound.murmur(false);
   }
   function start() {
     if (S.destroyed) return;
@@ -976,6 +996,7 @@ function mount(container, options) {
         }
         drawClock();
       }
+      if (!S.paused) tickTemper(dt);
       for (var s = 0; s < seats.length; s++) seats[s].tick(S.paused ? dt * .35 : dt);   // even when paused the bench keeps breathing
     } catch (err) { console.warn('[MootCoachJudgeSim] frame recovered', err); S.speech = null; S.busy = false; }
     S.raf = global.requestAnimationFrame(frame);
@@ -1059,7 +1080,7 @@ function mount(container, options) {
         else if (evt.type === 'bench_read') {
           if (S.verdict || S.ended || !S.started) return false;
           var lv = Math.round(Number(evt.pressureLevel));
-          if (lv >= 1 && lv <= 5) { setPatience(PRESSURE[lv]); S.prevLevel = lv; }
+          if (lv >= 1 && lv <= 5) { kickPatience(lv); S.prevLevel = lv; }
           var nt = str(evt.targetWeakness, 160); if (nt) addNote(nt);
         }
         else { console.warn('[MootCoachJudgeSim] ignored event', evt.type); return false; }

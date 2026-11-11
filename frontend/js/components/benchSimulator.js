@@ -1401,16 +1401,9 @@ export async function startOralRound() {
       // The bench's reading of the last exchange (services/memoryEngine.js):
       // moves the courtroom's temper line and adds a bench note.
       onBenchRead: (read) => {
-        if (!sim || !simVoice) return;
-        // One exchange moves the bench's temper part of the way, not all of
-        // it: a single good or bad answer used to swing the line from end to
-        // end, which read as random. A blatant dodge still moves it fast.
-        const lvl = Math.round(Number(read.pressureLevel));
-        if (!(lvl >= 1 && lvl <= 5)) return;
-        const prev = simTemper || 2;
-        const next = lvl === 5 ? Math.max(prev + 1, 4) : Math.round(prev * 0.4 + lvl * 0.6);
-        simTemper = Math.max(1, Math.min(5, next));
-        sim.handleEvent({ type: 'bench_read', pressureLevel: simTemper, targetWeakness: read.note || '' });
+        // The courtroom's temper line is a spring (judge-sim.js kickPatience):
+        // each reading kicks it, and it cools back to the bench's resting temper.
+        if (sim && simVoice) sim.handleEvent({ type: 'bench_read', pressureLevel: read.pressureLevel, targetWeakness: read.note || '' });
       },
       onUserText: (text) => {
         if (!geminiHears) {
@@ -2510,7 +2503,6 @@ let simVoice = false;
 let simJudgeOpen = false;      // a streaming judge turn is open
 let simJudgeSent = '';         // judge text already handed to the slip
 let simStudentDone = '';       // counsel's finished sentences in the current turn
-let simTemper = 2;             // the voice bench's smoothed pressure, 1 (warm) to 5 (stern)
 
 function simVoiceJudgeAudio() {
   if (!sim || !simVoice || simJudgeOpen) return;
@@ -2625,7 +2617,7 @@ async function simTooShort(turns) {
 function openCourtroomVoice() {
   const stage = showStage();
   if (!stage) return false;
-  simVoice = true; simJudgeOpen = false; simJudgeSent = ''; simStudentDone = ''; simTemper = 2;
+  simVoice = true; simJudgeOpen = false; simJudgeSent = ''; simStudentDone = '';
   simCaseChecks = 0;
   simAuthSeen = new Map();
   simAuthStatus = new Map();
