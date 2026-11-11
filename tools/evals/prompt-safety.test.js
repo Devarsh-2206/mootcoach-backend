@@ -44,7 +44,10 @@ const { SCOPE_RULE } = require(R + 'scope');
   process.env.GROQ_API_KEY = process.env.GROQ_API_KEY || 'x';
   const { _normaliseMemoryResult: norm } = require('../../services/memoryEngine');
   const m = norm({ new_concessions: [{ statement: 'x', confidence: 7 }], evasion: { detected: 'yes', severity: 'huge' }, extra: 1 });
-  assert.deepStrictEqual(Object.keys(m).sort(), ['contradictions', 'evasion', 'new_concessions', 'unanswered_questions']);
+  assert.deepStrictEqual(Object.keys(m).sort(), ['contradictions', 'evasion', 'judge_tone', 'new_concessions', 'unanswered_questions']);
+  assert.strictEqual(m.judge_tone, 0);                                   // absent -> 0
+  assert.strictEqual(norm({ judge_tone: 9 }).judge_tone, 0);             // out of range -> 0
+  assert.strictEqual(norm({ judge_tone: '4' }).judge_tone, 4);
   assert.strictEqual(m.new_concessions[0].confidence, 1);
   assert.strictEqual(m.evasion.detected, false);
   assert.strictEqual(m.evasion.severity, '');
