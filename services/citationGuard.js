@@ -60,6 +60,14 @@ function applyCitationGuard(indexOfAuthorities, advocateAuthorities) {
             + `"${entry.citation}", advocate supplied "${own.citation}".`);
           entry.citation = own.citation;
           restored++;
+        } else if (!own.citation && entry.citation && entry.verify !== true) {
+          // The advocate chose the case but no citation came with it, so the
+          // reporter citation is the model's own: in a test memorial it was a
+          // citation found nowhere ("(2014) 145 DRJ 337"), unmarked because
+          // the case name was the advocate's. The citation is checked.
+          entry.verify = true;
+          entry.citationNote = [entry.citationNote, 'Citation supplied by MootCoach, not by you: check it.'].filter(Boolean).join(' ');
+          flagged++;
         }
         continue;
       }

@@ -678,6 +678,23 @@ function updateLiveIntelligence(text) {
   if (metaArtCountEl) metaArtCountEl.textContent = `${statutesCount} article(s)`;
 }
 
+/* The citation MootCoach confirmed for a case in the analysis (Indian Kanoon
+   or a trusted source), so a draft carries it instead of one the model makes
+   up. '' when the case is not in the confirmed list. */
+function confirmedCitationFor(name) {
+  let a = null;
+  try { a = typeof lastAnalysis === 'string' ? JSON.parse(lastAnalysis) : lastAnalysis; } catch (e) { a = null; }
+  if (!a) { try { a = JSON.parse(window.lastAnalysis || 'null'); } catch (e) { a = null; } }
+  const key = String(name || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  if (!key || !a || !Array.isArray(a.precedentsNeeded)) return '';
+  for (const c of a.precedentsNeeded) {
+    if (!c || typeof c !== 'object') continue;
+    const k = String(c.caseName || c.name || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+    if (k && (k === key || k.includes(key) || key.includes(k))) return String(c.citation || (c.verification && c.verification.foundCitation) || '');
+  }
+  return '';
+}
+
 async function generateArgument() {
   const notesInput = document.getElementById('builder-notes-input');
   const submitBtn = document.getElementById('btn-builder-submit');
@@ -736,7 +753,7 @@ async function generateArgument() {
     };
     const data = await buildArgument(stance, issue, notesToSend, currentPropositionContext, forumPayload, {
       instructions: notes,
-      authorities: selectedAuthorities.map(a => ({ name: a.name, ratio: a.ratio })),
+      authorities: selectedAuthorities.map(a => ({ name: a.name, ratio: a.ratio, citation: a.citation || confirmedCitationFor(a.name) })),
     });
     
     if (data.success && data.response) {
