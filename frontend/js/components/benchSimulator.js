@@ -2476,7 +2476,12 @@ export function startCourtroomText() {
       onEvent: (evt) => {
         if (!evt || evt.type !== 'round_started' || !sim) return;
         benchConversation.push({ role: 'judge', content: simOpening });
-        sim.handleEvent({ type: 'judge_turn', text: simOpening, pressureLevel: 1, targetWeakness: '' });
+        // The opening is fixed text; its level is the tone of that text (the
+        // meter follows the judge's words): a courteous welcome on Easy, a
+        // businesslike "be precise" on Moderate, a pointed jurisdiction
+        // challenge on Hard.
+        const openTone = { easy: 1, moderate: 2, hard: 3 }[benchDifficultyMode] || 2;
+        sim.handleEvent({ type: 'judge_turn', text: simOpening, pressureLevel: openTone, targetWeakness: '' });
         // The authorities the advocate chose for this issue, checked up front.
         simCheckCases(sel.authorities.map(a => a && a.name).filter(n => n && !isHypotheticalAuthority(n)));
       },

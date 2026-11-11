@@ -49,11 +49,11 @@ function benchReadOf(r) {
   }
   const conceded = r.new_concessions.filter(c => c.confidence >= 0.7);
   if (conceded.length && !note) { level = Math.max(level, 3); note = 'Conceded: ' + cut(conceded[0].statement, 125); }
-  // The temper line shows how the judge actually reacted: his own words, when
-  // they are in the exchange. The reading of counsel's answer is only the
-  // fallback, so the meter can no longer drop while the judge stays gentle.
-  if (r.judge_tone) level = r.judge_tone;
-  return { pressureLevel: level, note };
+  // The temper line shows how the judge actually reacted, from his own words,
+  // and nothing else: the meter depends on the judge, never the judge on the
+  // meter. With no judge reply in the exchange the line does not move (0);
+  // the note about counsel's answer is still given.
+  return { pressureLevel: r.judge_tone || 0, note };
 }
 
 async function evaluateExchange(currentMemory, exchangeTranscript, opts = {}) {
