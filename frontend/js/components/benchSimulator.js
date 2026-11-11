@@ -421,6 +421,19 @@ export function updateBenchProfileUI(mode) {
 }
 
 /**
+ * The advocate's side in the forum's own words: an arbitral tribunal hears a
+ * Claimant, not a Petitioner. The stance itself stays "Petitioner" or
+ * "Respondent" everywhere it is stored; only what is shown changes.
+ */
+export function sideLabel(stance) {
+  const res = /^respond/i.test(String(stance || ''));
+  let arb = false;
+  try { arb = !!((typeof window.getForumProfile === 'function' ? window.getForumProfile : getForumProfile)().isArbitration); } catch (e) {}
+  return res ? 'Respondent' : (arb ? 'Claimant' : 'Petitioner');
+}
+window.sideLabel = sideLabel;
+
+/**
  * What the advocate chose in Issues and Advocacy, read the same way for the
  * opening summary and for every turn sent to the bench, so the two cannot
  * disagree about what the bench was given.
@@ -551,7 +564,7 @@ export function startBenchSession() {
   let opening = openingMap[benchDifficultyMode] || openingMap.moderate;
   // Open on the advocate's ACTUAL case so it's immediately their session, not generic.
   if (ctxIssue && ctxIssue !== 'General appellate docket') {
-    opening = `Counsel for the ${ctxStance}, we are taking up your issue — "${String(ctxIssue).trim().replace(/[.:;,!?\s]+$/, "")}." ${opening}`;
+    opening = `Counsel for the ${sideLabel(ctxStance)}, we are taking up your issue — "${String(ctxIssue).trim().replace(/[.:;,!?\s]+$/, "")}." ${opening}`;
   }
   appendBenchMessage('judge', opening, null, 'Opening the session', 1, getPresidingJudgeName());
   benchConversation.push({ role: 'judge', content: opening });
@@ -969,7 +982,7 @@ function buildBenchBody(statement) {
   const presiding = getPresidingJudge();
   const judgeDirective = presiding && presiding.id ? '' : getJudgeDirective();
   const depthDirective = getDepthDirective();
-  const contextPrefix = `${forumDirective}${judgeDirective ? '\n' + judgeDirective : ''}${depthDirective ? '\n' + depthDirective : ''}\n[Advocate Side: ${String(selectedStance).toUpperCase()}] [Target Issue: ${selectedIssue || 'General'}] [Selected Authorities: ${selectedAuthsText}]${draftBlock}${predictedBlock}${defectBlock}\n\n`;
+  const contextPrefix = `${forumDirective}${judgeDirective ? '\n' + judgeDirective : ''}${depthDirective ? '\n' + depthDirective : ''}\n[Advocate Side: ${sideLabel(selectedStance).toUpperCase()}] [Target Issue: ${selectedIssue || 'General'}] [Selected Authorities: ${selectedAuthsText}]${draftBlock}${predictedBlock}${defectBlock}\n\n`;
 
   return {
       conversationHistory: benchConversation.slice(-10),
@@ -1331,22 +1344,22 @@ export async function startOralRound() {
       onStatusChange: (status, text) => {
         console.log("[DEBUG AUDIT] Engine status changed:", status, text);
         if (status === 'reconnecting') {
-          // Hard wipe of frontend state to sync with backend Gemini session reset
-          const panel = document.getElementById('bench-transcript-panel');
-          if (panel) panel.innerHTML = '';
-          appendTranscript('system', 'Connection lost. The Bench has been reset. Please begin your submissions again.');
-          
-          // Deep clean memory buffers
-          fullJudgeResponse = '';
+          // The round is resumed, not restarted (audioEngine sends the judge
+          // the record so far), so the transcript, the record for the report
+          // and the round clock are kept. A judge line cut off by the drop is
+          // written as it stood.
+          if (judgeFlushTimer) { clearTimeout(judgeFlushTimer); flushJudgeLine(); }
+          simVoiceJudgeEnd();
+          judgePlaying = false;
+          appendTranscript('system', 'The connection dropped for a moment. The bench has the record so far and will continue.');
+          simVoiceNotice('The connection dropped for a moment. The bench has the record and will continue.');
           currentJudgeBubble = null;
           currentJudgeSpeech = '';
-          benchConversation = [];
-          
+
           // Force microphone re-instantiation for iOS lock recovery
           stopSpeechRecognition();
-          
+
           updateBenchState('connecting');
-          startVoiceTimer(); // Reset the duration timer
         } else if (status === 'connecting') {
           updateBenchState('connecting');
         } else if (status === 'ready') {
@@ -1388,7 +1401,16 @@ export async function startOralRound() {
       // The bench's reading of the last exchange (services/memoryEngine.js):
       // moves the courtroom's temper line and adds a bench note.
       onBenchRead: (read) => {
-        if (sim && simVoice) sim.handleEvent({ type: 'bench_read', pressureLevel: read.pressureLevel, targetWeakness: read.note || '' });
+        if (!sim || !simVoice) return;
+        // One exchange moves the bench's temper part of the way, not all of
+        // it: a single good or bad answer used to swing the line from end to
+        // end, which read as random. A blatant dodge still moves it fast.
+        const lvl = Math.round(Number(read.pressureLevel));
+        if (!(lvl >= 1 && lvl <= 5)) return;
+        const prev = simTemper || 2;
+        const next = lvl === 5 ? Math.max(prev + 1, 4) : Math.round(prev * 0.4 + lvl * 0.6);
+        simTemper = Math.max(1, Math.min(5, next));
+        sim.handleEvent({ type: 'bench_read', pressureLevel: simTemper, targetWeakness: read.note || '' });
       },
       onUserText: (text) => {
         if (!geminiHears) {
@@ -1585,6 +1607,7 @@ async function requestOralReview(durationSeconds, transcript) {
         intensity: benchDifficultyMode,
         claimLedger: claimLedger,
         durationSeconds,
+        authorityChecks: authorityChecksForReview(),
       } });
       document.getElementById('oral-review-pending')?.remove();
       if (data.performanceReview) {
@@ -1633,6 +1656,7 @@ function appendBenchSystemNote(text) {
  */
 let oralTranscript = [];
 export function getOralTranscript() { return oralTranscript.slice(); }
+window.getOralTranscript = getOralTranscript;
 export function resetOralTranscript() { oralTranscript = []; }
 
 function recordTurn(role, text, isChunk) {
@@ -2138,8 +2162,14 @@ function looksLikeCase(name) {
   return /\sv(?:s)?\.?\s|\sversus\s/i.test(String(name || '')) || /^in re\b/i.test(String(name || ''));
 }
 
+// What the case check found, by name, for the round's marking.
+let simAuthStatus = new Map();
 function simAuthority(evt) {
+  if (evt && evt.name && evt.status && evt.status !== 'checking') simAuthStatus.set(evt.name, evt.status);
   if (sim) sim.handleEvent(Object.assign({ type: 'authority' }, evt));
+}
+function authorityChecksForReview() {
+  return [...simAuthStatus].slice(0, 30).map(([name, status]) => ({ name, status }));
 }
 
 /** Show these cases as "checking", then ask the server's case check about them. */
@@ -2229,7 +2259,7 @@ function simOpeningLine() {
   };
   let opening = openingMap[benchDifficultyMode] || openingMap.moderate;
   if (sel.issue) {
-    opening = `Counsel for the ${sel.stance}, we are taking up your issue — "${String(sel.issue).trim().replace(/[.:;,!?\s]+$/, '')}." ${opening}`;
+    opening = `Counsel for the ${sideLabel(sel.stance)}, we are taking up your issue — "${String(sel.issue).trim().replace(/[.:;,!?\s]+$/, '')}." ${opening}`;
   }
   return opening;
 }
@@ -2245,6 +2275,7 @@ function resetRoundState() {
   benchSubmitting = false;
   simCaseChecks = 0;
   simAuthSeen = new Map();
+  simAuthStatus = new Map();
 }
 
 async function simSubmit(text) {
@@ -2282,7 +2313,7 @@ async function simSubmit(text) {
       else await simMarkRound();
       return;
     }
-    const judgeText = data.judgeResponse || 'Proceed, Counsel.';
+    const judgeText = plainJudgeText(data.judgeResponse) || 'Proceed, Counsel.';
     benchConversation.push({ role: 'judge', content: judgeText, targetWeakness: data.targetWeakness });
     sim.handleEvent({
       type: 'judge_turn', text: judgeText,
@@ -2322,6 +2353,7 @@ async function simMarkRound() {
       intensity: benchDifficultyMode,
       claimLedger: claimLedger,
       durationSeconds: seconds,
+      authorityChecks: authorityChecksForReview(),
     } });
     if (sim !== mySim) return;
     if (!data || !data.performanceReview) throw new Error('The report came back empty.');
@@ -2404,7 +2436,7 @@ function simBaseOptions(mode) {
     mode,
     difficulty: benchDifficultyMode,
     matter: mootName,
-    side: `Counsel for the ${sel.stance || 'Petitioner'}`,
+    side: `Counsel for the ${sideLabel(sel.stance)}`,
     forumLabel: fp.isArbitration ? 'Members of the Tribunal' : 'Hon’ble Presiding Judge',
     copy: fp.isArbitration ? {
       courtLabel: 'Arbitral Tribunal',
@@ -2478,6 +2510,7 @@ let simVoice = false;
 let simJudgeOpen = false;      // a streaming judge turn is open
 let simJudgeSent = '';         // judge text already handed to the slip
 let simStudentDone = '';       // counsel's finished sentences in the current turn
+let simTemper = 2;             // the voice bench's smoothed pressure, 1 (warm) to 5 (stern)
 
 function simVoiceJudgeAudio() {
   if (!sim || !simVoice || simJudgeOpen) return;
@@ -2490,7 +2523,7 @@ function simVoiceJudgeText(full) {
   if (!sim || !simVoice) return;
   if (!simJudgeOpen) simVoiceJudgeAudio();
   // A Full Bench speaker tag ("[Justice Iyer] …") is not part of the question.
-  const shown = String(full || '').replace(/^\s*\[[^\]]{1,80}\]\s*/, '');
+  const shown = plainJudgeText(String(full || '').replace(/^\s*\[[^\]]{1,80}\]\s*/, ''));
   if (!shown.startsWith(simJudgeSent)) return;
   const delta = shown.slice(simJudgeSent.length);
   if (!delta) return;
@@ -2501,6 +2534,11 @@ function simVoiceJudgeText(full) {
     const mySim = sim;
     setTimeout(() => { if (sim === mySim && simJudgeOpen) simVoiceJudgeText(full); }, 300);
   }
+}
+// The judge's words as plain speech: models mark case names as *Name* or
+// **Name**, which the courtroom showed literally.
+function plainJudgeText(t) {
+  return String(t || '').replace(/\*{1,3}([^*\n]+?)\*{1,3}/g, '$1').replace(/(^|\s)_([^_\n]+?)_(?=\s|[.,;:!?]|$)/g, '$1$2').replace(/\*/g, '');
 }
 function simVoiceJudgeEnd() {
   if (!sim || !simVoice || !simJudgeOpen) return;
@@ -2587,9 +2625,10 @@ async function simTooShort(turns) {
 function openCourtroomVoice() {
   const stage = showStage();
   if (!stage) return false;
-  simVoice = true; simJudgeOpen = false; simJudgeSent = ''; simStudentDone = '';
+  simVoice = true; simJudgeOpen = false; simJudgeSent = ''; simStudentDone = ''; simTemper = 2;
   simCaseChecks = 0;
   simAuthSeen = new Map();
+  simAuthStatus = new Map();
   const chosen = readBenchSelections().authorities.map(a => a && a.name).filter(n => n && !isHypotheticalAuthority(n));
   const minutes = window.pilotLimits && window.pilotLimits.voiceMinutes;
   try {

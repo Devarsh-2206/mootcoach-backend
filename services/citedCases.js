@@ -121,7 +121,15 @@ function cleanText(text, verdictFor) {
     }
   }
   outText += s.slice(at);
+  // In a list of authorities ("relying on A; B") the marker read as clutter
+  // ("relying on [unconfirmed authority removed]; Dhanrajamal…"): drop it
+  // from the list, and drop a list it empties. In running prose it stays, so
+  // a sentence does not lose its subject silently.
+  const R = REMOVED.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const tidy = outText
+    .replace(new RegExp(`\\s*\\((?:relying on|see|cf\\.?|e\\.g\\.,?)?\\s*${R}(?:\\s*;\\s*${R})*\\s*\\)`, 'gi'), '')
+    .replace(new RegExp(`${R}\\s*;\\s*`, 'g'), '')
+    .replace(new RegExp(`\\s*;\\s*${R}`, 'g'), '')
     .replace(/\s{2,}/g, ' ')
     .replace(/\s+(?:and|or)\s*([.,;:])/g, '$1')     // "…) and." left by a dropped bracket
     .replace(/\s+([,.;:])/g, '$1');

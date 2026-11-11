@@ -1871,6 +1871,15 @@ export function goToStage(stageNum) {
 
   if (stageNum === 4 && window.renderLobbyBrief) window.renderLobbyBrief();
   if (stageNum === 4 && window.renderBenchViewSwitch) window.renderBenchViewSwitch();
+  // The side buttons in the forum's words (Claimant before a tribunal).
+  if (stageNum === 2 || stageNum === 3) {
+    let arb = false;
+    try { arb = !!(window.getForumProfile && window.getForumProfile().isArbitration); } catch (e) {}
+    const pet = document.getElementById('side-label-pet');
+    const res = document.getElementById('side-label-res');
+    if (pet) pet.textContent = arb ? 'CLAIMANT' : 'PETITIONER / APPELLANT';
+    if (res) res.textContent = arb ? 'RESPONDENT' : 'RESPONDENT / OPPOSITION';
+  }
 
   // Advocacy's "Case Summary Context" card was never filled, so it asked
   // for an upload even with a proposition loaded.

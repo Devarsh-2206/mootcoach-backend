@@ -161,13 +161,29 @@ function recordUse(feature) {
  * types, so this tracks both readings and settles at the end: if the
  * response count never went down, the reports were running totals.
  */
+// When a voice round reports no token usage at all (seen on 11 Nov 2026: the
+// round was counted but cost nothing), its tokens are estimated from its
+// length, at rates taken from earlier rounds that did report usage on this
+// service (about 199k in / 20k out over five rounds of roughly six minutes).
+// Rough by design; Google Cloud Billing remains the real figure.
+const LIVE_EST_IN_PER_SEC = Number(process.env.SPEND_LIVE_IN_PER_SEC || 110);
+const LIVE_EST_OUT_PER_SEC = Number(process.env.SPEND_LIVE_OUT_PER_SEC || 11);
+
 function liveMeter(model, backend) {
   const seen = [];
+  const started = Date.now();
   return {
     note(u) { const t = tokensOf(u); if (t) seen.push(t); },
     done() {
       recordUse('voice');
-      if (!seen.length) return;
+      if (!seen.length) {
+        const sec = Math.max(0, (Date.now() - started) / 1000);
+        if (sec < 20) return;   // connected and gone: nothing worth counting
+        const est = { input: Math.round(sec * LIVE_EST_IN_PER_SEC), output: Math.round(sec * LIVE_EST_OUT_PER_SEC) };
+        console.warn(`[SPEND] voice round sent no usage reports; estimated from its length (${Math.round(sec)}s): ${est.input} in / ${est.output} out tokens.`);
+        add({ feature: 'voice', model, backend, ...est, live: true });
+        return;
+      }
       const running = seen.length > 1 && seen.every((t, i) => i === 0 || (t.output >= seen[i - 1].output && t.input >= seen[i - 1].input));
       const t = running ? seen[seen.length - 1]
         : seen.reduce((a, b) => ({ input: a.input + b.input, output: a.output + b.output }), { input: 0, output: 0 });

@@ -42,7 +42,7 @@ function benchReadOf(r) {
   if (r.contradictions.length) { level = 4; note = 'Contradiction: ' + cut(r.contradictions[0].statement, 120); }
   if (r.evasion.detected) {
     level = r.evasion.severity === 'blatant' ? 5 : r.evasion.severity === 'medium' ? 4 : 3;
-    note = 'Evasion: ' + cut(r.evasion.reason || 'the question was not answered', 130);
+    note = 'Dodged: ' + cut(r.evasion.reason || 'the question was not answered', 130);
   } else if (r.unanswered_questions.length && level < 3) {
     level = 3; note = 'Unanswered: ' + cut(r.unanswered_questions[0], 125);
   }

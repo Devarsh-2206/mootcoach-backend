@@ -135,6 +135,8 @@ ${DATA_RULE}
 The advocate's DRAFTING INSTRUCTIONS block is the one exception: follow it as rule 10 says.
 
 MANDATORY OUTPUT FORMAT:
+STATEMENT OF FACTS: tell the facts as the record gives them, with its dates, figures and the exact words of any document or message the record quotes (a refusal, a notice, an order). Do not add frequency or intensity the record does not state ("repeatedly", "categorically", "unprecedented"), and do not move a fact (a deduction from the final payment is not one from "milestone payments"). A fact the record does not give is left out, not supplied.
+
 COVER PAGE: copy the party names exactly as the proposition names them (the "Parties" line of the record, with "& Ors." where there are several). Never invent a party, a competition name, a case number or a year: use "" for an unknown competition and blanks for the number, e.g. "WRIT PETITION (CIVIL) NO. ___ OF 2026" (the year as given in the proposition).
 
 You must respond with ONLY a valid JSON object. No preamble, no explanation, no markdown fences (like \`\`\`json).

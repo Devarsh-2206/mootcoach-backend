@@ -1651,6 +1651,15 @@ app.post("/api/oral-briefing", signedIn, pilotGate({ bucket: 'extras' }), aiLimi
    arrives in one piece at the end rather than a turn at a time. */
 app.post("/simulate-bench/oral-review", signedIn, pilotGate({ bucket: 'extras' }), benchLimiter, express.json(), async (req, res) => {
   const { transcript, propositionSummary, difficulty, intensity, claimLedger, durationSeconds } = req.body;
+  // What MootCoach's case check found for the authorities cited in the round
+  // (the courtroom's Authorities panel). Without it the marker praised an
+  // invented case as a "correctly identified precedent" and told the advocate
+  // to rely on it. Client-sent, so only the status word is taken from it.
+  const authorityChecks = (Array.isArray(req.body.authorityChecks) ? req.body.authorityChecks : [])
+    .slice(0, 30)
+    .map(a => ({ name: String((a && a.name) || '').replace(/[\r\n]+/g, ' ').slice(0, 200).trim(),
+      status: ['verified', 'corrected', 'unconfirmed'].includes(a && a.status) ? a.status : 'unconfirmed' }))
+    .filter(a => a.name);
 
   const turns = (Array.isArray(transcript) ? transcript : [])
     .filter(t => t && typeof t.content === 'string' && t.content.trim())
@@ -1678,7 +1687,7 @@ app.post("/simulate-bench/oral-review", signedIn, pilotGate({ bucket: 'extras' }
       propositionSummary || '',
       turns,
       Array.isArray(claimLedger) ? claimLedger : [],
-      { mode: 'oral', durationSeconds: Number(durationSeconds) || 0 }
+      { mode: 'oral', durationSeconds: Number(durationSeconds) || 0, authorityChecks }
     );
 
     const call = await getChatCompletion({

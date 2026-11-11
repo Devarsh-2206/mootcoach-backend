@@ -33,6 +33,21 @@ ${opts.durationSeconds ? `- The round ran about ${Math.round(opts.durationSecond
 `
     : '';
 
+  // The courtroom's case check, so the marker never praises an authority that
+  // could not be found (it once quoted an invented case "with approval").
+  const checks = Array.isArray(opts.authorityChecks) ? opts.authorityChecks : [];
+  const notFound = checks.filter(a => a.status === 'unconfirmed').map(a => a.name);
+  const found = checks.filter(a => a.status !== 'unconfirmed').map(a => a.name);
+  const authorityNote = checks.length ? `
+AUTHORITY CHECK (MootCoach searched for every authority cited in this round):
+${wrap('authority_check', [
+    found.length ? 'Found: ' + found.join('; ') : '',
+    notFound.length ? 'NOT FOUND (could not be confirmed to exist): ' + notFound.join('; ') : '',
+  ].filter(Boolean).join('\n'))}
+- An authority marked NOT FOUND must never be quoted with approval, called correct or well chosen, or recommended in a better answer. Treat reliance on it as a knowledgeOfLaw weakness: say it could not be confirmed and that a bench would ask counsel to produce it.
+- Base what you say about any authority only on what counsel said and on this check, never on your own memory of a case not in the "Found" list.
+` : '';
+
   return `You are an elite Moot Court Advocacy Coach producing a Post-Round Report for an advocate who has just finished a session in front of a hostile bench.
 
 Your feedback must answer three questions:
@@ -42,7 +57,10 @@ Your feedback must answer three questions:
 
 You ALSO mark the round, the way a moot judge would.
 ${oralNote}
+${authorityNote}
 ${DATA_RULE}
+
+FORM OF ADDRESS: any words you suggest the advocate should say ("betterAnswer", the verdict) must use the form of address in the forum directive of the case file, e.g. "Members of the Tribunal" before an arbitral tribunal, never "Your Honour" or "My Lords" there.
 
 CASE CONTEXT:
 ${wrap('case_file', propositionSummary || 'A moot court matter; infer the forum from the transcript.')}

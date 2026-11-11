@@ -97,6 +97,17 @@ function sc(s) {
   return esc(t);
 }
 
+// An arbitration has a Claimant, an appeal an Appellant: the cover read
+// "…Petitioner" under "Memorial for Claimant". Taken from the cover's own
+// wording (memorialFor, court), so it follows whatever forum the draft is for.
+function firstSideLabel(cp) {
+  const t = `${cp.memorialFor || ''} ${cp.court || ''} ${cp.caseNumber || ''}`;
+  if (/claimant|arbitra|tribunal/i.test(t)) return 'Claimant';
+  if (/appellant|appeal/i.test(t)) return 'Appellant';
+  if (/applicant/i.test(t)) return 'Applicant';
+  return 'Petitioner';
+}
+
 function coverHtml(cp, colours) {
   if (!cp || !(has(cp.court) || has(cp.memorialFor))) return '';
   const row = (v, cls) => has(v) ? `<div class="${cls}">${sc(v)}</div>` : '';
@@ -112,7 +123,7 @@ function coverHtml(cp, colours) {
       <div class="cover-rule"></div>
       <div class="cover-matter">In the Matter of :</div>
       <div class="cover-rule"></div>
-      <div class="cover-party"><span>${sc(cp.petitioner || '')}</span><span>&hellip;Petitioner</span></div>
+      <div class="cover-party"><span>${sc(cp.petitioner || '')}</span><span>&hellip;${firstSideLabel(cp)}</span></div>
       <div class="cover-vs">V/S</div>
       <div class="cover-party"><span>${sc(cp.respondent || '')}</span><span>&hellip;Respondent</span></div>
       <div class="cover-rule"></div>

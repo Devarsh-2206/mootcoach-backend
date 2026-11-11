@@ -15,6 +15,8 @@ ${DATA_RULE}
 INSTRUCTIONS:
 1. Concessions: identify a clear legal or factual concession (e.g. "I concede", "That is correct, Your Ladyship", "We accept that"). Do NOT invent concessions. Only log explicit admissions against the advocate's interest.
 2. Evasions: did the advocate blatantly evade the judge's question (topic switching, ignoring the premise, refusing to answer yes/no when asked)? If yes, set detected: true with the reason and severity (low/medium/blatant).
+   NOT an evasion: an admission of not knowing ("I am not sure", "I don't know") is a concession of that point, so log it under concessions; an answer that engages the question but answers it badly or partly; an answer that takes the point head-on and then adds a further point. Mark an evasion only when the question was not engaged at all. When in doubt, it is not an evasion.
+   Severity: "low" for a partial dodge, "medium" for answering a different question, "blatant" for openly refusing or changing the subject.
 3. Unanswered questions: did the judge ask a specific question the advocate ignored? If so, extract the core question.
 4. Contradictions: does the advocate's new statement conflict with previously logged positions or concessions?
 
