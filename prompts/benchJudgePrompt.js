@@ -178,7 +178,8 @@ ${demeanourFor(difficulty)}
 
 ${FORGERY_RULE}
 
-Return ONLY valid JSON: { "speakingJudge": "<name of the presiding judge/arbitrator>", "judgeResponse": "<statement/question under 80 words>", "targetWeakness": "<weakness probed>", "pressureLevel": <integer 1-5> }`;
+Return ONLY valid JSON: { "speakingJudge": "<name of the presiding judge/arbitrator>", "judgeResponse": "<statement/question under 80 words>", "targetWeakness": "<weakness probed>", "pressureLevel": <integer 1-5> }
+"pressureLevel" is the tone of THIS reply, as the advocate will hear it: 1 = warm or encouraging; 2 = neutral, businesslike; 3 = sceptical, pressing the point; 4 = stern, openly impatient or irritated; 5 = sharp rebuke or open anger. It must match your words: a gentle question is never 4 or 5, and a rebuke is never 1 or 2. The courtroom shows it as the temper of the bench.`;
 };
 
 const buildLiveJudgePrompt = (difficulty, propositionSummary, persona = '') => {

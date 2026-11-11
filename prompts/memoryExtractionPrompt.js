@@ -19,13 +19,15 @@ INSTRUCTIONS:
    Severity: "low" for a partial dodge, "medium" for answering a different question, "blatant" for openly refusing or changing the subject.
 3. Unanswered questions: did the judge ask a specific question the advocate ignored? If so, extract the core question.
 4. Contradictions: does the advocate's new statement conflict with previously logged positions or concessions?
+5. Judge tone: how sharp is the Judge's LAST reply in the exchange (the words after the advocate's answer), judged only from those words: 1 = warm or encouraging; 2 = neutral, businesslike; 3 = sceptical, pressing the point; 4 = stern, openly impatient or irritated; 5 = sharp rebuke or open anger. If there is no reply after the advocate's answer, use 0.
 
 Respond ONLY with a JSON object matching this schema:
 {
   "new_concessions": [ { "statement": "string", "issueContext": "string", "confidence": 0.0 } ],
   "evasion": { "detected": false, "reason": "", "severity": "" },
   "unanswered_questions": [ "string" ],
-  "contradictions": [ { "statement": "string", "conflictsWith": "string" } ]
+  "contradictions": [ { "statement": "string", "conflictsWith": "string" } ],
+  "judge_tone": 0
 }`;
 
 const buildMemoryExtractionUser = (currentMemory, exchangeTranscript) =>

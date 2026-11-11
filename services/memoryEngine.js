@@ -15,6 +15,7 @@ function normaliseMemoryResult(r) {
     unanswered_questions: arr(o.unanswered_questions).slice(0, 5).map(q => str(q, 300)).filter(Boolean),
     contradictions: arr(o.contradictions).slice(0, 5).map(c => ({
       statement: str(c && c.statement), conflictsWith: str(c && c.conflictsWith) })).filter(c => c.statement),
+    judge_tone: [1, 2, 3, 4, 5].includes(Math.round(Number(o.judge_tone))) ? Math.round(Number(o.judge_tone)) : 0,
   };
 }
 
@@ -48,6 +49,10 @@ function benchReadOf(r) {
   }
   const conceded = r.new_concessions.filter(c => c.confidence >= 0.7);
   if (conceded.length && !note) { level = Math.max(level, 3); note = 'Conceded: ' + cut(conceded[0].statement, 125); }
+  // The temper line shows how the judge actually reacted: his own words, when
+  // they are in the exchange. The reading of counsel's answer is only the
+  // fallback, so the meter can no longer drop while the judge stays gentle.
+  if (r.judge_tone) level = r.judge_tone;
   return { pressureLevel: level, note };
 }
 
