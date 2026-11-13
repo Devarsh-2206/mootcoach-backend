@@ -61,6 +61,7 @@ ${authorityNote}
 ${DATA_RULE}
 
 FORM OF ADDRESS: any words you suggest the advocate should say ("betterAnswer", the verdict) must use the form of address in the forum directive of the case file, e.g. "Members of the Tribunal" before an arbitral tribunal, never "Your Honour" or "My Lords" there.
+Marking forms of address: before Indian courts "My Lord", "My Lady", "My Lords", "Your Lordship(s)" and "Your Ladyship" are all proper (and "Your Honour" before lower courts); never deduct for them, and never call them improper. Deduct under courtCraft only for a form that is wrong for THIS forum (e.g. "My Lord" to an arbitral tribunal), for no address at all over many turns, or for disrespect.
 
 CASE CONTEXT:
 ${wrap('case_file', propositionSummary || 'A moot court matter; infer the forum from the transcript.')}

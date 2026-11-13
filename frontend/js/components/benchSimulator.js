@@ -2152,7 +2152,8 @@ function normCase(name) {
 }
 // Only reported cases go to the case check; statutes and articles do not.
 function looksLikeCase(name) {
-  return /\sv(?:s)?\.?\s|\sversus\s/i.test(String(name || '')) || /^in re\b/i.test(String(name || ''));
+  // "v.", "vs.", "v/s", "versus" and "versus." (a spoken transcript writes "D.K. Basu versus. State")
+  return /\s(?:v|vs|v\/s|versus)\.?\s/i.test(String(name || '')) || /^in re\b/i.test(String(name || ''));
 }
 
 // What the case check found, by name, for the round's marking.
@@ -2182,7 +2183,7 @@ function splitCitation(raw) {
 // A name half-heard or cut short ("Union of India v. ...") is not checked.
 function plausibleCaseName(name) {
   if (/\.\.\.|…/.test(name)) return false;
-  const sides = String(name).split(/\sv(?:s)?\.?\s|\sversus\s/i);
+  const sides = String(name).split(/\s(?:v|vs|v\/s|versus)\.?\s/i);
   return sides.length < 2 || sides.every(x => x.replace(/[^a-z]/gi, '').length >= 3);
 }
 /* What the analysis already confirmed about this case, if anything: the
