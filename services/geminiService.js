@@ -312,6 +312,17 @@ const handleLiveVoiceConnection = async (ws, benchLevel = 'moderate', propositio
   });
 };
 
+// When Groq's daily allowance was spent (see runGroq), and how long its
+// message says to wait: "Please try again in 7m12.5s" / "1h2m3s" / "45.2s".
+let groqDailyBlockedUntil = 0;
+function groqResetMs(msg) {
+  const m = String(msg || '').match(/try again in\s+((?:\d+h)?(?:\d+m)?(?:[\d.]+s)?)/i);
+  if (!m || !m[1]) return 30 * 60 * 1000;
+  const part = (re) => { const x = m[1].match(re); return x ? parseFloat(x[1]) : 0; };
+  const ms = (part(/(\d+)h/) * 3600 + part(/(\d+)m/) * 60 + part(/([\d.]+)s/)) * 1000;
+  return Math.min(Math.max(ms, 60 * 1000), 24 * 3600 * 1000);
+}
+
 const Groq = require("groq-sdk");
 const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY
@@ -434,6 +445,15 @@ async function getChatCompletion({
   const estimatedTokens = () => inputTokens() + groqMax;
 
   const runGroq = async () => {
+    // Groq's daily allowance (free plan: 200K tokens / 1K requests a day for
+    // gpt-oss-120b) does not refill in seconds. Once it is spent, every call
+    // used to retry three times with ~10s waits before falling back, so each
+    // judge turn stalled for 20-30s. Until the stated reset, go straight to
+    // the fallback.
+    if (Date.now() < groqDailyBlockedUntil) {
+      usage.record({ provider: 'groq', model: groqModel, label: requestLabel, error: 'skipped: daily limit reached' });
+      throw new Error('Groq skipped: daily limit reached; using the fallback until it resets.');
+    }
     // Pre-flight: Groq charges input + the FULL max_tokens reservation, and
     // rejects a single request over the per-minute budget outright, whatever
     // the window looks like. Its own error states the arithmetic:
@@ -476,6 +496,11 @@ async function getChatCompletion({
         const msg = String((err && err.message) || '');
         usage.record({ provider: 'groq', model: groqModel, label: requestLabel, error: msg });
         const rateLimited = /rate_limit_exceeded|tokens per minute|\bTPM\b|\b429\b/i.test(msg);
+        if (/per day|\bTPD\b|\bRPD\b/i.test(msg)) {
+          groqDailyBlockedUntil = Date.now() + groqResetMs(msg);
+          console.warn(`[AI TRACE] Groq daily limit reached; skipping Groq for ${Math.round((groqDailyBlockedUntil - Date.now()) / 60000)} min.`);
+          throw err;
+        }
         if (!rateLimited || attempt === groqMaxAttempts - 1) throw err;
 
         // Groq states the exact wait in the error: "Please try again in 12.6075s".
@@ -748,4 +773,5 @@ async function getChatCompletion({
   }
 }
 
-module.exports = { handleLiveVoiceConnection, getChatCompletion, _orderByHealth: orderByHealth, _coolDown: coolDown };
+module.exports = {
+  _groqResetMs: groqResetMs, handleLiveVoiceConnection, getChatCompletion, _orderByHealth: orderByHealth, _coolDown: coolDown };
