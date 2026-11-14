@@ -53,6 +53,7 @@ const CASE_CITE = /\b([A-Z][A-Za-z.'&-]+(?:[ \t]+[A-Z][A-Za-z.'&-]+){0,6})[ \t]+
 
 /** Headings and group labels that must never be read as a party name. */
 const HEADING_WORDS = /^(index|table|list|cases?|statutes?|books?|articles?|reports?|treaties|regulations?|constitution|memorial|arguments?|statement|summary|issues?|prayer|abbreviations?|authorities|advanced|raised|contents?|international|scholarly|works?|official|circulars?|other)$/i;
+const LEAD_WORDS = /^(in|see|also|cf\.?|and|or|but|per|vide|following|similarly|likewise|under|thus|hence|further|furthermore|moreover|e\.g\.,?|i\.e\.,?|as|like|unlike|whereas|while|the)$/i;
 const REPORTER  = /(\(\s*(?:19|20)\d{2}\s*\)\s*\d+\s*[A-Z]{2,6}\s*\d+|AIR\s+(?:19|20)\d{2}\s+[A-Z]{2,5}\s+\d+|\[\s*(?:19|20)\d{2}\s*\]\s*\d*\s*[A-Z.]{2,8}\s*\d+)/g;
 
 const norm = s => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
@@ -62,19 +63,35 @@ const norm = s => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim
  * own line and usually capitalised, so a line-level match is far more reliable
  * than searching the whole blob — "statement of facts" appears inside prose too.
  */
+/*
+ * A Table of Contents lists every heading with its page: "INDEX OF AUTHORITIES
+ * ...... III", "ARGUMENTS ADVANCED 1". Those lines matched as the headings
+ * themselves, so the Index was read as the few lines between two contents
+ * entries (0 cases, and every cited case reported "missing from the Index",
+ * on MootCoach's own memorial) and paragraph numbering started inside the
+ * contents. A heading line ending in a page reference or dot leaders is a
+ * contents entry; it is used only when the real heading is never found.
+ */
+const TOC_TAIL = /(?:[.·…]{2,}[\s.·…]*|\s+)(?:\d{1,3}|[ivxlcdm]{1,7})\s*$|[.·…]{3,}\s*$/i;
+
 function locateSections(text) {
   const lines = text.split(/\r?\n/);
   const found = {};
+  const fromContents = {};
   lines.forEach((line, i) => {
     const t = line.trim();
     if (!t || t.length > 90) return;                     // headings are short lines
     const wordy = t.split(/\s+/).length > 12;
     if (wordy) return;
+    const contentsEntry = TOC_TAIL.test(t);
     for (const sec of SECTIONS) {
       if (found[sec.key] !== undefined) continue;
-      if (sec.patterns.some(p => p.test(t))) found[sec.key] = i;
+      if (!sec.patterns.some(p => p.test(t))) continue;
+      if (contentsEntry && sec.key !== 'contents') { if (fromContents[sec.key] === undefined) fromContents[sec.key] = i; }
+      else found[sec.key] = i;
     }
   });
+  for (const [k, i] of Object.entries(fromContents)) if (found[k] === undefined) found[k] = i;
   return found;
 }
 
@@ -101,7 +118,10 @@ function uniqueCases(block) {
       // Trim leading heading words off the first party — a line can begin
       // "Cases Vodafone International Holdings v. ...".
       let first = m[1].split(/[ \t]+/);
-      while (first.length > 1 && HEADING_WORDS.test(first[0])) first.shift();
+      // ...and the words a sentence uses to introduce a case ("In Ravindra
+      // Kumar Verma v. BPTP", "See also X v. Y"), which made the same case in
+      // the body look absent from the Index.
+      while (first.length > 1 && (HEADING_WORDS.test(first[0]) || LEAD_WORDS.test(first[0]))) first.shift();
       if (!first.length || HEADING_WORDS.test(first[0])) continue;
 
       const name = `${first.join(' ')} v. ${m[2]}`.replace(/\s+/g, ' ').trim();
