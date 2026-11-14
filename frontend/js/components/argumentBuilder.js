@@ -986,7 +986,7 @@ function renderIRAC(iracData) {
 
   outputState.innerHTML = `
 <div class="flex flex-col gap-5 w-full h-full font-sans">
-  <div class="draft-honesty" role="note">AI-assisted draft, for practice and research. Read and verify every authority before relying on it, and check your competition's rules on the use of AI before submitting any part of it.</div>
+  <div class="draft-honesty" role="note"><b>First draft.</b> MootCoach drafts quickly, but a draft is not competition-ready until it has been reviewed and improved. Run it through <a href="#" onclick="event.preventDefault(); window.openMemorialReview && window.openMemorialReview();">Memorial Review</a>, verify every authority yourself, and check your competition's rules on the use of AI before submitting any part of it.</div>
   
   <!-- Quick Actions & Status Toolbar -->
   <div class="flex flex-wrap items-center justify-between gap-3 border-b border-black/10 pb-4">

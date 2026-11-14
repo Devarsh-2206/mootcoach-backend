@@ -13,6 +13,7 @@
  */
 import { UPLOAD_LIMITS } from '../config.js';
 import { requestJson } from '../services/api.js';
+import { db, currentUser, firebaseRef } from '../services/firebase.js';
 
 const SEVERITY = {
   critical: { label: 'Critical', bg: 'rgba(168,54,42,.10)', border: 'rgba(168,54,42,.32)', ink: 'var(--error)' },
@@ -29,11 +30,59 @@ function el(html) {
   return d.firstElementChild;
 }
 
+// In step with the bands below.
 function scoreColour(n) {
   if (n >= 75) return 'var(--success)';
-  if (n >= 60) return 'var(--acc-amber)';
-  if (n >= 45) return 'var(--acc-orange)';
+  if (n >= 65) return 'var(--acc-amber)';
+  if (n >= 50) return 'var(--acc-orange)';
   return 'var(--error)';
+}
+
+/*
+ * What a score means, shown with every result. A first draft scoring 55 read
+ * as a failure; it is a solid first draft. The bands are a judgement, to be
+ * refined from pilot data.
+ */
+function band(n) {
+  n = Number(n);
+  if (!Number.isFinite(n)) return '';
+  if (n >= 75) return 'Strong';
+  if (n >= 65) return 'Competitive';
+  if (n >= 50) return 'Solid first draft';
+  return 'Major work needed';
+}
+const BAND_KEY = 'Below 50 major work needed · 50–64 solid first draft · 65–74 competitive · 75+ strong';
+
+/* ── Past reviews ──
+ * A review used to vanish when the panel closed. Each one is now kept in the
+ * advocate's own area (artifacts/moot.coach/users/{uid}/memorialReviews), which
+ * only they can read and which "Delete my account" removes with everything
+ * else. Stored as JSON text so any shape the review takes can be saved. */
+function reviewsRef() {
+  return currentUser ? db.collection('artifacts').doc('moot.coach').collection('users').doc(currentUser.uid).collection('memorialReviews') : null;
+}
+async function saveReview(data, meta) {
+  const ref = reviewsRef();
+  if (!ref) return;
+  try {
+    const json = JSON.stringify(data);
+    if (json.length > 900000) return;
+    await ref.add({
+      createdAt: firebaseRef.firestore.FieldValue.serverTimestamp(),
+      fileName: String(meta.fileName || 'Memorial').slice(0, 200),
+      side: String(meta.side || '').slice(0, 40),
+      score: Number.isFinite(Number(data && data.review && data.review.overallScore)) ? Number(data.review.overallScore) : null,
+      mootId: meta.mootId || null,
+      mootcoachDraft: !!(data && data.mootcoachDraft),
+      json,
+    });
+  } catch (e) { console.warn('[Memorial Review] could not save the review:', e && e.message); }
+}
+async function loadReviews() {
+  const ref = reviewsRef();
+  if (!ref) return [];
+  const snap = await ref.orderBy('createdAt', 'desc').limit(20).get();
+  return snap.docs.map(d => Object.assign({ id: d.id }, d.data()));
 }
 
 function buildOverlay() {
@@ -114,9 +163,10 @@ const FORM = `
   <button id="mr-go" style="width:100%;padding:14px;border:none;border-radius:10px;background:var(--gold);
           color:#FCF9EF;font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:.14em;
           text-transform:uppercase;cursor:pointer;">Review this memorial</button>
-  <div id="mr-status" style="margin-top:14px;font-size:13px;color:var(--white-muted);min-height:20px;"></div>`;
+  <div id="mr-status" style="margin-top:14px;font-size:13px;color:var(--white-muted);min-height:20px;"></div>
+  <div id="mr-history" style="margin-top:22px;"></div>`;
 
-function renderResult(data) {
+function renderResult(data, savedView = false) {
   const m = data.metrics || {};
   const r = data.review || {};
   const sections = data.sections || [];
@@ -141,15 +191,22 @@ function renderResult(data) {
   };
 
   return `
+    ${data.mootcoachDraft ? `
+      <div style="padding:12px 14px;margin-bottom:14px;border:1px solid var(--gold-border);border-radius:10px;
+           background:var(--navy-2);line-height:1.6;font-size:13.5px;">
+        <b>This looks like a MootCoach first draft.</b> MootCoach drafts quickly, then reviews like a strict judge.
+        Treat the review below as your improvement checklist: fix these points, then review it again.
+      </div>` : ''}
     <div style="display:flex;gap:20px;align-items:center;flex-wrap:wrap;
-         padding:18px;background:var(--navy-2);border:1px solid var(--rule);border-radius:12px;margin-bottom:20px;">
+         padding:18px;background:var(--navy-2);border:1px solid var(--rule);border-radius:12px;margin-bottom:6px;">
       <div style="text-align:center;min-width:110px;">
         <div style="font-size:46px;font-weight:700;line-height:1;color:${scoreColour(r.overallScore)};">${esc(r.overallScore ?? '—')}</div>
         <div style="font-family:var(--mono);font-size:11px;letter-spacing:.14em;
-             text-transform:uppercase;color:var(--white-muted);margin-top:4px;">${esc(r.grade || '')}</div>
+             text-transform:uppercase;color:var(--white-muted);margin-top:4px;">${esc(band(r.overallScore) || r.grade || '')}</div>
       </div>
       <div style="flex:1;min-width:240px;line-height:1.6;">${esc(r.verdict || '')}</div>
     </div>
+    <div style="font-family:var(--mono);font-size:10px;color:var(--white-muted);margin:0 0 20px 4px;">${esc(BAND_KEY)}</div>
 
     <div style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:22px;">
       <div style="flex:1;min-width:260px;">
@@ -226,11 +283,60 @@ function renderResult(data) {
     </div>
     <button id="mr-again" style="margin-top:16px;width:100%;padding:12px;border:1px solid var(--rule);
             border-radius:10px;background:var(--sheet);color:var(--white);font-family:var(--mono);font-size:11px;
-            letter-spacing:.14em;text-transform:uppercase;cursor:pointer;">Review another memorial</button>`;
+            letter-spacing:.14em;text-transform:uppercase;cursor:pointer;">${savedView ? '← Back to my reviews' : 'Review another memorial'}</button>`;
+}
+
+async function renderHistory(body) {
+  const box = body.querySelector('#mr-history');
+  if (!box) return;
+  if (!currentUser) { box.innerHTML = ''; return; }
+  box.innerHTML = `<div style="font-family:var(--mono);font-size:11px;color:var(--white-muted);">Loading your past reviews…</div>`;
+  let list = [];
+  try { list = await loadReviews(); } catch (e) {
+    box.innerHTML = `<div style="font-size:13px;color:var(--white-muted);">Your past reviews could not be loaded just now.</div>`;
+    return;
+  }
+  if (!body.contains(box)) return;
+  if (!list.length) { box.innerHTML = ''; return; }
+  const when = (ts) => { try { const d = ts && ts.toDate ? ts.toDate() : null; return d ? d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) + ', ' + d.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' }) : ''; } catch (e) { return ''; } };
+  box.innerHTML = `
+    <div style="font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+         color:var(--white-muted);margin-bottom:8px;">My past reviews</div>
+    ${list.map(r => `
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--rule);
+           border-radius:10px;margin-bottom:8px;background:var(--navy-2);">
+        <button data-open="${esc(r.id)}" style="flex:1;min-width:0;text-align:left;background:none;border:none;cursor:pointer;color:var(--white);padding:0;">
+          <div style="font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(r.fileName || 'Memorial')}</div>
+          <div style="font-family:var(--mono);font-size:10.5px;color:var(--white-muted);margin-top:2px;">
+            ${esc(when(r.createdAt))}${r.side ? ' · ' + esc(r.side) : ''}${r.mootcoachDraft ? ' · MootCoach draft' : ''}</div>
+        </button>
+        <div style="text-align:right;min-width:64px;">
+          <div style="font-weight:700;font-size:18px;color:${scoreColour(r.score)};">${esc(r.score ?? '—')}</div>
+          <div style="font-family:var(--mono);font-size:9.5px;color:var(--white-muted);">${esc(band(r.score))}</div>
+        </div>
+        <button data-del="${esc(r.id)}" aria-label="Delete this review" title="Delete this review"
+                style="background:none;border:none;cursor:pointer;color:var(--white-muted);font-size:18px;line-height:1;">×</button>
+      </div>`).join('')}`;
+  box.querySelectorAll('[data-open]').forEach(b => b.addEventListener('click', () => {
+    const r = list.find(x => x.id === b.dataset.open);
+    let data = null;
+    try { data = JSON.parse(r.json); } catch (e) { data = null; }
+    if (!data) return;
+    body.innerHTML = renderResult(data, true);
+    const back = body.querySelector('#mr-again');
+    if (back) back.addEventListener('click', () => attachForm(body));
+    body.scrollIntoView({ block: 'start' });
+  }));
+  box.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', async () => {
+    if (!window.confirm('Delete this saved review? This cannot be undone.')) return;
+    try { await reviewsRef().doc(b.dataset.del).delete(); } catch (e) {}
+    renderHistory(body);
+  }));
 }
 
 function attachForm(body) {
   body.innerHTML = FORM;
+  renderHistory(body);
   // Start from the side the open moot is argued for; the advocate can change it.
   const sideSel = body.querySelector('#mr-side');
   const mootSide = window.mootState && window.mootState.stanceChosen && window.mootState.stance;
@@ -286,6 +392,7 @@ function attachForm(body) {
     try {
       const data = await requestJson('/api/analyse-memorial', { formData: fd });
       body.innerHTML = renderResult(data);
+      saveReview(data, { fileName: f.name, side, mootId });
       // A review of this moot's memorial joins "what the bench caught", so its
       // findings reach drafting and the briefing like a practice round's do.
       // Only for the moot still open, and only the serious findings.

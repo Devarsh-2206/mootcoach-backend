@@ -2633,6 +2633,11 @@ app.post("/api/analyse-memorial", signedIn, pilotGate({ bucket: 'memorialReviews
       metrics: audit.metrics,
       sections: audit.sections,
       review: Object.assign({}, review, { corrections }),
+      // A memorial exported by MootCoach itself, recognised from its template
+      // (the Index footnote it alone prints, or its cover line together with
+      // its running footer). The review then says it is reading a first draft.
+      mootcoachDraft: /Not verified against a law reporter by MootCoach/i.test(text)
+        || (/In the Matter of\s:/.test(text) && (text.match(/Memorial for the (Petitioner|Respondent|Claimant|Appellant|Applicant)/gi) || []).length >= 3),
     });
   } catch (error) {
     console.error("/api/analyse-memorial error:", error);
