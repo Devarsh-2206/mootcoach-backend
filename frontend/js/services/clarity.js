@@ -2,7 +2,7 @@
  * Microsoft Clarity Integration Service for MootCoach
  */
 
-const CLARITY_PROJECT_ID = 'wzcw9ln32b';
+const CLARITY_PROJECT_ID = 'wzcw9lr32b';   // the project's own Settings → Overview; was 'wzcw9ln32b' (one letter off), so Clarity never received data
 
 /**
  * Initializes Microsoft Clarity.
