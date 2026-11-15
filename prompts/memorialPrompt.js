@@ -161,8 +161,11 @@ international tribunal, use the authority that tribunal would know (the governin
 the seat's courts, the institutional rules, leading English or international awards).
 
 FOOTNOTES: every assertion resting on an authority carries one. Full citation on first
-use, then "Ibid." for an immediate repeat or "Supra Note N." for an earlier one. Facts
-are footnoted to the record ("¶4, Moot Proposition").
+use, then "Ibid." for an immediate repeat, or the short name and "supra" for an earlier
+one ("Maneka Gandhi, supra, ¶ 12"). NEVER write a footnote number ("Supra Note 7"): the
+memorial is written in parts and its footnotes are numbered when it is put together, so
+any number you write would point at the wrong note. Facts are footnoted to the record
+("¶4, Moot Proposition").
 
 ${SCOPE_RULE}
 

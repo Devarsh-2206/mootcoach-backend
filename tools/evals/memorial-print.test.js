@@ -53,5 +53,27 @@ const path = require('path');
   assert.strictEqual(k('State of Punjab v. Union of India'), 'state of punjab v. union of india');
   assert.strictEqual(k('Information Technology Act, 2000'), 'information technology act');
 
-  console.log('PASS memorial print: issue numerals and sub-ground letters, counsel line once, Index keys not shared by government parties');
+  // Footnote numbers come from the assembled memorial, not the drafter.
+  const { resolveFootnotes } = mod;
+  const notes = ['Ravindra Kumar Verma v. BPTP Ltd., (2014) 145 DRJ 337.', '', 'Ravindra Kumar Verma v. BPTP Ltd., (2014) 145 DRJ 337, ¶ 11.',
+    '*Maneka Gandhi v. Union of India*, (1978) 1 SCC 248.', 'Ibid.', 'Ravindra Kumar Verma, supra, ¶ 14.', 'Supra, Maneka Gandhi, ¶ 7.',
+    'Supra Note 6.', 'Maneka Gandhi, supra; Ravindra Kumar Verma, supra.', 'Navtej Johar, supra.',
+    'Union of India v. State of Maharashtra, (1990) 4 SCC 1.', 'Union of India v. State of Maharashtra, (2005) 2 SCC 9.'];
+  const got = resolveFootnotes([{ subArguments: [{ paragraphs: notes.map(c => ({ text: 't', footnotes: [{ citation: c }] })) }] }])[0]
+    .subArguments[0].paragraphs.flatMap(p => p.footnotes.map(f => f.citation));
+  assert.deepStrictEqual(got, [
+    'Ravindra Kumar Verma v. BPTP Ltd., (2014) 145 DRJ 337.',   // 1 (the empty note is dropped)
+    'Ibid., ¶ 11.',                                              // 2
+    '*Maneka Gandhi v. Union of India*, (1978) 1 SCC 248.',     // 3
+    'Ibid.',                                                     // 4
+    'Ravindra Kumar Verma, Supra Note 1, ¶ 14.',                 // 5
+    'Maneka Gandhi, Supra Note 3, ¶ 7.',                         // 6
+    'Supra Note 6.',                                             // 7: an old bare number, left alone
+    'Maneka Gandhi, Supra Note 3; Ravindra Kumar Verma, Supra Note 1.',
+    'Navtej Johar, supra.',                                      // never cited: left as written
+    'Union of India v. State of Maharashtra, (1990) 4 SCC 1.',
+    'Union of India v. State of Maharashtra, (2005) 2 SCC 9.',   // another year, another case
+  ]);
+
+  console.log('PASS memorial print: issue numerals and sub-ground letters, counsel line once, Index keys not shared by government parties, footnote back-references numbered');
 })().catch(e => { console.error('FAIL memorial print:', e.message); process.exit(1); });

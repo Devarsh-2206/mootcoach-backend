@@ -101,6 +101,34 @@ async function requestJsonOnce(path, { body, formData, timeoutMs = 190000 } = {}
   return data;
 }
 
+/** The memorial as a Word file (server: /api/export-docx). Returns a Blob. */
+export async function downloadMemorialDocx(memorial, colour, ink) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 60000);
+  let res;
+  try {
+    res = await fetch(`${BASE_URL}/api/export-docx`, {
+      method: 'POST',
+      headers: Object.assign({ 'Content-Type': 'application/json' }, await identityHeaders()),
+      body: JSON.stringify({ memorial, colour, ink }),
+      signal: controller.signal,
+    });
+  } catch (e) {
+    throw new Error(e && e.name === 'AbortError'
+      ? 'The Word file took too long. Please try again.'
+      : "Couldn't reach the MootCoach server. Please try again shortly.");
+  } finally {
+    clearTimeout(timer);
+  }
+  if (!res.ok) {
+    let msg = '';
+    try { msg = (await res.json()).error || ''; } catch (e) { /* not JSON */ }
+    throw new Error(msg || (res.status === 401 ? 'Please sign in again to export.' : res.status === 429
+      ? 'Too many exports in a minute. Please wait a moment.' : `The Word file could not be made (status ${res.status}).`));
+  }
+  return res.blob();
+}
+
 export async function checkBackendHealth() {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 7000);

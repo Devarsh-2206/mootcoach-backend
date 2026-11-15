@@ -2535,6 +2535,30 @@ app.post("/api/build-memorial", signedIn, pilotGate({ bucket: 'memorials' }), ai
   }
 });
 
+/**
+ * The memorial as a Word file. No AI is involved, so it is not a pilot use and
+ * still works while AI is paused; sign-in and the rate limit keep it from
+ * being an open document converter. The browser sends the memorial prepared
+ * (services/memorialDocx.js).
+ */
+const { buildMemorialDocx } = require("./services/memorialDocx");
+app.post("/api/export-docx", signedIn, logLimiter, express.json({ limit: '1mb' }), async (req, res) => {
+  try {
+    const memorial = req.body && req.body.memorial;
+    if (!memorial || typeof memorial !== 'object' || Array.isArray(memorial)) {
+      return res.status(400).json({ success: false, error: 'There is no memorial to export.' });
+    }
+    const buf = await buildMemorialDocx(memorial, { colour: req.body.colour, ink: req.body.ink });
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+    res.setHeader('Content-Disposition', 'attachment; filename="memorial.docx"');
+    res.setHeader('Cache-Control', 'no-store');
+    return res.send(buf);
+  } catch (err) {
+    console.error('[EXPORT DOCX]', err && err.message);
+    return res.status(500).json({ success: false, error: 'Sorry, the Word file could not be made. Please try again, or use Export PDF.' });
+  }
+});
+
 /* ─── /api/analyse-memorial ───
    Upload a memorial, get it marked. The structural half runs in code
    (services/memorialAudit.js) because sections, index-vs-body consistency,

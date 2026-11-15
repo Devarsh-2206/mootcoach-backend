@@ -189,6 +189,118 @@ export function splitSignature(sig) {
   return m ? { lead: m[1].trim(), counsel: m[2].trim() } : { lead: t, counsel: '' };
 }
 
+/* ── Footnote numbers ──
+   The memorial is drafted in parts, one call per issue or sub-ground, so the
+   drafter cannot know the final footnote numbers. A "Supra Note 7" it wrote
+   pointed at whatever note 7 turned out to be. The drafter now refers back by
+   name ("Maneka Gandhi, supra"), and the number is put in here, once the whole
+   memorial is assembled — the same way the paragraphs are numbered. A case
+   cited again in full is shortened the same way. */
+const plainText = s => decode(s).replace(/[*_]/g, '').replace(/\s+/g, ' ').trim();
+const normName = s => plainText(s).toLowerCase().replace(/\bvs?\b\.?/g, 'v').replace(/[^a-z0-9]+/g, ' ').trim();
+/* "Maneka Gandhi v. Union of India" out of "Maneka Gandhi v. Union of India, (1978) 1 SCC 248, ¶ 5". */
+function caseNameOf(t) {
+  const m = plainText(t).match(/^(.+?\sv(?:s)?\.?\s.+?)(?=,\s*[[(]?(?:1[89]|20)\d{2}\b|,\s*AIR\b|,\s*\d+\s|\s+[[(](?:1[89]|20)\d{2}[\])])/i);
+  return m ? m[1].trim() : '';
+}
+/* A pinpoint at the end of a citation: ", ¶ 11", ", at 480", ", para 9". */
+const PIN = /,\s*((?:¶|paras?\.?|at|p\.|pp\.)\s*[^,;]+)$/i;
+/* Two judgments can share a name; a different year is a different case. */
+const yearOf = t => { const m = plainText(t).match(/\b(1[89]\d{2}|20\d{2})\b/); return m ? m[1] : ''; };
+
+export function resolveFootnotes(list) {
+  let n = 0;
+  const seen = [];          // every authority as first cited: { n, low, name }
+  let prev = null;          // the footnote before: { n, parts: [{ low, name, also }] }
+  const findFirst = test => seen.find(test);
+
+  const one = (raw, single) => {
+    const part = raw.trim().replace(/\.$/, '').trim();
+    const plain = plainText(part);
+    // Ibid. / Id. — the same authority as the note before.
+    if (/^(ibid|id)\b\.?/i.test(plain)) {
+      const p = prev && prev.parts.length === 1 ? prev.parts[0] : null;
+      return { text: part, also: p ? (p.also || p.low) : '', low: p ? p.low : '', name: p ? p.name : '' };
+    }
+    // Back-reference by name: "Supra, Maneka Gandhi, ¶ 12" or "Maneka Gandhi, supra, ¶ 12".
+    let name = '', pin = '';
+    let m = plain.match(/^supra\b[\s,:;-]*(?:note\s*\d+[\s,:;-]*)?(.*)$/i);
+    if (m) {
+      const rest = m[1].trim();
+      if (!rest) return { text: part, also: '', low: '', name: '' };   // a bare "Supra Note 7": nothing to go on
+      const c = rest.indexOf(', ');
+      name = c > 0 ? rest.slice(0, c) : rest;
+      pin = c > 0 ? rest.slice(c + 2) : '';
+    } else if ((m = plain.match(/^(.+?),?\s+supra\b(?:\s*note\s*\d+)?[\s,]*(.*)$/i))) {
+      name = m[1].trim(); pin = m[2].trim();
+    }
+    if (name) {
+      const key = lookupKey({ name });
+      const nn = normName(name);
+      const first = findFirst(e => e.low.includes(key) || (nn.length >= 6 && e.name && e.name.includes(nn)));
+      // Not found: left as the drafter wrote it, rather than guessed at.
+      if (!first) return { text: part, also: name, low: name.toLowerCase(), name: nn };
+      const p = prev && prev.parts.length === 1 ? prev.parts[0] : null;
+      const sameAsPrev = single && p && p.low === first.low;
+      return {
+        text: sameAsPrev ? ['Ibid.', pin].filter(Boolean).join(', ') : [name, `Supra Note ${first.n}`, pin].filter(Boolean).join(', '),
+        also: first.low, low: first.low, name: first.name,
+      };
+    }
+    // A case cited again in full: shortened to a reference to its first note.
+    const cn = caseNameOf(part);
+    if (cn) {
+      const nn = normName(cn);
+      const yr = yearOf(part);
+      const first = findFirst(e => e.name === nn && (!yr || !e.year || e.year === yr));
+      if (first) {
+        const pm = plain.match(PIN);
+        const pinTxt = pm && !/^(?:1[89]|20)\d{2}\b/.test(pm[1]) ? pm[1].trim() : '';
+        const p = prev && prev.parts.length === 1 ? prev.parts[0] : null;
+        const sameAsPrev = single && p && p.low === first.low;
+        return {
+          text: sameAsPrev ? ['Ibid.', pinTxt].filter(Boolean).join(', ') : [cn, `Supra Note ${first.n}`, pinTxt].filter(Boolean).join(', '),
+          also: first.low, low: first.low, name: nn,
+        };
+      }
+    }
+    // A first citation.
+    const entry = { n, low: plain.toLowerCase(), name: cn ? normName(cn) : '', year: yearOf(part) };
+    seen.push(entry);
+    return { text: part, also: '', low: entry.low, name: entry.name };
+  };
+
+  const doParas = paras => arr(paras).map(p => {
+    if (!p || typeof p !== 'object') return p;
+    const notes = arr(p.footnotes).filter(f => f && has(f.citation)).map(f => {
+      n++;
+      const raw = decode(f.citation).trim();
+      const pieces = raw.split(/\s*;\s+/).filter(x => x.trim());
+      const parts = pieces.map(x => one(x, pieces.length === 1));
+      prev = { n, parts };
+      const text = parts.map(x => x.text).join('; ');
+      return { citation: /[.!?]$/.test(text) ? text : text + '.', also: parts.map(x => x.also).filter(Boolean).join(' ; ') };
+    });
+    return Object.assign({}, p, { footnotes: notes });
+  });
+
+  return arr(list).map(a => {
+    if (!a || typeof a !== 'object') return a;
+    const out = Object.assign({}, a);
+    if (Array.isArray(a.subArguments)) {
+      out.subArguments = a.subArguments.map(sa => (sa && typeof sa === 'object' && Array.isArray(sa.paragraphs))
+        ? Object.assign({}, sa, { paragraphs: doParas(sa.paragraphs) }) : sa);
+    }
+    if (Array.isArray(a.paragraphs)) out.paragraphs = doParas(a.paragraphs);
+    return out;
+  });
+}
+
+/** Headings labelled and footnotes numbered: what every view of the memorial shows. */
+export function prepareArguments(list) {
+  return resolveFootnotes(labelArguments(list));
+}
+
 /**
  * The full print document. Separate from printing so it can be inspected
  * and tested without opening a window.
@@ -272,11 +384,11 @@ export function buildMemorialDocument(m, { colours, pagedSrc, title } = {}) {
       const no = (p && has(p.number)) ? String(p.number).replace(/\.$/, '') : String(++autoNo);
       if (p && has(p.number)) autoNo = Number(no) || autoNo;
       const notes = arr(p && p.footnotes).filter(f => f && has(f.citation))
-        .map(f => { fnNo++; return `<span class="fn" data-n="${fnNo}"><sup class="fn-n">${fnNo}</sup>${inline(f.citation)}</span>`; }).join('');
+        .map(f => { fnNo++; return `<span class="fn" data-n="${fnNo}"${has(f.also) ? ` data-also="${esc(f.also)}"` : ''}><sup class="fn-n">${fnNo}</sup>${inline(f.citation)}</span>`; }).join('');
       return `<p class="para"><span class="para-no">${esc(no)}.</span>${inline(text)}${notes}</p>`;
     }).join('');
 
-    sec('args', labelArguments(m.argumentsAdvanced).map(a => `
+    sec('args', prepareArguments(m.argumentsAdvanced).map(a => `
       ${has(a.heading) ? `<h2 id="h-${argHeads.push({ lvl: 2, text: a.heading })}">${inline(a.heading)}</h2>` : ''}
       ${has(a.roadmap) ? paras(a.roadmap, 'roadmap') : ''}
       ${arr(a.subArguments).map(sa => `
@@ -488,7 +600,8 @@ export function buildMemorialDocument(m, { colours, pagedSrc, title } = {}) {
     // look at every page rather than inside one element.
     var cites = Array.prototype.slice.call(document.querySelectorAll('.pagedjs_page p, .pagedjs_page .fn'))
       .filter(function (el) { return !el.closest('.ioa') && !el.closest('.ioa-note'); })
-      .map(function (el) { return { text: (el.textContent || '').toLowerCase(), idx: pageOf(el) }; })
+      // A "Supra Note 3" or "Ibid." carries the authority it points at (data-also).
+      .map(function (el) { return { text: ((el.textContent || '') + ' ' + (el.getAttribute('data-also') || '')).toLowerCase(), idx: pageOf(el) }; })
       .filter(function (c) { return c.idx >= 0 && (argsIdx < 0 || c.idx >= argsIdx); });
     document.querySelectorAll('.ioa-row[data-key]').forEach(function (row) {
       var key = row.getAttribute('data-key');

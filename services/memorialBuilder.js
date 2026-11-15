@@ -151,9 +151,12 @@ function harvestFootnotes(argumentsAdvanced, index) {
       .concat(issue.paragraphs || []);
     for (const p of paras) {
       for (const f of (p.footnotes || [])) {
-        const raw = String(f && f.citation || '').trim().replace(/\.$/, '');
+        // Back-references ("Ibid.", "Maneka Gandhi, supra") point at an authority
+        // already cited; only the rest of a footnote can be a new source.
+        const raw = String(f && f.citation || '').trim().replace(/\.$/, '')
+          .split(/\s*;\s+/).filter(x => x.trim() && !/\bsupra\b/i.test(x) && !/^\s*(ibid|id)\b/i.test(x))
+          .join('; ').trim();
         if (!raw || NOT_AN_AUTHORITY.test(raw)) continue;
-        if (/^(supra|ibid)/i.test(raw)) continue;              // back-references, not new sources
         if (seen.some(s => similar(s, raw) >= 0.9)) continue;
         seen.push(raw);
 

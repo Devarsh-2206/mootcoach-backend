@@ -63,8 +63,10 @@ CRITICAL INSTRUCTIONS:
     Secondly ... (B.1)"), and the heading hierarchy is I. > A. > B.1 > B.2.
 
 7b. **FOOTNOTES.** Every assertion that rests on an authority carries a footnote giving
-    that authority in full on first use, then "Ibid." for an immediate repeat or
-    "Supra Note N." for an earlier one — exactly as a filed memorial does. Facts drawn
+    that authority in full on first use, then "Ibid." for an immediate repeat or the
+    short name and "supra" for an earlier one ("Maneka Gandhi, supra, ¶ 12"). Never write
+    a footnote number such as "Supra Note 7": footnotes are numbered when the memorial is
+    assembled, so a number you write would point at the wrong note. Facts drawn
     from the proposition are footnoted to it ("¶4, Moot Proposition").
 
 7c. **THE MOOT PROPOSITION IS AN AUTHORITY.** In a moot the proposition is the record,
@@ -230,7 +232,7 @@ JSON Schema:
                 "number": 1,
                 "text": "One numbered submission. Paragraph numbers run CONTINUOUSLY across the whole Arguments Advanced section — the second issue carries on from where the first ended, it does not restart at 1. Advocates cite these numbers in oral rounds.",
                 "footnotes": [
-                  { "marker": 1, "citation": "The authority supporting this paragraph, in the same form as the Index of Authorities. Use 'Ibid.' or 'Supra Note N.' for repeats, exactly as a memorial does." }
+                  { "marker": 1, "citation": "The authority supporting this paragraph, in the same form as the Index of Authorities. Use 'Ibid.' or '<short name>, supra' for repeats; never a footnote number." }
                 ]
               }
             ]

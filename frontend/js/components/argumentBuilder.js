@@ -1,4 +1,4 @@
-import { buildArgument, buildMemorial, planMemorial, requestJson } from '../services/api.js';
+import { buildArgument, buildMemorial, planMemorial, requestJson, downloadMemorialDocx } from '../services/api.js';
 import { 
   currentPropositionContext,
   lastAnalysis, 
@@ -10,7 +10,7 @@ import {
   startElapsed
 } from './ui.js';
 import { BASE_URL } from '../config.js';
-import { printMemorial, labelArguments } from './memorialPrint.js';
+import { printMemorial, prepareArguments } from './memorialPrint.js';
 
 // Argument Builder State
 export let selectedAuthorities = [];
@@ -459,6 +459,10 @@ export function initArgumentBuilder() {
   if (memorialCopyBtn) {
     memorialCopyBtn.addEventListener('click', copyMemorial);
   }
+  const memorialWordBtn = document.getElementById('btn-memorial-word');
+  if (memorialWordBtn) {
+    memorialWordBtn.addEventListener('click', () => exportMemorialWord(memorialWordBtn));
+  }
   const memorialPrintBtn = document.getElementById('btn-memorial-print');
   if (memorialPrintBtn) {
     memorialPrintBtn.addEventListener('click', () => {
@@ -472,7 +476,8 @@ export function initArgumentBuilder() {
       document.getElementById('btn-aux-copy'),
       document.getElementById('btn-aux-print'),
       document.getElementById('btn-memorial-copy'),
-      document.getElementById('btn-memorial-print')
+      document.getElementById('btn-memorial-print'),
+      document.getElementById('btn-memorial-word')
     ];
     btns.forEach(btn => {
       if (btn) {
@@ -1240,7 +1245,7 @@ function renderMemorial(memorialData) {
         </div>`;
     }).join('');
 
-    const body = labelArguments(m.argumentsAdvanced).map(a => `
+    const body = prepareArguments(m.argumentsAdvanced).map(a => `
       ${has(a.heading) ? `<div class="font-bold uppercase text-[13px] tracking-wide mb-2">${esc(a.heading)}</div>` : ''}
       ${has(a.roadmap) ? `<div class="mb-4 whitespace-pre-wrap">${fmtInline(esc(a.roadmap))}</div>` : ''}
       ${arr(a.subArguments).map(sa => `
@@ -1424,6 +1429,40 @@ export function copyBuilderArgument() {
 export function exportDraftPDF() {
   console.log("[CENTRALIZED EXPORT] Invoking legacy exportDraftPDF wrapper.");
   exportAsPDF('memorial');
+}
+
+/**
+ * The memorial as a Word file, for teams who finish it in Word. Prepared here
+ * (headings labelled, footnotes numbered) exactly as the PDF is, so the two
+ * never disagree; the server only lays it out.
+ */
+export async function exportMemorialWord(btn) {
+  const m = lastBuiltArgument && lastBuiltArgument.memorial;
+  if (!m || typeof m !== 'object') {
+    showToast('There is no memorial to export yet.', 'err');
+    return;
+  }
+  const label = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = 'Preparing Word file…'; }
+  try {
+    const cp = m.coverPage || {};
+    const stance = cp.memorialFor || (window.mootState && window.mootState.stance) || builtArgumentSide || '';
+    const prepared = Object.assign({}, m, { argumentsAdvanced: prepareArguments(m.argumentsAdvanced) });
+    const colours = coverColourFor(stance);
+    const blob = await downloadMemorialDocx(prepared, colours.bg, colours.ink);
+    const name = [cp.memorialFor || 'Memorial', window.currentMootName || '']
+      .filter(Boolean).join(' - ').replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 120) || 'Memorial';
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = name + '.docx';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+    showToast('Word file downloaded. When Word asks to update fields, choose Yes to fill in the page numbers in the Table of Contents.', 'ok');
+  } catch (err) {
+    showToast(err.message || 'The Word file could not be made.', 'err');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = label; }
+  }
 }
 
 export function exportAsPDF(type) {
@@ -3391,7 +3430,7 @@ function renderMemorialText(m, stance) {
       return '   ' + (n ? n + '. ' : '') + body + sup;
     }).join('\n\n');
 
-    const body = labelArguments(m.argumentsAdvanced).map(a => {
+    const body = prepareArguments(m.argumentsAdvanced).map(a => {
       const seg = [];
       if (has(a.heading))  seg.push(a.heading);
       if (has(a.roadmap))  seg.push(a.roadmap);
