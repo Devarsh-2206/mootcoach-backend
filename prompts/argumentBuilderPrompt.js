@@ -90,6 +90,18 @@ CRITICAL INSTRUCTIONS:
     When the input carries a SCOPE line (a draft on a single issue), follow its figures
     instead: they are this rule scaled to one issue, not a lower standard of argument.
 
+7e. **THE PATTERN OF A STRONG SUB-GROUND.** Proposition (one sentence) → rule and its
+    leading authority (the holding in your own words; quote only the operative words, no
+    long blocks, no dictionary definitions unless the word's meaning is disputed) →
+    application to THIS record, every application paragraph footnoted to at least one
+    paragraph of the proposition → the other side's best answer named ("It may be
+    contended that ...") and met ("However, ..."), distinguishing the authority they will
+    rely on, and dealing yourself with any authority of yours that could cut against your
+    client → the submission. Threshold points (maintainability, jurisdiction, limitation)
+    come before the merits. Never a lone sub-heading: an issue has no lettered limbs or at
+    least two. Authority suits the forum: Indian authority first before an Indian court;
+    the governing law, the seat's courts and tribunal practice before an arbitral tribunal.
+
 8. **YOU ARE COUNSEL, NOT THE COURT.** A memorial argues for one side. Never write
    "the petition is dismissed", "the appeal is allowed", or any other judicial
    pronouncement — that is the court's language, not counsel's. The document ends with

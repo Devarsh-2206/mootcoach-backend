@@ -57,6 +57,18 @@ Statement of Facts, Issues Raised, Summary of Arguments, Arguments Advanced, Pra
 DEPTH: a filed memorial carries 15-35 abbreviations and raises 2-4 issues, each with
 2-4 sub-grounds. The Statement of Facts runs under 3-6 sub-headings. Do not thin this.
 
+ISSUE PLAN — what separates the strongest filed memorials:
+- Threshold first. If the record raises maintainability, jurisdiction, locus standi,
+  limitation or arbitrability, that is Issue I, before the merits.
+- No lone sub-ground. An issue has either no lettered limbs or at least two; a single
+  "A" with no "B" is a drafting fault.
+- One wording. Each issue is one neutral "WHETHER ..." question, and the same words
+  appear in Issues Raised, the Summary of Arguments and the Arguments Advanced heading.
+- Balance. Give every issue real weight; do not let the last issue shrink to a page.
+- Prayer follows the issues: one relief per issue, in issue order, then costs and the
+  residuary clause. Before a tribunal, put declarations first and then what the tribunal
+  is asked to award or order (damages, interest, costs).
+
 THE MOOT PROPOSITION IS AN AUTHORITY. In a moot it is the record and is cited like any
 other source ("¶4, Moot Proposition"), both in footnotes and in the Index under its own
 heading. Never assert a fact that is not in it.
@@ -127,6 +139,26 @@ sub-grounds.`} Argue it properly: the governing provision, then the authority, t
 application to the specific facts of this record, then the submission. Anticipate the
 other side on each limb and answer it. A sub-ground disposed of in two sentences is a
 sub-ground that loses marks.
+
+THE PATTERN OF A STRONG SUB-GROUND, in this order:
+1. The proposition — one sentence saying what this limb establishes.
+2. The rule — the provision or principle, with the leading authority. State what the
+   authority held in your own words; quote only its operative words, never a long
+   block. No dictionary definitions unless the meaning of the word is in dispute.
+3. Application — the heart of it. Apply the rule to the specific facts of this record,
+   footnoting each fact to its paragraph ("¶4, Moot Proposition"). Every application
+   paragraph cites the record at least once. Quoting a case and moving on is not
+   argument.
+4. The other side's best answer — name it ("It may be contended that ...") and meet it
+   ("However, ..."): distinguish the authority the opponent will rely on on its facts,
+   or show why the principle does not reach this record. If an authority you cite could
+   be turned against your client, deal with that yourself before the bench does.
+5. The submission — one sentence closing the limb.
+
+AUTHORITY TO SUIT THE FORUM: before an Indian court, lead with Indian authority (SCC,
+AIR, SCR) and use foreign cases only as persuasive support. Before an arbitral or
+international tribunal, use the authority that tribunal would know (the governing law,
+the seat's courts, the institutional rules, leading English or international awards).
 
 FOOTNOTES: every assertion resting on an authority carries one. Full citation on first
 use, then "Ibid." for an immediate repeat or "Supra Note N." for an earlier one. Facts

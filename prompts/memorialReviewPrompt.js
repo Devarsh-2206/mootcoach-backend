@@ -37,6 +37,20 @@ WHAT TO ASSESS (the audit does not and cannot)
 4. Side discipline — does it argue consistently for its side, and does it
    anticipate and answer the opponent rather than ignoring them?
 5. Writing — is it precise and in the right register, or padded and vague?
+6. The marks of a strong filed memorial — check each and correct what is missing:
+   - every fact relied on is footnoted to the record by paragraph;
+   - each sub-ground applies the law to these facts, not just quotes cases (long
+     block quotations or dictionary definitions standing in for analysis are a fault);
+   - the opponent's best point and best authority are anticipated and answered;
+   - threshold points (maintainability, jurisdiction, limitation) come first;
+   - no issue has a lone sub-heading (an "A" with no "B");
+   - issue wording matches across Issues, Summary and Arguments;
+   - the issues are roughly balanced, not one full and one a page;
+   - authorities suit the forum (Indian authority before an Indian court; the
+     governing law and tribunal practice before an arbitral tribunal);
+   - an authority that could be turned against the memorial's own side is dealt with;
+   - the Prayer asks for one relief per issue.
+   Raise these only where the memorial actually falls short, and say where.
 
 MARKING. Use the criteria moots actually use. Score each 0-100 and be honest:
 most memorials are not 80s. A memorial with real defects should score in the 40s
