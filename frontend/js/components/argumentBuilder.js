@@ -10,7 +10,7 @@ import {
   startElapsed
 } from './ui.js';
 import { BASE_URL } from '../config.js';
-import { printMemorial } from './memorialPrint.js';
+import { printMemorial, labelArguments } from './memorialPrint.js';
 
 // Argument Builder State
 export let selectedAuthorities = [];
@@ -1240,7 +1240,7 @@ function renderMemorial(memorialData) {
         </div>`;
     }).join('');
 
-    const body = arr(m.argumentsAdvanced).map(a => `
+    const body = labelArguments(m.argumentsAdvanced).map(a => `
       ${has(a.heading) ? `<div class="font-bold uppercase text-[13px] tracking-wide mb-2">${esc(a.heading)}</div>` : ''}
       ${has(a.roadmap) ? `<div class="mb-4 whitespace-pre-wrap">${fmtInline(esc(a.roadmap))}</div>` : ''}
       ${arr(a.subArguments).map(sa => `
@@ -3391,7 +3391,7 @@ function renderMemorialText(m, stance) {
       return '   ' + (n ? n + '. ' : '') + body + sup;
     }).join('\n\n');
 
-    const body = m.argumentsAdvanced.map(a => {
+    const body = labelArguments(m.argumentsAdvanced).map(a => {
       const seg = [];
       if (has(a.heading))  seg.push(a.heading);
       if (has(a.roadmap))  seg.push(a.roadmap);

@@ -79,11 +79,25 @@ const IOA_GROUPS = [
   ['mootProposition', 'Moot Proposition'], ['other', 'Other Authorities'],
 ];
 
-/** The words that identify an authority wherever it is cited. */
+/* A party name shared by many cases: "Union of India", "State of Punjab". */
+const GENERIC_PARTY = /^(the\s+)?(union\s+of\b|uoi\b|state\b|government\s+of\b|govt\.?\s+of\b|central\s+government\b|republic\s+of\b|commissioner\b|collector\b|municipal\s+corporation\b)/i;
+const partyKey = p => String(p || '').split(/,|\(/)[0]
+  .replace(/\s*(&|and)\s+(ors?|anr|others|another)\.?\s*$/i, '').trim();
+
+/** The words that identify an authority wherever it is cited. A case is
+ *  known by its first party ("Maneka Gandhi"), unless that party is the
+ *  government: then "Union of India" would match every case against it, so
+ *  the other party is used ("Davinder Pal Singh Bhullar"), which also catches
+ *  the short form a later footnote uses. */
 function lookupKey(entry) {
   const name = decode(entry.name || '').replace(/\[VERIFY\]/gi, '').trim();
-  const first = name.split(/\s+v(?:s)?\.?\s+/i)[0].split(/,|\(/)[0].trim();
-  return (first.length >= 4 ? first : name).toLowerCase();
+  const parties = name.split(/\s+v(?:s)?\.?\s+/i);
+  let key = partyKey(parties[0]);
+  if (parties.length > 1 && GENERIC_PARTY.test(key)) {
+    const other = partyKey(parties[1]);
+    key = (other.length >= 4 && !GENERIC_PARTY.test(other)) ? other : name;
+  }
+  return (key.length >= 4 ? key : name).toLowerCase();
 }
 
 /* Small capitals need mixed case to show: "MEMORIAL FOR PETITIONER" in small
@@ -131,6 +145,48 @@ function coverHtml(cp, colours) {
       <div class="cover-rule"></div>
     </div>
   </section>`;
+}
+
+/* An issue heading the drafter already numbered: "I. WHETHER", "ISSUE II:",
+   "3. WHETHER". "IS THE ..." is a word, not a numeral. */
+const ISSUE_LABELLED = /^\s*(issue\s+)?([ivx]+|\d+)(?![a-z])[\s.:)\u2013\u2014-]/i;
+/* A sub-ground heading already lettered: "A. ", "(b) ", "1.1 ", "B.2 ".
+   When in doubt it counts as lettered: a heading left as written is no worse
+   than before, a second letter would be. */
+const SUB_LABELLED = /^\s*(\(?[a-z]\)|[a-z]\.|\(?\d+(\.\d+)*[.)]?\s|[ivx]+[.)])/i;
+const ROMAN_NUMS = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'];
+
+/**
+ * The drafter keeps an issue's numeral apart from its heading (and the plan
+ * editor saves them apart), so a heading could print as "WHETHER ..." with no
+ * "I." in the body or the contents; a sub-ground could lose its "A." the same
+ * way. Puts the label back where it is missing, and leaves alone any heading
+ * that already carries one. Returns copies; the saved draft is not changed.
+ */
+export function labelArguments(list) {
+  return arr(list).map((a, i) => {
+    if (!a || typeof a !== 'object') return a;
+    const out = Object.assign({}, a);
+    const h = decode(a.heading || '').trim();
+    const num = decode(a.numeral || '').replace(/^\s*issue\s+/i, '').replace(/[\s.:)]+$/, '').trim();
+    if (h && !ISSUE_LABELLED.test(h)) out.heading = `${num || ROMAN_NUMS[i] || i + 1}. ${h}`;
+    if (Array.isArray(a.subArguments)) {
+      out.subArguments = a.subArguments.map((sa, k) => {
+        if (!sa || typeof sa !== 'object') return sa;
+        const sh = decode(sa.heading || '').trim();
+        return (sh && !SUB_LABELLED.test(sh)) ? Object.assign({}, sa, { heading: `${String.fromCharCode(65 + (k % 26))}. ${sh}` }) : sa;
+      });
+    }
+    return out;
+  });
+}
+
+/* "All of which is respectfully submitted, COUNSELS for PETITIONERS" — the
+   counsel part goes on its own line, and is not added a second time. */
+export function splitSignature(sig) {
+  const t = decode(sig || '').trim();
+  const m = t.match(/^(.*?)[\s,;:]*\b((?:counsels?|advocates?)\s+(?:for|on behalf of)\b.*)$/i);
+  return m ? { lead: m[1].trim(), counsel: m[2].trim() } : { lead: t, counsel: '' };
 }
 
 /**
@@ -220,7 +276,7 @@ export function buildMemorialDocument(m, { colours, pagedSrc, title } = {}) {
       return `<p class="para"><span class="para-no">${esc(no)}.</span>${inline(text)}${notes}</p>`;
     }).join('');
 
-    sec('args', arr(m.argumentsAdvanced).map(a => `
+    sec('args', labelArguments(m.argumentsAdvanced).map(a => `
       ${has(a.heading) ? `<h2 id="h-${argHeads.push({ lvl: 2, text: a.heading })}">${inline(a.heading)}</h2>` : ''}
       ${has(a.roadmap) ? paras(a.roadmap, 'roadmap') : ''}
       ${arr(a.subArguments).map(sa => `
@@ -241,8 +297,14 @@ export function buildMemorialDocument(m, { colours, pagedSrc, title } = {}) {
       ${arr(pr.declarations).length ? `<ol class="prayer-list">${arr(pr.declarations).map((d, i) =>
         `<li><span class="pl-no">(${L[i] || i + 1})</span>${inline(decode(d).replace(/^\s*\(?[a-z0-9]{1,2}[.)]\s*/i, ''))}</li>`).join('')}</ol>` : ''}
       ${has(pr.closing) ? paras(pr.closing, 'prayer-close') : ''}
-      <div class="signature">${has(pr.signature) ? esc(pr.signature) : 'All of which is respectfully submitted.'}<br>
-        <span class="sig-line">Counsel for the ${esc(side ? side.charAt(0).toUpperCase() + side.slice(1).toLowerCase() : 'Party')}</span></div>`);
+      ${(() => {
+        const sig = splitSignature(pr.signature);
+        const counsel = sig.counsel
+          ? sc(sig.counsel.toUpperCase())
+          : `Counsel for the ${esc(side ? side.charAt(0).toUpperCase() + side.slice(1).toLowerCase() : 'Party')}`;
+        return `<div class="signature">${esc(sig.lead || 'All of which is respectfully submitted.')}<br>
+        <span class="sig-line">${counsel}</span></div>`;
+      })()}`);
   } else if (has(pr)) {
     sec('prayer', paras(pr));
   }
