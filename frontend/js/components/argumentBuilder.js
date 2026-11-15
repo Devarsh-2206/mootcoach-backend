@@ -1008,7 +1008,10 @@ function renderIRAC(iracData) {
       </button>
       <button class="btn-sm btn-sm-ghost text-xs tracking-wider flex items-center gap-1.5 font-sans cursor-pointer" onclick="exportAsPDF('memorial')">
         ▤ Export PDF
-      </button>
+      </button>${iracData && iracData.memorial && Array.isArray(iracData.memorial.argumentsAdvanced) && iracData.memorial.argumentsAdvanced.length ? `
+      <button class="btn-sm btn-sm-ghost text-xs tracking-wider flex items-center gap-1.5 font-sans cursor-pointer" onclick="exportMemorialWord(this)" title="Download as a Word file (.docx) to edit">
+        ▤ Export Word
+      </button>` : ''}
       <button class="btn-sm btn-sm-ghost text-xs tracking-wider flex items-center gap-1.5 font-sans cursor-pointer" onclick="openAuxPanel('rebuttal', this)">
         ◈ Rebuttal
       </button>
@@ -1440,6 +1443,10 @@ export async function exportMemorialWord(btn) {
   const m = lastBuiltArgument && lastBuiltArgument.memorial;
   if (!m || typeof m !== 'object') {
     showToast('There is no memorial to export yet.', 'err');
+    return;
+  }
+  if (!Array.isArray(m.argumentsAdvanced) || !m.argumentsAdvanced.length) {
+    showToast('This draft is in an older format that cannot be laid out in Word. Use Export PDF, or generate the draft again.', 'err');
     return;
   }
   const label = btn ? btn.textContent : '';
@@ -1923,6 +1930,7 @@ function headerText_forExport(doc) {
   return t || '';
 }
 window.exportAsPDF = exportAsPDF;
+window.exportMemorialWord = exportMemorialWord;
 
 export function openAuxPanel(type, triggerElement) {
   if (!lastBuiltArgument) {
