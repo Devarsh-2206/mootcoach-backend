@@ -74,9 +74,26 @@ const norm = s => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim
  */
 const TOC_TAIL = /(?:[.·…]{2,}[\s.·…]*|\s+)(?:\d{1,3}|[ivxlcdm]{1,7})\s*$|[.·…]{3,}\s*$/i;
 
+/*
+ * A section heading is a line of its own ("ISSUES RAISED", "I. STATEMENT OF
+ * FACTS"). A sub-heading that merely contains the words ("Issues Raised by
+ * the Income Tax Department", inside the Statement of Facts) once matched as
+ * the Issues heading and the sections were reported "out of order". Whole-line
+ * matches are taken first; the looser patterns only where no whole-line
+ * heading exists.
+ */
+function wholeLine(sec, t) {
+  const core = t.replace(/^\s*(?:[ivxlc]+|\d+|[a-z])[.)]\s+/i, '').replace(/[\s:.\-–—]+$/, '');
+  return sec.patterns.some(p => {
+    const m = core.match(p);
+    return m && m.index === 0 && core.length - m[0].length <= 12;   // the heading, perhaps "FOR RELIEF" after it
+  });
+}
+
 function locateSections(text) {
   const lines = text.split(/\r?\n/);
   const found = {};
+  const loose = {};
   const fromContents = {};
   lines.forEach((line, i) => {
     const t = line.trim();
@@ -87,19 +104,45 @@ function locateSections(text) {
     for (const sec of SECTIONS) {
       if (found[sec.key] !== undefined) continue;
       if (!sec.patterns.some(p => p.test(t))) continue;
-      if (contentsEntry && sec.key !== 'contents') { if (fromContents[sec.key] === undefined) fromContents[sec.key] = i; }
-      else found[sec.key] = i;
+      if (contentsEntry && sec.key !== 'contents') { if (fromContents[sec.key] === undefined) fromContents[sec.key] = i; continue; }
+      if (sec.key === 'cover' || wholeLine(sec, t)) found[sec.key] = i;
+      else if (loose[sec.key] === undefined) loose[sec.key] = i;
     }
   });
+  for (const [k, i] of Object.entries(loose)) if (found[k] === undefined) found[k] = i;
   for (const [k, i] of Object.entries(fromContents)) if (found[k] === undefined) found[k] = i;
   return found;
 }
 
 /** Pulls the Index of Authorities block, so entries can be matched to the body. */
+/* Where the Prayer begins: the last line, past the Arguments' start, that
+   opens a prayer ("humbly pray the Hon'ble Court", "it is most respectfully
+   prayed"). The LAST one, because an argument may end "it is prayed that ...".
+   Only in the final fifth of the memorial; otherwise the end of the text. */
+function prayerLeadIn(lines, from) {
+  let at = lines.length;
+  for (let i = lines.length - 1; i > from; i--) {
+    if (/\b(humbly|respectfully)\s+pray(s|ed)?\b|\bit\s+is\s+(most\s+)?(humbly\s+|respectfully\s+)?prayed\b|\bpray(s)?\s+(that\s+)?(this|the)\s+hon/i.test(lines[i])) { at = i; break; }
+  }
+  return at >= Math.floor(lines.length * 0.8) ? at : lines.length;
+}
+
 function extractIndexBlock(text, positions) {
   const lines = text.split(/\r?\n/);
   const start = positions.authorities;
   if (start === undefined) return '';
+  // Some PDFs give a heading drawn in a shaded box AFTER the text of its page,
+  // so the Index heading came out below the cases it lists and the Index read
+  // as nearly empty ("17 cited but missing from the Index" on a memorial that
+  // listed them all). The Index is in the front matter, so when it sits before
+  // the body, read it as everything before the first body section, leaving
+  // out the contents lines.
+  const bodyStarts = ['jurisdiction', 'facts', 'issues', 'summary', 'arguments']
+    .map(k => positions[k]).filter(i => i !== undefined);
+  const bodyStart = bodyStarts.length ? Math.min(...bodyStarts) : undefined;
+  if (bodyStart !== undefined && start < bodyStart) {
+    return lines.slice(0, bodyStart).filter(l => !TOC_TAIL.test(l.trim()) || /\sv\.?s?\.?\s/.test(l)).join('\n');
+  }
   // Ends at whichever required section comes next.
   const laterStarts = Object.entries(positions)
     .map(([, i]) => i)
@@ -185,7 +228,15 @@ function auditMemorial(text, opts = {}) {
   const bodyCases = uniqueCases(bodyBlock);
 
   const notCited = [...indexCases.entries()].filter(([k]) => !bodyCases.has(k)).map(([, v]) => v);
-  const notIndexed = [...bodyCases.entries()].filter(([k]) => !indexCases.has(k)).map(([, v]) => v);
+  // A name split over two lines ("Mancheri / Puthusseri Ahmed v. ...") is read
+  // without its first word; it still counts as indexed when an Index entry's
+  // first party ends with it.
+  const indexNames = [...indexCases.values()].map(v => norm(v.split(/\sv\.?\s/)[0]));
+  const inIndex = (k, v) => indexCases.has(k) || indexNames.some(n => {
+    const b = norm(String(v).split(/\sv\.?\s/)[0]);
+    return b.length >= 6 && (n.endsWith(b) || b.endsWith(n));
+  });
+  const notIndexed = [...bodyCases.entries()].filter(([k, v]) => !inIndex(k, v)).map(([, v]) => v);
 
   if (positions.authorities !== undefined) {
     if (notCited.length) {
@@ -210,7 +261,10 @@ function auditMemorial(text, opts = {}) {
 
   // ── 4. Paragraph numbering ──
   const paraNums = [];
-  for (const line of lines.slice(argStart)) {
+  // The Prayer's own list (1. That ... 2. That ...) is not part of the
+  // Arguments' numbering; it was read as a "restart".
+  const argEnd = Math.min(positions.prayer !== undefined && positions.prayer > argStart ? positions.prayer : lines.length, prayerLeadIn(lines, argStart));
+  for (const line of lines.slice(argStart, argEnd)) {
     const m = line.match(/^\s*(\d{1,3})[.)]\s+\S/);
     if (m) paraNums.push(Number(m[1]));
   }
@@ -249,7 +303,9 @@ function auditMemorial(text, opts = {}) {
 
   // ── 6. Prayer ──
   if (positions.prayer !== undefined) {
-    const prayerBlock = lines.slice(positions.prayer).join('\n');
+    // From the heading, or from the last "... pray ..." lead-in if that comes
+    // first (a heading drawn in a box can come out after its page's text).
+    const prayerBlock = lines.slice(Math.min(positions.prayer, prayerLeadIn(lines, argStart))).join('\n');
     if (!/\bpray/i.test(prayerBlock)) {
       add('major', 'Prayer', 'The Prayer does not actually pray for anything.',
         'Open with "it is most respectfully prayed that this Hon\'ble Court may be pleased to ..." and list the relief.');
