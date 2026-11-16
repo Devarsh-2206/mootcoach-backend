@@ -113,6 +113,54 @@ export const SCHEMES = {
 };
 export const DEFAULT_SCHEME = 'standard';
 
+/**
+ * A marking scheme from a student's own rulebook (a rules profile the student
+ * confirmed: frontend/js/components/rulebook.js). Only what the PDF lets
+ * MootCoach measure is deducted: missing sections, and the page limit when
+ * the limit counts whole pages (or leaves out only the cover). A limit that
+ * leaves out contents, index and the like is flagged, since those pages
+ * cannot be counted reliably. Everything else is the student's checklist.
+ */
+export function schemeFromProfile(p) {
+  const mk = p && p.marking;
+  if (!mk || !Array.isArray(mk.heads) || !mk.heads.length || !(mk.total > 0)) return null;
+  if (mk.heads.some(h => !h.from || !(h.max > 0))) return null;
+  const pens = Array.isArray(p.penalties) ? p.penalties : [];
+  const ruleOf = x => (x && x.rule ? ` (${x.rule})` : '');
+  const name = [p.competition && p.competition.name, p.competition && p.competition.edition].filter(Boolean).join(' ');
+
+  const ms = pens.find(x => x.kind === 'missingSection');
+  const pg = pens.find(x => x.kind === 'pageLimitMemorial');
+  const lim = p.limits && p.limits.memorialPages;
+  let pageLimit = null;
+  if (lim && lim.value > 0) {
+    const ex = String(lim.excludes || '').trim();
+    const onlyCover = ex && /cover/i.test(ex) && !/content|index|abbreviation|authorit|title|prayer|appendi|annex/i.test(ex);
+    const countable = !ex || onlyCover;
+    const disqualify = !!(pg && pg.basis === 'disqualification');
+    const perPage = countable && pg && pg.basis === 'perPage' && pg.points > 0 ? pg.points : 0;
+    pageLimit = {
+      pages: lim.value, excludes: onlyCover ? 1 : 0, perPage, disqualify: countable && disqualify,
+      note: `${lim.value}-page limit${ruleOf(lim)}${ex ? `, leaving out ${ex}` : ''}. `
+        + (perPage ? `${pg.points} per page over${ruleOf(pg)}.` : disqualify ? `Exceeding it: disqualification${ruleOf(pg)}.` : '')
+        + (!countable ? ' MootCoach cannot count those pages reliably, so this is flagged, not deducted.' : (!perPage && !disqualify ? ' The rules state no deduction.' : '')),
+    };
+  }
+  const msPoints = ms && ms.points > 0 && (ms.basis === 'perViolation' || ms.basis === 'oneTime') ? ms.points : 0;
+  return {
+    name: name || 'Your competition',
+    source: `your rulebook${mk.rule ? `, ${mk.rule}` : ''}`,
+    total: mk.total,
+    heads: mk.heads.map(h => ({ label: h.label, max: h.max, from: h.from })),
+    pageLimit,
+    missingSection: msPoints,
+    missingSectionOnce: !!(ms && ms.basis === 'oneTime'),
+    flagNote: ms ? (msPoints ? `${ms.points} ${ms.basis === 'oneTime' ? 'once' : 'per missing section'}${ruleOf(ms)}.` : `Rules${ruleOf(ms)}: ${ms.violation}.`) : 'Your rulebook states no deduction for this.',
+    penaltyCap: p.penaltyCap && p.penaltyCap.points > 0 ? p.penaltyCap.points : 0,
+    fromRulebook: true,
+  };
+}
+
 /* A criterion marked without any paragraph to show for it cannot be in the
    upper bands: capped at the top of "weak". */
 export const NO_EVIDENCE_CAP = 59;
@@ -144,7 +192,9 @@ export function criterionMarks(review) {
  * @returns { scheme, heads, subtotal, penalties, total, outOf, percent }
  */
 export function scoreMemorial(review, audit, schemeKey = DEFAULT_SCHEME) {
-  const scheme = SCHEMES[schemeKey] || SCHEMES[DEFAULT_SCHEME];
+  // A scheme object (a student's own rulebook) or the key of a built-in one.
+  const custom = schemeKey && typeof schemeKey === 'object' && Array.isArray(schemeKey.heads) ? schemeKey : null;
+  const scheme = custom || SCHEMES[schemeKey] || SCHEMES[DEFAULT_SCHEME];
   const marks = criterionMarks(review);
   const heads = scheme.heads.map(h => {
     let got = 0, weight = 0;
@@ -165,8 +215,9 @@ export function scoreMemorial(review, audit, schemeKey = DEFAULT_SCHEME) {
     const each = scheme.missingSection || 0;
     penalties.push({
       what: `Missing section${missing.length > 1 ? 's' : ''}: ${missing.map(s => s.label).join(', ')}`,
-      points: round2(each * missing.length),
-      note: each ? `${each} per missing section under these rules.` : (scheme.flagNote || 'These rules state no deduction, but the section is expected.'),
+      points: round2(each * (scheme.missingSectionOnce ? 1 : missing.length)),
+      note: scheme.fromRulebook ? scheme.flagNote
+        : each ? `${each} per missing section under these rules.` : (scheme.flagNote || 'These rules state no deduction, but the section is expected.'),
     });
   }
   const pages = audit && audit.metrics && Number(audit.metrics.pages);
@@ -179,7 +230,7 @@ export function scoreMemorial(review, audit, schemeKey = DEFAULT_SCHEME) {
         what: `About ${over} page${over > 1 ? 's' : ''} over the ${pl.pages}-page limit`,
         points: round2((pl.perPage || 0) * over),
         disqualify: !!pl.disqualify,
-        note: `${pl.note} Counted from the PDF's ${pages} pages${pl.excludes ? `, less ${pl.excludes} excluded` : ''}; check against the rules.`,
+        note: `${pl.note} Counted from the PDF's ${pages} pages${pl.excludes ? `, less ${pl.excludes} excluded` : ''}; check against the rules.`.replace(/\s+/g, ' '),
       });
     }
   }
@@ -187,8 +238,8 @@ export function scoreMemorial(review, audit, schemeKey = DEFAULT_SCHEME) {
   if (scheme.penaltyCap) deducted = Math.min(deducted, scheme.penaltyCap);
   const total = round2(Math.max(0, subtotal - deducted));
   return {
-    schemeKey: SCHEMES[schemeKey] ? schemeKey : DEFAULT_SCHEME,
-    scheme: { name: scheme.name, source: scheme.source, total: scheme.total },
+    schemeKey: custom ? 'rulebook' : (SCHEMES[schemeKey] ? schemeKey : DEFAULT_SCHEME),
+    scheme: { name: scheme.name, source: scheme.source, total: scheme.total, fromRulebook: !!custom },
     heads, subtotal, penalties, deducted, total, outOf: scheme.total,
     // Through two decimals first: 11.3/20 is 56.4999… in floating point, and is 57%.
     percent: Math.round(round2(total / scheme.total * 100)),

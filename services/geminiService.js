@@ -337,9 +337,11 @@ function convertMessagesToGemini(messages) {
       systemInstruction += (systemInstruction ? "\n" : "") + msg.content;
     } else {
       const role = msg.role === "assistant" ? "model" : "user";
+      // A message may carry its own parts (a PDF to read as well as text);
+      // "content" stays the text form, which is what Groq is given.
       contents.push({
         role: role,
-        parts: [{ text: msg.content }]
+        parts: Array.isArray(msg.parts) && msg.parts.length ? msg.parts : [{ text: msg.content }]
       });
     }
   }

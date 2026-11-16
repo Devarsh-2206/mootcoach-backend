@@ -2559,6 +2559,60 @@ app.post("/api/export-docx", signedIn, logLimiter, express.json({ limit: '1mb' }
   }
 });
 
+/* ─── /api/rulebook/read ───
+   A competition's rulebook, read into a rules profile (services/rulebook.js)
+   that the student confirms before MootCoach marks against it. The PDF goes
+   to Gemini as a document as well as text, because marking and penalty
+   tables are often images. Nothing is stored here: the confirmed profile is
+   kept in the student's own area by the browser. */
+const { RULEBOOK_PROMPT } = require("./prompts/rulebookPrompt");
+const { sanitizeProfile } = require("./services/rulebook");
+app.post("/api/rulebook/read", signedIn, pilotGate({ bucket: 'extras' }), aiLimiter, singlePdf("file"), async (req, res) => {
+  let filePath = null;
+  try {
+    if (!req.file) return res.status(400).json({ success: false, error: "Please choose your competition's rulebook (a PDF)." });
+    filePath = req.file.path;
+    const buf = fs.readFileSync(filePath);
+    try { fs.unlinkSync(filePath); filePath = null; } catch (e) {}
+    // The PDF header may sit anywhere in the first 1,024 bytes.
+    if (!buf.slice(0, 1024).toString('latin1').includes('%PDF-')) return res.status(400).json({ success: false, error: 'That file is not a PDF.' });
+    let text = '';
+    let pages = null;
+    try { const parsed = await parsePdfAsync(buf); text = String(parsed || ''); pages = parsed && parsed.numpages || null; } catch (e) { /* image-only: Gemini reads the pages */ }
+    const call = await getChatCompletion({
+      messages: [
+        { role: "system", content: RULEBOOK_PROMPT },
+        {
+          role: "user",
+          content: `RULEBOOK TEXT (extracted; tables may be missing):\n${fence('rulebook', text.slice(0, 120000))}\n\nRead this rulebook now.`,
+          parts: [
+            { inlineData: { mimeType: 'application/pdf', data: buf.toString('base64') } },
+            { text: `The rulebook is the attached PDF. Its extracted text follows (tables that are images will be missing from it, so read those from the pages):\n${fence('rulebook', text.slice(0, 120000))}\n\nRead this rulebook now.` },
+          ],
+        },
+      ],
+      temperature: 0.1,
+      max_tokens: 6000,
+      primaryProvider: "gemini",
+      geminiTimeoutMs: 120000,
+      geminiMaxAttempts: 1,
+      totalBudgetMs: 150000,
+      geminiMaxOutputTokens: 12000,
+      requestLabel: "Rulebook",
+    });
+    const result = sanitizeProfile(extractAndParseJSON(call.text));
+    if (!result.ok) return res.status(422).json({ success: false, error: result.reason });
+    return res.json({ success: true, profile: result.profile, pages });
+  } catch (error) {
+    console.error("/api/rulebook/read error:", error && error.message);
+    try { if (filePath) fs.unlinkSync(filePath); } catch (e) {}
+    const msg = String((error && error.message) || '');
+    const busy = /RESOURCE_EXHAUSTED|quota|rate.?limit|\b429\b|UNAVAILABLE|\b503\b|high demand|overloaded|Timeout/i.test(msg);
+    return res.status(busy ? 503 : 500).json({ success: false,
+      error: busy ? "MootCoach is busy right now. Please try again in a minute." : "Sorry, the rulebook could not be read. Please try again." });
+  }
+});
+
 /* ─── /api/analyse-memorial ───
    Upload a memorial, get it marked. The structural half runs in code
    (services/memorialAudit.js) because sections, index-vs-body consistency,

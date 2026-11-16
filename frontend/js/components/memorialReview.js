@@ -14,20 +14,39 @@
 import { UPLOAD_LIMITS } from '../config.js';
 import { requestJson } from '../services/api.js';
 import { db, currentUser, firebaseRef } from '../services/firebase.js';
-import { DEFAULT_SCHEME, NO_EVIDENCE_CAP, scoreMemorial, criterionMarks } from './memorialScoring.js';
+import { DEFAULT_SCHEME, NO_EVIDENCE_CAP, scoreMemorial, criterionMarks, schemeFromProfile } from './memorialScoring.js';
+import { loadRules, openRulebook, forgetRules } from './rulebook.js';
+
+/* The competition rules the student confirmed for the open moot, if any. */
+let activeRules = null;
+const openMoot = () => window.currentMootDocId || null;
+/* Rules belong to the moot they were confirmed for, never another. */
+const currentScheme = () => (activeRules && activeRules.mootId === openMoot() && schemeFromProfile(activeRules.profile)) || DEFAULT_SCHEME;
+async function refreshRules() {
+  const moot = openMoot();
+  const got = await loadRules(moot).catch(() => undefined);
+  if (got !== undefined) activeRules = got;                       // found, or definitely none
+  else if (activeRules && activeRules.mootId !== moot) activeRules = null;   // unreadable: keep only this moot's
+  return activeRules;
+}
 
 /* A review marked before scores were computed from published weights: its
    overall score was the model's own. Shown as it was, and labelled so. */
 const isLegacy = r => r && r.evidence === undefined && r.overallScore !== undefined;
 
 /** Computes the score from the chosen scheme and records it on the review. */
-function applyScore(data, schemeKey) {
+function applyScore(data, scheme) {
   const r = data && data.review;
   if (!r || isLegacy(r)) return null;
-  const res = scoreMemorial(r, data, schemeKey);
-  if (res) { r.overallScore = res.percent; r.scoring = { schemeKey: res.schemeKey, version: 2 }; }
+  const res = scoreMemorial(r, data, scheme);
+  if (res) {
+    r.overallScore = res.percent;
+    r.scoring = typeof scheme === 'object' ? { scheme, version: 2 } : { schemeKey: res.schemeKey, version: 2 };
+  }
   return res;
 }
+/* The scheme a review was marked with: its own record, else the current one. */
+const schemeOf = r => (r && r.scoring && r.scoring.scheme && Array.isArray(r.scoring.scheme.heads)) ? r.scoring.scheme : currentScheme();
 
 const SEVERITY = {
   critical: { label: 'Critical', bg: 'rgba(168,54,42,.10)', border: 'rgba(168,54,42,.32)', ink: 'var(--error)' },
@@ -138,6 +157,7 @@ const FORM = `
     competitions expect, then marks the substance — the law, the use of the record, and
     the argument.
   </p>
+  <div id="mr-rules-line" style="margin:0 0 16px;font-size:13px;line-height:1.6;"></div>
   <label style="display:block;font-family:var(--mono);font-size:11px;letter-spacing:.12em;
          text-transform:uppercase;color:var(--white-muted);margin-bottom:6px;">Memorial (PDF)</label>
   <label for="mr-file" id="mr-drop" style="display:flex;flex-direction:column;align-items:center;gap:4px;
@@ -205,7 +225,7 @@ function renderResult(data, savedView = false) {
   };
 
   const legacy = isLegacy(r);
-  const res = legacy ? null : applyScore(data, DEFAULT_SCHEME);
+  const res = legacy ? null : applyScore(data, schemeOf(r));
   const headline = res ? res.percent : r.overallScore;
   const marks = legacy ? {} : criterionMarks(r);
   const label = t => `<div style="font-family:var(--mono);font-size:11px;letter-spacing:.14em;
@@ -237,7 +257,11 @@ function renderResult(data, savedView = false) {
         competitions' published marking schemes. Review the memorial again for a score you can trace.
       </div>` : res ? `
       <div style="padding:14px 16px;margin-bottom:20px;border:1px solid var(--rule);border-radius:12px;background:var(--sheet);">
-        <div style="font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--white-muted);margin-bottom:8px;">Standard moot marking</div>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px;">
+          <div style="flex:1;min-width:180px;font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--white-muted);">
+            ${res.scheme.fromRulebook ? `Marked as: <span style="color:var(--white);">${esc(res.scheme.name)}</span> · your rulebook` : 'Standard moot marking'}</div>
+          ${savedView ? '' : `<button id="mr-rules" style="padding:6px 10px;border:1px solid var(--gold-border);border-radius:8px;background:var(--sheet);color:var(--gold);font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;">${res.scheme.fromRulebook ? 'Change rules' : "Use my competition's rules"}</button>`}
+        </div>
         <table style="width:100%;border-collapse:collapse;font-size:13px;line-height:1.5;">
           ${res.heads.map(h => `<tr>
             <td style="padding:4px 0;border-bottom:1px solid var(--rule);">${esc(h.label)}</td>
@@ -250,9 +274,12 @@ function renderResult(data, savedView = false) {
             <td style="padding:6px 0;text-align:right;font-weight:700;">${esc(res.total)} / ${esc(res.outOf)}</td></tr>
         </table>
         <div style="font-size:11.5px;color:var(--white-muted);line-height:1.6;margin-top:8px;">
-          Based on the marking heads Indian moots commonly publish. Each heading is built from the criterion
+          ${res.scheme.fromRulebook
+            ? `Marked with the figures you confirmed from your competition's rulebook. Each heading is built from the criterion
+          marks below. Only penalties MootCoach can measure from the PDF are applied; the rest are on your checklist.`
+            : `Based on the marking heads Indian moots commonly publish. Each heading is built from the criterion
           marks below; how they map is MootCoach's judgement. Penalties differ between competitions, so
-          problems are flagged, not deducted. Your competition's own rules govern.
+          problems are flagged, not deducted. Your competition's own rules govern.`}
           <b>MootCoach's marking has not yet been checked against judges' marks.</b>
           ${res.capped.length ? `<br><span style="color:var(--acc-amber);">Capped at ${NO_EVIDENCE_CAP} for want of evidence: ${esc(res.capped.join(', '))}.</span>` : ''}
         </div>
@@ -343,6 +370,19 @@ function renderResult(data, savedView = false) {
 /** Puts a result on screen and wires its buttons. */
 function showResult(body, data, savedView = false) {
   body.innerHTML = renderResult(data, savedView);
+  // Re-mark this result under the student's own rules: no new review needed.
+  const rules = body.querySelector('#mr-rules');
+  if (rules) rules.addEventListener('click', () => {
+    openRulebook(body, {
+      mootId: window.currentMootDocId || null,
+      onDone: (r) => {
+        activeRules = r;
+        if (data.review) delete data.review.scoring;
+        showResult(body, data, savedView);
+      },
+      onCancel: () => showResult(body, data, savedView),
+    });
+  });
   const again = body.querySelector('#mr-again');
   if (again) again.addEventListener('click', () => attachForm(body));
 }
@@ -393,8 +433,33 @@ async function renderHistory(body) {
   }));
 }
 
+function rulesLine(body) {
+  const line = body.querySelector('#mr-rules-line');
+  if (!line) return;
+  const link = 'background:none;border:none;padding:0;color:var(--gold);text-decoration:underline;cursor:pointer;font:inherit;';
+  const mine = activeRules && activeRules.mootId === openMoot();
+  line.innerHTML = mine
+    ? `Marking against <b>${esc(schemeFromProfile(activeRules.profile).name)}</b> (your rulebook).
+       <button id="mr-rl-change" style="${link}">Change</button> · <button id="mr-rl-forget" style="${link}">Use standard marking</button>`
+    : `Marking with standard moot marking. <button id="mr-rl-change" style="${link}">Upload your competition's rulebook</button> to mark against its rules.`;
+  line.querySelector('#mr-rl-change').addEventListener('click', () => openRulebook(body, {
+    mootId: window.currentMootDocId || null,
+    onDone: (r) => { activeRules = r; attachForm(body); },
+    onCancel: () => attachForm(body),
+  }));
+  const forget = line.querySelector('#mr-rl-forget');
+  if (forget) forget.addEventListener('click', async () => {
+    if (!window.confirm('Stop using your rulebook for this moot? You can upload it again later.')) return;
+    await forgetRules(window.currentMootDocId || null);
+    activeRules = null;
+    attachForm(body);
+  });
+}
+
 function attachForm(body) {
   body.innerHTML = FORM;
+  rulesLine(body);
+  refreshRules().then(() => { if (body.querySelector('#mr-rules-line')) rulesLine(body); });
   renderHistory(body);
   // Start from the side the open moot is argued for; the advocate can change it.
   const sideSel = body.querySelector('#mr-side');
@@ -450,7 +515,7 @@ function attachForm(body) {
     const mootId = window.currentMootDocId || null;
     try {
       const data = await requestJson('/api/analyse-memorial', { formData: fd });
-      applyScore(data, DEFAULT_SCHEME);   // the score saved and passed on is the computed one
+      applyScore(data, currentScheme());   // the score saved and passed on is the computed one
       showResult(body, data);
       saveReview(data, { fileName: f.name, side, mootId });
       // A review of this moot's memorial joins "what the bench caught", so its
