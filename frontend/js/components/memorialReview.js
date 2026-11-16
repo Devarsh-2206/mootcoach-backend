@@ -14,15 +14,7 @@
 import { UPLOAD_LIMITS } from '../config.js';
 import { requestJson } from '../services/api.js';
 import { db, currentUser, firebaseRef } from '../services/firebase.js';
-import { SCHEMES, DEFAULT_SCHEME, CRITERIA, NO_EVIDENCE_CAP, scoreMemorial, criterionMarks } from './memorialScoring.js';
-
-/* The competition whose marking scheme the student last chose. */
-const SCHEME_PREF = 'mc.memorialScheme';
-function preferredScheme() {
-  try { const k = localStorage.getItem(SCHEME_PREF); if (k && SCHEMES[k]) return k; } catch (e) {}
-  return DEFAULT_SCHEME;
-}
-function rememberScheme(k) { try { localStorage.setItem(SCHEME_PREF, k); } catch (e) {} }
+import { DEFAULT_SCHEME, NO_EVIDENCE_CAP, scoreMemorial, criterionMarks } from './memorialScoring.js';
 
 /* A review marked before scores were computed from published weights: its
    overall score was the model's own. Shown as it was, and labelled so. */
@@ -213,8 +205,7 @@ function renderResult(data, savedView = false) {
   };
 
   const legacy = isLegacy(r);
-  const schemeKey = (r.scoring && r.scoring.schemeKey && SCHEMES[r.scoring.schemeKey]) ? r.scoring.schemeKey : preferredScheme();
-  const res = legacy ? null : applyScore(data, schemeKey);
+  const res = legacy ? null : applyScore(data, DEFAULT_SCHEME);
   const headline = res ? res.percent : r.overallScore;
   const marks = legacy ? {} : criterionMarks(r);
   const label = t => `<div style="font-family:var(--mono);font-size:11px;letter-spacing:.14em;
@@ -246,12 +237,7 @@ function renderResult(data, savedView = false) {
         competitions' published marking schemes. Review the memorial again for a score you can trace.
       </div>` : res ? `
       <div style="padding:14px 16px;margin-bottom:20px;border:1px solid var(--rule);border-radius:12px;background:var(--sheet);">
-        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px;">
-          <label for="mr-scheme" style="font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--white-muted);">Marked as</label>
-          <select id="mr-scheme" style="flex:1;min-width:200px;padding:7px 9px;border:1px solid var(--rule);border-radius:8px;background:var(--sheet);color:var(--white);font-size:13px;">
-            ${Object.entries(SCHEMES).map(([k, v]) => `<option value="${esc(k)}"${k === res.schemeKey ? ' selected' : ''}>${esc(v.name)}</option>`).join('')}
-          </select>
-        </div>
+        <div style="font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--white-muted);margin-bottom:8px;">Standard moot marking</div>
         <table style="width:100%;border-collapse:collapse;font-size:13px;line-height:1.5;">
           ${res.heads.map(h => `<tr>
             <td style="padding:4px 0;border-bottom:1px solid var(--rule);">${esc(h.label)}</td>
@@ -264,9 +250,9 @@ function renderResult(data, savedView = false) {
             <td style="padding:6px 0;text-align:right;font-weight:700;">${esc(res.total)} / ${esc(res.outOf)}</td></tr>
         </table>
         <div style="font-size:11.5px;color:var(--white-muted);line-height:1.6;margin-top:8px;">
-          Weights and penalties from the competition's rules (${esc(res.scheme.source)}), checked against the rulebook.
-          Each heading is built from the criterion marks below; how they map is MootCoach's judgement.
-          Only penalties MootCoach can measure from the PDF are applied. Your competition's own rules govern.
+          Based on the marking heads Indian moots commonly publish. Each heading is built from the criterion
+          marks below; how they map is MootCoach's judgement. Penalties differ between competitions, so
+          problems are flagged, not deducted. Your competition's own rules govern.
           <b>MootCoach's marking has not yet been checked against judges' marks.</b>
           ${res.capped.length ? `<br><span style="color:var(--acc-amber);">Capped at ${NO_EVIDENCE_CAP} for want of evidence: ${esc(res.capped.join(', '))}.</span>` : ''}
         </div>
@@ -354,16 +340,9 @@ function renderResult(data, savedView = false) {
             letter-spacing:.14em;text-transform:uppercase;cursor:pointer;">${savedView ? '← Back to my reviews' : 'Review another memorial'}</button>`;
 }
 
-/** Puts a result on screen and wires it: the scheme selector re-marks it
-    under another competition's weights without a new review. */
+/** Puts a result on screen and wires its buttons. */
 function showResult(body, data, savedView = false) {
   body.innerHTML = renderResult(data, savedView);
-  const sel = body.querySelector('#mr-scheme');
-  if (sel) sel.addEventListener('change', () => {
-    rememberScheme(sel.value);
-    if (data.review) data.review.scoring = { schemeKey: sel.value, version: 2 };
-    showResult(body, data, savedView);
-  });
   const again = body.querySelector('#mr-again');
   if (again) again.addEventListener('click', () => attachForm(body));
 }
@@ -471,7 +450,7 @@ function attachForm(body) {
     const mootId = window.currentMootDocId || null;
     try {
       const data = await requestJson('/api/analyse-memorial', { formData: fd });
-      applyScore(data, preferredScheme());   // the score saved and passed on is the computed one
+      applyScore(data, DEFAULT_SCHEME);   // the score saved and passed on is the computed one
       showResult(body, data);
       saveReview(data, { fileName: f.name, side, mootId });
       // A review of this moot's memorial joins "what the bench caught", so its

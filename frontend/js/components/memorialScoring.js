@@ -27,6 +27,29 @@ export const CRITERIA = {
 const CORE = ['authorities', 'jurisdiction', 'facts', 'issues', 'summary', 'arguments', 'prayer'];
 
 export const SCHEMES = {
+  /* What students see. The marking heads Indian moots commonly publish:
+     these five heads and weights are Henry Dunant 2026 cl. 4.3, and NALSAR
+     PIL 2024 r. 5.a uses the same heads. No competition is named on screen,
+     and without the student's own rules no penalty amount is known, so
+     measurable faults are flagged, never deducted. */
+  standard: {
+    name: 'Standard moot marking',
+    source: 'the marking heads Indian moots commonly publish',
+    total: 100,
+    heads: [
+      { label: 'Knowledge of law and facts', max: 30, from: { knowledgeOfLaw: 0.5, useOfFacts: 0.5 } },
+      { label: 'Proper and articulate analysis', max: 30, from: { analysis: 1 } },
+      { label: 'Extent of research', max: 20, from: { research: 1 } },
+      { label: 'Clarity and organisation', max: 10, from: { structure: 1 } },
+      { label: 'Style, grammar and citation', max: 10, from: { languageAndStyle: 0.5, compliance: 0.5 } },
+    ],
+    pageLimit: null,          // unknown without the competition's rules
+    missingSection: 0,
+    flagNote: 'Most competitions penalise this. Check your competition\'s rules.',
+  },
+  /* Checked against each rulebook PDF. Not offered on screen; kept as the
+     evidence for the standard scheme and for testing a competition's own
+     rules once students can upload them. */
   hdmc2026: {
     name: 'Henry Dunant Memorial Moot 2026 (ISIL–ICRC)',
     source: 'Rules cl. 4.3 (marking), cl. 4.1 (page limit)',
@@ -88,7 +111,7 @@ export const SCHEMES = {
     penaltyCap: 50,
   },
 };
-export const DEFAULT_SCHEME = 'hdmc2026';
+export const DEFAULT_SCHEME = 'standard';
 
 /* A criterion marked without any paragraph to show for it cannot be in the
    upper bands: capped at the top of "weak". */
@@ -143,7 +166,7 @@ export function scoreMemorial(review, audit, schemeKey = DEFAULT_SCHEME) {
     penalties.push({
       what: `Missing section${missing.length > 1 ? 's' : ''}: ${missing.map(s => s.label).join(', ')}`,
       points: round2(each * missing.length),
-      note: each ? `${each} per missing section under these rules.` : 'These rules state no deduction, but the section is expected.',
+      note: each ? `${each} per missing section under these rules.` : (scheme.flagNote || 'These rules state no deduction, but the section is expected.'),
     });
   }
   const pages = audit && audit.metrics && Number(audit.metrics.pages);

@@ -19,6 +19,13 @@ const path = require('path');
   const review = { scores: { knowledgeOfLaw: 60, useOfFacts: 70, analysis: 50, research: 40, structure: 80, languageAndStyle: 70, compliance: 60 }, evidence: ev };
   const all = { sections: [], metrics: { pages: 20 } };
 
+  // The standard scheme (what students see): same heads and weights, no
+  // competition named, problems flagged and never deducted.
+  let st = scoreMemorial(review, { sections: [{ key: 'prayer', label: 'Prayer', present: false }], metrics: { pages: 80 } });
+  assert.strictEqual(st.schemeKey, 'standard'); assert.strictEqual(st.scheme.name, 'Standard moot marking');
+  assert.strictEqual(st.subtotal, 57); assert.strictEqual(st.deducted, 0); assert.strictEqual(st.total, 57);
+  assert.deepStrictEqual(st.penalties.map(p => [p.points, /Check your competition/.test(p.note)]), [[0, true]]);   // no page limit known
+
   // Henry Dunant 2026: 30×65% + 30×50% + 20×40% + 10×80% + 10×65% = 19.5+15+8+8+6.5 = 57.
   let r = scoreMemorial(review, all, 'hdmc2026');
   assert.deepStrictEqual(r.heads.map(h => h.mark), [19.5, 15, 8, 8, 6.5]);
@@ -52,8 +59,8 @@ const path = require('path');
   assert.strictEqual(r.deducted, 0); assert.strictEqual(r.penalties.length, 2);
 
   // Unknown scheme falls back to the default; a missing criterion gives no score.
-  assert.strictEqual(scoreMemorial(review, all, 'nope').schemeKey, 'hdmc2026');
+  assert.strictEqual(scoreMemorial(review, all, 'nope').schemeKey, 'standard');
   assert.strictEqual(scoreMemorial({ scores: { analysis: 50 }, evidence: {} }, all, 'hdmc2026'), null);
 
-  console.log('PASS memorial scoring: published weights, hand-worked totals, evidence cap, rulebook penalties');
+  console.log('PASS memorial scoring: standard scheme (flags, no deductions), published weights, hand-worked totals, evidence cap, rulebook penalties');
 })().catch(e => { console.error('FAIL memorial scoring:', e.message); process.exit(1); });
