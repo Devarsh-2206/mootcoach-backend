@@ -60,7 +60,9 @@ CRITICAL INSTRUCTIONS:
     not decoration — advocates and judges cite these numbers in oral rounds ("as set out
     at paragraph 34 of our memorial"), and a memorial without them cannot be argued from.
     Each issue opens with a one-paragraph ROADMAP naming its limbs ("Firstly ... (A);
-    Secondly ... (B.1)"), and the heading hierarchy is I. > A. > B.1 > B.2.
+    Secondly ... (B); Further ... (C)"), and the heading hierarchy is I. > A. > B. > C.
+    A numbered limb (B.1, B.2) exists only under its own lettered heading (B.): never a B.1
+    without a B.
 
 7b. **FOOTNOTES.** Every assertion that rests on an authority carries a footnote giving
     that authority in full on first use, then "Ibid." for an immediate repeat or the
@@ -223,7 +225,7 @@ JSON Schema:
     "argumentsAdvanced": [
       {
         "heading": "e.g. I. THE INCOME TAX AUTHORITY POSSESSES TERRITORIAL AND SUBJECT-MATTER JURISDICTION",
-        "roadmap": "The one-paragraph opening that tells the bench the order of the limbs, e.g. 'Firstly ... (A); Secondly ... (B.1); Further ... (B.2).'",
+        "roadmap": "The one-paragraph opening that tells the bench the order of the limbs, e.g. 'Firstly ... (A); Secondly ... (B); Further ... (C).'",
         "subArguments": [
           {
             "heading": "e.g. A. PROVISIONS OF THE INDIA-SPAIN DTAA WOULD APPLY OVER THE INDIA-MAURITIUS DTAA",

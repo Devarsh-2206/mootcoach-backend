@@ -62,6 +62,8 @@ ISSUE PLAN — what separates the strongest filed memorials:
   limitation or arbitrability, that is Issue I, before the merits.
 - No lone sub-ground. An issue has either no lettered limbs or at least two; a single
   "A" with no "B" is a drafting fault.
+- Sub-grounds are lettered A, B, C. A numbered limb (B.1, B.2) exists only under its own
+  lettered heading (B.): never a B.1 without a B.
 - One wording. Each issue is one neutral "WHETHER ..." question, and the same words
   appear in Issues Raised, the Summary of Arguments and the Arguments Advanced heading.
 - Balance. Give every issue real weight; do not let the last issue shrink to a page.
@@ -102,7 +104,7 @@ Return ONLY valid JSON, no markdown fences:
     {
       "numeral": "I",
       "heading": "THE FULL ISSUE HEADING IN CAPITALS, as it will appear in Arguments Advanced",
-      "roadmap": "One paragraph naming the limbs: 'Firstly ... (A); Secondly ... (B.1); Further ... (B.2).'",
+      "roadmap": "One paragraph naming the limbs: 'Firstly ... (A); Secondly ... (B); Further ... (C).'",
       "subGrounds": [ { "label": "A", "heading": "SUB-GROUND HEADING", "thrust": "One line on what this limb must establish and the authorities or provisions it will turn on." } ]
     }
   ],

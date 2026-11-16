@@ -43,7 +43,8 @@ WHAT TO ASSESS (the audit does not and cannot)
      block quotations or dictionary definitions standing in for analysis are a fault);
    - the opponent's best point and best authority are anticipated and answered;
    - threshold points (maintainability, jurisdiction, limitation) come first;
-   - no issue has a lone sub-heading (an "A" with no "B");
+   - no issue has a lone sub-heading (an "A" with no "B"), and no numbered limb
+     (B.1, B.2) lacks its own lettered heading (B.);
    - issue wording matches across Issues, Summary and Arguments;
    - the issues are roughly balanced, not one full and one a page;
    - authorities suit the forum (Indian authority before an Indian court; the
