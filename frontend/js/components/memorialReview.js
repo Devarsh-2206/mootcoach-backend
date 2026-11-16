@@ -14,6 +14,28 @@
 import { UPLOAD_LIMITS } from '../config.js';
 import { requestJson } from '../services/api.js';
 import { db, currentUser, firebaseRef } from '../services/firebase.js';
+import { SCHEMES, DEFAULT_SCHEME, CRITERIA, NO_EVIDENCE_CAP, scoreMemorial, criterionMarks } from './memorialScoring.js';
+
+/* The competition whose marking scheme the student last chose. */
+const SCHEME_PREF = 'mc.memorialScheme';
+function preferredScheme() {
+  try { const k = localStorage.getItem(SCHEME_PREF); if (k && SCHEMES[k]) return k; } catch (e) {}
+  return DEFAULT_SCHEME;
+}
+function rememberScheme(k) { try { localStorage.setItem(SCHEME_PREF, k); } catch (e) {} }
+
+/* A review marked before scores were computed from published weights: its
+   overall score was the model's own. Shown as it was, and labelled so. */
+const isLegacy = r => r && r.evidence === undefined && r.overallScore !== undefined;
+
+/** Computes the score from the chosen scheme and records it on the review. */
+function applyScore(data, schemeKey) {
+  const r = data && data.review;
+  if (!r || isLegacy(r)) return null;
+  const res = scoreMemorial(r, data, schemeKey);
+  if (res) { r.overallScore = res.percent; r.scoring = { schemeKey: res.schemeKey, version: 2 }; }
+  return res;
+}
 
 const SEVERITY = {
   critical: { label: 'Critical', bg: 'rgba(168,54,42,.10)', border: 'rgba(168,54,42,.32)', ink: 'var(--error)' },
@@ -187,8 +209,16 @@ function renderResult(data, savedView = false) {
   const LABELS = {
     knowledgeOfLaw: 'Knowledge of law', useOfFacts: 'Use of facts', analysis: 'Analysis',
     structure: 'Structure', research: 'Research', languageAndStyle: 'Language & style',
-    compliance: 'Compliance',
+    compliance: 'Citation & format',
   };
+
+  const legacy = isLegacy(r);
+  const schemeKey = (r.scoring && r.scoring.schemeKey && SCHEMES[r.scoring.schemeKey]) ? r.scoring.schemeKey : preferredScheme();
+  const res = legacy ? null : applyScore(data, schemeKey);
+  const headline = res ? res.percent : r.overallScore;
+  const marks = legacy ? {} : criterionMarks(r);
+  const label = t => `<div style="font-family:var(--mono);font-size:11px;letter-spacing:.14em;
+             text-transform:uppercase;color:var(--white-muted);margin-bottom:10px;">${t}</div>`;
 
   return `
     ${data.mootcoachDraft ? `
@@ -200,24 +230,62 @@ function renderResult(data, savedView = false) {
     <div style="display:flex;gap:20px;align-items:center;flex-wrap:wrap;
          padding:18px;background:var(--navy-2);border:1px solid var(--rule);border-radius:12px;margin-bottom:6px;">
       <div style="text-align:center;min-width:110px;">
-        <div style="font-size:46px;font-weight:700;line-height:1;color:${scoreColour(r.overallScore)};">${esc(r.overallScore ?? '—')}</div>
+        <div style="font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--white-muted);margin-bottom:4px;">Guide score</div>
+        <div style="font-size:46px;font-weight:700;line-height:1;color:${scoreColour(headline)};">${esc(headline ?? '—')}</div>
+        ${res && res.outOf !== 100 ? `<div style="font-family:var(--mono);font-size:11px;color:var(--white-2);margin-top:2px;">= ${esc(res.total)} / ${esc(res.outOf)}</div>` : ''}
         <div style="font-family:var(--mono);font-size:11px;letter-spacing:.14em;
-             text-transform:uppercase;color:var(--white-muted);margin-top:4px;">${esc(band(r.overallScore) || r.grade || '')}</div>
+             text-transform:uppercase;color:var(--white-muted);margin-top:4px;">${esc(band(headline) || r.grade || '')}</div>
       </div>
       <div style="flex:1;min-width:240px;line-height:1.6;">${esc(r.verdict || '')}</div>
     </div>
-    <div style="font-family:var(--mono);font-size:10px;color:var(--white-muted);margin:0 0 20px 4px;">${esc(BAND_KEY)}</div>
+    <div style="font-family:var(--mono);font-size:10px;color:var(--white-muted);margin:0 0 14px 4px;">${esc(BAND_KEY)}</div>
+
+    ${legacy ? `
+      <div style="padding:10px 14px;margin-bottom:20px;border:1px solid var(--rule);border-radius:10px;font-size:13px;line-height:1.6;color:var(--white-2);">
+        This is an older review. Its overall score was chosen by the AI, before MootCoach computed scores from
+        competitions' published marking schemes. Review the memorial again for a score you can trace.
+      </div>` : res ? `
+      <div style="padding:14px 16px;margin-bottom:20px;border:1px solid var(--rule);border-radius:12px;background:var(--sheet);">
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px;">
+          <label for="mr-scheme" style="font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--white-muted);">Marked as</label>
+          <select id="mr-scheme" style="flex:1;min-width:200px;padding:7px 9px;border:1px solid var(--rule);border-radius:8px;background:var(--sheet);color:var(--white);font-size:13px;">
+            ${Object.entries(SCHEMES).map(([k, v]) => `<option value="${esc(k)}"${k === res.schemeKey ? ' selected' : ''}>${esc(v.name)}</option>`).join('')}
+          </select>
+        </div>
+        <table style="width:100%;border-collapse:collapse;font-size:13px;line-height:1.5;">
+          ${res.heads.map(h => `<tr>
+            <td style="padding:4px 0;border-bottom:1px solid var(--rule);">${esc(h.label)}</td>
+            <td style="padding:4px 0;border-bottom:1px solid var(--rule);text-align:right;white-space:nowrap;font-weight:700;">${esc(h.mark)} / ${esc(h.max)}</td></tr>`).join('')}
+          ${res.penalties.map(p => `<tr>
+            <td style="padding:4px 0;border-bottom:1px solid var(--rule);color:var(--error);">${esc(p.what)}<br>
+              <span style="font-size:11.5px;color:var(--white-muted);">${esc(p.note)}</span></td>
+            <td style="padding:4px 0;border-bottom:1px solid var(--rule);text-align:right;white-space:nowrap;color:var(--error);font-weight:700;">${p.disqualify ? 'Disqualification risk' : p.points ? '−' + esc(p.points) : 'flag'}</td></tr>`).join('')}
+          <tr><td style="padding:6px 0;font-weight:700;">Total</td>
+            <td style="padding:6px 0;text-align:right;font-weight:700;">${esc(res.total)} / ${esc(res.outOf)}</td></tr>
+        </table>
+        <div style="font-size:11.5px;color:var(--white-muted);line-height:1.6;margin-top:8px;">
+          Weights and penalties from the competition's rules (${esc(res.scheme.source)}), checked against the rulebook.
+          Each heading is built from the criterion marks below; how they map is MootCoach's judgement.
+          Only penalties MootCoach can measure from the PDF are applied. Your competition's own rules govern.
+          <b>MootCoach's marking has not yet been checked against judges' marks.</b>
+          ${res.capped.length ? `<br><span style="color:var(--acc-amber);">Capped at ${NO_EVIDENCE_CAP} for want of evidence: ${esc(res.capped.join(', '))}.</span>` : ''}
+        </div>
+      </div>` : ''}
 
     <div style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:22px;">
       <div style="flex:1;min-width:260px;">
-        <div style="font-family:var(--mono);font-size:11px;letter-spacing:.14em;
-             text-transform:uppercase;color:var(--white-muted);margin-bottom:10px;">Marks</div>
-        ${Object.entries(LABELS).map(([k, label]) =>
-          (r.scores && r.scores[k] !== undefined) ? scoreRow(label, r.scores[k]) : '').join('')}
+        ${label('Marks, with the evidence for each')}
+        ${Object.entries(LABELS).map(([k, lab]) => {
+          if (!(r.scores && r.scores[k] !== undefined)) return '';
+          const mk = marks[k];
+          const items = mk ? mk.evidence.map(e => `<li>${esc(e)}</li>`) : [];
+          if (mk && mk.capped) items.push(`<li style="color:var(--acc-amber);">Marked ${esc(mk.raw)} with no evidence given, so held at ${NO_EVIDENCE_CAP}.</li>`);
+          const proof = items.length ? `<ul style="margin:-2px 0 8px 0;padding-left:26px;font-size:12px;line-height:1.5;color:var(--white-2);">${items.join('')}</ul>` : '';
+          return scoreRow(lab, mk ? mk.mark : r.scores[k]) + proof;
+        }).join('')}
       </div>
       <div style="flex:1;min-width:230px;">
-        <div style="font-family:var(--mono);font-size:11px;letter-spacing:.14em;
-             text-transform:uppercase;color:var(--white-muted);margin-bottom:10px;">Measured</div>
+        ${label('Measured')}
         <div style="font-size:13px;line-height:1.9;color:var(--white-2);">
           ${m.words != null ? `Words: <b>${esc(m.words.toLocaleString())}</b>${m.limits && m.limits.words && m.limits.words.over ? ` <span style="color:var(--error);">over the ${esc(m.limits.words.limit)} limit</span>` : ''}<br>` : ''}
           ${m.pages != null ? `Pages: <b>${esc(m.pages)}</b>${m.limits && m.limits.pages && m.limits.pages.over ? ` <span style="color:var(--error);">over the ${esc(m.limits.pages.limit)} limit</span>` : ''}<br>` : ''}
@@ -286,6 +354,20 @@ function renderResult(data, savedView = false) {
             letter-spacing:.14em;text-transform:uppercase;cursor:pointer;">${savedView ? '← Back to my reviews' : 'Review another memorial'}</button>`;
 }
 
+/** Puts a result on screen and wires it: the scheme selector re-marks it
+    under another competition's weights without a new review. */
+function showResult(body, data, savedView = false) {
+  body.innerHTML = renderResult(data, savedView);
+  const sel = body.querySelector('#mr-scheme');
+  if (sel) sel.addEventListener('change', () => {
+    rememberScheme(sel.value);
+    if (data.review) data.review.scoring = { schemeKey: sel.value, version: 2 };
+    showResult(body, data, savedView);
+  });
+  const again = body.querySelector('#mr-again');
+  if (again) again.addEventListener('click', () => attachForm(body));
+}
+
 async function renderHistory(body) {
   const box = body.querySelector('#mr-history');
   if (!box) return;
@@ -322,9 +404,7 @@ async function renderHistory(body) {
     let data = null;
     try { data = JSON.parse(r.json); } catch (e) { data = null; }
     if (!data) return;
-    body.innerHTML = renderResult(data, true);
-    const back = body.querySelector('#mr-again');
-    if (back) back.addEventListener('click', () => attachForm(body));
+    showResult(body, data, true);
     body.scrollIntoView({ block: 'start' });
   }));
   box.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', async () => {
@@ -391,7 +471,8 @@ function attachForm(body) {
     const mootId = window.currentMootDocId || null;
     try {
       const data = await requestJson('/api/analyse-memorial', { formData: fd });
-      body.innerHTML = renderResult(data);
+      applyScore(data, preferredScheme());   // the score saved and passed on is the computed one
+      showResult(body, data);
       saveReview(data, { fileName: f.name, side, mootId });
       // A review of this moot's memorial joins "what the bench caught", so its
       // findings reach drafting and the briefing like a practice round's do.
@@ -406,8 +487,6 @@ function attachForm(body) {
           concerns: (Array.isArray(r.lawConcerns) ? r.lawConcerns : []).map(l => l && l.authority ? `${l.authority}: ${l.concern || ''}` : ''),
         });
       }
-      const again = body.querySelector('#mr-again');
-      if (again) again.addEventListener('click', () => attachForm(body));
       body.scrollIntoView({ block: 'start' });
     } catch (err) {
       status.innerHTML = `<span style="color:var(--error);">${esc(err.message)}</span>`;

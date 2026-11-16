@@ -70,7 +70,14 @@ When torn between two bands, choose the lower one.
   structure             organisation and the flow of the argument
   research              range and quality of authority
   languageAndStyle      precision, register, grammar
-  compliance            format and citation discipline
+  compliance            citation discipline and format (uniform citations, footnotes, Index)
+
+EVIDENCE FOR EVERY MARK. For each criterion give 1-3 pieces of evidence: a paragraph
+number, heading or short quote from the memorial, and what it shows ("¶12: asserts the
+deduction was unlawful with no authority"). A mark with no evidence is capped at 59 by
+the code that computes the score, so a high mark you cannot point to will not stand.
+You do NOT give an overall score: it is computed from your criterion marks by the
+competition's own published weights.
 
 CORRECTIONS. Give specific, actionable ones. Each must quote or name where it
 applies, say what is wrong, and say what to do instead. "Improve the analysis"
@@ -84,12 +91,14 @@ database and cannot verify citations.
 
 Return ONLY valid JSON, no markdown fences:
 {
-  "overallScore": 0-100,
-  "grade": "one of: Outstanding | Strong | Competent | Needs Work | Weak",
   "verdict": "Two or three sentences a judge would actually say about this memorial.",
   "scores": {
     "knowledgeOfLaw": 0-100, "useOfFacts": 0-100, "analysis": 0-100,
     "structure": 0-100, "research": 0-100, "languageAndStyle": 0-100, "compliance": 0-100
+  },
+  "evidence": {
+    "knowledgeOfLaw": [ "¶N or a heading or short quote: what it shows" ],
+    "useOfFacts": [], "analysis": [], "structure": [], "research": [], "languageAndStyle": [], "compliance": []
   },
   "strengths": [ "What genuinely works, and why it works. Be specific." ],
   "corrections": [

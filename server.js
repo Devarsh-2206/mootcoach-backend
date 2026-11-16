@@ -2638,6 +2638,19 @@ app.post("/api/analyse-memorial", signedIn, pilotGate({ bucket: 'memorialReviews
     });
 
     const review = extractAndParseJSON(call.text);
+    // The overall score is computed in the browser from the competition's
+    // weights (frontend/js/components/memorialScoring.js), never taken from
+    // the model. Anything it volunteers is kept aside, not shown as the score.
+    if (review && review.overallScore !== undefined) { review.modelOverallScore = review.overallScore; delete review.overallScore; }
+    if (review && review.evidence && typeof review.evidence === 'object') {
+      const ev = {};
+      for (const k of ['knowledgeOfLaw', 'useOfFacts', 'analysis', 'structure', 'research', 'languageAndStyle', 'compliance']) {
+        ev[k] = (Array.isArray(review.evidence[k]) ? review.evidence[k] : []).slice(0, 3).map(x => String(x || '').slice(0, 300)).filter(x => x.trim());
+      }
+      review.evidence = ev;
+    } else if (review) {
+      review.evidence = {};   // asked for and not given: every high mark is capped
+    }
 
     // A doubt about whether one of the moot's own authorities EXISTS is
     // dropped; a doubt about how it is used stays.
