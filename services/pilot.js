@@ -330,22 +330,28 @@ function createPilot(store, opts = {}) {
 
 /* ───────────────────────── feedback ───────────────────────── */
 
-const FEATURES_LIST = ['analysis', 'issues', 'memorial', 'textJudge', 'voiceJudge', 'briefing', 'calendar'];
+const FEATURES_LIST = ['analysis', 'issues', 'memorial', 'review', 'textJudge', 'voiceJudge', 'briefing', 'export', 'calendar'];
 const FEEDBACK_SCHEMA = {
   quick: { rating: ['int', 1, 5, true], improve: ['str', 500], source: ['enum', ['voice', 'bench']] },
   full: {
+    experience: ['enum', ['none', 'one', 'twoThree', 'fourPlus'], true],
+    purpose: ['enum', ['current', 'past', 'exploring']],
     overall: ['int', 1, 5, true],
     favourite: ['enum', FEATURES_LIST],
+    leastUseful: ['str', 1000],
     accuracy: ['int', 1, 5],
     wrongCases: ['enum', ['no', 'yes', 'unsure']],
     wrongCasesDetail: ['str', 500],
+    draftUseful: ['int', 1, 5],
+    reviewMatch: ['enum', ['yes', 'partly', 'no', 'unused']],
+    reviewMiss: ['str', 1000],
     judge: ['int', 1, 5],
+    judgeImprove: ['str', 1000],
     problems: ['str', 1000],
     realMoot: ['enum', ['yes', 'maybe', 'no'], true],
-    pay: ['enum', ['no', 'upto199', '200to499', '500plus']],
+    realMootChange: ['str', 1000],
     recommend: ['int', 0, 10, true],
-    memorialRules: ['str', 1000],
-    comments: ['str', 1500],
+    oneChange: ['str', 1500],
   },
 };
 function sanitizeFeedback(kind, answers) {

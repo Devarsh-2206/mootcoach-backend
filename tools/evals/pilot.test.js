@@ -169,13 +169,17 @@ const outsider = (n) => ({ uid: 'o' + n, email: `x${n}@gmail.com`, emailVerified
   const t = nalsar(900);
   await q.join(t);
   assert.strictEqual((await q.recordFeedback(t, 'quick', { rating: 4, source: 'voice' }, { trigger: 'round' })).ok, true);
-  assert.strictEqual((await q.recordFeedback(t, 'full', { overall: 9, realMoot: 'yes', recommend: 8 })).ok, false, 'out of range rejected');
-  assert.strictEqual((await q.recordFeedback(t, 'full', { overall: 5, realMoot: 'maybe', recommend: 10, problems: 'none', hacked: 'x' })).ok, true);
+  assert.strictEqual((await q.recordFeedback(t, 'full', { experience: 'one', overall: 9, realMoot: 'yes', recommend: 8 })).ok, false, 'out of range rejected');
+  assert.strictEqual((await q.recordFeedback(t, 'full', { overall: 5, realMoot: 'maybe', recommend: 10 })).ok, false, 'experience is required');
+  assert.strictEqual((await q.recordFeedback(t, 'full', { experience: 'twoThree', overall: 5, realMoot: 'maybe', recommend: 10, favourite: 'review',
+    reviewMatch: 'partly', realMootChange: 'citations', problems: 'none', pay: '500plus', hacked: 'x' })).ok, true);
   const st = await q.join(t);
   assert.ok(st.feedback.quick && st.feedback.full, 'flags stored on the member');
   const all = await q.listFeedback();
   assert.strictEqual(all.length, 2);
   assert.strictEqual(all[0].kind, 'full');
   assert.ok(!('hacked' in all[0].answers));
+  assert.ok(!('pay' in all[0].answers), 'the pricing question is gone');
+  assert.strictEqual(all[0].answers.favourite, 'review');
   console.log('FEEDBACK PASS');
 })().catch(e => { console.error(e); process.exit(1); });

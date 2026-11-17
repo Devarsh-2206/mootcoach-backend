@@ -55,7 +55,7 @@ export function showPilotWelcome(user) {
         <li><b>Face the bench.</b> Argue before an AI judge by text or by voice and get a scored report.</li>
       </ol>
       <p class="pilot-small">Your pilot allowance: ${esc(L.uploads)} uploads, ${esc(L.memorials)} memorial drafts and ${esc(L.voiceRounds)} voice rounds of up to ${esc(p.voiceMinutes || 15)} minutes. What you have left is always in the sidebar. Upload only propositions your competition allows you to share.</p>
-      <p class="pilot-small">We will ask for your feedback after your rounds. It takes two minutes and shapes what MootCoach becomes.</p>
+      <p class="pilot-small">We will ask for your feedback after your rounds. It takes about three minutes and decides what we fix and build next.</p>
       <div class="mc-dialog-actions"><button type="button" class="mc-dialog-primary" data-act="go">Start</button></div>
     </div>`;
   const close = () => { overlay.remove(); document.removeEventListener('keydown', onKey); };
@@ -78,18 +78,34 @@ const pills = (name, opts) => `<div class="fb-pills" role="radiogroup" data-name
 const text = (name, ph, rows = 2) => `<textarea data-name="${name}" rows="${rows}" maxlength="1000" placeholder="${esc(ph)}"></textarea>`;
 const q = (n, label, body, req) => `<div class="fb-q"><label>${n}. ${esc(label)}${req ? ' <span class="fb-req" aria-label="required">*</span>' : ''}</label>${body}</div>`;
 
+/* A follow-up that opens only for some answers ("Which cases?" after "Yes"). */
+const follow = (forName, when, body) => `<div class="fb-follow" data-for="${forName}" data-when="${when}" hidden>${body}</div>`;
+
+/* Every question is here because its answer changes what we build next. */
 const FULL_FORM = [
-  q(1, 'Overall, how useful was MootCoach for your moot preparation?', scale('overall', 1, 5, 'Not useful', 'Very useful'), true),
-  q(2, 'Which part helped you most?', pills('favourite', [['analysis', 'Proposition analysis'], ['issues', 'Issues'], ['memorial', 'Memorial drafting'], ['textJudge', 'Text judge'], ['voiceJudge', 'Voice judge'], ['briefing', 'Chambers Briefing'], ['calendar', 'Moot Calendar']])),
-  q(3, 'How accurate was the analysis for your court and issues?', scale('accuracy', 1, 5, 'Way off', 'Spot on', "Didn't use it")),
-  q(4, 'Did you notice any cases that looked invented or wrong?', pills('wrongCases', [['no', 'No'], ['yes', 'Yes'], ['unsure', 'Not sure']]) + `<div class="fb-follow" hidden>${text('wrongCasesDetail', 'Which ones? Any detail helps us fix it.')}</div>`),
-  q(5, 'How realistic did the judge feel?', scale('judge', 1, 5, 'Not at all', 'Like a real bench', "Didn't try it")),
-  q(6, 'Did anything break, confuse you or feel slow?', text('problems', 'Tell us what happened and where.')),
-  q(7, 'Would you use MootCoach to prepare for a real moot?', pills('realMoot', [['yes', 'Yes'], ['maybe', 'Maybe'], ['no', 'No']]), true),
-  q(8, 'Would you pay for MootCoach?', pills('pay', [['no', 'No'], ['upto199', 'Up to ₹199 a month'], ['200to499', '₹200–499 a month'], ['500plus', '₹500+ a month']])),
-  q(9, 'How likely are you to recommend MootCoach to a friend?', scale('recommend', 0, 10, 'Not likely', 'Very likely'), true),
-  q(10, 'If you draft memorials for competitions, which rules must they follow?', text('memorialRules', 'e.g. page limit, font and spacing, citation style (SCC, OSCOLA), cover format, no names.')),
-  q(11, 'Anything else you would like to tell us?', text('comments', 'Ideas, wishes, anything.', 3)),
+  // Who is answering: the same comment means something different from a first-timer and a finalist.
+  q(1, 'How much mooting have you done?', pills('experience', [['none', 'None yet'], ['one', '1 moot'], ['twoThree', '2–3 moots'], ['fourPlus', '4 or more']]), true),
+  q(2, 'What did you use MootCoach for?', pills('purpose', [['current', 'A moot I am preparing for now'], ['past', 'A past moot or problem'], ['exploring', 'Just exploring']])),
+  // Value.
+  q(3, 'How much did MootCoach actually help your preparation?', scale('overall', 1, 5, 'Not at all', 'A great deal'), true),
+  q(4, 'Which part was most valuable to you?', pills('favourite', [['analysis', 'Proposition analysis'], ['issues', 'Issues and arguments'], ['memorial', 'Memorial drafting'], ['review', 'Memorial Review'], ['textJudge', 'Text courtroom'], ['voiceJudge', 'Voice courtroom'], ['briefing', 'Chambers Briefing'], ['export', 'PDF / Word export'], ['calendar', 'Moot Calendar']])),
+  q(5, 'Which part was least useful or most disappointing, and why?', text('leastUseful', 'Be blunt: this tells us what to fix first.')),
+  // Trust and quality.
+  q(6, 'How accurate was the proposition analysis (the issues, the forum, the law that applies)?', scale('accuracy', 1, 5, 'Way off', 'Spot on', "Didn't use it")),
+  q(7, 'Did MootCoach ever give you a case or point of law you think was wrong or made up?', pills('wrongCases', [['no', 'No'], ['yes', 'Yes'], ['unsure', 'Not sure']])
+    + follow('wrongCases', 'yes,unsure', text('wrongCasesDetail', 'Which case or point, and where in MootCoach did you see it?'))),
+  q(8, 'How useful was the memorial draft as a starting point for your own?', scale('draftUseful', 1, 5, 'Not useful', 'Very useful', "Didn't use it")),
+  q(9, "Did Memorial Review's comments match what a judge or senior would say?", pills('reviewMatch', [['yes', 'Mostly yes'], ['partly', 'Partly'], ['no', 'Mostly no'], ['unused', "Didn't use it"]])
+    + follow('reviewMatch', 'partly,no', text('reviewMiss', 'What did it miss, or get wrong?'))),
+  q(10, 'How close did the courtroom judge feel to a real bench?', scale('judge', 1, 5, 'Nothing like it', 'Like a real bench', "Didn't try it")
+    + follow('judge', '1,2,3,4', text('judgeImprove', 'What felt unreal: the questions, the tone, the timing, the scoring?'))),
+  // Friction.
+  q(11, 'Where did you get stuck, confused, or wait too long?', text('problems', 'Tell us what happened and where. Screens, buttons, slow steps, errors.')),
+  // Intent.
+  q(12, 'Would you use MootCoach for your next real moot?', pills('realMoot', [['yes', 'Yes'], ['maybe', 'Maybe'], ['no', 'No']])
+    + follow('realMoot', 'maybe,no', text('realMootChange', 'What would have to change for you to say yes?')), true),
+  q(13, 'How likely are you to recommend MootCoach to a fellow mooter?', scale('recommend', 0, 10, 'Not likely', 'Very likely'), true),
+  q(14, 'If you could change or add one thing in MootCoach, what would it be?', text('oneChange', 'One idea, as specific as you like.', 3)),
 ].join('');
 
 let formOpen = false;
@@ -102,7 +118,7 @@ export function openFeedbackForm({ trigger = 'button' } = {}) {
     const overlay = document.createElement('div');
     overlay.className = 'mc-dialog-overlay';
     overlay.innerHTML = `<div class="mc-dialog fb-dialog fb-full" role="dialog" aria-modal="true" aria-labelledby="fb-title">
-        <div class="fb-head"><div><div class="pilot-eyebrow">Pilot feedback · about 2 minutes</div><h3 id="fb-title">How was MootCoach?</h3></div>
+        <div class="fb-head"><div><div class="pilot-eyebrow">Pilot feedback · about 3 minutes</div><h3 id="fb-title">How was MootCoach?</h3></div>
           <button type="button" class="pilot-x" data-act="skip" aria-label="Close">×</button></div>
         <form class="fb-body" novalidate>${FULL_FORM}
           <p class="fb-error" role="alert" hidden></p>
@@ -119,15 +135,20 @@ export function openFeedbackForm({ trigger = 'button' } = {}) {
       const group = opt.closest('[data-name]');
       group.querySelectorAll('[role="radio"]').forEach(b => b.setAttribute('aria-checked', String(b === opt)));
       answers[group.dataset.name] = opt.dataset.v === '' ? null : (/^\d+$/.test(opt.dataset.v) && group.classList.contains('fb-scale') ? Number(opt.dataset.v) : opt.dataset.v);
-      if (group.dataset.name === 'wrongCases') overlay.querySelector('.fb-follow').hidden = opt.dataset.v !== 'yes';
+      // Follow-ups open for the answers that call for them.
+      overlay.querySelectorAll(`.fb-follow[data-for="${group.dataset.name}"]`).forEach(f => {
+        f.hidden = !f.dataset.when.split(',').includes(opt.dataset.v);
+      });
     });
     overlay.querySelector('form').addEventListener('submit', async (e) => {
       e.preventDefault();
       overlay.querySelectorAll('textarea[data-name]').forEach(t => { if (t.value.trim()) answers[t.dataset.name] = t.value.trim(); });
-      const missing = ['overall', 'realMoot', 'recommend'].filter(k => answers[k] == null);
+      // A follow-up left open by a changed answer is not sent.
+      overlay.querySelectorAll('.fb-follow[hidden] textarea[data-name]').forEach(t => { delete answers[t.dataset.name]; });
+      const missing = ['experience', 'overall', 'realMoot', 'recommend'].filter(k => answers[k] == null);
       const err = overlay.querySelector('.fb-error');
       if (missing.length) {
-        err.textContent = 'Please answer questions 1, 7 and 9 (marked *). Everything else is optional.';
+        err.textContent = 'Please answer questions 1, 3, 12 and 13 (marked *). Everything else is optional.';
         err.hidden = false;
         overlay.querySelector(`[data-name="${missing[0]}"]`)?.scrollIntoView({ block: 'center', behavior: 'smooth' });
         return;
