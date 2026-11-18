@@ -81,31 +81,32 @@ const q = (n, label, body, req) => `<div class="fb-q"><label>${n}. ${esc(label)}
 /* A follow-up that opens only for some answers ("Which cases?" after "Yes"). */
 const follow = (forName, when, body) => `<div class="fb-follow" data-for="${forName}" data-when="${when}" hidden>${body}</div>`;
 
-/* Every question is here because its answer changes what we build next. */
+/* For invited testers: every question asks about what they tested, and each
+   answer changes what we fix or build before MootCoach opens to everyone. */
 const FULL_FORM = [
-  // Who is answering: the same comment means something different from a first-timer and a finalist.
+  // Who is testing: the same comment means something different from a first-timer and a finalist.
   q(1, 'How much mooting have you done?', pills('experience', [['none', 'None yet'], ['one', '1 moot'], ['twoThree', '2–3 moots'], ['fourPlus', '4 or more']]), true),
-  q(2, 'What did you use MootCoach for?', pills('purpose', [['current', 'A moot I am preparing for now'], ['past', 'A past moot or problem'], ['exploring', 'Just exploring']])),
+  q(2, 'What did you test MootCoach on?', pills('purpose', [['current', 'A moot I am preparing for now'], ['past', 'A past moot proposition'], ['sample', 'A sample or practice proposition']])),
   // Value.
-  q(3, 'How much did MootCoach actually help your preparation?', scale('overall', 1, 5, 'Not at all', 'A great deal'), true),
-  q(4, 'Which part was most valuable to you?', pills('favourite', [['analysis', 'Proposition analysis'], ['issues', 'Issues and arguments'], ['memorial', 'Memorial drafting'], ['review', 'Memorial Review'], ['textJudge', 'Text courtroom'], ['voiceJudge', 'Voice courtroom'], ['briefing', 'Chambers Briefing'], ['export', 'PDF / Word export'], ['calendar', 'Moot Calendar']])),
-  q(5, 'Which part was least useful or most disappointing, and why?', text('leastUseful', 'Be blunt: this tells us what to fix first.')),
-  // Trust and quality.
-  q(6, 'How accurate was the proposition analysis (the issues, the forum, the law that applies)?', scale('accuracy', 1, 5, 'Way off', 'Spot on', "Didn't use it")),
-  q(7, 'Did MootCoach ever give you a case or point of law you think was wrong or made up?', pills('wrongCases', [['no', 'No'], ['yes', 'Yes'], ['unsure', 'Not sure']])
+  q(3, 'From your testing, how much would MootCoach help a mooter prepare?', scale('overall', 1, 5, 'Not at all', 'A great deal'), true),
+  q(4, 'Which part worked best in your testing?', pills('favourite', [['analysis', 'Proposition analysis'], ['issues', 'Issues and arguments'], ['memorial', 'Memorial drafting'], ['review', 'Memorial Review'], ['textJudge', 'Text courtroom'], ['voiceJudge', 'Voice courtroom'], ['briefing', 'Chambers Briefing'], ['export', 'PDF / Word export'], ['calendar', 'Moot Calendar']])),
+  q(5, 'Which part worked worst, and what went wrong?', text('leastUseful', 'Be blunt: this tells us what to fix first.')),
+  // Quality, feature by feature.
+  q(6, 'When you tested the proposition analysis, how accurate was it (the issues, the forum, the law that applies)?', scale('accuracy', 1, 5, 'Way off', 'Spot on', "Didn't test it")),
+  q(7, 'While testing, did you spot a case or point of law that was wrong or made up?', pills('wrongCases', [['no', 'No'], ['yes', 'Yes'], ['unsure', 'Not sure']])
     + follow('wrongCases', 'yes,unsure', text('wrongCasesDetail', 'Which case or point, and where in MootCoach did you see it?'))),
-  q(8, 'How useful was the memorial draft as a starting point for your own?', scale('draftUseful', 1, 5, 'Not useful', 'Very useful', "Didn't use it")),
-  q(9, "Did Memorial Review's comments match what a judge or senior would say?", pills('reviewMatch', [['yes', 'Mostly yes'], ['partly', 'Partly'], ['no', 'Mostly no'], ['unused', "Didn't use it"]])
+  q(8, 'When you tested memorial drafting, how good was the draft as a starting point?', scale('draftUseful', 1, 5, 'Not usable', 'A strong start', "Didn't test it")),
+  q(9, "When you tested Memorial Review, did its comments match what a judge or senior would say?", pills('reviewMatch', [['yes', 'Mostly yes'], ['partly', 'Partly'], ['no', 'Mostly no'], ['unused', "Didn't test it"]])
     + follow('reviewMatch', 'partly,no', text('reviewMiss', 'What did it miss, or get wrong?'))),
-  q(10, 'How close did the courtroom judge feel to a real bench?', scale('judge', 1, 5, 'Nothing like it', 'Like a real bench', "Didn't try it")
+  q(10, 'When you tested the courtroom, how close did the judge feel to a real bench?', scale('judge', 1, 5, 'Nothing like it', 'Like a real bench', "Didn't test it")
     + follow('judge', '1,2,3,4', text('judgeImprove', 'What felt unreal: the questions, the tone, the timing, the scoring?'))),
-  // Friction.
-  q(11, 'Where did you get stuck, confused, or wait too long?', text('problems', 'Tell us what happened and where. Screens, buttons, slow steps, errors.')),
+  // Bugs and friction.
+  q(11, 'While testing, did anything break, show an error, confuse you or take too long?', text('problems', 'What happened, and on which screen or step?')),
   // Intent.
-  q(12, 'Would you use MootCoach for your next real moot?', pills('realMoot', [['yes', 'Yes'], ['maybe', 'Maybe'], ['no', 'No']])
+  q(12, 'After testing it, would you use MootCoach for your next real moot?', pills('realMoot', [['yes', 'Yes'], ['maybe', 'Maybe'], ['no', 'No']])
     + follow('realMoot', 'maybe,no', text('realMootChange', 'What would have to change for you to say yes?')), true),
   q(13, 'How likely are you to recommend MootCoach to a fellow mooter?', scale('recommend', 0, 10, 'Not likely', 'Very likely'), true),
-  q(14, 'If you could change or add one thing in MootCoach, what would it be?', text('oneChange', 'One idea, as specific as you like.', 3)),
+  q(14, 'What is the one thing we should fix or add before opening MootCoach to everyone?', text('oneChange', 'As specific as you like.', 3)),
 ].join('');
 
 let formOpen = false;
@@ -118,7 +119,7 @@ export function openFeedbackForm({ trigger = 'button' } = {}) {
     const overlay = document.createElement('div');
     overlay.className = 'mc-dialog-overlay';
     overlay.innerHTML = `<div class="mc-dialog fb-dialog fb-full" role="dialog" aria-modal="true" aria-labelledby="fb-title">
-        <div class="fb-head"><div><div class="pilot-eyebrow">Pilot feedback · about 3 minutes</div><h3 id="fb-title">How was MootCoach?</h3></div>
+        <div class="fb-head"><div><div class="pilot-eyebrow">Tester feedback · about 3 minutes</div><h3 id="fb-title">How did your testing go?</h3></div>
           <button type="button" class="pilot-x" data-act="skip" aria-label="Close">×</button></div>
         <form class="fb-body" novalidate>${FULL_FORM}
           <p class="fb-error" role="alert" hidden></p>

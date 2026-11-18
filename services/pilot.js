@@ -335,7 +335,7 @@ const FEEDBACK_SCHEMA = {
   quick: { rating: ['int', 1, 5, true], improve: ['str', 500], source: ['enum', ['voice', 'bench']] },
   full: {
     experience: ['enum', ['none', 'one', 'twoThree', 'fourPlus'], true],
-    purpose: ['enum', ['current', 'past', 'exploring']],
+    purpose: ['enum', ['current', 'past', 'sample']],
     overall: ['int', 1, 5, true],
     favourite: ['enum', FEATURES_LIST],
     leastUseful: ['str', 1000],

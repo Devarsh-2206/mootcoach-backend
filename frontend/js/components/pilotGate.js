@@ -455,11 +455,11 @@ function renderSpend(sp) {
 }
 
 const FB_LABELS = {
-  experience: 'Moots done', purpose: 'Used it for', overall: 'Helped (1–5)', favourite: 'Most valuable', leastUseful: 'Least useful',
+  experience: 'Moots done', purpose: 'Tested on', overall: 'Helped (1–5)', favourite: 'Worked best', leastUseful: 'Worked worst',
   accuracy: 'Analysis accuracy (1–5)', wrongCases: 'Wrong cases?', wrongCasesDetail: 'Which cases', draftUseful: 'Draft useful (1–5)',
   reviewMatch: 'Review matched a judge', reviewMiss: 'Review missed', judge: 'Judge realism (1–5)', judgeImprove: 'Judge felt unreal',
-  problems: 'Stuck or slow', realMoot: 'Use for next moot', realMootChange: 'Would need to change', recommend: 'Recommend (0–10)',
-  oneChange: 'One change',
+  problems: 'Broke or slow', realMoot: 'Use for next moot', realMootChange: 'Would need to change', recommend: 'Recommend (0–10)',
+  oneChange: 'Fix before opening',
   // Earlier versions of the form, so old answers still export.
   pay: 'Would pay', memorialRules: 'Memorial rules', comments: 'Comments',
   rating: 'Round rating (1–5)', improve: 'Improve', source: 'Round type',
